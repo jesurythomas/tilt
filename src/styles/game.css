@@ -669,11 +669,10 @@ button {
   inset: 0;
   z-index: 30;
   display: flex;
-  background: var(--color-arena);
-  background-image: radial-gradient(900px 620px at 78% 44%, rgba(91, 140, 255, 0.10), rgba(0, 0, 0, 0) 70%);
+  background: transparent;
   overflow: hidden;
   padding: 0;
-  backdrop-filter: none;
+  pointer-events: none;
 }
 
 .tilt-menu-content {
@@ -1595,10 +1594,13 @@ button[role="switch"][aria-checked="true"] > span {
    4 tabs: Weapons, Ships, Arena, Handling.
    Flat fills, 1px hairlines, rank pips, trait tags, live handling preview.
    ========================================================================= */
+.game-overlay,
+.tilt-options-overlay,
+.tilt-all-goals-overlay,
 .tilt-armory-overlay {
   position: fixed;
   inset: 0;
-  z-index: 40;
+  z-index: 100;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1606,6 +1608,7 @@ button[role="switch"][aria-checked="true"] > span {
   backdrop-filter: blur(6px);
   padding: 20px;
   box-sizing: border-box;
+  pointer-events: auto;
 }
 
 .tilt-armory-panel {
@@ -3169,22 +3172,12 @@ button[role="switch"][aria-checked="true"] > span {
   height: 100%;
   position: relative;
   overflow: hidden;
-  background: #0D1016;
+  background: transparent;
+  pointer-events: none;
 }
 
 .tilt-menu-arena-backdrop {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-  background: radial-gradient(900px 620px at 78% 44%, rgba(91, 140, 255, 0.10), rgba(0, 0, 0, 0) 70%);
-}
-
-.menu-threat-dot {
-  position: absolute;
-  border-radius: 50%;
-  background: #FF4757;
-  box-shadow: 0 0 12px rgba(255, 71, 87, 0.85);
+  display: none;
 }
 
 .tilt-menu-sidebar {
@@ -3200,6 +3193,7 @@ button[role="switch"][aria-checked="true"] > span {
   flex-direction: column;
   overflow-y: auto;
   z-index: 5;
+  pointer-events: auto;
 }
 
 @media (max-width: 900px) {
@@ -3414,6 +3408,7 @@ button[role="switch"][aria-checked="true"] > span {
   align-items: center;
   gap: 10px;
   z-index: 10;
+  pointer-events: auto;
 }
 
 @media (max-width: 900px) {

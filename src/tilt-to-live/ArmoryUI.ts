@@ -902,20 +902,20 @@ export class ArmoryUI {
       while (diff > Math.PI) diff -= Math.PI * 2;
       ship.angle += diff * Math.min(1.0, (1 / 60) * 16 * tuning.sensitivity);
 
-      // 5. Draw Player Ship vector silhouette with cyan glow
+      // 5. Draw Player Ship vector silhouette matching equipped ship
+      const equippedShip = this.progression.getEquippedShip();
       ctx.save();
       ctx.translate(ship.x, ship.y);
       ctx.rotate(ship.angle);
-      ctx.shadowColor = 'rgba(91, 140, 255, 0.85)';
+      ctx.shadowColor = equippedShip.tint;
       ctx.shadowBlur = 14;
-      ctx.fillStyle = '#5B8CFF';
-      ctx.beginPath();
-      ctx.moveTo(14, 0);
-      ctx.lineTo(-10, -8);
-      ctx.lineTo(-5, 0);
-      ctx.lineTo(-10, 8);
-      ctx.closePath();
-      ctx.fill();
+      ctx.translate(-24, -24);
+      const shipPath = new Path2D(equippedShip.svgPath);
+      ctx.fillStyle = equippedShip.tint;
+      ctx.fill(shipPath);
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.4;
+      ctx.stroke(shipPath);
       ctx.restore();
 
       // 6. Draw subtle mouse reticle dot

@@ -180,7 +180,7 @@ export class ProgressionManager {
       hitboxScale: 1.68,
       turnRate: 0.57,
       tint: '#FFB14D',
-      svgPath: 'M24 7 L39 17 V33 L24 41 L9 33 V17 Z',
+      svgPath: 'M41 24 L33 9 L17 9 L7 24 L17 39 L33 39 Z',
       hullColor: '#ffd700',
       primaryColor: '#FFB14D',
       accentColor: '#ffffff',

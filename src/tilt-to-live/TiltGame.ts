@@ -13,7 +13,7 @@ import { TiltRenderer } from './TiltRenderer';
 import { TiltEntranceCinematic } from './TiltEntranceCinematic';
 import { ProgressionManager } from './ProgressionManager';
 import { ArmoryUI } from './ArmoryUI';
-import { Enemy, GameMode, GamePhase, Point2D, WeaponType } from './Types';
+import { Enemy, GameMode, GamePhase, Point2D, WeaponOrb, WeaponType } from './Types';
 import { GoalManager, RunTracker } from './GoalManager';
 import { GameOptionsManager } from './GameOptions';
 import { GoalsHUD } from './GoalsHUD';
@@ -52,6 +52,13 @@ export class TiltGame {
   public readonly goals: GoalManager = new GoalManager();
   public readonly goalsHUD: GoalsHUD;
   public readonly menu: TiltMenu;
+
+  // Autonomous Menu Background Simulation
+  public readonly menuPlayer: PlayerShip = new PlayerShip(600, 350);
+  public readonly menuSwarm: EnemySwarm = new EnemySwarm();
+  public readonly menuWeapons: WeaponSystem = new WeaponSystem();
+  private menuOrbTimer: number = 0;
+  private menuSpawnTimer: number = 0;
 
   // Mouse / Pointer, Keyboard & Gyro State
   public mousePos: Point2D = { x: 400, y: 300 };
@@ -92,9 +99,6 @@ export class TiltGame {
   public durationIndicatorEl!: HTMLElement;
   public durationLabelEl!: HTMLElement;
   public durationFillEl!: HTMLElement;
-  public secondaryBoxEl!: HTMLElement;
-  public secondaryFillEl!: HTMLElement;
-  public secondaryBtnEl!: HTMLElement;
   public leftRailFillEl!: HTMLElement | null;
 
   // Pause Screen (Board 07)
@@ -119,9 +123,7 @@ export class TiltGame {
   public retryBtnEl!: HTMLElement;
   public spendBtnEl!: HTMLElement;
 
-  // In-Run Secondary Ability & Rail Progress
-  public secondaryAbilityCooldown: number = 0;
-  public readonly maxAbilityCooldown: number = 18;
+  // Rail Progress
   public railProgress: number = 0;
 
   constructor(canvas: HTMLCanvasElement, onReturnToPortal?: () => void) {
@@ -1056,14 +1058,6 @@ export class TiltGame {
         </div>
       </div>
 
-      <!-- Bottom Right Secondary Ability Cooldown (Board 05) -->
-      <div id="tilt-hud-secondary" class="hud-secondary-ability is-ready">
-        <span class="hud-secondary-name">Blackhole</span>
-        <div class="hud-secondary-bar-track">
-          <div id="tilt-hud-secondary-bar-fill" class="hud-secondary-bar-fill" style="width: 100%;"></div>
-        </div>
-        <button id="btn-tilt-secondary" type="button" class="hud-secondary-key" title="Deploy Blackhole (E)">E</button>
-      </div>
     `;
 
     this.scoreEl = this.requireElement('tilt-score');
@@ -1074,9 +1068,6 @@ export class TiltGame {
     this.durationIndicatorEl = this.requireElement('tilt-hud-duration');
     this.durationLabelEl = this.requireElement('tilt-hud-duration-label');
     this.durationFillEl = this.requireElement('tilt-hud-duration-bar-fill');
-    this.secondaryBoxEl = this.requireElement('tilt-hud-secondary');
-    this.secondaryFillEl = this.requireElement('tilt-hud-secondary-bar-fill');
-    this.secondaryBtnEl = this.requireElement('btn-tilt-secondary');
 
     // 3. Pause Overlay Modal (Board 07)
     this.pauseModal = this.requireElement('tilt-pause-overlay');
@@ -1243,10 +1234,6 @@ export class TiltGame {
           this.startCinematic();
           return;
         }
-      } else if (key === 'e' && this.phase === 'playing') {
-        e.preventDefault();
-        this.triggerSecondaryAbility();
-        return;
       } else if (key === 'b' || key === 'u') {
         e.preventDefault();
         if (this.armoryUI.isOpen()) {
@@ -1304,9 +1291,7 @@ export class TiltGame {
       this.returnToMenu();
     });
 
-    document.getElementById('btn-tilt-secondary')?.addEventListener('click', () => {
-      this.triggerSecondaryAbility();
-    });
+
 
     // Pause Screen Buttons & Switches (Board 07)
     document.getElementById('btn-tilt-resume')?.addEventListener('click', () => {
@@ -1497,7 +1482,6 @@ export class TiltGame {
     this.elapsed = 0;
     this.accumulator = 0;
     this.pointsEarnedThisRun = 0;
-    this.secondaryAbilityCooldown = 0;
     this.railProgress = 0;
     if (this.leftRailFillEl) this.leftRailFillEl.style.height = '0%';
 
@@ -1565,31 +1549,182 @@ export class TiltGame {
     }
   }
 
-  public triggerSecondaryAbility() {
-    if (this.phase !== 'playing' || this.player.isDead) return;
-    if (this.secondaryAbilityCooldown > 0) return;
-
-    this.weapons.activateWeapon(
-      'vortex',
-      this.player.x,
-      this.player.y,
-      this.player,
-      this.swarm.enemies,
-      this.particles,
-      this.grid,
-      this.audio,
-      (enemy, weaponType) => this.handleEnemyKilled(enemy, weaponType),
-      this.progression.data.perks
-    );
-    this.secondaryAbilityCooldown = this.maxAbilityCooldown;
-    this.goalsHUD.showMessageToast('BLACKHOLE DEPLOYED', 'Event Horizon Active');
-    this.updateHUD();
-  }
-
   public formatTime(secs: number): string {
     const m = Math.floor(secs / 60);
     const s = Math.floor(secs % 60);
     return `${m}:${s.toString().padStart(2, '0')}`;
+  }
+
+  private updateMenuSimulation(dt: number) {
+    this.elapsed += dt;
+    const width = this.canvas.width / this.pixelRatio;
+    const height = this.canvas.height / this.pixelRatio;
+    const bounds = { width, height };
+
+    this.grid.update(dt);
+    this.particles.update(dt);
+
+    // 1. Maintain 2 to 3 base weapon orbs (strictly base power ups: nuke, missiles, laser, freeze, shield, lightning)
+    this.menuOrbTimer -= dt;
+    if (this.menuWeapons.orbs.length < 2 && this.menuOrbTimer <= 0) {
+      const baseTypes: WeaponType[] = ['nuke', 'missiles', 'laser', 'freeze', 'shield', 'lightning'];
+      const chosen = baseTypes[Math.floor(Math.random() * baseTypes.length)];
+      // Spawn preferentially in the right 60% of the screen so it's not hidden behind the menu sidebar
+      const spawnX = bounds.width * 0.38 + Math.random() * (bounds.width * 0.55);
+      const spawnY = 80 + Math.random() * (bounds.height - 160);
+      this.menuWeapons.spawnOrb(bounds, chosen, spawnX, spawnY);
+      this.menuOrbTimer = 2.5 + Math.random() * 2.0;
+    }
+
+    // 2. Maintain 12 to 16 seekers
+    this.menuSpawnTimer -= dt;
+    if (this.menuSwarm.enemies.length < 14 && this.menuSpawnTimer <= 0) {
+      this.menuSwarm.spawnSeeker(bounds);
+      this.menuSpawnTimer = 0.5 + Math.random() * 0.4;
+    }
+
+    // 3. Autopilot Steer Vector Calculation
+    let nearestOrb: WeaponOrb | null = null;
+    let minDist = Infinity;
+    for (const orb of this.menuWeapons.orbs) {
+      const dx = orb.x - this.menuPlayer.x;
+      const dy = orb.y - this.menuPlayer.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < minDist) {
+        minDist = dist;
+        nearestOrb = orb;
+      }
+    }
+
+    let steerX = 0;
+    let steerY = 0;
+
+    if (nearestOrb) {
+      // Seek closest power-up orb
+      const dx = nearestOrb.x - this.menuPlayer.x;
+      const dy = nearestOrb.y - this.menuPlayer.y;
+      const dist = Math.max(1, minDist);
+      steerX = (dx / dist) * 290;
+      steerY = (dy / dist) * 290;
+    } else {
+      // Wander in gentle figure-8 loop in open right arena
+      const cx = bounds.width * 0.62;
+      const cy = bounds.height * 0.5;
+      const angle = this.elapsed * 0.8;
+      const wanderX = cx + Math.cos(angle) * (bounds.width * 0.22);
+      const wanderY = cy + Math.sin(angle * 2) * (bounds.height * 0.18);
+      const dx = wanderX - this.menuPlayer.x;
+      const dy = wanderY - this.menuPlayer.y;
+      const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+      steerX = (dx / dist) * 160;
+      steerY = (dy / dist) * 160;
+    }
+
+    // 4. Repulsive force from nearby enemies (evasion!)
+    const dangerRadius = 145;
+    for (const e of this.menuSwarm.enemies) {
+      const ex = this.menuPlayer.x - e.x;
+      const ey = this.menuPlayer.y - e.y;
+      const edist = Math.sqrt(ex * ex + ey * ey);
+      if (edist < dangerRadius && edist > 0.1) {
+        const repulsion = Math.pow((dangerRadius - edist) / dangerRadius, 1.8) * 520;
+        steerX += (ex / edist) * repulsion;
+        steerY += (ey / edist) * repulsion;
+      }
+    }
+
+    // 5. Boundary repulsion to stay in visible playing area and avoid sidebar
+    const leftMargin = Math.min(bounds.width * 0.38, 420);
+    const rightMargin = 60;
+    const topMargin = 60;
+    const botMargin = 60;
+
+    if (this.menuPlayer.x < leftMargin) {
+      steerX += ((leftMargin - this.menuPlayer.x) / leftMargin) * 450;
+    } else if (this.menuPlayer.x > bounds.width - rightMargin) {
+      steerX -= ((this.menuPlayer.x - (bounds.width - rightMargin)) / rightMargin) * 450;
+    }
+    if (this.menuPlayer.y < topMargin) {
+      steerY += ((topMargin - this.menuPlayer.y) / topMargin) * 380;
+    } else if (this.menuPlayer.y > bounds.height - botMargin) {
+      steerY -= ((this.menuPlayer.y - (bounds.height - botMargin)) / botMargin) * 380;
+    }
+
+    const targetPos = {
+      x: this.menuPlayer.x + steerX,
+      y: this.menuPlayer.y + steerY
+    };
+
+    // Update menu player
+    this.menuPlayer.update(
+      dt,
+      targetPos,
+      bounds,
+      this.particles,
+      'mouse',
+      { x: 0, y: 0 },
+      { sensitivity: 1.0, deadzone: 2 },
+      undefined
+    );
+
+    // Update menu swarm
+    this.menuSwarm.update(
+      dt,
+      { x: this.menuPlayer.x, y: this.menuPlayer.y },
+      bounds,
+      this.particles,
+      0,
+      'classic'
+    );
+
+    // Defensive shield activation if close call
+    for (const e of this.menuSwarm.enemies) {
+      const cdx = e.x - this.menuPlayer.x;
+      const cdy = e.y - this.menuPlayer.y;
+      if (cdx * cdx + cdy * cdy <= (e.radius + this.menuPlayer.radius + 6) * (e.radius + this.menuPlayer.radius + 6)) {
+        if (!this.menuPlayer.hasShield()) {
+          this.menuPlayer.activateShield(3.0);
+          this.particles.emitExplosion(this.menuPlayer.x, this.menuPlayer.y, '#5B8CFF', 14);
+          this.grid.applyExplosion(this.menuPlayer.x, this.menuPlayer.y, 8, 80);
+        }
+      }
+    }
+
+    // Silent audio stub for background menu simulation
+    const silentAudio = {
+      playSfx: () => {},
+      playOrbPickup: () => {},
+      playNuke: () => {},
+      playMissileLaunch: () => {},
+      playMissileExplode: () => {},
+      playLaserBeam: () => {},
+      playLightning: () => {},
+      playFreeze: () => {},
+      playIceShatter: () => {},
+      playVortex: () => {},
+      playDotPop: () => {},
+      playCloseCall: () => {},
+      playPlayerDeath: () => {},
+      playMilestone: () => {},
+      playSpaceInvaderStep: () => {},
+      playSiren: () => {},
+      playIceCascade: () => {},
+      playGauntletKlaxon: () => {}
+    } as unknown as TiltAudio;
+
+    // Update menu weapons
+    this.menuWeapons.update(
+      dt,
+      this.menuPlayer,
+      this.menuSwarm.enemies,
+      bounds,
+      this.particles,
+      this.grid,
+      silentAudio,
+      (deadEnemy) => {
+        this.menuSwarm.onEnemyKilled(deadEnemy, this.particles);
+      }
+    );
   }
 
   private loop(currentTime: number) {
@@ -1600,8 +1735,7 @@ export class TiltGame {
     const dt = Math.min(0.1, rawDelta);
 
     if (this.phase === 'menu') {
-      this.grid.update(dt);
-      this.particles.update(dt);
+      this.updateMenuSimulation(dt);
     } else if (this.phase === 'cinematic') {
       const width = this.canvas.width / this.pixelRatio;
       const height = this.canvas.height / this.pixelRatio;
@@ -1695,11 +1829,6 @@ export class TiltGame {
       this.progression.data.perks,
       activeMode
     );
-
-    // Update secondary ability cooldown
-    if (this.secondaryAbilityCooldown > 0) {
-      this.secondaryAbilityCooldown = Math.max(0, this.secondaryAbilityCooldown - dt);
-    }
 
     // 6. Update Scores and Combos
     this.scores.update(dt, activeMode);
@@ -1901,20 +2030,6 @@ export class TiltGame {
       this.durationIndicatorEl.classList.add('hidden');
     }
 
-    // Secondary Ability Cooldown (Blackhole [E])
-    if (this.secondaryAbilityCooldown > 0) {
-      const pct = Math.min(100, Math.max(0, ((this.maxAbilityCooldown - this.secondaryAbilityCooldown) / this.maxAbilityCooldown) * 100));
-      this.secondaryFillEl.style.width = `${pct}%`;
-      this.secondaryBoxEl.classList.remove('is-ready');
-      this.secondaryBoxEl.classList.add('is-cooling');
-      this.secondaryBtnEl.setAttribute('disabled', 'true');
-    } else {
-      this.secondaryFillEl.style.width = '100%';
-      this.secondaryBoxEl.classList.remove('is-cooling');
-      this.secondaryBoxEl.classList.add('is-ready');
-      this.secondaryBtnEl.removeAttribute('disabled');
-    }
-
     // Left Edge Rail updating smoothly
     const completed = this.goals.getCompletedCount();
     const total = this.goals.getTotalGoalsCount();
@@ -1965,17 +2080,22 @@ export class TiltGame {
     this.ctx.setTransform(this.pixelRatio, 0, 0, this.pixelRatio, 0, 0);
 
     if (this.phase === 'menu') {
-      // Interactive vector grid ripples and stars behind start menu
+      // Dynamic autonomous simulation behind start menu
       this.renderer.renderMenuBackground(
         this.ctx,
         width,
         height,
+        this.menuPlayer,
+        this.menuSwarm,
+        this.menuWeapons,
         this.grid,
         this.particles,
-        this.mousePos,
         this.elapsed,
-        this.progression.getEquippedArenaTheme(),
-        this.options.settings.showGridlines
+        undefined,
+        undefined,
+        undefined,
+        this.options.settings.showGridlines,
+        this.options.settings.highContrastHalo
       );
       return;
     }
@@ -2052,16 +2172,19 @@ export class TiltGame {
   }
 
   public updateCursor() {
-    const skin = this.progression.getEquippedCursor();
-    const uri = this.progression.getCursorSvgDataUri(skin.id);
-    const cursorVal = `url("${uri}") 16 16, crosshair`;
-
     if (this.phase === 'playing') {
       this.canvas.style.cursor = 'none';
+    } else if (this.phase === 'menu') {
+      this.canvas.style.cursor = 'default';
     } else {
+      const skin = this.progression.getEquippedCursor();
+      const uri = this.progression.getCursorSvgDataUri(skin.id);
+      const cursorVal = `url("${uri}") 16 16, crosshair`;
       this.canvas.style.cursor = cursorVal;
+      document.documentElement.style.setProperty('--custom-cursor', cursorVal);
+      return;
     }
-    document.documentElement.style.setProperty('--custom-cursor', cursorVal);
+    document.documentElement.style.setProperty('--custom-cursor', 'default');
   }
 
   private handleArmoryClosed() {

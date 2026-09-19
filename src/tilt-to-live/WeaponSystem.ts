@@ -21,7 +21,7 @@ export class WeaponSystem {
   private nextMissileId: number = 1;
   private orbSpawnTimer: number = 2.0;
 
-  private readonly weaponTypes: WeaponType[] = [
+  public readonly weaponTypes: WeaponType[] = [
     'nuke',
     'missiles',
     'lightning',
@@ -64,22 +64,12 @@ export class WeaponSystem {
     this.orbSpawnTimer -= dt;
     if (this.orbSpawnTimer <= 0) {
       if (this.orbs.length < 5) {
-        if (gameMode === 'code-red') {
-          // Heavy crowd clearers for hyper-swarms
-          const roll = Math.random();
-          if (roll < 0.4) {
-            this.spawnOrb(bounds, 'nuke');
-          } else if (roll < 0.7) {
-            this.spawnOrb(bounds, 'vortex');
-          } else {
-            this.spawnOrb(bounds, 'missiles');
-          }
-        } else {
-          // Classic & Gauntlet: normal powerup spawns
-          this.spawnOrb(bounds);
-        }
+        // In ALL modes (including Code Red), all weapons spawn (shield, freeze/shockwave, nuke, missiles, laser, lightning)
+        // Blackhole ('vortex') is calibrated as a rare, high-impact power-up.
+        const type = this.getRandomWeaponType(gameMode);
+        this.spawnOrb(bounds, type);
       }
-      this.orbSpawnTimer = (gameMode === 'code-red' ? 2.0 : 3.0) + Math.random() * 1.5;
+      this.orbSpawnTimer = (gameMode === 'code-red' ? 2.2 : 3.0) + Math.random() * 1.5;
     }
 
     // 2. Update Orbs (lifetime and collision with player)
@@ -565,11 +555,34 @@ export class WeaponSystem {
     }
   }
 
+  public getRandomWeaponType(_gameMode: GameMode = 'classic'): WeaponType {
+    // Weighted probabilities:
+    // Missiles: 20%, Nuke: 18%, Laser: 18%, Lightning: 16%, Freeze: 16%, Shield: 16%, Blackhole (Vortex): 5% (Rare!)
+    const weights: Record<WeaponType, number> = {
+      missiles: 20,
+      nuke: 18,
+      laser: 18,
+      lightning: 16,
+      freeze: 16,
+      shield: 16,
+      vortex: 5
+    };
+
+    const entries = Object.entries(weights) as [WeaponType, number][];
+    const total = entries.reduce((acc, [, w]) => acc + w, 0);
+    let roll = Math.random() * total;
+    for (const [t, w] of entries) {
+      if (roll < w) return t;
+      roll -= w;
+    }
+    return 'missiles';
+  }
+
   public spawnOrb(bounds: { width: number; height: number }, specificType?: WeaponType, customX?: number, customY?: number) {
     const pad = Math.max(30, 60 * this.scale);
     const x = customX !== undefined ? customX : pad + Math.random() * (bounds.width - pad * 2);
     const y = customY !== undefined ? customY : pad + Math.random() * (bounds.height - pad * 2);
-    const type = specificType || this.weaponTypes[Math.floor(Math.random() * this.weaponTypes.length)];
+    const type = specificType || this.getRandomWeaponType();
 
     this.orbs.push({
       id: this.nextOrbId++,

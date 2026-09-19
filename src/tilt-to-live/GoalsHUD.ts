@@ -254,10 +254,15 @@ export class GoalsHUD {
     this.renderMilestonesModalContent();
     this.milestonesModalEl.classList.remove('hidden');
 
-    // Bind close button
+    // Bind close button and backdrop click
     document.getElementById('btn-close-milestones')?.addEventListener('click', () => {
       this.closeAllGoalsModal();
     });
+    this.milestonesModalEl.onclick = (e) => {
+      if (e.target === this.milestonesModalEl) {
+        this.closeAllGoalsModal();
+      }
+    };
   }
 
   public closeAllGoalsModal() {

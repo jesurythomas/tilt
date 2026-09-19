@@ -159,14 +159,21 @@ export class TiltRenderer {
     ctx: CanvasRenderingContext2D,
     width: number,
     height: number,
+    player: PlayerShip,
+    swarm: EnemySwarm,
+    weapons: WeaponSystem,
     grid: VectorGrid,
     particles: ParticleEngine,
-    mousePos: Point2D,
-    _elapsed: number,
+    elapsed: number,
+    cursorSkin?: CursorSkinConfig,
+    enemySkin?: EnemySkinConfig,
     arenaTheme?: ArenaThemeConfig,
-    showGridlines: boolean = false
+    showGridlines: boolean = false,
+    highContrastHalo: boolean = true
   ) {
-    // 1. Arena Background
+    ctx.save();
+
+    // 1. Arena Background Gradient
     const bg = ctx.createRadialGradient(
       width / 2,
       height / 2,
@@ -187,16 +194,30 @@ export class TiltRenderer {
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, width, height);
 
-    // 2. Vector Grid (only if enabled)
+    // 2. Vector Grid (if enabled)
     if (showGridlines) {
       grid.render(ctx, arenaTheme?.gridColor);
     }
 
-    // 3. Subtle ambient disturbance from mouse
-    grid.applyExplosion(mousePos.x, mousePos.y, 0.4, 45);
+    // 3. Perimeter Boundary Hairline
+    const boundaryCol = arenaTheme?.boundaryColor || 'rgba(91, 140, 255, 0.35)';
+    ctx.strokeStyle = boundaryCol;
+    ctx.lineWidth = 2.0;
+    ctx.strokeRect(6, 6, width - 12, height - 12);
 
-    // 4. Ambient floating particles
+    // 4. Floating Weapon Orbs & Active Weapon Visuals
+    weapons.render(ctx, elapsed);
+
+    // 5. Red Dot Enemies (themed with equipped enemy variation)
+    swarm.render(ctx, elapsed, enemySkin, highContrastHalo, 'classic');
+
+    // 6. Particle FX (sparkles, thruster plumes, explosion shockwaves)
     particles.render(ctx);
+
+    // 7. Autopilot Player Ship
+    player.render(ctx, elapsed, cursorSkin);
+
+    ctx.restore();
   }
 
   private renderMouseReticle(

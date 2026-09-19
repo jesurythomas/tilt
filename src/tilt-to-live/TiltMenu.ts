@@ -127,30 +127,6 @@ export class TiltMenu {
 
     this.menuContainerEl.innerHTML = `
       <div class="tilt-menu-wrapper">
-        <!-- Ambient subtle arena backdrop glow & enemy dots (Board 04) -->
-        <div class="tilt-menu-arena-backdrop" aria-hidden="true">
-          <div class="menu-radial-bloom"></div>
-          <!-- Hostile red dot fleet preview -->
-          <div class="menu-threat-dot" style="left: 64%; top: 14%; width: 6px; height: 6px;"></div>
-          <div class="menu-threat-dot" style="left: 74%; top: 22%; width: 6px; height: 6px;"></div>
-          <div class="menu-threat-dot" style="left: 70%; top: 32%; width: 5px; height: 5px;"></div>
-          <div class="menu-threat-dot" style="left: 85%; top: 28%; width: 6px; height: 6px;"></div>
-          <div class="menu-threat-dot" style="left: 92%; top: 18%; width: 5px; height: 5px;"></div>
-          <div class="menu-threat-dot" style="left: 94%; top: 37%; width: 6px; height: 6px;"></div>
-          <div class="menu-threat-dot" style="left: 88%; top: 48%; width: 5px; height: 5px;"></div>
-          <div class="menu-threat-dot" style="left: 96%; top: 58%; width: 6px; height: 6px;"></div>
-          <div class="menu-threat-dot" style="left: 78%; top: 62%; width: 5px; height: 5px;"></div>
-          <div class="menu-threat-dot" style="left: 90%; top: 71%; width: 6px; height: 6px;"></div>
-
-          <!-- Player Ship Vector -->
-          <div class="menu-ship-vector-container" style="position: absolute; left: 82%; top: 43%; transform: translate(-50%, -50%);">
-            <svg width="40" height="40" viewBox="0 0 36 36" fill="none" aria-hidden="true" style="filter: drop-shadow(0 0 16px rgba(91,140,255,0.9));">
-              <path d="M30 18 L10 7 L14 18 L10 29 Z" fill="#5B8CFF"></path>
-            </svg>
-            <div style="position: absolute; right: 30px; top: 14px; width: 64px; height: 12px; background: linear-gradient(90deg, rgba(91,140,255,0), rgba(91,140,255,0.35)); border-radius: 6px;"></div>
-          </div>
-        </div>
-
         <!-- Left Menu Sidebar (Board 04) -->
         <div class="tilt-menu-sidebar">
           <!-- Hero Title & Subtitle (Cut 'HYPER-NEON BULLET DODGE ARENA') -->
@@ -439,10 +415,15 @@ export class TiltMenu {
   private bindOptionsEvents() {
     if (!this.optionsModalEl) return;
 
-    // Close settings modal
+    // Close settings modal and backdrop click
     this.optionsModalEl.querySelector('#btn-close-options')?.addEventListener('click', () => {
       this.optionsModalEl?.classList.add('hidden');
     });
+    this.optionsModalEl.onclick = (e) => {
+      if (e.target === this.optionsModalEl) {
+        this.optionsModalEl?.classList.add('hidden');
+      }
+    };
 
     // Readability switch toggles
     this.optionsModalEl.querySelector('#s-halo')?.addEventListener('click', () => {
