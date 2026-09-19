@@ -1,0 +1,23 @@
+{
+  "name": "dread-flock",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "smoke": "node scripts/test_tilt_to_live.mjs",
+    "test:tilt": "node scripts/test_tilt_to_live.mjs",
+    "test:gyro": "node scripts/test_arrow_keys_and_gyro.mjs"
+  },
+  "dependencies": {
+    "three": "^0.185.1"
+  },
+  "devDependencies": {
+    "@types/three": "^0.185.4",
+    "puppeteer": "^25.9.0",
+    "typescript": "^5.7.2",
+    "vite": "^6.1.0"
+  }
+}
