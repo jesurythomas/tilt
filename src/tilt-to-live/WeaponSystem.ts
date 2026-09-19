@@ -375,6 +375,23 @@ export class WeaponSystem {
     }
   }
 
+  public triggerWeapon(
+    type: WeaponType,
+    x: number,
+    y: number,
+    player: PlayerShip,
+    enemies: Enemy[],
+    particles: ParticleEngine,
+    grid: VectorGrid,
+    audio: TiltAudio,
+    onEnemyKilledOrPerks?: ((enemy: Enemy, weaponType: WeaponType) => void) | WeaponPerks,
+    perks?: WeaponPerks
+  ) {
+    const onKilled = typeof onEnemyKilledOrPerks === 'function' ? onEnemyKilledOrPerks : () => {};
+    const effectivePerks = typeof onEnemyKilledOrPerks === 'function' ? perks : onEnemyKilledOrPerks;
+    this.activateWeapon(type, x, y, player, enemies, particles, grid, audio, onKilled, effectivePerks);
+  }
+
   public activateWeapon(
     type: WeaponType,
     x: number,

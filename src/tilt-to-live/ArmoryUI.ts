@@ -1,8 +1,44 @@
 // =========================================================================
-// ArmoryUI.ts - In-Game Shop, Upgrades, Cosmetics & Control Tuning Modal
+// ArmoryUI.ts - In-Game Shop, Upgrades, Fleet Chassis, Arena & Control Tuning
+// Matching Designs: Boards 09 (Weapons), 10 (Ships), 11 (Handling), 17 (Mobile)
 // =========================================================================
 
 import { ProgressionManager, WeaponPerks } from './ProgressionManager';
+
+export type ArmoryTab =
+  | 'weapons'
+  | 'ships'
+  | 'arena'
+  | 'handling'
+  | 'perks'
+  | 'cursors'
+  | 'enemies'
+  | 'arenas'
+  | 'tuning';
+
+interface WeaponTrack {
+  key: string;
+  name: string;
+  effect: string;
+  maxRank: number;
+}
+
+interface WeaponKeystone {
+  key: string;
+  name: string;
+  description: string;
+  cost: number;
+}
+
+interface WeaponConfig {
+  id: keyof WeaponPerks;
+  name: string;
+  dot: string;
+  description: string;
+  iconSvg: string;
+  tracks: WeaponTrack[];
+  keystones: WeaponKeystone[];
+}
 
 export class ArmoryUI {
   private readonly progression: ProgressionManager;
@@ -10,8 +46,130 @@ export class ArmoryUI {
   private readonly onCloseModal: () => void;
 
   private containerEl: HTMLElement | null = null;
-  private activeTab: 'perks' | 'cursors' | 'enemies' | 'arenas' | 'tuning' = 'perks';
-  private activeWeaponCategory: 'all' | 'vortex' | 'nuke' | 'laser' | 'missiles' | 'shield' | 'lightning' | 'freeze' = 'all';
+  private activeTab: 'weapons' | 'ships' | 'arena' | 'handling' = 'weapons';
+  private selectedWeaponId: keyof WeaponPerks = 'blackhole';
+
+  // Handling live interactive preview state
+  private previewCanvas: HTMLCanvasElement | null = null;
+  private previewRafId: number | null = null;
+  private previewMousePos: { x: number; y: number } = { x: 0, y: 0 };
+  private previewShip = {
+    x: 0,
+    y: 0,
+    vx: 0,
+    vy: 0,
+    angle: -Math.PI / 2
+  };
+  private previewInitialized: boolean = false;
+
+  private readonly weaponsCatalog: WeaponConfig[] = [
+    {
+      id: 'blackhole',
+      name: 'Blackhole',
+      dot: '#A78BFA',
+      description: 'Drags dots in, then collapses.',
+      iconSvg: `<svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true"><circle cx="15" cy="15" r="11" stroke="#A78BFA" stroke-width="1.4"></circle><circle cx="15" cy="15" r="5" fill="#A78BFA"></circle></svg>`,
+      tracks: [
+        { key: 'duration', name: 'Duration', effect: '+0.5s / rank', maxRank: 5 },
+        { key: 'radius', name: 'Radius', effect: '+35px / rank', maxRank: 5 },
+        { key: 'gravity', name: 'Pull', effect: '+20% / rank', maxRank: 5 }
+      ],
+      keystones: [
+        { key: 'invulnerableInside', name: 'Aegis', description: 'You are safe inside the well.', cost: 2500 },
+        { key: 'supernovaCollapse', name: 'Supernova', description: 'Collapse fires a 420px shockwave.', cost: 5000 }
+      ]
+    },
+    {
+      id: 'missiles',
+      name: 'Missiles',
+      dot: '#5B8CFF',
+      description: 'Swarm homing warheads track and annihilate dots.',
+      iconSvg: `<svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true"><path d="M15 4 L20 12 L19 22 L15 20 L11 22 L10 12 Z" stroke="#5B8CFF" stroke-width="1.4" fill="rgba(91,140,255,0.2)"></path><circle cx="15" cy="11" r="2.5" fill="#5B8CFF"></circle></svg>`,
+      tracks: [
+        { key: 'count', name: 'Salvo Count', effect: '+1 missile / rank', maxRank: 5 },
+        { key: 'blastRadius', name: 'Detonation Radius', effect: '+12px / rank', maxRank: 5 },
+        { key: 'flightSpeed', name: 'Propulsion & Agility', effect: '+20% / rank', maxRank: 5 }
+      ],
+      keystones: [
+        { key: 'clusterSplit', name: 'Cluster Split', description: 'Warheads divide into twins on intercept.', cost: 2500 },
+        { key: 'hyperThrusters', name: 'Hyper Thrusters', description: 'Instant target lock and hypersonic velocity.', cost: 4000 }
+      ]
+    },
+    {
+      id: 'laser',
+      name: 'Laser',
+      dot: '#5B8CFF',
+      description: 'Continuous piercing beam sweeps through swarms.',
+      iconSvg: `<svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true"><line x1="4" y1="15" x2="26" y2="15" stroke="#5B8CFF" stroke-width="2.5" stroke-linecap="round"></line><line x1="8" y1="9" x2="22" y2="21" stroke="#5B8CFF" stroke-width="1.2" stroke-dasharray="2,3"></line></svg>`,
+      tracks: [
+        { key: 'length', name: 'Beam Reach', effect: '+35px / rank', maxRank: 5 },
+        { key: 'duration', name: 'Emission Time', effect: '+0.4s / rank', maxRank: 5 }
+      ],
+      keystones: [
+        { key: 'crossBeam', name: 'Cross Beam', description: 'Splits beam into 4-way perpendicular cross.', cost: 3500 },
+        { key: 'refractorLance', name: 'Refractor Lance', description: 'Beams bounce off arena perimeter walls.', cost: 4500 }
+      ]
+    },
+    {
+      id: 'nuke',
+      name: 'Nuke',
+      dot: '#FFB14D',
+      description: 'Instantaneous arena-clearing shockwave explosion.',
+      iconSvg: `<svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true"><circle cx="15" cy="15" r="11" stroke="#FFB14D" stroke-width="1.4"></circle><path d="M15 7 L15 11 M9 20 L12 17 M21 20 L18 17" stroke="#FFB14D" stroke-width="2" stroke-linecap="round"></path><circle cx="15" cy="15" r="3" fill="#FFB14D"></circle></svg>`,
+      tracks: [
+        { key: 'radius', name: 'Blast Radius', effect: '+40px / rank', maxRank: 5 },
+        { key: 'speed', name: 'Shockwave Velocity', effect: '+25% / rank', maxRank: 5 }
+      ],
+      keystones: [
+        { key: 'falloutZone', name: 'Fallout Zone', description: 'Detonation leaves a 3.0s radioactive burn zone.', cost: 3000 },
+        { key: 'chainReaction', name: 'Chain Reaction', description: 'Vaporized dots trigger miniature secondary bombs.', cost: 5000 }
+      ]
+    },
+    {
+      id: 'freeze',
+      name: 'Shockwave',
+      dot: '#8FB0FF',
+      description: 'Flash-freezes all dots into shatterable crystals.',
+      iconSvg: `<svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true"><circle cx="15" cy="15" r="11" stroke="#8FB0FF" stroke-width="1.4" stroke-dasharray="4,3"></circle><path d="M15 5 L15 25 M5 15 L25 15 M8 8 L22 22 M8 22 L22 8" stroke="#8FB0FF" stroke-width="1.3"></path></svg>`,
+      tracks: [
+        { key: 'duration', name: 'Freeze Duration', effect: '+0.7s / rank', maxRank: 5 }
+      ],
+      keystones: [
+        { key: 'shatterCascade', name: 'Shatter Cascade', description: 'Shattering one enemy destroys nearby frozen dots.', cost: 2500 },
+        { key: 'cryoNova', name: 'Cryo Nova', description: 'Emits an expansive 360° cryogenic pulse ring.', cost: 4000 }
+      ]
+    },
+    {
+      id: 'shield',
+      name: 'Shield',
+      dot: '#3DDC97',
+      description: 'Kinetic barrier allowing safe ramming through enemies.',
+      iconSvg: `<svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true"><path d="M15 5 L23 8 V15 C23 20 15 25 15 25 C15 25 7 20 7 15 V8 Z" stroke="#3DDC97" stroke-width="1.4" fill="rgba(61,220,151,0.15)"></path></svg>`,
+      tracks: [
+        { key: 'duration', name: 'Shield Duration', effect: '+1.0s / rank', maxRank: 5 },
+        { key: 'radius', name: 'Bubble Radius', effect: '+4px / rank', maxRank: 5 }
+      ],
+      keystones: [
+        { key: 'batteringRam', name: 'Battering Ram', description: 'Ramming enemies triggers kinetic shockwaves.', cost: 3000 },
+        { key: 'overchargePulse', name: 'Overcharge', description: 'Releases a blast pulse when barrier expires.', cost: 4500 }
+      ]
+    },
+    {
+      id: 'lightning',
+      name: 'Lightning',
+      dot: '#FFB14D',
+      description: 'Arcs jump between dots in high-voltage cascade.',
+      iconSvg: `<svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true"><path d="M17 4 L9 16 H16 L13 26 L23 13 H15 Z" stroke="#FFB14D" stroke-width="1.4" fill="rgba(255,177,77,0.2)"></path></svg>`,
+      tracks: [
+        { key: 'maxTargets', name: 'Arc Targets', effect: '+3 targets / rank', maxRank: 5 },
+        { key: 'chainRange', name: 'Chain Distance', effect: '+40px / rank', maxRank: 5 }
+      ],
+      keystones: [
+        { key: 'plasmaArc', name: 'Arc Detonation', description: 'Chained enemies explode upon electrocution.', cost: 3500 },
+        { key: 'superconductor', name: 'Superconductor', description: 'Electric arcs bridge across screen instantly.', cost: 4500 }
+      ]
+    }
+  ];
 
   constructor(
     progression: ProgressionManager,
@@ -37,8 +195,21 @@ export class ArmoryUI {
     this.containerEl = modal;
   }
 
-  public open(defaultTab?: 'perks' | 'cursors' | 'enemies' | 'arenas' | 'tuning') {
-    if (defaultTab) this.activeTab = defaultTab;
+  public open(tab?: ArmoryTab) {
+    if (tab) {
+      const map: Record<string, 'weapons' | 'ships' | 'arena' | 'handling'> = {
+        weapons: 'weapons',
+        perks: 'weapons',
+        ships: 'ships',
+        cursors: 'ships',
+        arena: 'arena',
+        arenas: 'arena',
+        enemies: 'arena',
+        handling: 'handling',
+        tuning: 'handling'
+      };
+      this.activeTab = map[tab] || 'weapons';
+    }
     if (!this.containerEl) this.initDOM();
     if (this.containerEl) {
       this.containerEl.classList.remove('hidden');
@@ -47,6 +218,7 @@ export class ArmoryUI {
   }
 
   public close() {
+    this.stopHandlingPreview();
     if (this.containerEl) {
       this.containerEl.classList.add('hidden');
     }
@@ -60,633 +232,529 @@ export class ArmoryUI {
   public render() {
     if (!this.containerEl) return;
 
-    // Save previous scroll position so purchasing upgrades never bounces to top
-    const prevContent = this.containerEl.querySelector('.armory-content');
-    const prevScrollTop = prevContent ? prevContent.scrollTop : 0;
+    this.stopHandlingPreview();
+
+    // Preserve scroll position if re-rendering within the same tab
+    const prevScrollEl = this.containerEl.querySelector('.armory-scroll-body');
+    const prevScrollTop = prevScrollEl ? prevScrollEl.scrollTop : 0;
 
     const points = this.progression.data.points;
 
     this.containerEl.innerHTML = `
-      <div class="overlay-panel tilt-armory-panel" role="dialog" aria-modal="true" aria-label="Tilt to Live Armory">
-        <!-- Header -->
-        <div class="armory-header">
-          <div class="armory-title-group">
-            <p class="eyebrow">TILT TO LIVE // THE VAULT</p>
-            <h2>Armory & Upgrades</h2>
+      <div class="tilt-armory-panel" role="dialog" aria-modal="true" aria-label="Tilt to Live Armory">
+        <!-- Header (Board 09, 10, 11, 17) -->
+        <header class="armory-v2-header">
+          <button id="btn-armory-mobile-back" class="armory-mobile-back-btn" type="button" aria-label="Back">
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+              <path d="M9.5 2.5 L4.5 7.5 L9.5 12.5" stroke="#C7CDDB" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          
+          <h2 class="armory-v2-title">Armory</h2>
+
+          <nav class="armory-v2-tabs" aria-label="Armory categories">
+            <button class="armory-v2-tab ${this.activeTab === 'weapons' ? 'active' : ''}" data-tab="weapons" type="button">Weapons</button>
+            <button class="armory-v2-tab ${this.activeTab === 'ships' ? 'active' : ''}" data-tab="ships" type="button">Ships</button>
+            <button class="armory-v2-tab ${this.activeTab === 'arena' ? 'active' : ''}" data-tab="arena" type="button">Arena</button>
+            <button class="armory-v2-tab ${this.activeTab === 'handling' ? 'active' : ''}" data-tab="handling" type="button">Handling</button>
+          </nav>
+
+          <div class="armory-v2-header-right">
+            <!-- Fixed tabular mono font, amber #FFB14D currency display (Findings 8 & 11) -->
+            <span class="armory-v2-balance" title="Available Points">
+              ${points.toLocaleString()} <span class="balance-pts-suffix">PTS</span>
+            </span>
+            <button id="btn-armory-close" class="armory-v2-close-btn" type="button" aria-label="Close Armory">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <path d="M2 2 L12 12 M12 2 L2 12" stroke="#99A1B3" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </button>
           </div>
-          <div class="armory-header-right">
-            <div class="armory-points-pill" title="Current Points Balance">
-              <span class="coin-glyph">◈</span>
-              <strong id="armory-points-val">${points.toLocaleString()}</strong>
-              <small>PTS</small>
-            </div>
-            <button id="btn-armory-close" class="armory-close-btn" type="button" aria-label="Close Armory">✕</button>
-          </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <div class="armory-v2-body">
+          ${this.renderTabContent()}
         </div>
 
-        <!-- Navigation Tabs -->
-        <nav class="armory-tabs" aria-label="Armory categories">
-          <button class="armory-tab-btn ${this.activeTab === 'perks' ? 'active' : ''}" data-tab="perks" type="button">
-            ⚡ Weapon Perks
-          </button>
-          <button class="armory-tab-btn ${this.activeTab === 'cursors' ? 'active' : ''}" data-tab="cursors" type="button">
-            🚀 Ship Models
-          </button>
-          <button class="armory-tab-btn ${this.activeTab === 'enemies' ? 'active' : ''}" data-tab="enemies" type="button">
-            👾 Enemy Skins
-          </button>
-          <button class="armory-tab-btn ${this.activeTab === 'arenas' ? 'active' : ''}" data-tab="arenas" type="button">
-            🌌 Arena Themes
-          </button>
-          <button class="armory-tab-btn ${this.activeTab === 'tuning' ? 'active' : ''}" data-tab="tuning" type="button">
-            ⚙️ Controls & Speed
-          </button>
-        </nav>
-
-        <!-- Content Area -->
-        <div class="armory-content custom-scrollbar">
-          ${this.renderTabContent()}
+        <!-- Sticky Play Button on Mobile (Board 17) -->
+        <div class="armory-mobile-sticky-footer">
+          <button id="btn-armory-mobile-play" class="armory-mobile-play-btn" type="button">Play</button>
         </div>
       </div>
     `;
 
     this.bindEvents();
 
-    // Restore scroll position after re-render
-    const newContent = this.containerEl.querySelector('.armory-content');
-    if (newContent && prevScrollTop > 0) {
-      newContent.scrollTop = prevScrollTop;
+    if (this.activeTab === 'handling') {
+      this.initHandlingPreview();
+    }
+
+    const newScrollEl = this.containerEl.querySelector('.armory-scroll-body');
+    if (newScrollEl && prevScrollTop > 0) {
+      newScrollEl.scrollTop = prevScrollTop;
     }
   }
 
   private renderTabContent(): string {
     switch (this.activeTab) {
-      case 'perks':
-        return this.renderPerksTab();
-      case 'cursors':
-        return this.renderCursorsTab();
-      case 'enemies':
-        return this.renderEnemiesTab();
-      case 'arenas':
-        return this.renderArenasTab();
-      case 'tuning':
-        return this.renderTuningTab();
+      case 'weapons':
+        return this.renderWeaponsTab();
+      case 'ships':
+        return this.renderShipsTab();
+      case 'arena':
+        return this.renderArenaTab();
+      case 'handling':
+        return this.renderHandlingTab();
     }
   }
 
   // =========================================================================
-  // Perks Tab Rendering
+  // Tab 1: Weapons (Board 09 & 17)
   // =========================================================================
 
-  private renderPerksTab(): string {
+  private renderWeaponsTab(): string {
     const perks = this.progression.data.perks;
     const points = this.progression.data.points;
 
-    const renderRankPips = (current: number, max: number = 5) => {
-      let pips = '';
-      for (let i = 0; i < max; i++) {
-        pips += `<span class="pip ${i < current ? 'filled' : ''}"></span>`;
-      }
-      return `<div class="rank-pips">${pips}</div>`;
-    };
+    const selectedConfig =
+      this.weaponsCatalog.find((w) => w.id === this.selectedWeaponId) ||
+      this.weaponsCatalog[0];
 
-    const renderUpgradeBtn = (weapon: keyof WeaponPerks, perk: string, currentVal: number | boolean, maxRank: number = 5) => {
-      if (typeof currentVal === 'boolean') {
-        if (currentVal) {
-          return `<button class="armory-btn equipped" disabled>Unlocked ✓</button>`;
-        }
-        const cost = this.progression.getPerkCost(0, true);
-        const canAfford = points >= cost;
-        const ptsSuffix = cost === 1 ? 'PT' : 'PTS';
-        return `
-          <button class="armory-btn upgrade-perk-btn" data-weapon="${weapon}" data-perk="${perk}" ${canAfford ? '' : 'disabled'}>
-            Unlock ◈ ${cost} ${ptsSuffix}
-          </button>
-        `;
-      } else {
-        if (currentVal >= maxRank) {
-          return `<button class="armory-btn equipped" disabled>Maxed ✓</button>`;
-        }
-        const cost = this.progression.getPerkCost(currentVal, false);
-        const canAfford = points >= cost;
-        const ptsSuffix = cost === 1 ? 'PT' : 'PTS';
-        return `
-          <button class="armory-btn upgrade-perk-btn" data-weapon="${weapon}" data-perk="${perk}" ${canAfford ? '' : 'disabled'}>
-            Rank ${currentVal + 1} • ◈ ${cost} ${ptsSuffix}
-          </button>
-        `;
-      }
-    };
+    const investedPoints = this.progression.getWeaponInvestedPoints(selectedConfig.id);
 
-    const cat = this.activeWeaponCategory;
-    const showAll = cat === 'all';
+    // Compute weapon ranks for list display
+    const weaponItemsHtml = this.weaponsCatalog
+      .map((w) => {
+        const p = (perks as any)[w.id] || {};
+        const primaryVal = typeof p.duration === 'number' ? p.duration : (p.count ?? p.radius ?? 0);
+        const rankText = `${primaryVal}/5`;
+        const isActive = w.id === selectedConfig.id;
+
+        return `
+          <div class="weapon-list-item ${isActive ? 'active' : ''}" data-weapon-id="${w.id}" role="button" tabindex="0">
+            <span class="weapon-color-dot" style="background: ${w.dot};"></span>
+            <span class="weapon-list-name">${w.name}</span>
+            <span class="weapon-list-rank">${rankText}</span>
+          </div>
+        `;
+      })
+      .join('');
+
+    // Render upgrade tracks with 5 discrete pips
+    const weaponTracksHtml = selectedConfig.tracks
+      .map((track) => {
+        const weaponData = (perks as any)[selectedConfig.id] || {};
+        const currentRank = typeof weaponData[track.key] === 'number' ? weaponData[track.key] : 0;
+        const isMaxed = currentRank >= track.maxRank;
+        const cost = this.progression.getPerkCost(currentRank, false);
+        const canAfford = points >= cost && !isMaxed;
+
+        let pipsHtml = '';
+        for (let i = 0; i < 5; i++) {
+          const filled = i < currentRank;
+          pipsHtml += `<span class="track-pip ${filled ? 'filled' : 'empty'}"></span>`;
+        }
+
+        return `
+          <div class="upgrade-track-card">
+            <div class="track-info">
+              <strong class="track-title">${track.name}</strong>
+              <span class="track-effect">${track.effect}</span>
+            </div>
+            <div class="track-pips-bar">
+              ${pipsHtml}
+            </div>
+            <span class="track-rank-num">${currentRank}/5</span>
+            <button
+              type="button"
+              class="track-cost-btn ${isMaxed ? 'is-maxed' : ''}"
+              data-weapon="${selectedConfig.id}"
+              data-track="${track.key}"
+              ${isMaxed || !canAfford ? 'disabled' : ''}
+            >
+              ${isMaxed ? 'Maxed ✓' : `${cost.toLocaleString()} pts`}
+            </button>
+          </div>
+        `;
+      })
+      .join('');
+
+    // Render one-off unlocks (Aegis, Supernova, etc.)
+    const weaponKeystonesHtml = selectedConfig.keystones
+      .map((k) => {
+        const weaponData = (perks as any)[selectedConfig.id] || {};
+        const isUnlocked = !!weaponData[k.key];
+        const canAfford = points >= k.cost && !isUnlocked;
+
+        return `
+          <div class="keystone-card ${isUnlocked ? 'is-unlocked' : ''} ${!isUnlocked && !canAfford ? 'is-locked' : ''}">
+            <div class="keystone-info">
+              <strong class="keystone-title">${k.name}</strong>
+              <span class="keystone-desc">${k.description}</span>
+            </div>
+            <button
+              type="button"
+              class="keystone-cost-btn ${isUnlocked ? 'is-unlocked' : ''}"
+              data-weapon="${selectedConfig.id}"
+              data-keystone="${k.key}"
+              ${isUnlocked || !canAfford ? 'disabled' : ''}
+            >
+              ${isUnlocked ? 'Unlocked ✓' : `${k.cost.toLocaleString()}`}
+            </button>
+          </div>
+        `;
+      })
+      .join('');
 
     return `
-      <!-- Weapon Categories Sub-Nav -->
-      <div class="weapons-category-filter-bar" role="tablist" aria-label="Weapon Categories">
-        <button class="weapon-filter-chip ${cat === 'all' ? 'active' : ''}" data-filter="all" type="button">All Weapons (7)</button>
-        <button class="weapon-filter-chip ${cat === 'vortex' ? 'active' : ''}" data-filter="vortex" type="button">🌀 Vortex</button>
-        <button class="weapon-filter-chip ${cat === 'nuke' ? 'active' : ''}" data-filter="nuke" type="button">💣 Nuke</button>
-        <button class="weapon-filter-chip ${cat === 'laser' ? 'active' : ''}" data-filter="laser" type="button">⚡ Laser</button>
-        <button class="weapon-filter-chip ${cat === 'missiles' ? 'active' : ''}" data-filter="missiles" type="button">🚀 Missiles</button>
-        <button class="weapon-filter-chip ${cat === 'shield' ? 'active' : ''}" data-filter="shield" type="button">🛡️ Shield</button>
-        <button class="weapon-filter-chip ${cat === 'lightning' ? 'active' : ''}" data-filter="lightning" type="button">🌩️ Lightning</button>
-        <button class="weapon-filter-chip ${cat === 'freeze' ? 'active' : ''}" data-filter="freeze" type="button">❄️ Freeze</button>
-      </div>
+      <div class="armory-weapons-layout">
+        <!-- Left Column: Weapon List (Board 09) -->
+        <aside class="armory-weapons-sidebar custom-scrollbar" aria-label="Weapons Selection">
+          ${weaponItemsHtml}
+        </aside>
 
-      <div class="perks-grid">
-        <!-- BLACKHOLE / VORTEX -->
-        ${(showAll || cat === 'vortex') ? `
-        <div class="perk-card perk-card-vortex">
-          <div class="perk-card-header">
-            <span class="perk-badge" style="background: rgba(180, 70, 255, 0.2); border-color: #b446ff; color: #d896ff;">VORTEX</span>
-            <h3>Singularity Blackhole</h3>
-          </div>
-          <p class="perk-desc">Spawn gravity wells that suck red dot swarms into event horizons and implode.</p>
-
-          <div class="perk-rows">
-            <div class="perk-row">
-              <div class="perk-meta">
-                <strong>Duration</strong>
-                <span>+0.5s active pull per rank (up to +2.5s)</span>
-                ${renderRankPips(perks.blackhole.duration, 5)}
-              </div>
-              ${renderUpgradeBtn('blackhole', 'duration', perks.blackhole.duration, 5)}
+        <!-- Right Panel: Weapon Details, Upgrades & Keystones (Board 09) -->
+        <section class="armory-weapons-detail armory-scroll-body custom-scrollbar">
+          <!-- Weapon Header -->
+          <div class="weapon-detail-header">
+            <div class="weapon-icon-box" style="background: ${selectedConfig.dot}18; border-color: ${selectedConfig.dot}55;">
+              ${selectedConfig.iconSvg}
             </div>
-
-            <div class="perk-row">
-              <div class="perk-meta">
-                <strong>Event Horizon Radius</strong>
-                <span>+35px gravitational capture range per rank</span>
-                ${renderRankPips(perks.blackhole.radius, 5)}
-              </div>
-              ${renderUpgradeBtn('blackhole', 'radius', perks.blackhole.radius, 5)}
+            <div class="weapon-detail-title-group">
+              <h3 class="weapon-detail-name">${selectedConfig.name}</h3>
+              <p class="weapon-detail-desc">${selectedConfig.description}</p>
             </div>
-
-            <div class="perk-row">
-              <div class="perk-meta">
-                <strong>Gravitational Force</strong>
-                <span>+20% pull acceleration towards center per rank</span>
-                ${renderRankPips(perks.blackhole.gravity, 5)}
-              </div>
-              ${renderUpgradeBtn('blackhole', 'gravity', perks.blackhole.gravity, 5)}
-            </div>
-
-            <div class="perk-row keystone-row">
-              <div class="perk-meta">
-                <strong class="keystone-title">★ Event Horizon Aegis (Invulnerability)</strong>
-                <span>Your ship gains total invulnerability while inside the blackhole!</span>
-              </div>
-              ${renderUpgradeBtn('blackhole', 'invulnerableInside', perks.blackhole.invulnerableInside)}
-            </div>
-
-            <div class="perk-row keystone-row">
-              <div class="perk-meta">
-                <strong class="keystone-title">★ Supernova Collapse</strong>
-                <span>Vortex collapse produces a devastating 420px shockwave!</span>
-              </div>
-              ${renderUpgradeBtn('blackhole', 'supernovaCollapse', perks.blackhole.supernovaCollapse)}
+            <div class="weapon-invested-badge">
+              <span class="invested-label">Invested</span>
+              <span class="invested-val">${investedPoints.toLocaleString()}</span>
             </div>
           </div>
-        </div>
-        ` : ''}
 
-        <!-- NUKE -->
-        ${(showAll || cat === 'nuke') ? `
-        <div class="perk-card perk-card-nuke">
-          <div class="perk-card-header">
-            <span class="perk-badge" style="background: rgba(255, 60, 40, 0.2); border-color: #ff3c28; color: #ff8577;">EXPLOSIVE</span>
-            <h3>Thermonuclear Warhead</h3>
+          <!-- Upgrade Tracks -->
+          <div class="upgrade-tracks-list">
+            ${weaponTracksHtml}
           </div>
-          <p class="perk-desc">Devastating screen-clearing explosion that vaporizes any red dot in range.</p>
 
-          <div class="perk-rows">
-            <div class="perk-row">
-              <div class="perk-meta">
-                <strong>Blast Radius</strong>
-                <span>+40px blast radius per rank (up to 500px screen coverage)</span>
-                ${renderRankPips(perks.nuke.radius, 5)}
-              </div>
-              ${renderUpgradeBtn('nuke', 'radius', perks.nuke.radius, 5)}
-            </div>
-
-            <div class="perk-row">
-              <div class="perk-meta">
-                <strong>Shockwave Velocity</strong>
-                <span>+25% wave expansion speed per rank</span>
-                ${renderRankPips(perks.nuke.speed, 3)}
-              </div>
-              ${renderUpgradeBtn('nuke', 'speed', perks.nuke.speed, 3)}
-            </div>
-
-            <div class="perk-row keystone-row">
-              <div class="perk-meta">
-                <strong class="keystone-title">★ Lingering Radiation Cloud</strong>
-                <span>Detonation leaves a 3.0-second radioactive zone that burns incoming enemies!</span>
-              </div>
-              ${renderUpgradeBtn('nuke', 'falloutZone', perks.nuke.falloutZone)}
+          <!-- One-off unlocks -->
+          <div class="keystones-section">
+            <span class="keystones-section-label">One-off unlocks</span>
+            <div class="keystones-grid">
+              ${weaponKeystonesHtml}
             </div>
           </div>
-        </div>
-        ` : ''}
-
-        <!-- LASER -->
-        ${(showAll || cat === 'laser') ? `
-        <div class="perk-card perk-card-laser">
-          <div class="perk-card-header">
-            <span class="perk-badge" style="background: rgba(0, 240, 255, 0.2); border-color: #00f0ff; color: #85f8ff;">BEAM</span>
-            <h3>Photon Beam Lance</h3>
-          </div>
-          <p class="perk-desc">Concentrated directional beam cutting through swarms with piercing energy.</p>
-
-          <div class="perk-rows">
-            <div class="perk-row">
-              <div class="perk-meta">
-                <strong>Beam Length</strong>
-                <span>+35px length per rank (up to 495px reach)</span>
-                ${renderRankPips(perks.laser.length, 5)}
-              </div>
-              ${renderUpgradeBtn('laser', 'length', perks.laser.length, 5)}
-            </div>
-
-            <div class="perk-row">
-              <div class="perk-meta">
-                <strong>Beam Duration</strong>
-                <span>+0.4s beam emission duration per rank</span>
-                ${renderRankPips(perks.laser.duration, 3)}
-              </div>
-              ${renderUpgradeBtn('laser', 'duration', perks.laser.duration, 3)}
-            </div>
-
-            <div class="perk-row keystone-row">
-              <div class="perk-meta">
-                <strong class="keystone-title">★ Perpendicular Cross Beam</strong>
-                <span>Splits your laser into a 4-way perpendicular cross that sweeps the arena!</span>
-              </div>
-              ${renderUpgradeBtn('laser', 'crossBeam', perks.laser.crossBeam)}
-            </div>
-          </div>
-        </div>
-        ` : ''}
-
-        <!-- MISSILES -->
-        ${(showAll || cat === 'missiles') ? `
-        <div class="perk-card perk-card-missiles">
-          <div class="perk-card-header">
-            <span class="perk-badge" style="background: rgba(255, 170, 0, 0.2); border-color: #ffaa00; color: #ffd277;">ORDNANCE</span>
-            <h3>Cluster Homing Missiles</h3>
-          </div>
-          <p class="perk-desc">Multi-target heat-seeking warheads tracking and eradicating targets.</p>
-
-          <div class="perk-rows">
-            <div class="perk-row">
-              <div class="perk-meta">
-                <strong>Missile Count</strong>
-                <span>+1 missile per rank (fires up to 13 simultaneous warheads!)</span>
-                ${renderRankPips(perks.missiles.count, 5)}
-              </div>
-              ${renderUpgradeBtn('missiles', 'count', perks.missiles.count, 5)}
-            </div>
-
-            <div class="perk-row">
-              <div class="perk-meta">
-                <strong>Detonation Radius</strong>
-                <span>+12px explosion AOE per rank</span>
-                ${renderRankPips(perks.missiles.blastRadius, 3)}
-              </div>
-              ${renderUpgradeBtn('missiles', 'blastRadius', perks.missiles.blastRadius, 3)}
-            </div>
-
-            <div class="perk-row">
-              <div class="perk-meta">
-                <strong>Propulsion & Agility</strong>
-                <span>+20% flight speed and tighter turning circles</span>
-                ${renderRankPips(perks.missiles.flightSpeed, 3)}
-              </div>
-              ${renderUpgradeBtn('missiles', 'flightSpeed', perks.missiles.flightSpeed, 3)}
-            </div>
-          </div>
-        </div>
-        ` : ''}
-
-        <!-- SHIELD -->
-        ${(showAll || cat === 'shield') ? `
-        <div class="perk-card perk-card-shield">
-          <div class="perk-card-header">
-            <span class="perk-badge" style="background: rgba(0, 255, 170, 0.2); border-color: #00ffaa; color: #85ffd2;">DEFENSE</span>
-            <h3>Kinetic Aegis Shield</h3>
-          </div>
-          <p class="perk-desc">Invulnerability bubble allowing you to charge and ram directly into enemies.</p>
-
-          <div class="perk-rows">
-            <div class="perk-row">
-              <div class="perk-meta">
-                <strong>Duration</strong>
-                <span>+1.0s shield active time per rank (up to 10 seconds total)</span>
-                ${renderRankPips(perks.shield.duration, 5)}
-              </div>
-              ${renderUpgradeBtn('shield', 'duration', perks.shield.duration, 5)}
-            </div>
-
-            <div class="perk-row">
-              <div class="perk-meta">
-                <strong>Bubble Radius</strong>
-                <span>+4px protective radius per rank</span>
-                ${renderRankPips(perks.shield.radius, 3)}
-              </div>
-              ${renderUpgradeBtn('shield', 'radius', perks.shield.radius, 3)}
-            </div>
-
-            <div class="perk-row keystone-row">
-              <div class="perk-meta">
-                <strong class="keystone-title">★ Battering Ram</strong>
-                <span>Ramming an enemy triggers a kinetic explosion vaporizing nearby dots!</span>
-              </div>
-              ${renderUpgradeBtn('shield', 'batteringRam', perks.shield.batteringRam)}
-            </div>
-          </div>
-        </div>
-        ` : ''}
-
-        <!-- LIGHTNING -->
-        ${(showAll || cat === 'lightning') ? `
-        <div class="perk-card perk-card-lightning">
-          <div class="perk-card-header">
-            <span class="perk-badge" style="background: rgba(255, 230, 0, 0.2); border-color: #ffe600; color: #fff380;">ELECTRIC</span>
-            <h3>Tesla Arc Lightning</h3>
-          </div>
-          <p class="perk-desc">Discharges high-voltage branching arcs that jump between clustered foes.</p>
-
-          <div class="perk-rows">
-            <div class="perk-row">
-              <div class="perk-meta">
-                <strong>Max Chain Targets</strong>
-                <span>+3 enemies per rank (up to 33 chain electrocutions!)</span>
-                ${renderRankPips(perks.lightning.maxTargets, 5)}
-              </div>
-              ${renderUpgradeBtn('lightning', 'maxTargets', perks.lightning.maxTargets, 5)}
-            </div>
-
-            <div class="perk-row">
-              <div class="perk-meta">
-                <strong>Arc Leap Distance</strong>
-                <span>+40px lightning jump range per rank</span>
-                ${renderRankPips(perks.lightning.chainRange, 3)}
-              </div>
-              ${renderUpgradeBtn('lightning', 'chainRange', perks.lightning.chainRange, 3)}
-            </div>
-          </div>
-        </div>
-        ` : ''}
-
-        <!-- FREEZE -->
-        ${(showAll || cat === 'freeze') ? `
-        <div class="perk-card perk-card-freeze">
-          <div class="perk-card-header">
-            <span class="perk-badge" style="background: rgba(120, 200, 255, 0.2); border-color: #78c8ff; color: #b8e2ff;">CRYOGENIC</span>
-            <h3>Absolute Zero Freeze</h3>
-          </div>
-          <p class="perk-desc">Freezes all active enemies solid into fragile ice orbs ready to be shattered.</p>
-
-          <div class="perk-rows">
-            <div class="perk-row">
-              <div class="perk-meta">
-                <strong>Freeze Duration</strong>
-                <span>+0.7s immobilization time per rank (up to 7.5s)</span>
-                ${renderRankPips(perks.freeze.duration, 5)}
-              </div>
-              ${renderUpgradeBtn('freeze', 'duration', perks.freeze.duration, 5)}
-            </div>
-
-            <div class="perk-row keystone-row">
-              <div class="perk-meta">
-                <strong class="keystone-title">★ Shatter Cascade</strong>
-                <span>Shattering a frozen enemy unleashes ice shards that shatter adjacent enemies!</span>
-              </div>
-              ${renderUpgradeBtn('freeze', 'shatterCascade', perks.freeze.shatterCascade)}
-            </div>
-          </div>
-        </div>
-        ` : ''}
+        </section>
       </div>
     `;
   }
 
   // =========================================================================
-  // Cursors Tab Rendering
+  // Tab 2: Ships (Board 10)
   // =========================================================================
 
-  private renderCursorsTab(): string {
+  private renderShipsTab(): string {
     const points = this.progression.data.points;
     const equippedId = this.progression.data.equippedCursorId;
-    const unlocked = this.progression.data.unlockedCursors;
+    const unlockedIds = this.progression.data.unlockedCursors;
+    const ships = this.progression.shipCatalog;
 
-    return `
-      <div class="catalog-grid">
-        ${this.progression.shipCatalog.map((ship) => {
-          const isUnlocked = unlocked.includes(ship.id);
-          const isEquipped = equippedId === ship.id;
-          const canAfford = points >= ship.price;
+    const unlockedCount = ships.filter((s) => unlockedIds.includes(s.id)).length;
 
-          let btnHtml = '';
-          if (isEquipped) {
-            btnHtml = `<button class="armory-btn equipped" disabled>Piloting ✓</button>`;
-          } else if (isUnlocked) {
-            btnHtml = `<button class="armory-btn equip-cursor-btn" data-id="${ship.id}">Pilot Ship</button>`;
-          } else {
-            btnHtml = `
-              <button class="armory-btn buy-cursor-btn" data-id="${ship.id}" ${canAfford ? '' : 'disabled'}>
-                Unlock ◈ ${ship.price.toLocaleString()}
-              </button>
-            `;
-          }
+    const shipsCardsHtml = ships
+      .map((ship) => {
+        const isUnlocked = unlockedIds.includes(ship.id);
+        const isEquipped = equippedId === ship.id;
+        const canAfford = points >= ship.price;
 
-          return `
-            <div class="catalog-card ${isEquipped ? 'is-active-card' : ''}">
-              <div class="catalog-preview-box ship-preview-box">
-                ${this.progression.getShipSvgPreview(ship.id)}
+        let actionHtml = '';
+        if (isEquipped) {
+          actionHtml = `<button class="ship-action-btn is-equipped" disabled type="button">Equipped</button>`;
+        } else if (isUnlocked) {
+          actionHtml = `<button class="ship-action-btn is-equip equip-ship-btn" data-id="${ship.id}" type="button">Equip</button>`;
+        } else {
+          actionHtml = `
+            <button
+              class="ship-action-btn is-buy buy-ship-btn"
+              data-id="${ship.id}"
+              type="button"
+              ${canAfford ? '' : 'disabled'}
+            >
+              ${ship.price.toLocaleString()} pts
+            </button>
+          `;
+        }
+
+        const cardStateClass = isEquipped ? 'is-equipped-card' : isUnlocked ? 'is-unlocked-card' : 'is-locked-card';
+
+        return `
+          <div class="ship-card ${cardStateClass}">
+            <div class="ship-card-preview">
+              <svg width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true" class="ship-hull-svg">
+                <path d="${ship.svgPath}" fill="${ship.tint}"></path>
+              </svg>
+            </div>
+            <div class="ship-card-body">
+              <div class="ship-header-row">
+                <strong class="ship-name">${ship.name}</strong>
+                <span class="ship-trait">${ship.trait}</span>
               </div>
-              <div class="catalog-card-body">
-                <div class="catalog-card-header">
-                  <h4>${ship.name}</h4>
-                  <span class="item-cost">${ship.price === 0 ? 'FREE' : `◈ ${ship.price.toLocaleString()}`}</span>
-                </div>
-                <p class="catalog-desc">${ship.description}</p>
-                <div class="catalog-action">
-                  ${btnHtml}
-                </div>
+              <div class="ship-stat-row">
+                <span class="stat-label">Hitbox</span>
+                <span class="stat-bar-track">
+                  <span class="stat-bar-fill" style="width: ${ship.hitbox};"></span>
+                </span>
+                <span class="stat-num">${ship.hitbox}</span>
+              </div>
+              <div class="ship-stat-row">
+                <span class="stat-label">Turn</span>
+                <span class="stat-bar-track">
+                  <span class="stat-bar-fill" style="width: ${ship.turn};"></span>
+                </span>
+                <span class="stat-num">${ship.turn}</span>
+              </div>
+              <div class="ship-action-slot">
+                ${actionHtml}
               </div>
             </div>
-          `;
-        }).join('')}
+          </div>
+        `;
+      })
+      .join('');
+
+    return `
+      <div class="armory-ships-layout armory-scroll-body custom-scrollbar">
+        <!-- Subheader (Board 10) -->
+        <div class="armory-sub-header">
+          <span class="sub-header-pill">Hull · ${unlockedCount} of 6 unlocked</span>
+          <span class="sub-header-explain">Hull changes hitbox size and turn rate. Nothing else.</span>
+        </div>
+
+        <!-- 6 Ships Grid (Board 10) -->
+        <div class="armory-ships-grid">
+          ${shipsCardsHtml}
+        </div>
       </div>
     `;
   }
 
   // =========================================================================
-  // Enemy Skins Tab Rendering
+  // Tab 3: Arena (Arena Themes & Enemy Skins Folded)
   // =========================================================================
 
-  private renderEnemiesTab(): string {
+  private renderArenaTab(): string {
     const points = this.progression.data.points;
-    const equippedId = this.progression.data.equippedEnemySkinId;
-    const unlocked = this.progression.data.unlockedEnemySkins;
 
-    return `
-      <div class="catalog-grid">
-        ${this.progression.enemySkinCatalog.map((skin) => {
-          const isUnlocked = unlocked.includes(skin.id);
-          const isEquipped = equippedId === skin.id;
-          const canAfford = points >= skin.price;
+    // 1. Arena Themes
+    const equippedThemeId = this.progression.data.equippedArenaThemeId;
+    const unlockedThemes = this.progression.data.unlockedArenaThemes;
+    const themes = this.progression.arenaThemeCatalog;
+    const unlockedThemeCount = themes.filter((t) => unlockedThemes.includes(t.id)).length;
 
-          let btnHtml = '';
-          if (isEquipped) {
-            btnHtml = `<button class="armory-btn equipped" disabled>Equipped ✓</button>`;
-          } else if (isUnlocked) {
-            btnHtml = `<button class="armory-btn equip-enemy-btn" data-id="${skin.id}">Equip</button>`;
-          } else {
-            btnHtml = `
-              <button class="armory-btn buy-enemy-btn" data-id="${skin.id}" ${canAfford ? '' : 'disabled'}>
-                Unlock ◈ ${skin.price.toLocaleString()}
-              </button>
-            `;
-          }
+    const themesHtml = themes
+      .map((theme) => {
+        const isUnlocked = unlockedThemes.includes(theme.id);
+        const isEquipped = equippedThemeId === theme.id;
+        const canAfford = points >= theme.price;
 
-          const [inner, mid, outer] = skin.bodyGradient;
-
-          return `
-            <div class="catalog-card ${isEquipped ? 'is-active-card' : ''}">
-              <div class="catalog-preview-box">
-                <div class="enemy-preview-glyph" style="
-                  background: radial-gradient(circle, ${inner} 0%, ${mid} 60%, ${outer} 100%);
-                  box-shadow: 0 0 16px ${skin.glowColor};
-                  border: 2px solid ${skin.borderColor};
-                ">
-                  <span class="enemy-preview-pupil" style="background: ${skin.pupilColor};"></span>
-                </div>
-              </div>
-              <div class="catalog-card-body">
-                <div class="catalog-card-header">
-                  <h4>${skin.name}</h4>
-                  <span class="item-cost">${skin.price === 0 ? 'FREE' : `◈ ${skin.price.toLocaleString()}`}</span>
-                </div>
-                <p class="catalog-desc">${skin.description}</p>
-                <div class="catalog-action">
-                  ${btnHtml}
-                </div>
-              </div>
-            </div>
+        let btnHtml = '';
+        if (isEquipped) {
+          btnHtml = `<button class="arena-action-btn is-equipped" disabled type="button">Equipped</button>`;
+        } else if (isUnlocked) {
+          btnHtml = `<button class="arena-action-btn is-equip equip-arena-btn" data-id="${theme.id}" type="button">Equip</button>`;
+        } else {
+          btnHtml = `
+            <button
+              class="arena-action-btn is-buy buy-arena-btn"
+              data-id="${theme.id}"
+              type="button"
+              ${canAfford ? '' : 'disabled'}
+            >
+              ${theme.price.toLocaleString()} pts
+            </button>
           `;
-        }).join('')}
-      </div>
-    `;
-  }
+        }
 
-  // =========================================================================
-  // Arena Themes Tab Rendering
-  // =========================================================================
+        const [c1, c2, c3] = theme.bgGradient;
 
-  private renderArenasTab(): string {
-    const points = this.progression.data.points;
-    const equippedId = this.progression.data.equippedArenaThemeId;
-    const unlocked = this.progression.data.unlockedArenaThemes;
+        return `
+          <div class="arena-card ${isEquipped ? 'is-equipped-card' : ''}">
+            <div class="arena-preview-box" style="
+              background: radial-gradient(circle at center, ${c1} 0%, ${c2} 60%, ${c3} 100%);
+              border-color: ${theme.boundaryColor};
+            ">
+              <div class="arena-grid-lines" style="--grid-color: ${theme.gridColor};"></div>
+              <div class="arena-dust-dot" style="background: ${theme.dustColor};"></div>
+            </div>
+            <div class="arena-card-body">
+              <div class="arena-card-header">
+                <strong class="arena-card-title">${theme.name}</strong>
+                <span class="arena-card-cost">${theme.price === 0 ? 'FREE' : `${theme.price.toLocaleString()} pts`}</span>
+              </div>
+              <p class="arena-card-desc">${theme.description}</p>
+              ${btnHtml}
+            </div>
+          </div>
+        `;
+      })
+      .join('');
 
-    return `
-      <div class="catalog-grid">
-        ${this.progression.arenaThemeCatalog.map((arena) => {
-          const isUnlocked = unlocked.includes(arena.id);
-          const isEquipped = equippedId === arena.id;
-          const canAfford = points >= arena.price;
+    // 2. Enemy Variations
+    const equippedEnemyId = this.progression.data.equippedEnemySkinId;
+    const unlockedEnemies = this.progression.data.unlockedEnemySkins;
+    const enemies = this.progression.enemySkinCatalog;
+    const unlockedEnemyCount = enemies.filter((e) => unlockedEnemies.includes(e.id)).length;
 
-          let btnHtml = '';
-          if (isEquipped) {
-            btnHtml = `<button class="armory-btn equipped" disabled>Equipped ✓</button>`;
-          } else if (isUnlocked) {
-            btnHtml = `<button class="armory-btn equip-arena-btn" data-id="${arena.id}">Equip</button>`;
-          } else {
-            btnHtml = `
-              <button class="armory-btn buy-arena-btn" data-id="${arena.id}" ${canAfford ? '' : 'disabled'}>
-                Unlock ◈ ${arena.price.toLocaleString()}
-              </button>
-            `;
-          }
+    const enemiesHtml = enemies
+      .map((skin) => {
+        const isUnlocked = unlockedEnemies.includes(skin.id);
+        const isEquipped = equippedEnemyId === skin.id;
+        const canAfford = points >= skin.price;
 
-          const [c1, c2, c3] = arena.bgGradient;
+        let btnHtml = '';
+        if (isEquipped) {
+          btnHtml = `<button class="arena-action-btn is-equipped" disabled type="button">Equipped</button>`;
+        } else if (isUnlocked) {
+          btnHtml = `<button class="arena-action-btn is-equip equip-enemy-btn" data-id="${skin.id}" type="button">Equip</button>`;
+        } else {
+          btnHtml = `
+            <button
+              class="arena-action-btn is-buy buy-enemy-btn"
+              data-id="${skin.id}"
+              type="button"
+              ${canAfford ? '' : 'disabled'}
+            >
+              ${skin.price.toLocaleString()} pts
+            </button>
+          `;
+        }
 
-          return `
-            <div class="catalog-card ${isEquipped ? 'is-active-card' : ''}">
-              <div class="catalog-preview-box arena-preview-box" style="
-                background: radial-gradient(circle, ${c1} 0%, ${c2} 55%, ${c3} 100%);
-                border: 1px solid ${arena.boundaryColor};
+        const [inner, mid, outer] = skin.bodyGradient;
+
+        return `
+          <div class="arena-card ${isEquipped ? 'is-equipped-card' : ''}">
+            <div class="enemy-preview-box">
+              <div class="enemy-preview-dot" style="
+                background: radial-gradient(circle, ${inner} 0%, ${mid} 60%, ${outer} 100%);
+                border: 2px solid ${skin.borderColor};
               ">
-                <div class="arena-grid-mockup" style="--grid-line: ${arena.gridColor};"></div>
-                <div class="arena-dust-mockup" style="background: ${arena.dustColor};"></div>
-              </div>
-              <div class="catalog-card-body">
-                <div class="catalog-card-header">
-                  <h4>${arena.name}</h4>
-                  <span class="item-cost">${arena.price === 0 ? 'FREE' : `◈ ${arena.price.toLocaleString()}`}</span>
-                </div>
-                <p class="catalog-desc">${arena.description}</p>
-                <div class="catalog-action">
-                  ${btnHtml}
-                </div>
+                <span class="enemy-preview-pupil" style="background: ${skin.pupilColor};"></span>
               </div>
             </div>
-          `;
-        }).join('')}
+            <div class="arena-card-body">
+              <div class="arena-card-header">
+                <strong class="arena-card-title">${skin.name}</strong>
+                <span class="arena-card-cost">${skin.price === 0 ? 'FREE' : `${skin.price.toLocaleString()} pts`}</span>
+              </div>
+              <p class="arena-card-desc">${skin.description}</p>
+              ${btnHtml}
+            </div>
+          </div>
+        `;
+      })
+      .join('');
+
+    return `
+      <div class="armory-arena-layout armory-scroll-body custom-scrollbar">
+        <!-- Arena Themes Section -->
+        <div class="arena-section-group">
+          <div class="armory-sub-header">
+            <span class="sub-header-pill">Arena Themes · ${unlockedThemeCount} of ${themes.length} unlocked</span>
+            <span class="sub-header-explain">Changes the backdrop, boundary, and grid colors.</span>
+          </div>
+          <div class="arena-cards-grid">
+            ${themesHtml}
+          </div>
+        </div>
+
+        <!-- Enemy Variations Section -->
+        <div class="arena-section-group" style="margin-top: 24px;">
+          <div class="armory-sub-header">
+            <span class="sub-header-pill">Enemy Variations · ${unlockedEnemyCount} of ${enemies.length} unlocked</span>
+            <span class="sub-header-explain">Changes red swarm styling and particle effects.</span>
+          </div>
+          <div class="arena-cards-grid">
+            ${enemiesHtml}
+          </div>
+        </div>
       </div>
     `;
   }
 
   // =========================================================================
-  // Controls & Tuning Tab Rendering
+  // Tab 4: Handling (Board 11) - Live Steering Tuning & Interactive Preview
   // =========================================================================
 
-  private renderTuningTab(): string {
+  private renderHandlingTab(): string {
     const tuning = this.progression.data.tuning;
 
     return `
-      <div class="tuning-container">
-        <div class="tuning-hero">
-          <h3>Steering Sensitivity</h3>
-          <p>Adjust cursor and tilt responsiveness for optimal control.</p>
-        </div>
-
-        <div class="tuning-controls">
-          <!-- Sensitivity Slider -->
-          <div class="tuning-control-card">
-            <div class="tuning-label-row">
-              <label for="tuning-sensitivity">Sensitivity / Speed</label>
-              <span id="val-sensitivity" class="tuning-value-pill">${tuning.sensitivity.toFixed(1)}x</span>
+      <div class="armory-handling-layout armory-scroll-body custom-scrollbar">
+        <!-- Left Column: Controls (Board 11) -->
+        <div class="handling-controls-column">
+          <!-- Turn rate Slider -->
+          <div class="handling-field-group">
+            <div class="handling-field-header">
+              <label for="h-turn" class="handling-label">Turn rate</label>
+              <span id="disp-turn-rate" class="handling-value-pill">${tuning.sensitivity.toFixed(1)}×</span>
             </div>
-            <p class="tuning-explain">Ship acceleration rate toward target or tilt angle.</p>
-            <div class="slider-wrapper">
-              <span class="slider-boundary">0.5x</span>
-              <input id="tuning-sensitivity" type="range" min="0.5" max="2.0" step="0.1" value="${tuning.sensitivity}">
-              <span class="slider-boundary">2.0x</span>
+            <span class="handling-hint">Higher turns sharper.</span>
+            <input
+              id="h-turn"
+              class="handling-slider"
+              type="range"
+              min="0.5"
+              max="2.0"
+              step="0.1"
+              value="${tuning.sensitivity}"
+            />
+            <div class="handling-boundary-row">
+              <span>0.5×</span>
+              <span>2.0×</span>
             </div>
           </div>
+
+          <div class="handling-divider"></div>
 
           <!-- Deadzone Slider -->
-          <div class="tuning-control-card">
-            <div class="tuning-label-row">
-              <label for="tuning-deadzone">Resting Deadzone</label>
-              <span id="val-deadzone" class="tuning-value-pill">${tuning.deadzone}px</span>
+          <div class="handling-field-group">
+            <div class="handling-field-header">
+              <label for="h-dead" class="handling-label">Deadzone</label>
+              <span id="disp-deadzone" class="handling-value-pill">${tuning.deadzone}px</span>
             </div>
-            <p class="tuning-explain">Neutral radius around cursor/center to eliminate drift.</p>
-            <div class="slider-wrapper">
-              <span class="slider-boundary">0px</span>
-              <input id="tuning-deadzone" type="range" min="0" max="16" step="1" value="${tuning.deadzone}">
-              <span class="slider-boundary">16px</span>
+            <span class="handling-hint">Stops drift when you hold still.</span>
+            <input
+              id="h-dead"
+              class="handling-slider"
+              type="range"
+              min="0"
+              max="16"
+              step="1"
+              value="${tuning.deadzone}"
+            />
+            <div class="handling-boundary-row">
+              <span>0px</span>
+              <span>16px</span>
             </div>
           </div>
 
-          <!-- Actions -->
-          <div class="tuning-actions">
-            <button id="btn-tuning-reset" type="button" class="secondary-button" style="width: auto; padding: 8px 16px; font-size: 11px;">
-              ↺ Reset Defaults
-            </button>
+          <!-- Reset Button -->
+          <button id="btn-handling-reset" type="button" class="handling-reset-btn">Reset</button>
+        </div>
+
+        <!-- Right Column: Interactive Live Preview (Board 11) -->
+        <div class="handling-preview-column">
+          <span class="handling-preview-label">Live preview — move the cursor</span>
+          <div id="handling-live-box" class="handling-live-box">
+            <canvas id="handling-preview-canvas" class="handling-preview-canvas"></canvas>
+            
+            <div class="handling-preview-legend">
+              <span class="legend-item">
+                <span class="legend-glyph legend-deadzone"></span>deadzone
+              </span>
+              <span class="legend-item">
+                <span class="legend-glyph legend-speed"></span>top speed at
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -694,20 +762,202 @@ export class ArmoryUI {
   }
 
   // =========================================================================
-  // Event Binding
+  // Interactive Live Preview Engine (Board 11)
+  // =========================================================================
+
+  private initHandlingPreview() {
+    const box = this.containerEl?.querySelector('#handling-live-box') as HTMLElement;
+    const canvas = this.containerEl?.querySelector('#handling-preview-canvas') as HTMLCanvasElement;
+    if (!box || !canvas) return;
+
+    this.previewCanvas = canvas;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const rect = box.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.max(280, rect.width) * dpr;
+    canvas.height = Math.max(260, rect.height) * dpr;
+    ctx.scale(dpr, dpr);
+
+    const w = canvas.width / dpr;
+    const h = canvas.height / dpr;
+
+    if (!this.previewInitialized) {
+      this.previewShip = {
+        x: w / 2 + 45,
+        y: h / 2 - 25,
+        vx: 0,
+        vy: 0,
+        angle: -Math.PI / 4
+      };
+      this.previewMousePos = { x: w / 2 + 70, y: h / 2 - 35 };
+      this.previewInitialized = true;
+    }
+
+    const onMove = (e: MouseEvent | TouchEvent) => {
+      const bRect = box.getBoundingClientRect();
+      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+      const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+      this.previewMousePos.x = clientX - bRect.left;
+      this.previewMousePos.y = clientY - bRect.top;
+    };
+
+    box.addEventListener('mousemove', onMove);
+    box.addEventListener('touchmove', onMove, { passive: true });
+
+    const step = () => {
+      if (!this.previewCanvas || this.activeTab !== 'handling') return;
+
+      const currentW = canvas.width / dpr;
+      const currentH = canvas.height / dpr;
+      const cx = currentW / 2;
+      const cy = currentH / 2;
+
+      ctx.clearRect(0, 0, currentW, currentH);
+
+      // Subtle background grid
+      ctx.strokeStyle = 'rgba(38, 44, 56, 0.4)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let x = 0; x < currentW; x += 40) {
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, currentH);
+      }
+      for (let y = 0; y < currentH; y += 40) {
+        ctx.moveTo(0, y);
+        ctx.lineTo(currentW, y);
+      }
+      ctx.stroke();
+
+      const tuning = this.progression.data.tuning;
+      const topSpeedRadius = 110;
+      const deadzoneRadius = Math.max(4, tuning.deadzone * 3.5);
+
+      // 1. Top speed dashed circle (#5B8CFF)
+      ctx.save();
+      ctx.strokeStyle = 'rgba(91, 140, 255, 0.32)';
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.arc(cx, cy, topSpeedRadius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+
+      // 2. Deadzone solid circle (#FFB14D)
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255, 177, 77, 0.75)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.arc(cx, cy, deadzoneRadius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+
+      // 3. Center origin dot (#FFB14D)
+      ctx.fillStyle = '#FFB14D';
+      ctx.beginPath();
+      ctx.arc(cx, cy, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 4. Steer ship toward cursor with real turn rate & deadzone physics
+      const ship = this.previewShip;
+      const dx = this.previewMousePos.x - ship.x;
+      const dy = this.previewMousePos.y - ship.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (dist > deadzoneRadius) {
+        const dirX = dx / dist;
+        const dirY = dy / dist;
+        const speedFrac = Math.min(1.0, (dist - deadzoneRadius) / Math.max(20, topSpeedRadius - deadzoneRadius));
+        const maxSpeed = 240 * tuning.sensitivity;
+        const targetVx = dirX * maxSpeed * speedFrac;
+        const targetVy = dirY * maxSpeed * speedFrac;
+
+        ship.vx += (targetVx - ship.vx) * 0.14;
+        ship.vy += (targetVy - ship.vy) * 0.14;
+      } else {
+        // Natural resting drag inside deadzone - eliminates drift
+        ship.vx *= 0.84;
+        ship.vy *= 0.84;
+      }
+
+      ship.x += ship.vx * (1 / 60);
+      ship.y += ship.vy * (1 / 60);
+
+      // Clamping within box
+      ship.x = Math.max(16, Math.min(currentW - 16, ship.x));
+      ship.y = Math.max(16, Math.min(currentH - 16, ship.y));
+
+      // Angular lerp tuned by turn rate
+      const currentSpeed = Math.sqrt(ship.vx * ship.vx + ship.vy * ship.vy);
+      let targetAngle = ship.angle;
+      if (currentSpeed > 8) {
+        targetAngle = Math.atan2(ship.vy, ship.vx);
+      } else if (dist > deadzoneRadius) {
+        targetAngle = Math.atan2(dy, dx);
+      }
+
+      let diff = targetAngle - ship.angle;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      while (diff > Math.PI) diff -= Math.PI * 2;
+      ship.angle += diff * Math.min(1.0, (1 / 60) * 16 * tuning.sensitivity);
+
+      // 5. Draw Player Ship vector silhouette with cyan glow
+      ctx.save();
+      ctx.translate(ship.x, ship.y);
+      ctx.rotate(ship.angle);
+      ctx.shadowColor = 'rgba(91, 140, 255, 0.85)';
+      ctx.shadowBlur = 14;
+      ctx.fillStyle = '#5B8CFF';
+      ctx.beginPath();
+      ctx.moveTo(14, 0);
+      ctx.lineTo(-10, -8);
+      ctx.lineTo(-5, 0);
+      ctx.lineTo(-10, 8);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+
+      // 6. Draw subtle mouse reticle dot
+      ctx.fillStyle = 'rgba(91, 140, 255, 0.6)';
+      ctx.beginPath();
+      ctx.arc(this.previewMousePos.x, this.previewMousePos.y, 3, 0, Math.PI * 2);
+      ctx.fill();
+
+      this.previewRafId = requestAnimationFrame(step);
+    };
+
+    this.previewRafId = requestAnimationFrame(step);
+  }
+
+  private stopHandlingPreview() {
+    if (this.previewRafId !== null) {
+      cancelAnimationFrame(this.previewRafId);
+      this.previewRafId = null;
+    }
+  }
+
+  // =========================================================================
+  // DOM Event Bindings
   // =========================================================================
 
   private bindEvents() {
     if (!this.containerEl) return;
 
-    // Close button
+    // 1. Close buttons (desktop SVG close & mobile back button)
     this.containerEl.querySelector('#btn-armory-close')?.addEventListener('click', () => {
       this.close();
     });
+    this.containerEl.querySelector('#btn-armory-mobile-back')?.addEventListener('click', () => {
+      this.close();
+    });
+    this.containerEl.querySelector('#btn-armory-mobile-play')?.addEventListener('click', () => {
+      this.close();
+    });
 
-    // Tab buttons
-    this.containerEl.querySelectorAll('.armory-tab-btn').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
+    // 2. Navigation Tabs
+    this.containerEl.querySelectorAll('.armory-v2-tab').forEach((tabBtn) => {
+      tabBtn.addEventListener('click', (e) => {
         const tab = (e.currentTarget as HTMLElement).getAttribute('data-tab') as any;
         if (tab && tab !== this.activeTab) {
           this.activeTab = tab;
@@ -716,26 +966,25 @@ export class ArmoryUI {
       });
     });
 
-    // Weapon category filter chips (Weapons tab sub-categories)
-    this.containerEl.querySelectorAll('.weapon-filter-chip').forEach((chip) => {
-      chip.addEventListener('click', (e) => {
-        const filter = (e.currentTarget as HTMLElement).getAttribute('data-filter') as any;
-        if (filter && filter !== this.activeWeaponCategory) {
-          this.activeWeaponCategory = filter;
+    // 3. Weapons Tab: Select active weapon in sidebar
+    this.containerEl.querySelectorAll('.weapon-list-item').forEach((item) => {
+      item.addEventListener('click', (e) => {
+        const id = (e.currentTarget as HTMLElement).getAttribute('data-weapon-id') as keyof WeaponPerks;
+        if (id && id !== this.selectedWeaponId) {
+          this.selectedWeaponId = id;
           this.render();
         }
       });
     });
 
-    // Perk Upgrade buttons
-    this.containerEl.querySelectorAll('.upgrade-perk-btn').forEach((btn) => {
+    // 4. Weapons Tab: Upgrade tracks
+    this.containerEl.querySelectorAll('.track-cost-btn').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         const target = e.currentTarget as HTMLElement;
         const weapon = target.getAttribute('data-weapon') as keyof WeaponPerks;
-        const perk = target.getAttribute('data-perk') as string;
-        if (weapon && perk) {
-          const success = this.progression.upgradePerk(weapon, perk);
-          if (success) {
+        const track = target.getAttribute('data-track') as string;
+        if (weapon && track) {
+          if (this.progression.upgradePerk(weapon, track)) {
             this.onStateChanged();
             this.render();
           }
@@ -743,49 +992,43 @@ export class ArmoryUI {
       });
     });
 
-    // Cursors Buy & Equip
-    this.containerEl.querySelectorAll('.buy-cursor-btn').forEach((btn) => {
+    // 5. Weapons Tab: One-off unlocks (Keystones)
+    this.containerEl.querySelectorAll('.keystone-cost-btn').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const target = e.currentTarget as HTMLElement;
+        const weapon = target.getAttribute('data-weapon') as keyof WeaponPerks;
+        const keystone = target.getAttribute('data-keystone') as string;
+        if (weapon && keystone) {
+          if (this.progression.upgradePerk(weapon, keystone)) {
+            this.onStateChanged();
+            this.render();
+          }
+        }
+      });
+    });
+
+    // 6. Ships Tab: Equip & Buy
+    this.containerEl.querySelectorAll('.buy-ship-btn').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         const id = (e.currentTarget as HTMLElement).getAttribute('data-id');
-        if (id && this.progression.buyCursor(id)) {
+        if (id && this.progression.buyShip(id)) {
           this.onStateChanged();
           this.render();
         }
       });
     });
 
-    this.containerEl.querySelectorAll('.equip-cursor-btn').forEach((btn) => {
+    this.containerEl.querySelectorAll('.equip-ship-btn').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         const id = (e.currentTarget as HTMLElement).getAttribute('data-id');
-        if (id && this.progression.equipCursor(id)) {
+        if (id && this.progression.equipShip(id)) {
           this.onStateChanged();
           this.render();
         }
       });
     });
 
-    // Enemy Skins Buy & Equip
-    this.containerEl.querySelectorAll('.buy-enemy-btn').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
-        const id = (e.currentTarget as HTMLElement).getAttribute('data-id');
-        if (id && this.progression.buyEnemySkin(id)) {
-          this.onStateChanged();
-          this.render();
-        }
-      });
-    });
-
-    this.containerEl.querySelectorAll('.equip-enemy-btn').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
-        const id = (e.currentTarget as HTMLElement).getAttribute('data-id');
-        if (id && this.progression.equipEnemySkin(id)) {
-          this.onStateChanged();
-          this.render();
-        }
-      });
-    });
-
-    // Arena Themes Buy & Equip
+    // 7. Arena Tab: Themes Buy & Equip
     this.containerEl.querySelectorAll('.buy-arena-btn').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         const id = (e.currentTarget as HTMLElement).getAttribute('data-id');
@@ -806,32 +1049,53 @@ export class ArmoryUI {
       });
     });
 
-    // Sensitivity slider
-    const sensInput = this.containerEl.querySelector('#tuning-sensitivity') as HTMLInputElement;
-    if (sensInput) {
-      sensInput.addEventListener('input', (e) => {
+    // 8. Arena Tab: Enemy Skins Buy & Equip
+    this.containerEl.querySelectorAll('.buy-enemy-btn').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const id = (e.currentTarget as HTMLElement).getAttribute('data-id');
+        if (id && this.progression.buyEnemySkin(id)) {
+          this.onStateChanged();
+          this.render();
+        }
+      });
+    });
+
+    this.containerEl.querySelectorAll('.equip-enemy-btn').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const id = (e.currentTarget as HTMLElement).getAttribute('data-id');
+        if (id && this.progression.equipEnemySkin(id)) {
+          this.onStateChanged();
+          this.render();
+        }
+      });
+    });
+
+    // 9. Handling Tab: Turn rate slider
+    const turnInput = this.containerEl.querySelector('#h-turn') as HTMLInputElement;
+    if (turnInput) {
+      turnInput.addEventListener('input', (e) => {
         const val = parseFloat((e.target as HTMLInputElement).value);
         this.progression.setSensitivity(val);
-        const disp = this.containerEl?.querySelector('#val-sensitivity');
-        if (disp) disp.textContent = `${val.toFixed(1)}x`;
+        const disp = this.containerEl?.querySelector('#disp-turn-rate');
+        if (disp) disp.textContent = `${val.toFixed(1)}×`;
         this.onStateChanged();
       });
     }
 
-    // Deadzone slider
-    const deadzoneInput = this.containerEl.querySelector('#tuning-deadzone') as HTMLInputElement;
+    // 10. Handling Tab: Deadzone slider
+    const deadzoneInput = this.containerEl.querySelector('#h-dead') as HTMLInputElement;
     if (deadzoneInput) {
       deadzoneInput.addEventListener('input', (e) => {
         const val = parseInt((e.target as HTMLInputElement).value, 10);
         this.progression.setDeadzone(val);
-        const disp = this.containerEl?.querySelector('#val-deadzone');
+        const disp = this.containerEl?.querySelector('#disp-deadzone');
         if (disp) disp.textContent = `${val}px`;
         this.onStateChanged();
       });
     }
 
-    // Reset tuning button
-    this.containerEl.querySelector('#btn-tuning-reset')?.addEventListener('click', () => {
+    // 11. Handling Tab: Reset button (defaults to 1.0x turn rate, 4px deadzone)
+    this.containerEl.querySelector('#btn-handling-reset')?.addEventListener('click', () => {
       this.progression.setSensitivity(1.0);
       this.progression.setDeadzone(4);
       this.onStateChanged();

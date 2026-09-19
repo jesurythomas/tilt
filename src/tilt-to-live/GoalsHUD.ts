@@ -1,5 +1,5 @@
 // =========================================================================
-// GoalsHUD.ts - Always-Visible Left-Side Milestones & Goal Tracker HUD
+// GoalsHUD.ts - 4px Edge Rail HUD & Full Milestones Screen System
 // =========================================================================
 
 import { Goal, GoalManager, RunTracker } from './GoalManager';
@@ -8,73 +8,47 @@ import { ProgressionManager } from './ProgressionManager';
 export class GoalsHUD {
   private readonly goalManager: GoalManager;
   private readonly progression: ProgressionManager;
-  private containerEl: HTMLElement | null = null;
-  private toastContainerEl: HTMLElement | null = null;
-  private allGoalsModalEl: HTMLElement | null = null;
 
-  public isCollapsed: boolean = false;
-  private inMenuMode: boolean = false;
+  private railEl: HTMLElement | null = null;
+  private toastContainerEl: HTMLElement | null = null;
+  private milestonesModalEl: HTMLElement | null = null;
+
+  public inMenuMode: boolean = false;
   private completedToastTimer: number | null = null;
 
   constructor(goalManager: GoalManager, progression: ProgressionManager) {
     this.goalManager = goalManager;
     this.progression = progression;
 
-    this.loadCollapsedState();
     this.initDOM();
     this.setupListeners();
-  }
-
-  private loadCollapsedState() {
-    try {
-      const saved = localStorage.getItem('tilt_goals_hud_collapsed');
-      if (saved !== null) {
-        this.isCollapsed = saved === 'true';
-      } else {
-        this.isCollapsed = typeof window !== 'undefined' && window.innerWidth <= 900;
-      }
-    } catch {
-      this.isCollapsed = typeof window !== 'undefined' && window.innerWidth <= 900;
-    }
-  }
-
-  private saveCollapsedState() {
-    try {
-      localStorage.setItem('tilt_goals_hud_collapsed', this.isCollapsed ? 'true' : 'false');
-    } catch {}
-  }
-
-  public toggleCollapse() {
-    this.isCollapsed = !this.isCollapsed;
-    this.saveCollapsedState();
-    this.render();
-  }
-
-  public setMenuMode(inMenu: boolean) {
-    this.inMenuMode = inMenu;
-    if (this.containerEl) {
-      if (inMenu && typeof window !== 'undefined' && window.innerWidth <= 900) {
-        this.containerEl.classList.add('mobile-menu-hide');
-      } else {
-        this.containerEl.classList.remove('mobile-menu-hide');
-      }
-    }
+    this.setupHotkey();
   }
 
   private initDOM() {
-    // 1. Left-Side Goals Sidebar Container
-    let el = document.getElementById('tilt-goals-sidebar');
-    if (!el) {
-      el = document.createElement('aside');
-      el.id = 'tilt-goals-sidebar';
-      el.className = 'tilt-goals-sidebar';
-      el.setAttribute('aria-label', 'Active Milestones');
-      const stage = document.getElementById('tilt-stage') || document.body;
-      stage.appendChild(el);
+    // 1. In-game Left HUD: 4px Edge Rail (#tilt-edge-rail) replacing 240px sidebar (Board 05)
+    let rail = document.getElementById('tilt-edge-rail');
+    if (!rail) {
+      // If legacy #tilt-goals-sidebar exists, repurpose or replace it
+      const oldSidebar = document.getElementById('tilt-goals-sidebar');
+      if (oldSidebar) {
+        oldSidebar.id = 'tilt-edge-rail';
+        rail = oldSidebar;
+      } else {
+        rail = document.createElement('div');
+        rail.id = 'tilt-edge-rail';
+        const stage = document.getElementById('tilt-stage') || document.body;
+        stage.appendChild(rail);
+      }
     }
-    this.containerEl = el;
+    rail.className = 'tilt-edge-rail';
+    rail.setAttribute('aria-label', 'Milestones Progress Rail (Click to open Milestones)');
+    rail.setAttribute('role', 'button');
+    rail.setAttribute('tabindex', '0');
+    rail.setAttribute('title', 'Milestones — Press M or Click to view');
+    this.railEl = rail;
 
-    // 2. Goal Complete Toast Banner Container
+    // 2. Clean Milestone Complete Toast in bottom-left during run (Board 05)
     let toast = document.getElementById('tilt-goal-toast');
     if (!toast) {
       toast = document.createElement('div');
@@ -86,7 +60,7 @@ export class GoalsHUD {
     }
     this.toastContainerEl = toast;
 
-    // 3. Full Trophies / Goals Modal
+    // 3. Full Milestones Modal (Board 13)
     let modal = document.getElementById('tilt-all-goals-modal');
     if (!modal) {
       modal = document.createElement('div');
@@ -95,7 +69,7 @@ export class GoalsHUD {
       const stage = document.getElementById('tilt-stage') || document.body;
       stage.appendChild(modal);
     }
-    this.allGoalsModalEl = modal;
+    this.milestonesModalEl = modal;
 
     this.render();
   }
@@ -108,18 +82,89 @@ export class GoalsHUD {
         this.render();
       }
     );
+
+    // Click on edge rail opens the Milestones modal
+    if (this.railEl) {
+      this.railEl.addEventListener('click', () => {
+        this.openAllGoalsModal();
+      });
+      this.railEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          this.openAllGoalsModal();
+        }
+      });
+    }
+
+    // Attach click listeners to Game Over milestones container to open milestones
+    const bindGameOverClicks = () => {
+      const gameOverMilestones = document.getElementById('tilt-gameover-milestones');
+      gameOverMilestones?.addEventListener('click', () => this.openAllGoalsModal());
+      const gameOverPoints = document.querySelector('.gameover-points-box');
+      gameOverPoints?.addEventListener('click', () => this.openAllGoalsModal());
+    };
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', bindGameOverClicks);
+    } else {
+      bindGameOverClicks();
+    }
   }
 
+  private setupHotkey() {
+    window.addEventListener('keydown', (e: KeyboardEvent) => {
+      // Toggle Milestones screen on 'M' key (unless typing in input)
+      if ((e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const target = e.target as HTMLElement;
+        if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
+          return;
+        }
+        if (this.isModalOpen()) {
+          this.closeAllGoalsModal();
+        } else {
+          this.openAllGoalsModal();
+        }
+      } else if (e.key === 'Escape' && this.isModalOpen()) {
+        this.closeAllGoalsModal();
+      }
+    });
+  }
+
+  public isModalOpen(): boolean {
+    return !!this.milestonesModalEl && !this.milestonesModalEl.classList.contains('hidden');
+  }
+
+  public setMenuMode(inMenu: boolean) {
+    this.inMenuMode = inMenu;
+    if (this.railEl) {
+      if (inMenu) {
+        this.railEl.classList.add('hidden');
+      } else {
+        this.railEl.classList.remove('hidden');
+      }
+    }
+  }
+
+  public toggleCollapse() {
+    // Legacy support: toggle modal
+    if (this.isModalOpen()) {
+      this.closeAllGoalsModal();
+    } else {
+      this.openAllGoalsModal();
+    }
+  }
+
+  /**
+   * Clean notification toast in bottom-left during run (Board 05)
+   */
   public showGoalToast(goal: Goal) {
     if (!this.toastContainerEl) return;
+
     this.toastContainerEl.innerHTML = `
-      <div class="goal-toast-inner">
-        <span class="toast-star">★</span>
-        <div class="toast-text">
-          <small>MILESTONE COMPLETE!</small>
-          <strong>${goal.title}</strong>
-        </div>
-        <span class="toast-reward">+${goal.rewardPoints} ${goal.rewardPoints === 1 ? 'POINT' : 'POINTS'}</span>
+      <div class="milestone-toast-card">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true" style="flex-shrink: 0;">
+          <path d="M2 7.5 L5.5 11 L12 3.5" stroke="#3DDC97" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+        <span class="milestone-toast-title">${goal.title}</span>
+        <span class="milestone-toast-reward">+${goal.rewardPoints}</span>
       </div>
     `;
     this.toastContainerEl.classList.remove('hidden');
@@ -130,19 +175,21 @@ export class GoalsHUD {
     this.completedToastTimer = window.setTimeout(() => {
       this.toastContainerEl?.classList.add('hidden');
       this.completedToastTimer = null;
-    }, 3200);
+    }, 3000);
   }
 
   public showMessageToast(title: string, subtitle: string, rewardBadge?: string) {
     if (!this.toastContainerEl) return;
+
     this.toastContainerEl.innerHTML = `
-      <div class="goal-toast-inner">
-        <span class="toast-star">🎯</span>
-        <div class="toast-text">
-          <small>${title}</small>
-          <strong>${subtitle}</strong>
-        </div>
-        ${rewardBadge ? `<span class="toast-reward">${rewardBadge}</span>` : ''}
+      <div class="milestone-toast-card" style="border-left-color: #5B8CFF;">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true" style="flex-shrink: 0;">
+          <circle cx="7" cy="7" r="5" stroke="#5B8CFF" stroke-width="1.5"></circle>
+          <circle cx="7" cy="7" r="2" fill="#5B8CFF"></circle>
+        </svg>
+        <span class="milestone-toast-title">${title}</span>
+        <span class="milestone-toast-subtitle" style="font-size: 12px; color: #99A1B3;">${subtitle}</span>
+        ${rewardBadge ? `<span class="milestone-toast-reward">${rewardBadge}</span>` : ''}
       </div>
     `;
     this.toastContainerEl.classList.remove('hidden');
@@ -162,160 +209,209 @@ export class GoalsHUD {
   }
 
   public updateLive(tracker: RunTracker) {
-    if (!this.containerEl) return;
-
-    // Evaluate live cumulative milestones (run goals only complete on game over)
+    // Evaluate live cumulative milestones during gameplay
     this.goalManager.evaluateLiveTotalGoals(tracker);
 
-    if (this.isCollapsed) return;
+    // Live update edge rail fill
+    const completed = this.goalManager.getCompletedCount();
+    const total = this.goalManager.getTotalGoalsCount();
+    const pct = total > 0 ? completed / total : 0;
 
-    // Update active goals progress bars
-    const active = this.goalManager.getActiveGoals(3);
-    for (const { goal } of active) {
-      const current = Math.min(goal.target, this.goalManager.getMetricValue(goal.metric, tracker));
-      const pct = Math.min(100, Math.round((current / goal.target) * 100));
-
-      const fillEl = document.getElementById(`goal-fill-${goal.id}`);
-      const valEl = document.getElementById(`goal-val-${goal.id}`);
-
-      if (fillEl) fillEl.style.width = `${pct}%`;
-      if (valEl) valEl.textContent = `${current.toLocaleString()} / ${goal.target.toLocaleString()}`;
+    const fillEl = document.getElementById('tilt-edge-rail-fill');
+    if (fillEl) {
+      fillEl.style.height = `${Math.round(pct * 100)}%`;
     }
   }
 
   public render() {
-    if (!this.containerEl) return;
+    if (!this.railEl) return;
+
+    const completed = this.goalManager.getCompletedCount();
+    const total = this.goalManager.getTotalGoalsCount();
+    const pct = total > 0 ? (completed / total) * 100 : 0;
+
+    // Render 4px Edge Rail on left screen edge with notches (Board 05)
+    this.railEl.innerHTML = `
+      <div id="tilt-edge-rail-fill" class="tilt-edge-rail-fill" style="height: ${pct}%;"></div>
+      <div class="edge-rail-notch" style="top: 33%;"></div>
+      <div class="edge-rail-notch" style="top: 66%;"></div>
+      <div class="edge-rail-hover-tag">
+        <span>${completed}/${total} MILESTONES</span>
+      </div>
+    `;
+
+    if (this.isModalOpen()) {
+      this.renderMilestonesModalContent();
+    }
+  }
+
+  /**
+   * Full Milestones Screen (Board 13)
+   * Openable from Menu ('Milestones' link), Game Over, or hotkey 'M'.
+   */
+  public openAllGoalsModal() {
+    if (!this.milestonesModalEl) return;
+    this.renderMilestonesModalContent();
+    this.milestonesModalEl.classList.remove('hidden');
+
+    // Bind close button
+    document.getElementById('btn-close-milestones')?.addEventListener('click', () => {
+      this.closeAllGoalsModal();
+    });
+  }
+
+  public closeAllGoalsModal() {
+    if (this.milestonesModalEl) {
+      this.milestonesModalEl.classList.add('hidden');
+    }
+  }
+
+  private renderMilestonesModalContent() {
+    if (!this.milestonesModalEl) return;
 
     const completed = this.goalManager.getCompletedCount();
     const total = this.goalManager.getTotalGoalsCount();
     const points = this.progression.data.points;
+    const progressPct = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-    const hideClass = this.inMenuMode && typeof window !== 'undefined' && window.innerWidth <= 900 ? ' mobile-menu-hide' : '';
-
-    if (this.isCollapsed) {
-      this.containerEl.className = `tilt-goals-sidebar collapsed${hideClass}`;
-      this.containerEl.innerHTML = `
-        <button id="btn-toggle-goals-hud" class="goals-expand-tab" type="button" title="Show Milestones (Click to unhide)">
-          <span class="goals-star-icon">★</span>
-          <span class="goals-expand-label">MILESTONES</span>
-          <span class="goals-expand-badge">${completed}/${total}</span>
-          <span class="goals-toggle-glyph">▶</span>
-        </button>
-      `;
-
-      document.getElementById('btn-toggle-goals-hud')?.addEventListener('click', () => {
-        this.toggleCollapse();
-      });
-      return;
-    }
-
-    this.containerEl.className = `tilt-goals-sidebar${hideClass}`;
-    const active = this.goalManager.getActiveGoals(3);
-
-    this.containerEl.innerHTML = `
-      <div class="goals-sidebar-header">
-        <div class="goals-header-title">
-          <span class="goals-star-icon">★</span>
-          <strong>MILESTONES</strong>
-          <span class="goals-count-badge">${completed}/${total}</span>
-        </div>
-        <div class="goals-header-right">
-          <div class="goals-vault-pill" title="Vault Balance">
-            ◈ ${points.toLocaleString()} PTS
-          </div>
-          <button id="btn-toggle-goals-hud" class="goals-collapse-btn" type="button" title="Hide Milestones" aria-label="Hide Milestones">
-            ◀
-          </button>
-        </div>
-      </div>
-
-      <div class="goals-list">
-        ${active.length === 0 ? `
-          <div class="goals-all-cleared">
-            <span>🏆</span>
-            <p>All milestones conquered!</p>
-          </div>
-        ` : active.map(({ goal }) => {
-          return `
-            <div class="goal-hud-card" id="goal-card-${goal.id}">
-              <div class="goal-card-top">
-                <span class="goal-card-title">${goal.title}</span>
-                <span class="goal-card-reward">+${goal.rewardPoints} ${goal.rewardPoints === 1 ? 'PT' : 'PTS'}</span>
-              </div>
-              <p class="goal-card-desc">${goal.description}</p>
-              <div class="goal-progress-row">
-                <div class="goal-progress-track">
-                  <div class="goal-progress-fill" id="goal-fill-${goal.id}" style="width: 0%;"></div>
-                </div>
-                <span class="goal-progress-val" id="goal-val-${goal.id}">0 / ${goal.target.toLocaleString()}</span>
-              </div>
-            </div>
-          `;
-        }).join('')}
-      </div>
-
-      <button id="btn-view-all-goals" type="button" class="goals-view-all-btn" title="View all 28 milestones">
-        Trophy Catalog ➔
-      </button>
-    `;
-
-    document.getElementById('btn-toggle-goals-hud')?.addEventListener('click', () => {
-      this.toggleCollapse();
-    });
-
-    document.getElementById('btn-view-all-goals')?.addEventListener('click', () => {
-      this.openAllGoalsModal();
-    });
-  }
-
-  public openAllGoalsModal() {
-    if (!this.allGoalsModalEl) return;
-
-    const completed = this.goalManager.getCompletedCount();
-    const total = this.goalManager.getTotalGoalsCount();
+    // Categorize goals into the 3 Claude Tiers: Score, Combat, Mastery
     const catalog = this.goalManager.catalog;
 
-    this.allGoalsModalEl.innerHTML = `
-      <div class="overlay-panel tilt-all-goals-panel" role="dialog" aria-modal="true" aria-label="Trophy Catalog">
-        <div class="armory-header">
-          <div class="armory-title-group">
-            <p class="eyebrow">MILESTONE ACHIEVEMENTS</p>
-            <h2>Trophy Catalog (${completed}/${total})</h2>
-          </div>
-          <div class="armory-header-right">
-            <button id="btn-close-all-goals" class="armory-close-btn" type="button" aria-label="Close">✕</button>
+    const getGoalTier = (goal: Goal): 'Score' | 'Combat' | 'Mastery' => {
+      if (
+        goal.category === 'score' ||
+        goal.metric === 'run_score' ||
+        goal.metric === 'total_score' ||
+        goal.metric === 'total_points'
+      ) {
+        return 'Score';
+      }
+      if (
+        goal.category === 'combat' ||
+        goal.category === 'combo' ||
+        goal.category === 'weapons' ||
+        goal.metric.includes('kills') ||
+        goal.metric.includes('multiplier') ||
+        goal.metric.includes('nuke') ||
+        goal.metric.includes('vortex') ||
+        goal.metric.includes('laser') ||
+        goal.metric.includes('missile') ||
+        goal.metric.includes('freeze') ||
+        goal.metric.includes('shield')
+      ) {
+        return 'Combat';
+      }
+      return 'Mastery';
+    };
+
+    const tiersConfig = [
+      { name: 'Score', tint: '#5B8CFF', goals: catalog.filter((g) => getGoalTier(g) === 'Score') },
+      { name: 'Combat', tint: '#A78BFA', goals: catalog.filter((g) => getGoalTier(g) === 'Combat') },
+      { name: 'Mastery', tint: '#FFB14D', goals: catalog.filter((g) => getGoalTier(g) === 'Mastery') }
+    ];
+
+    this.milestonesModalEl.innerHTML = `
+      <div class="overlay-panel tilt-all-goals-panel tilt-milestones-screen" role="dialog" aria-modal="true" aria-label="Milestones">
+        <!-- Milestones Header (Board 13) -->
+        <div class="milestones-screen-header">
+          <h2 class="milestones-screen-title">Milestones</h2>
+          <span class="milestones-screen-counter">${completed}<span class="counter-denom">/${total}</span></span>
+          <span class="milestones-header-progress-track">
+            <span class="milestones-header-progress-fill" style="width: ${progressPct}%;"></span>
+          </span>
+          <div class="milestones-header-right">
+            <span class="milestones-header-points">${points.toLocaleString()} <span class="pts-unit">PTS</span></span>
+            <button id="btn-close-milestones" type="button" class="milestones-screen-close" aria-label="Close milestones">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <path d="M2 2 L12 12 M12 2 L2 12" stroke="#99A1B3" stroke-width="1.5" stroke-linecap="round"></path>
+              </svg>
+            </button>
           </div>
         </div>
 
-        <div class="all-goals-scroll custom-scrollbar">
-          <div class="all-goals-grid">
-            ${catalog.map((goal) => {
-              const isDone = this.goalManager.isCompleted(goal.id);
-              return `
-                <div class="catalog-goal-card ${isDone ? 'is-goal-done' : ''}">
-                  <div class="catalog-goal-left">
-                    <span class="goal-check-glyph">${isDone ? '✓' : '◈'}</span>
-                    <div>
-                      <h4>${goal.title}</h4>
-                      <p>${goal.description}</p>
-                    </div>
-                  </div>
-                  <div class="catalog-goal-right">
-                    <span class="catalog-goal-reward">+${goal.rewardPoints} PTS</span>
-                    <span class="catalog-goal-status">${isDone ? 'UNLOCKED' : 'LOCKED'}</span>
-                  </div>
+        <!-- Milestones Body: 3 Tiers (Score, Combat, Mastery) -->
+        <div class="milestones-screen-body custom-scrollbar">
+          ${tiersConfig.map((tier) => {
+            const tierDoneCount = tier.goals.filter((g) => this.goalManager.isCompleted(g.id)).length;
+            const tierTotalCount = tier.goals.length;
+
+            return `
+              <div class="milestones-tier-group">
+                <div class="milestones-tier-heading">
+                  <span class="tier-name" style="color: ${tier.tint};">${tier.name}</span>
+                  <span class="tier-count">${tierDoneCount} of ${tierTotalCount}</span>
                 </div>
-              `;
-            }).join('')}
-          </div>
+                <div class="milestones-tier-grid">
+                  ${tier.goals.map((goal) => {
+                    const isDone = this.goalManager.isCompleted(goal.id);
+
+                    // Compute goal progress representation
+                    let currentVal = 0;
+                    if (this.goalManager.isTotalGoal(goal)) {
+                      currentVal = this.goalManager.getMetricValue(goal.metric, {
+                        mode: 'classic',
+                        score: 0,
+                        kills: 0,
+                        multiplier: 1,
+                        survivalTime: 0,
+                        closeCalls: 0,
+                        nukesDetonated: 0,
+                        vortexAbsorbs: 0,
+                        laserSlices: 0,
+                        missilesFired: 0,
+                        freezeShatters: 0,
+                        shieldRams: 0
+                      });
+                    }
+
+                    const pct = Math.min(100, Math.max(0, Math.round((currentVal / goal.target) * 100)));
+
+                    if (isDone) {
+                      return `
+                        <div class="milestone-card is-done">
+                          <span class="milestone-mark-box done">
+                            <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden="true">
+                              <path d="M1.5 5.8 L4.2 8.5 L9.5 2.8" stroke="#08090E" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path>
+                            </svg>
+                          </span>
+                          <div class="milestone-card-content">
+                            <span class="milestone-card-name">${goal.title}</span>
+                            <span class="milestone-card-goal">${goal.description}</span>
+                          </div>
+                          <span class="milestone-card-pts done">+${goal.rewardPoints}</span>
+                        </div>
+                      `;
+                    }
+
+                    // Open / In-Progress Goal
+                    const goalSubtitle = this.goalManager.isTotalGoal(goal)
+                      ? `${currentVal.toLocaleString()} / ${goal.target.toLocaleString()}`
+                      : goal.description;
+
+                    return `
+                      <div class="milestone-card is-open">
+                        <span class="milestone-mark-box open"></span>
+                        <div class="milestone-card-content">
+                          <span class="milestone-card-name">${goal.title}</span>
+                          <span class="milestone-card-goal">${goalSubtitle}</span>
+                          <span class="milestone-card-bar-track">
+                            <span class="milestone-card-bar-fill" style="width: ${pct}%;"></span>
+                          </span>
+                        </div>
+                        <span class="milestone-card-pts open">+${goal.rewardPoints}</span>
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+              </div>
+            `;
+          }).join('')}
         </div>
       </div>
     `;
 
-    this.allGoalsModalEl.classList.remove('hidden');
-
-    document.getElementById('btn-close-all-goals')?.addEventListener('click', () => {
-      this.allGoalsModalEl?.classList.add('hidden');
+    document.getElementById('btn-close-milestones')?.addEventListener('click', () => {
+      this.closeAllGoalsModal();
     });
   }
 }

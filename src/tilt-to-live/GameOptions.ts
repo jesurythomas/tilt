@@ -23,7 +23,7 @@ export interface GameSettings {
   sfxVolume: number; // 0..1
   musicEnabled: boolean;
   musicVolume: number; // 0..1
-  screenShake: 'off' | 'low' | 'normal' | 'extreme';
+  screenShake: 'off' | 'low' | 'normal' | 'extreme' | 'full';
   tetherLine: boolean;
   highContrastHalo: boolean;
   showGridlines: boolean;
@@ -37,36 +37,36 @@ export class GameOptionsManager {
   public readonly modes: ModeConfig[] = [
     {
       id: 'classic',
-      name: 'Classic Survival',
-      badge: 'STANDARD',
-      tagline: 'The Definitive Arcade Arena',
-      description: 'Dodge escalating swarms, detonate superweapons, chain multipliers, and survive as long as humanly possible.',
-      color: '#00ddff',
-      accent: '#00ffee',
-      glow: 'rgba(0, 220, 255, 0.4)',
+      name: 'Standard',
+      badge: '1.0×',
+      tagline: 'The full arsenal, ramping swarms.',
+      description: 'The full arsenal, ramping swarms.',
+      color: '#5B8CFF',
+      accent: '#8FB0FF',
+      glow: 'rgba(91, 140, 255, 0.35)',
       scoreMultiplier: 1.0
+    },
+    {
+      id: 'gauntlet',
+      name: 'Gauntlet',
+      badge: '1.25×',
+      tagline: 'Walls close in while you dodge.',
+      description: 'Walls close in while you dodge.',
+      color: '#FFB14D',
+      accent: '#FFD277',
+      glow: 'rgba(255, 177, 77, 0.35)',
+      scoreMultiplier: 1.25
     },
     {
       id: 'code-red',
       name: 'Code Red',
-      badge: 'HARDCORE',
-      tagline: 'Instant Hyper-Lethal Swarms',
-      description: '2x initial swarm density, faster seeker dots, relentless arrow ambushes, and immediate circle encirclements. High risk, high multiplier.',
-      color: '#ff2a4b',
-      accent: '#ff6680',
-      glow: 'rgba(255, 42, 75, 0.45)',
+      badge: '1.5×',
+      tagline: 'Double density from the first second.',
+      description: 'Double density from the first second.',
+      color: '#A78BFA',
+      accent: '#C4B5FD',
+      glow: 'rgba(167, 139, 250, 0.35)',
       scoreMultiplier: 1.5
-    },
-    {
-      id: 'gauntlet',
-      name: 'The Gauntlet',
-      badge: 'MAZE RUN',
-      tagline: 'Descending Maze & Survival Rush',
-      description: 'Navigate descending wall barriers through moving gaps while evading normal enemy swarms. Walls push and block; speed accelerates as your survival score climbs!',
-      color: '#ffaa00',
-      accent: '#ffd277',
-      glow: 'rgba(255, 170, 0, 0.45)',
-      scoreMultiplier: 1.25
     }
   ];
 
@@ -126,6 +126,7 @@ export class GameOptionsManager {
       case 'low':
         return 0.5;
       case 'normal':
+      case 'full':
         return 1.0;
       case 'extreme':
         return 1.8;

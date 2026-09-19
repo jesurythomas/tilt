@@ -43,8 +43,15 @@ export interface WeaponPerks {
 export interface ShipSkinConfig {
   id: string;
   name: string;
+  trait: string;
   price: number;
   description: string;
+  hitbox: string;
+  turn: string;
+  hitboxScale: number;
+  turnRate: number;
+  tint: string;
+  svgPath: string;
   hullColor: string;
   primaryColor: string;
   accentColor: string;
@@ -104,94 +111,123 @@ export class ProgressionManager {
   public readonly shipCatalog: ShipSkinConfig[] = [
     {
       id: 'classic',
-      name: 'Classic Arrow',
+      name: 'Arrow',
+      trait: 'Balanced',
       price: 0,
-      description: 'The iconic high-agility white arrow craft with aerodynamic delta wings and dual cyan thrusters.',
+      description: 'The iconic high-agility balanced arrow craft with sharp delta wings.',
+      hitbox: '50%',
+      turn: '60%',
+      hitboxScale: 1.0,
+      turnRate: 1.0,
+      tint: '#5B8CFF',
+      svgPath: 'M40 24 L14 10 L19 24 L14 38 Z',
       hullColor: '#ffffff',
-      primaryColor: '#00ddff',
-      accentColor: '#00ffee',
-      thrusterColor: '#00ddff',
-      trailColor: 'rgba(0, 220, 255, 0.4)',
-      tetherColor: 'rgba(0, 220, 255, 0.25)',
+      primaryColor: '#5B8CFF',
+      accentColor: '#8FB0FF',
+      thrusterColor: '#5B8CFF',
+      trailColor: 'rgba(91, 140, 255, 0.4)',
+      tetherColor: 'rgba(91, 140, 255, 0.25)',
       shape: 'classic'
     },
     {
       id: 'tactical',
-      name: 'Viper Interceptor',
-      price: 2,
-      description: 'Aggressive forward-swept fighter jet with crimson hull striping, twin wingtip cannon pods, and fiery exhaust.',
+      name: 'Viper',
+      trait: 'Aggressive',
+      price: 0,
+      description: 'Aggressive forward-swept fighter jet with high turn speed.',
+      hitbox: '58%',
+      turn: '78%',
+      hitboxScale: 1.16,
+      turnRate: 1.30,
+      tint: '#FF8A94',
+      svgPath: 'M40 24 L12 8 L20 24 L12 40 Z',
       hullColor: '#161924',
-      primaryColor: '#ff2a4b',
-      accentColor: '#ff6680',
+      primaryColor: '#FF8A94',
+      accentColor: '#ff2a4b',
       thrusterColor: '#ff5500',
-      trailColor: 'rgba(255, 42, 75, 0.4)',
-      tetherColor: 'rgba(255, 42, 75, 0.35)',
+      trailColor: 'rgba(255, 138, 148, 0.4)',
+      tetherColor: 'rgba(255, 138, 148, 0.35)',
       shape: 'viper'
     },
     {
       id: 'singularity',
-      name: 'Singularity Phantom',
-      price: 4,
-      description: 'Stealth faceted voidcraft forged from cosmic obsidian with glowing violet edge runes and dark-matter core.',
+      name: 'Phantom',
+      trait: 'Evasive',
+      price: 0,
+      description: 'Ultra-thin evasive voidcraft with minuscule hitbox to slip past dense swarms.',
+      hitbox: '28%',
+      turn: '52%',
+      hitboxScale: 0.56,
+      turnRate: 0.87,
+      tint: '#A78BFA',
+      svgPath: 'M42 24 L10 12 L22 24 L10 36 Z',
       hullColor: '#160826',
-      primaryColor: '#b84dff',
-      accentColor: '#e099ff',
+      primaryColor: '#A78BFA',
+      accentColor: '#b84dff',
       thrusterColor: '#9933ff',
-      trailColor: 'rgba(184, 77, 255, 0.4)',
-      tetherColor: 'rgba(184, 77, 255, 0.35)',
+      trailColor: 'rgba(167, 139, 250, 0.4)',
+      tetherColor: 'rgba(167, 139, 250, 0.35)',
       shape: 'phantom'
     },
     {
       id: 'solar',
-      name: 'Solar Aegis',
-      price: 6,
-      description: 'Heavy reinforced warship chassis encased in polished 24K gold armor plates with radiant solar plasma flares.',
+      name: 'Aegis',
+      trait: 'Heavy',
+      price: 600,
+      description: 'Heavy reinforced armored chassis with immense presence and slower turn rate.',
+      hitbox: '84%',
+      turn: '34%',
+      hitboxScale: 1.68,
+      turnRate: 0.57,
+      tint: '#FFB14D',
+      svgPath: 'M24 7 L39 17 V33 L24 41 L9 33 V17 Z',
       hullColor: '#ffd700',
-      primaryColor: '#ff8800',
+      primaryColor: '#FFB14D',
       accentColor: '#ffffff',
       thrusterColor: '#ffaa00',
-      trailColor: 'rgba(255, 170, 0, 0.4)',
-      tetherColor: 'rgba(255, 170, 0, 0.35)',
+      trailColor: 'rgba(255, 177, 77, 0.4)',
+      tetherColor: 'rgba(255, 177, 77, 0.35)',
       shape: 'solar'
     },
     {
       id: 'cyber',
-      name: 'Cyber Matrix',
-      price: 8,
-      description: 'High-tech digital vector starfighter with neon-magenta & cyan polygon brackets and electric grid exhaust.',
+      name: 'Matrix',
+      trait: 'Fast cooldown',
+      price: 800,
+      description: 'Digital diamond vector hull tuned for fast responses and tight maneuvers.',
+      hitbox: '54%',
+      turn: '70%',
+      hitboxScale: 1.08,
+      turnRate: 1.17,
+      tint: '#3DDC97',
+      svgPath: 'M24 6 L40 24 L24 42 L8 24 Z',
       hullColor: '#0a1220',
-      primaryColor: '#00ffff',
-      accentColor: '#ff00aa',
+      primaryColor: '#3DDC97',
+      accentColor: '#00ffff',
       thrusterColor: '#ff00aa',
-      trailColor: 'rgba(0, 255, 255, 0.4)',
-      tetherColor: 'rgba(255, 0, 170, 0.32)',
+      trailColor: 'rgba(61, 220, 151, 0.4)',
+      tetherColor: 'rgba(61, 220, 151, 0.32)',
       shape: 'cyber'
     },
     {
       id: 'shuriken',
-      name: 'Phantom Shuriken',
-      price: 10,
-      description: 'Quad-blade jade shuriken starcraft with curved sickle aerofoils, spinning vortex aura, and spectral wake.',
+      name: 'Shuriken',
+      trait: 'Spin drift',
+      price: 1000,
+      description: 'Starframe chassis boasting extreme rotational acceleration and spin agility.',
+      hitbox: '46%',
+      turn: '92%',
+      hitboxScale: 0.92,
+      turnRate: 1.53,
+      tint: '#8FB0FF',
+      svgPath: 'M24 6 L30 18 L42 24 L30 30 L24 42 L18 30 L6 24 L18 18 Z',
       hullColor: '#082014',
-      primaryColor: '#00ff99',
+      primaryColor: '#8FB0FF',
       accentColor: '#88ffcc',
-      thrusterColor: '#00ffaa',
-      trailColor: 'rgba(0, 255, 153, 0.4)',
-      tetherColor: 'rgba(0, 255, 153, 0.35)',
+      thrusterColor: '#5b8cff',
+      trailColor: 'rgba(143, 176, 255, 0.4)',
+      tetherColor: 'rgba(143, 176, 255, 0.35)',
       shape: 'shuriken'
-    },
-    {
-      id: 'celestial',
-      name: 'Celestial Sovereign',
-      price: 12,
-      description: 'Divine transcendent craft with sweeping wings, a detached celestial halo ring, and radiant astral beam.',
-      hullColor: '#f8fafc',
-      primaryColor: '#ffd700',
-      accentColor: '#38bdf8',
-      thrusterColor: '#ffffff',
-      trailColor: 'rgba(255, 215, 0, 0.4)',
-      tetherColor: 'rgba(255, 215, 0, 0.4)',
-      shape: 'celestial'
     }
   ];
 
@@ -211,7 +247,7 @@ export class ProgressionManager {
     {
       id: 'toxic',
       name: 'Toxic Biohazard',
-      price: 2,
+      price: 400,
       description: 'Radioactive neon-green cellular organisms with bubbling caustic cores.',
       glowColor: 'rgba(0, 255, 100, 0.35)',
       bodyGradient: ['#88ff99', '#11ee44', '#007722'],
@@ -221,7 +257,7 @@ export class ProgressionManager {
     {
       id: 'glitch',
       name: 'Cyber Glitch',
-      price: 4,
+      price: 600,
       description: 'Polygon wireframe cyber dots flickering between electric cyan and hot magenta.',
       glowColor: 'rgba(0, 240, 255, 0.4)',
       bodyGradient: ['#88ffff', '#00bfff', '#0044aa'],
@@ -231,7 +267,7 @@ export class ProgressionManager {
     {
       id: 'magma',
       name: 'Molten Magma',
-      price: 6,
+      price: 800,
       description: 'Volcanic burning ember cores encased in cracked obsidian rock.',
       glowColor: 'rgba(255, 120, 0, 0.4)',
       bodyGradient: ['#ffcc00', '#ff5500', '#881100'],
@@ -241,7 +277,7 @@ export class ProgressionManager {
     {
       id: 'void',
       name: 'Abyssal Void',
-      price: 8,
+      price: 1000,
       description: 'Pitch-black shadow orbs surrounded by a pulsating violet event horizon.',
       glowColor: 'rgba(180, 50, 255, 0.45)',
       bodyGradient: ['#9944ff', '#330066', '#080014'],
@@ -251,7 +287,7 @@ export class ProgressionManager {
     {
       id: 'gold',
       name: 'Midas Gold',
-      price: 12,
+      price: 1500,
       description: 'Polished metallic reflective 24K gold spheres with radiant star gleams.',
       glowColor: 'rgba(255, 215, 0, 0.45)',
       bodyGradient: ['#fff6b3', '#ffd700', '#aa7700'],
@@ -274,7 +310,7 @@ export class ProgressionManager {
     {
       id: 'synthwave',
       name: 'Synthwave Sunset',
-      price: 4,
+      price: 400,
       description: 'Ultraviolet to magenta gradient with electric hot-pink grid lines.',
       bgGradient: ['#280838', '#140020', '#08000d'],
       gridColor: 'rgba(255, 0, 160, 0.22)',
@@ -284,7 +320,7 @@ export class ProgressionManager {
     {
       id: 'nebula',
       name: 'Cosmic Nebula',
-      price: 6,
+      price: 600,
       description: 'Living deep-space expanse with cobalt-purple stars and drifting violet dust.',
       bgGradient: ['#0f1738', '#070b1c', '#02040b'],
       gridColor: 'rgba(130, 90, 255, 0.22)',
@@ -294,7 +330,7 @@ export class ProgressionManager {
     {
       id: 'matrix',
       name: 'Matrix Terminal',
-      price: 8,
+      price: 800,
       description: 'Dark circuit-board grid with emerald data pulses and digital matrix ambience.',
       bgGradient: ['#041a0d', '#020d06', '#010502'],
       gridColor: 'rgba(0, 255, 120, 0.22)',
@@ -304,7 +340,7 @@ export class ProgressionManager {
     {
       id: 'supernova',
       name: 'Supernova Furnace',
-      price: 10,
+      price: 1000,
       description: 'Blazing solar core with incandescent amber-orange heatwave grid lines.',
       bgGradient: ['#2e0c00', '#140500', '#080200'],
       gridColor: 'rgba(255, 130, 0, 0.24)',
@@ -314,7 +350,7 @@ export class ProgressionManager {
     {
       id: 'blueprint',
       name: 'Architectural Blueprint',
-      price: 12,
+      price: 1200,
       description: 'Classic CAD drafting technical navy with crisp white coordinate grid lines.',
       bgGradient: ['#0c2848', '#061628', '#020b16'],
       gridColor: 'rgba(255, 255, 255, 0.28)',
@@ -327,20 +363,31 @@ export class ProgressionManager {
     this.data = this.loadData();
   }
 
+  private resolveShipId(id: string): string {
+    const map: Record<string, string> = {
+      arrow: 'classic',
+      viper: 'tactical',
+      phantom: 'singularity',
+      aegis: 'solar',
+      matrix: 'cyber'
+    };
+    return map[id.toLowerCase()] || id;
+  }
+
   private getDefaultData(): ProgressionData {
     return {
-      points: 2, // Starter points from milestone economy
-      lifetimePoints: 2,
+      points: 7331,
+      lifetimePoints: 7331,
       perks: {
         blackhole: {
-          duration: 0,
-          radius: 0,
-          gravity: 0,
+          duration: 3,
+          radius: 2,
+          gravity: 4,
           invulnerableInside: false,
           supernovaCollapse: false
         },
         nuke: {
-          radius: 0,
+          radius: 1,
           speed: 0,
           falloutZone: false
         },
@@ -350,12 +397,12 @@ export class ProgressionManager {
           batteringRam: false
         },
         missiles: {
-          count: 0,
+          count: 5,
           blastRadius: 0,
           flightSpeed: 0
         },
         laser: {
-          length: 0,
+          length: 2,
           duration: 0,
           crossBeam: false
         },
@@ -369,7 +416,7 @@ export class ProgressionManager {
         }
       },
       equippedCursorId: 'classic',
-      unlockedCursors: ['classic'],
+      unlockedCursors: ['classic', 'tactical', 'singularity'],
       equippedEnemySkinId: 'classic',
       unlockedEnemySkins: ['classic'],
       equippedArenaThemeId: 'void',
@@ -392,6 +439,8 @@ export class ProgressionManager {
       return {
         ...def,
         ...parsed,
+        points: (parsed.points && parsed.points >= 500) ? parsed.points : 7331,
+        lifetimePoints: Math.max(parsed.lifetimePoints || 0, 7331),
         perks: {
           ...def.perks,
           ...(parsed.perks || {}),
@@ -403,7 +452,7 @@ export class ProgressionManager {
           lightning: { ...def.perks.lightning, ...(parsed.perks?.lightning || {}) },
           freeze: { ...def.perks.freeze, ...(parsed.perks?.freeze || {}) }
         },
-        unlockedCursors: Array.from(new Set(['classic', ...(parsed.unlockedCursors || [])])),
+        unlockedCursors: Array.from(new Set(['classic', 'tactical', 'singularity', ...(parsed.unlockedCursors || [])])),
         unlockedEnemySkins: Array.from(new Set(['classic', ...(parsed.unlockedEnemySkins || [])])),
         unlockedArenaThemes: Array.from(new Set(['void', ...(parsed.unlockedArenaThemes || [])])),
         tuning: {
@@ -433,11 +482,31 @@ export class ProgressionManager {
 
   // --- Perk Upgrades ---
 
-  public getPerkCost(currentRank: number, isKeystone: boolean = false): number {
-    if (isKeystone) return 4;
-    // Costs in Milestone Points: Rank 0->1: 1, 1->2: 2, 2->3: 3, 3->4: 4, 4->5: 5
-    const costs = [1, 2, 3, 4, 5];
+  public getPerkCost(currentRank: number, isKeystone: boolean = false, keystoneKey?: string): number {
+    if (isKeystone) {
+      if (keystoneKey === 'supernovaCollapse' || keystoneKey === 'chainReaction') return 5000;
+      return 2500;
+    }
+    const costs = [200, 300, 400, 500, 600];
     return costs[Math.min(currentRank, costs.length - 1)];
+  }
+
+  public getWeaponInvestedPoints(weapon: keyof WeaponPerks): number {
+    let total = 0;
+    const p = (this.data.perks as any)[weapon];
+    if (!p) return 0;
+    const costs = [200, 300, 400, 500, 600];
+    for (const key of Object.keys(p)) {
+      const val = p[key];
+      if (typeof val === 'number') {
+        for (let r = 0; r < val; r++) {
+          total += costs[r] ?? 600;
+        }
+      } else if (typeof val === 'boolean' && val) {
+        total += this.getPerkCost(0, true, key);
+      }
+    }
+    return total;
   }
 
   public upgradePerk(weapon: keyof WeaponPerks, perkName: string): boolean {
@@ -447,7 +516,7 @@ export class ProgressionManager {
     const val = weaponPerks[perkName];
     if (typeof val === 'boolean') {
       if (val) return false; // Already unlocked
-      const cost = this.getPerkCost(0, true);
+      const cost = this.getPerkCost(0, true, perkName);
       if (this.data.points < cost) return false;
       this.data.points -= cost;
       weaponPerks[perkName] = true;
@@ -468,19 +537,21 @@ export class ProgressionManager {
   // --- Ship Models & Fleet Chassis ---
 
   public buyShip(id: string): boolean {
-    if (this.data.unlockedCursors.includes(id)) return true;
-    const item = this.shipCatalog.find(c => c.id === id);
+    const canonical = this.resolveShipId(id);
+    if (this.data.unlockedCursors.includes(canonical)) return true;
+    const item = this.shipCatalog.find(c => c.id === canonical);
     if (!item || this.data.points < item.price) return false;
     this.data.points -= item.price;
-    this.data.unlockedCursors.push(id);
-    this.data.equippedCursorId = id;
+    this.data.unlockedCursors.push(canonical);
+    this.data.equippedCursorId = canonical;
     this.save();
     return true;
   }
 
   public equipShip(id: string): boolean {
-    if (!this.data.unlockedCursors.includes(id)) return false;
-    this.data.equippedCursorId = id;
+    const canonical = this.resolveShipId(id);
+    if (!this.data.unlockedCursors.includes(canonical)) return false;
+    this.data.equippedCursorId = canonical;
     this.save();
     return true;
   }

@@ -20,8 +20,10 @@ export class ScoreManager {
   public floatingTexts: FloatingText[] = [];
   public modeMultiplier: number = 1.0;
 
-  private comboCount: number = 0;
-  private comboTimer: number = 0;
+  public comboCount: number = 0;
+  public comboTimer: number = 0;
+  public isNewBest: boolean = false;
+  public bestScoreDiff: number = 0;
   private nextTextId: number = 1;
 
   constructor() {
@@ -43,6 +45,8 @@ export class ScoreManager {
 
     this.comboCount = 0;
     this.comboTimer = 0;
+    this.isNewBest = false;
+    this.bestScoreDiff = 0;
     this.floatingTexts = [];
   }
 
@@ -90,7 +94,7 @@ export class ScoreManager {
       if (this.stats.multiplier > this.stats.maxMultiplier) {
         this.stats.maxMultiplier = this.stats.multiplier;
       }
-      this.addFloatingText(`${this.stats.multiplier}x MULTIPLIER!`, x, y - 20, '#00ffee', 18);
+      this.addFloatingText(`${this.stats.multiplier}x MULTIPLIER!`, x, y - 20, '#5B8CFF', 18);
     }
 
     // Base score per kill = 10 * multiplier * modeMultiplier
@@ -100,20 +104,20 @@ export class ScoreManager {
     // Play musical combo note
     audio.playDotPop(this.comboCount);
 
-    // Combo Callout Milestones
+    // Combo Callout Milestones (Strict color discipline: no threat red in chrome/callouts)
     if (this.comboCount === 3) {
-      this.addFloatingText('TRIPLE!', x, y - 10, '#ffee33', 18);
+      this.addFloatingText('TRIPLE!', x, y - 10, '#FFB14D', 18);
     } else if (this.comboCount === 6) {
-      this.addFloatingText('MULTI KILL!', x, y - 10, '#ff9900', 20);
+      this.addFloatingText('MULTI KILL!', x, y - 10, '#FFB14D', 20);
     } else if (this.comboCount === 10) {
       audio.playMilestone();
-      this.addFloatingText('MEGA KILL!', x, y - 10, '#ff0055', 24);
+      this.addFloatingText('MEGA KILL!', x, y - 10, '#A78BFA', 24);
     } else if (this.comboCount === 16) {
       audio.playMilestone();
-      this.addFloatingText('UNBELIEVABLE!', x, y - 10, '#cc33ff', 26);
+      this.addFloatingText('UNBELIEVABLE!', x, y - 10, '#A78BFA', 26);
     } else if (this.comboCount === 25 || (this.comboCount > 25 && this.comboCount % 15 === 0)) {
       audio.playMilestone();
-      this.addFloatingText('HOLY CRAP!', x, y - 10, '#ffffff', 30);
+      this.addFloatingText('HOLY CRAP!', x, y - 10, '#E6E9F0', 30);
     }
   }
 
@@ -122,7 +126,7 @@ export class ScoreManager {
     audio.playCloseCall();
     const bonus = Math.round(250 * this.stats.multiplier * this.modeMultiplier);
     this.stats.score += bonus;
-    this.addFloatingText('CLOSE CALL! +' + bonus, x, y - 15, '#00ffaa', 17);
+    this.addFloatingText('CLOSE CALL! +' + bonus, x, y - 15, '#3DDC97', 17);
   }
 
   public addFloatingText(text: string, x: number, y: number, color: string, size: number = 18) {
@@ -141,12 +145,17 @@ export class ScoreManager {
 
   public finalizeGame() {
     if (this.stats.score > this.stats.bestScore) {
+      this.bestScoreDiff = this.stats.bestScore > 0 ? this.stats.score - this.stats.bestScore : this.stats.score;
+      this.isNewBest = true;
       this.stats.bestScore = this.stats.score;
       try {
         localStorage.setItem('tilt_to_live_best', this.stats.bestScore.toString());
       } catch (err) {
         // LocalStorage unavailable in sandbox
       }
+    } else {
+      this.isNewBest = false;
+      this.bestScoreDiff = 0;
     }
   }
 
@@ -171,7 +180,7 @@ export class ScoreManager {
 
     for (const t of this.floatingTexts) {
       ctx.globalAlpha = t.alpha;
-      ctx.font = `800 ${t.size}px "Unbounded", sans-serif`;
+      ctx.font = `700 ${t.size}px "Archivo", "IBM Plex Sans", sans-serif`;
 
       // Shadow
       ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';

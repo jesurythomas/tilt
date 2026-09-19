@@ -245,9 +245,16 @@ export class PlayerShip {
 
     const skin: ShipSkinConfig = shipSkin || {
       id: 'classic',
-      name: 'Classic Arrow',
+      name: 'Arrow',
+      trait: 'Balanced',
       price: 0,
       description: '',
+      hitbox: '50%',
+      turn: '60%',
+      hitboxScale: 1.0,
+      turnRate: 1.0,
+      tint: '#5B8CFF',
+      svgPath: 'M40 24 L14 10 L19 24 L14 38 Z',
       hullColor: '#ffffff',
       primaryColor: '#00ddff',
       accentColor: '#00ffee',
