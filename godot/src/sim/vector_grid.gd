@@ -34,12 +34,8 @@ func _init(width: float, height: float) -> void:
 
 ## Rebuilds the lattice for a new viewport size. PORT: web/src/tilt-to-live/VectorGrid.ts:24-43
 func resize(width: float, height: float) -> void:
-	# PORT-NOTE: ceil() returns Variant; unsafe argument warning suppressed for port fidelity
-	@warning_ignore("unsafe_call_argument")
-	cols = int(ceil(width / SPACING)) + 1  # PORT: web/src/tilt-to-live/VectorGrid.ts:25
-	# PORT-NOTE: ceil() returns Variant; unsafe argument warning suppressed for port fidelity
-	@warning_ignore("unsafe_call_argument")
-	rows = int(ceil(height / SPACING)) + 1  # PORT: web/src/tilt-to-live/VectorGrid.ts:26
+	cols = ceili(width / SPACING) + 1  # PORT: web/src/tilt-to-live/VectorGrid.ts:25
+	rows = ceili(height / SPACING) + 1  # PORT: web/src/tilt-to-live/VectorGrid.ts:26
 	points = []
 
 	for r: int in range(rows):
