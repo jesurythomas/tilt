@@ -42,6 +42,19 @@ var calibrated_gamma: float = 0.0
 ## PORT: web/src/tilt-to-live/GyroscopeController.ts:22
 var tilt_vector: Vector2 = Vector2.ZERO
 
+## Divides MAX_TILT_ANGLE. 1.0 reproduces the cited value exactly.
+# DIVERGENCE(M2.5 §5.4): GyroscopeController.ts has no sensitivity control.
+var tilt_sensitivity: float = 1.0
+## Interpolation weight toward the newly computed vector. 0.0 is unsmoothed.
+# DIVERGENCE(M2.5 §5.4): GyroscopeController.ts snaps tilt_vector directly.
+var tilt_smoothing: float = 0.0
+
+# DIVERGENCE(M2.5 §5.2): the device path calibrates against a full gravity
+# vector rather than two derived angles, so the rotation transform is applied
+# exactly once. calibrated_beta/gamma remain for apply_orientation() (§2.3).
+var _calibrated_gravity: Vector3 = Vector3.ZERO
+var _calibration_pending: bool = false
+
 var _raw_beta: float = 0.0
 var _raw_gamma: float = 0.0
 var _has_received_data: bool = false
@@ -63,7 +76,24 @@ func save_calibration() -> void:
 	if file == null:
 		Log.warn("tilt calibration could not be written to %s" % CALIBRATION_PATH)
 		return
-	file.store_string(JSON.stringify({"beta": calibrated_beta, "gamma": calibrated_gamma}))
+	(
+		file
+		. store_string(
+			(
+				JSON
+				. stringify(
+					{
+						"beta": calibrated_beta,
+						"gamma": calibrated_gamma,
+						# DIVERGENCE(M2.5 §5.2): added key; M2 files without it load
+						# as calibration-pending rather than using a stale pose.
+						"gravity":
+						[_calibrated_gravity.x, _calibrated_gravity.y, _calibrated_gravity.z],
+					}
+				)
+			)
+		)
+	)
 	file.close()
 
 
@@ -107,16 +137,26 @@ func stop_listening() -> void:
 ## Zeroes the neutral pose at the current attitude.
 ## PORT: web/src/tilt-to-live/GyroscopeController.ts:109-123
 func calibrate_current_position() -> void:
+	# DIVERGENCE(M2.5 §5.3): GyroscopeController.ts:113-115 falls back to
+	# DEFAULT_CALIBRATED_BETA when no reading has arrived. On Android that
+	# branch is always taken from _ready(), because the sensor has not
+	# delivered a sample yet — and the wrong pose was then persisted. The
+	# calibration now waits for real data instead of guessing.
 	if _has_received_data:
 		calibrated_beta = _raw_beta
 		calibrated_gamma = _raw_gamma
+		_calibration_pending = true
 	else:
-		calibrated_beta = DEFAULT_CALIBRATED_BETA
-		calibrated_gamma = 0.0
+		_calibration_pending = true
 	save_calibration()
 	if _on_calibrated.is_valid():
 		_on_calibrated.call(calibrated_beta, calibrated_gamma)
 	tilt_vector = Vector2.ZERO
+
+
+## True while waiting for a gravity sample to calibrate against.
+func is_calibration_pending() -> bool:
+	return _calibration_pending
 
 
 ## Registers a callback invoked with (beta, gamma) after each calibration.
@@ -158,33 +198,35 @@ func apply_orientation(beta: float, gamma: float, screen_angle: int) -> void:
 		roll = gamma - calibrated_gamma
 		pitch = beta - calibrated_beta
 
-	var vx: float = maxf(-1.0, minf(1.0, roll / MAX_TILT_ANGLE))
-	var vy: float = maxf(-1.0, minf(1.0, pitch / MAX_TILT_ANGLE))
+	_apply_angles(roll, pitch)
+
+
+# The clamp, deadzone and re-normalisation shared by the ported
+# apply_orientation() path and the M2.5 device path.
+# PORT: web/src/tilt-to-live/GyroscopeController.ts:172-187 — moved verbatim,
+# no value changed.
+func _apply_angles(roll: float, pitch: float) -> void:
+	# DIVERGENCE(M2.5 §5.4): the divisor was the bare MAX_TILT_ANGLE. At
+	# tilt_sensitivity 1.0 this is arithmetically identical.
+	var full_deflection: float = MAX_TILT_ANGLE / maxf(0.0001, tilt_sensitivity)
+	var vx: float = maxf(-1.0, minf(1.0, roll / full_deflection))
+	var vy: float = maxf(-1.0, minf(1.0, pitch / full_deflection))
 
 	var mag: float = sqrt(vx * vx + vy * vy)
 
-	if mag < DEADZONE_THRESHOLD:
-		tilt_vector = Vector2.ZERO
-	else:
+	var target: Vector2 = Vector2.ZERO
+	if mag >= DEADZONE_THRESHOLD:
 		# PORT: web/src/tilt-to-live/GyroscopeController.ts:183-187
 		var scaled_mag: float = (mag - DEADZONE_THRESHOLD) / (1.0 - DEADZONE_THRESHOLD)
-		tilt_vector = Vector2((vx / mag) * scaled_mag, (vy / mag) * scaled_mag)
+		target = Vector2((vx / mag) * scaled_mag, (vy / mag) * scaled_mag)
+
+	# DIVERGENCE(M2.5 §5.4): GyroscopeController.ts assigns tilt_vector
+	# directly. At tilt_smoothing 0.0 this lerp is that assignment.
+	tilt_vector = tilt_vector.lerp(target, 1.0 - tilt_smoothing)
 
 
-## Reads the device sensor and feeds apply_orientation(). Called once per
-## physics tick by GameRoot while the gyro scheme is active.
-##
-## PORT-NOTE: there is no `deviceorientation` event in Godot. The browser's
-## beta and gamma are the device's pitch and roll in degrees; both are
-## recoverable from the gravity vector, which is what this converts. The axis
-## basis below was measured on the target device — see BASIS-EVIDENCE in
-## HANDOFF.md — not assumed from the sensor documentation:
-##   Pose 1 (flat): gravity=(0.002, -0.170, -9.805)
-##   Pose 2 (neutral landscape): gravity=(-0.058, -7.992, -5.683)
-##   Pose 3 (nose left): gravity=(-2.375, -6.034, -7.357) -> g.x < 0
-##   Pose 4 (nose right): gravity=(3.004, -4.368, -8.250) -> g.x > 0
-##   Pose 5a (top away / up): gravity=(-0.058, -1.513, -9.689) -> pitch decreases
-##   Pose 5b (top toward / down): gravity=(-0.219, -9.489, -2.467) -> pitch increases
+## Reads the device sensor and applies it. Called once per physics tick by
+## GameRoot while the gyro scheme is active.
 func poll() -> void:
 	if not is_listening:
 		return
@@ -193,12 +235,67 @@ func poll() -> void:
 		g = Input.get_accelerometer()
 	if g == Vector3.ZERO:
 		return
+	apply_gravity(g, _screen_angle_degrees())
 
-	var roll_deg: float = rad_to_deg(atan2(g.x, sqrt(g.y * g.y + g.z * g.z)))
-	var pitch_deg: float = rad_to_deg(atan2(-g.y, -g.z))
-	var beta: float = DEFAULT_CALIBRATED_BETA + roll_deg
-	var gamma: float = -(pitch_deg - DEFAULT_CALIBRATED_BETA)
-	apply_orientation(beta, gamma, _screen_angle_degrees())
+
+## Maps a gravity vector to the steering vector, relative to the calibrated
+## pose. Separated from poll() so it is testable with an injected reading.
+##
+# DIVERGENCE(M2.5 §5.2): replaces M2's gravity → angles → synthetic beta/gamma
+# → apply_orientation() chain, which applied the screen rotation twice (once
+# in the decomposition, once inside apply_orientation) and therefore
+# cross-coupled the two output axes. This applies it exactly once, here.
+func apply_gravity(g: Vector3, screen_angle: int) -> void:
+	_has_received_data = true
+	var normalised: Vector3 = g.normalized()
+
+	if _calibration_pending:
+		_calibrated_gravity = normalised
+		_calibration_pending = false
+		tilt_vector = Vector2.ZERO
+		return
+
+	if _calibrated_gravity == Vector3.ZERO:
+		_calibrated_gravity = normalised
+		tilt_vector = Vector2.ZERO
+		return
+
+	var deviation: Vector3 = normalised - _calibrated_gravity
+
+	# The device axes that correspond to screen right and screen up. Godot
+	# reports gravity in the device's own frame, whose relationship to the
+	# screen depends on the applied rotation — so this is where, and the only
+	# place where, the rotation is accounted for.
+	# DIVERGENCE(M2.5 §5.2): see the tag above apply_gravity().
+	# PORT-NOTE: the 90 case is derived from the five measured A55 poses cited
+	# in this file's poll() history (nose left/right -> Δg.x steers vx; top
+	# away/toward -> Δg.y steers vy) — neutral landscape=(-0.058,-7.992,-5.683),
+	# nose left=(-2.375,-6.034,-7.357) -> vx<0, nose right=(3.004,-4.368,-8.250)
+	# -> vx>0, top away/up=(-0.058,-1.513,-9.689) -> pitch decreases -> vy<0.
+	# 270 is the 90 case's inverse. 180 and 0 (portrait) are unverified: the
+	# game is landscape-locked and no portrait pose was ever measured on
+	# device.
+	var screen_right: Vector3 = Vector3.ZERO
+	var screen_up: Vector3 = Vector3.ZERO
+	match screen_angle:
+		90:
+			screen_right = Vector3(1.0, 0.0, 0.0)
+			screen_up = Vector3(0.0, -1.0, 0.0)
+		270:
+			screen_right = Vector3(-1.0, 0.0, 0.0)
+			screen_up = Vector3(0.0, 1.0, 0.0)
+		180:
+			screen_right = Vector3(-1.0, 0.0, 0.0)
+			screen_up = Vector3(0.0, 1.0, 0.0)
+		_:
+			screen_right = Vector3(1.0, 0.0, 0.0)
+			screen_up = Vector3(0.0, -1.0, 0.0)
+
+	# asin of the projection converts the unit-vector deviation to degrees,
+	# which is the unit _apply_angles() and MAX_TILT_ANGLE work in.
+	var roll: float = rad_to_deg(asin(clampf(deviation.dot(screen_right), -1.0, 1.0)))
+	var pitch: float = rad_to_deg(asin(clampf(deviation.dot(screen_up), -1.0, 1.0)))
+	_apply_angles(roll, pitch)
 
 
 # PORT-NOTE: web/src/tilt-to-live/GyroscopeController.ts:31-35 probes for
@@ -252,3 +349,18 @@ func _load_calibration() -> void:
 	var gamma_value: Variant = data.get("gamma")
 	if gamma_value is float:
 		calibrated_gamma = gamma_value
+	var gravity_value: Variant = data.get("gravity")
+	if gravity_value is Array:
+		var components: Array = gravity_value
+		if components.size() == 3:
+			@warning_ignore("unsafe_call_argument")
+			_calibrated_gravity = Vector3(
+				float(components[0]), float(components[1]), float(components[2])
+			)
+			# DIVERGENCE(M2.5 §5.2): Variant components come from unvalidated
+			# JSON (CONVENTIONS §4); float() genuinely requires the cast.
+		else:
+			_calibration_pending = true
+	else:
+		# An M2-era file has no gravity key. Recalibrate rather than guess.
+		_calibration_pending = true
