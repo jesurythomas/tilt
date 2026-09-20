@@ -253,7 +253,7 @@ git commit -m "M1: add the Log autoload so no ported file needs bare print"
 - Consumes: nothing.
 - Produces: `class_name Types` carrying enums `GamePhase`, `GameMode`, `WeaponType`, `EnemyType`, `EnemyState`, `ControlMode`, `ControlScheme`, `MoveDirection`, and inner record classes `Types.WeaponOrb`, `Types.ActiveWeapon`, `Types.HomingMissile`, `Types.LightningArc`, `Types.Enemy`, `Types.FloatingText`, `Types.GameStats`. **Every later module in the port uses these names**, so `Array[Types.Enemy]` must be proven to compile here.
 
-- [ ] **Step 1: Write the failing test — including the typed-array spike**
+- [x] **Step 1: Write the failing test — including the typed-array spike**
 
 `godot/tests/test_types.gd`:
 
@@ -288,14 +288,14 @@ func test_optional_fields_use_the_absent_sentinel() -> void:
 	assert_eq(e.leader_id, Types.ABSENT, "leaderId? is absent until a module sets it")
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 ```bash
 tools/run_tests.sh
 ```
 Expected: FAIL — `collected 2 of 3 test scripts`.
 
-- [ ] **Step 3: Write `godot/src/core/types.gd`**
+- [x] **Step 3: Write `godot/src/core/types.gd`**
 
 Member order per CONVENTIONS §2: enums, constants, then inner classes last.
 
@@ -480,7 +480,7 @@ class GameStats:
 	var close_calls: int = 0
 ```
 
-- [ ] **Step 4: Verify the spike before going further**
+- [x] **Step 4: Verify the spike before going further**
 
 ```bash
 "$GODOT" --headless --path godot --check-only -s src/core/types.gd
@@ -490,7 +490,7 @@ Expected: exit 0 and `OK: 3/3 scripts collected, all tests passed.`
 
 > **If `Array[Types.Enemy]` does not compile**, that reshapes every later module. Stop, do not work around it silently. The fallback is one file per record under `godot/src/core/types/` with real `class_name`s (`Enemy`, `WeaponOrb`, …) and `types.gd` reduced to the enums — a forced split, so record it as an amendment to Law 3 in `CONVENTIONS.md` and in `HANDOFF.md`, then continue.
 
-- [ ] **Step 5: Format, lint, commit**
+- [x] **Step 5: Format, lint, commit**
 
 ```bash
 gdformat godot/src godot/tests && gdformat --check godot/src godot/tests && gdlint godot/src godot/tests
