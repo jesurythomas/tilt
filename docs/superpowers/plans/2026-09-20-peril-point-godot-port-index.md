@@ -65,8 +65,8 @@ Copied verbatim from the spec and `CONVENTIONS.md`. Every task in every module p
 | 0b | **Android toolchain** | M0 | `2026-09-20-m0b-android-toolchain.md` | planned — installs done |
 | 1 | Core loop and input | M0b | `2026-09-20-m1-core-loop-and-input.md` | **done** |
 | 2 | **Vertical slice** — first playable | M1 | `2026-09-20-m2-vertical-slice.md` | **done** |
-| 2.5 | **Mobile feel** — input, HUD, arena inset | M2 | not yet written | spec approved |
-| 3 | Enemy roster (12 remaining types, 8 formations) | M2 | not yet written | — |
+| 2.5 | **Mobile feel** — input, HUD, arena inset | M2 | `2026-09-20-m2.5-mobile-feel.md` | **code complete** — device pass pending (`godot/VERIFY-ME.md`) |
+| 3 | Enemy roster (12 remaining types, 8 formations) | M2 | `2026-09-20-m3-enemy-roster.md` | in progress |
 | 4 | Weapons (6 remaining) | M2 | not yet written | — |
 | 5 | Audio bake + SFX | M2 | not yet written | — |
 | 6 | Generative music sequencer | M5 | not yet written | — |

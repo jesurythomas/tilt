@@ -63,20 +63,25 @@ Dependency map and resume instructions:
       ok  gdformat and gdlint pass with zero errors across 41 files.
       ok  render scripts pass headless syntax check (`--check-only`).
 
-- [ ] **M2.5 — Mobile feel**  deps: M2   *(in progress — stopped after Task 5 of 9, head `1b326b5`)*
+- [ ] **M2.5 — Mobile feel**  deps: M2   *(code complete 2026-09-21, head `37f9fd4`; DEVICE PASS PENDING)*
       plan  `docs/superpowers/plans/2026-09-20-m2.5-mobile-feel.md`
       spec  `docs/superpowers/specs/2026-09-20-m2.5-mobile-feel-design.md`
-      **resume here → `godot/M2.5-REMAINING.md`**
-      ok  control-scheme persistence, tilt rework (deferred calibration + single
-          rotation transform + sensitivity), floating joystick, arena inset,
-          raised entity-scale ceiling, GameRoot integration.
-      ok  23/23 GUT scripts passing (130 tests, 483 asserts); gdformat/gdlint clean.
-      --  Task 6 control picker + pause overlay; Task 7 scene layout; Task 8
-          DEVICE PASS on the A55; Task 9 asset research + exit protocol.
-      note  NOT yet run on a phone. MAX_ARENA_SCALE, MIN_INSET_*, MAX_INSET_RATIO,
-          KNOB_RADIUS, tilt sensitivity/smoothing are all PROVISIONAL until Task 8.
-      note  portrait (180/0) tilt axis mappings are unverified; only landscape (90)
-          is backed by measured device poses. Game is landscape-locked.
+      **tick this box only after `godot/VERIFY-ME.md` §M2.5 is run on the A55**
+      ok  all 9 plan tasks executed except the hand-held half of Task 8 and the asset
+          research of Task 9 (deferred to M11): control-scheme persistence, tilt rework,
+          floating joystick, arena inset, raised entity-scale ceiling, control picker,
+          pause overlay, centred score block, UI scaling, restyled death screen.
+      ok  24/24 GUT scripts (137 tests, 516 asserts); gdformat/gdlint clean; headless
+          `--quit-after 120` run exits 0; 35 `DIVERGENCE` tags.
+      ok  final whole-branch review (opus) found 2 Critical + 4 Important, all fixed and
+          re-reviewed clean: TOUCH release no longer flings the ship to centre; picker has
+          a real minimum height; scheme indicated at launch; shard transform carries the
+          arena origin; HUD anchors to `arena_origin`; calibration saved at capture.
+      --  NOT yet run on a phone (the A55 dropped off adb mid-session). Every M2.5
+          constant is PROVISIONAL: `MAX_ARENA_SCALE`, `MIN_INSET_*`, `MAX_INSET_RATIO`,
+          `KNOB_RADIUS`, `MIN/MAX_UI_SCALE`, tilt sensitivity/smoothing. See VERIFY-ME.md.
+      note  portrait (180/0) tilt axis mappings are unverified; only landscape (90) is
+            backed by measured device poses. Game is landscape-locked.
 
 - [ ] **M3 — Enemy roster**  deps: M2
       -- all 13 enemy types spawn and behave per the TypeScript
