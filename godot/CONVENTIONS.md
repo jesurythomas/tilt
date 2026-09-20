@@ -101,6 +101,38 @@ Notes, all observed rather than assumed:
 - Never run either against `godot/addons/` — GUT is vendored third-party code
   and is not ours to reformat.
 
+### 1.3 Running the tests
+
+```
+TEST:  tools/run_tests.sh
+```
+
+**This is the only sanctioned way to run the suite.** Do not call
+`gut_cmdln.gd` directly in a verification step, and never accept GUT's exit code
+on its own.
+
+GUT returns **exit 0 when a test script fails to parse**. The script is dropped
+at collection with the misleading warning *"does not extend GutTest"* — it does;
+the parse failed, so the base class was never resolved — and the run continues
+without it. Verified live: with two scripts where one had a typing violation,
+GUT printed `All tests passed!` and exited **0** while that spec never ran.
+
+GUT's exit code *is* trustworthy for ordinary assertion failures (a failing
+`assert` gives exit 1, also verified). The gap is collection only, so
+`run_tests.sh` adds exactly one check GUT lacks: **the number of scripts GUT
+reports must equal the number of `test_*.gd` files on disk.** It also fails an
+empty suite and a run that produces no summary.
+
+When it reports `collected N of M`, find the culprit with:
+
+```
+"$GODOT" --headless --path godot --check-only -s tests/<file>.gd
+```
+
+which exits 1 and prints the actual parse error. Note `--check-only` takes one
+script at a time, and that plain `--import` will **not** reveal parse errors —
+it stays silent and exits 0.
+
 ---
 
 ## 2. File anatomy
@@ -312,7 +344,8 @@ No module is done until all five steps are complete, in order:
 
 1. **Verify** — actually run the module's acceptance commands from
    `PORT-PROGRESS.md` and read the output. Never claim a result you have not
-   seen. If something fails, the module is not done.
+   seen. If something fails, the module is not done. Run the suite via
+   `tools/run_tests.sh` (§1.3), never `gut_cmdln.gd` directly.
 2. **Commit** — per §8.
 3. **Tick `PORT-PROGRESS.md`** — check the box, record the date and commit SHA.
 4. **Rewrite `HANDOFF.md`** — written for a session with zero context: what

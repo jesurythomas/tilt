@@ -9,6 +9,7 @@ Dependency map and resume instructions:
 - [x] **M0 — Scaffold**  deps: none   *(2026-09-20, commit `035ccdc`)*
       ok  `$GODOT --headless --path godot --import` exits 0
       ok  GUT suite runs headless: Scripts 1 / Tests 1 / Passing 1, exit 0
+          (run the suite via `tools/run_tests.sh` — see CONVENTIONS §1.3)
       ok  untyped GDScript is rejected (proof run observed — parse error
           `Variable "untyped_proof" has no static type. (Warning treated as
           error.)`; all nine required warnings confirmed at severity 2)

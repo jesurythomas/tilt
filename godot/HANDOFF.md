@@ -41,8 +41,9 @@ ADB="/c/Users/Jesury/AppData/Local/Android/Sdk/platform-tools/adb.exe"
 # project loads                                          expect exit 0
 "$GODOT" --headless --path godot --import
 
-# GUT suite         expect Scripts 1 / Tests 1 / Passing 1, "All tests passed!"
-"$GODOT" --headless --path godot -s addons/gut/gut_cmdln.gd -gdir=res://tests -gexit
+# GUT suite — ALWAYS via the wrapper, never gut_cmdln.gd directly
+# expect "OK: 1/1 scripts collected, all tests passed."   and exit 0
+tools/run_tests.sh
 
 # lint / format                expect "no problems" / "left unchanged"
 gdlint godot/tests
@@ -101,14 +102,20 @@ output and exit 0. To check one script:
 `"$GODOT" --headless --path godot --check-only -s <path/to.gd>` (exits 1, prints
 the parse error).
 
-**3. GUT exits 0 when a test script fails to parse.** It logs
+**3. GUT exits 0 when a test script fails to parse — now guarded.** It logs
 `Ignoring script ... because it does not extend GutTest` (misleading — the parse
-failed, so the base class was never seen), then `Nothing was run.`, and returns
-0. With several scripts the rest would run, print `All tests passed!` and exit 0
-while the broken one is silently skipped. **Never accept GUT's exit code alone**
-— read the `Scripts` and `Tests` counts and confirm they are what you expected.
-No GUT flag fixes this. **This is still unsolved and gets more dangerous the
-moment M1 adds a second spec file.**
+failed, so the base class was never seen) and continues without that script.
+Reproduced with two scripts, one with a typing violation: GUT printed
+`All tests passed!` and exited **0** while that spec never ran.
+
+**Fixed by `tools/run_tests.sh`** (CONVENTIONS §1.3), which asserts that the
+`Scripts` count GUT reports equals the number of `test_*.gd` files on disk.
+Verified green → red → green against exactly that two-script case.
+
+**Always run the suite with `tools/run_tests.sh`.** Calling `gut_cmdln.gd`
+directly reopens the hole. GUT's exit code *is* reliable for ordinary assertion
+failures — a failing `assert` gives exit 1, verified — the gap was collection
+only.
 
 **4. `monkey` reporting `Events injected: 1` is not proof the app runs.** It only
 means an intent was dispatched; the app can die immediately after. Use
@@ -166,8 +173,12 @@ Severity encodes `0=Ignore, 1=Warn, 2=Error`. `exclude_addons` returns `<null>`
 - **Landscape confirmed:** `cur=2340x1080`, `mBounds=Rect(0, 0 - 2340, 1080)`,
   `land`, `mCurrentRotation=ROTATION_90`, and `deepestLastOrientationSource` is
   our own `GodotAppLauncher` activity — the app forces it, it is not the sensor
-- A `set_script` error appears in the **export** log but never on the device;
-  the app runs clean. Unexplained, harmless so far. Watch it in M1.
+- The `set_script` error seen in the **first** export log **does not
+  reproduce**. A full clean export was captured and grepped afterwards: no
+  occurrence. It was a cold-cache artifact of the very first export after GUT
+  was vendored. Closed, not carried forward.
+- The export does log one real error: **`No project icon specified`** — see
+  Open questions.
 
 ## Export preset
 
@@ -194,7 +205,13 @@ iOS is still deferred to M11 (D1, `PREREQUISITES.md` §3); it needs a macOS host
 - ~~Is "Peril Point" a full rename or only the Android label?~~ **Resolved
   2026-09-20: full rename, done in one pass.** See *App identity* above for what
   changed and what deliberately did not.
-- **The GUT collection-failure gap (trap 3) is still open** and becomes a real
-  risk as soon as M1 adds a second spec file. Not solved in M0 or M0b because
-  Law 4 forbids adding tooling a module does not need. Decide in M1.
-- The `set_script` error during export is unexplained. No observed consequence.
+- ~~The GUT collection-failure gap.~~ **Closed 2026-09-20** by
+  `tools/run_tests.sh` (CONVENTIONS §1.3), verified green → red → green.
+- ~~The `set_script` export error.~~ **Closed 2026-09-20** — does not reproduce
+  on a clean export; a first-run cache artifact.
+- **The app has no icon.** Every Android export logs
+  `ERROR: No project icon specified. Please specify one in the Project Settings
+  under Application -> Config -> Icon`, and the APK ships Godot's default robot.
+  Not fixed here: supplying one is an art decision, not a port decision, and
+  Law 4 forbids inventing assets. Harmless for M1-M10 device testing. **Must be
+  resolved before M11's release build.**
