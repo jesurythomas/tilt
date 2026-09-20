@@ -111,7 +111,8 @@ func spawn_arrow_formation(bounds: Vector2, is_dual_pincer: bool = false) -> voi
 		wings = [randf() < 0.5]
 
 	for from_left: bool in wings:
-		var start_x: float = -60.0 if from_left else bounds.x + 60.0  # PORT: EnemySwarm.ts:855
+		# PORT: web/src/tilt-to-live/EnemySwarm.ts:855
+		var start_x: float = -60.0 if from_left else bounds.x + 60.0
 		# PORT: web/src/tilt-to-live/EnemySwarm.ts:856
 		var start_y: float = 100.0 + randf() * (bounds.y - 200.0)
 		# PORT: web/src/tilt-to-live/EnemySwarm.ts:857
@@ -153,10 +154,13 @@ func spawn_circle_encirclement(
 ) -> void:
 	# PORT: web/src/tilt-to-live/EnemySwarm.ts:890
 	var count: int = 16 if is_tight else mini(16, 12 + current_score / 10000)
-	var radius: float = (180.0 if is_tight else 260.0) * scale  # PORT: EnemySwarm.ts:891
-	var pause_duration: float = 0.75 if is_tight else 1.25  # PORT: EnemySwarm.ts:892
+	# PORT: web/src/tilt-to-live/EnemySwarm.ts:891
+	var radius: float = (180.0 if is_tight else 260.0) * scale
+	# PORT: web/src/tilt-to-live/EnemySwarm.ts:892
+	var pause_duration: float = 0.75 if is_tight else 1.25
 
 	for i: int in range(count):
+		# PORT: web/src/tilt-to-live/EnemySwarm.ts:895
 		var angle: float = (float(i) * PI * 2.0) / float(count)
 		var x: float = player_pos.x + cos(angle) * radius
 		var y: float = player_pos.y + sin(angle) * radius
@@ -186,8 +190,10 @@ func spawn_wall_formation(bounds: Vector2) -> void:
 
 	if horizontal:
 		var from_top: bool = randf() < 0.5  # PORT: web/src/tilt-to-live/EnemySwarm.ts:921
-		var y: float = -30.0 if from_top else bounds.y + 30.0  # PORT: EnemySwarm.ts:922
-		var vy: float = (140.0 if from_top else -140.0) * maxf(0.72, scale)  # PORT: :923
+		# PORT: web/src/tilt-to-live/EnemySwarm.ts:922
+		var y: float = -30.0 if from_top else bounds.y + 30.0
+		# PORT: web/src/tilt-to-live/EnemySwarm.ts:923
+		var vy: float = (140.0 if from_top else -140.0) * maxf(0.72, scale)
 		var num_dots: int = floori(bounds.x / spacing)  # PORT: web/src/tilt-to-live/EnemySwarm.ts:924
 		# PORT: web/src/tilt-to-live/EnemySwarm.ts:925
 		var gap_index: int = 2 + floori(randf() * float(num_dots - 4))
@@ -213,8 +219,10 @@ func spawn_wall_formation(bounds: Vector2) -> void:
 			enemies.append(enemy)
 	else:
 		var from_left: bool = randf() < 0.5  # PORT: web/src/tilt-to-live/EnemySwarm.ts:944
-		var x: float = -30.0 if from_left else bounds.x + 30.0  # PORT: EnemySwarm.ts:945
-		var vx: float = (140.0 if from_left else -140.0) * maxf(0.72, scale)  # PORT: :946
+		# PORT: web/src/tilt-to-live/EnemySwarm.ts:945
+		var x: float = -30.0 if from_left else bounds.x + 30.0
+		# PORT: web/src/tilt-to-live/EnemySwarm.ts:946
+		var vx: float = (140.0 if from_left else -140.0) * maxf(0.72, scale)
 		var num_dots: int = floori(bounds.y / spacing)  # PORT: web/src/tilt-to-live/EnemySwarm.ts:947
 		# PORT: web/src/tilt-to-live/EnemySwarm.ts:948
 		var gap_index: int = 2 + floori(randf() * float(num_dots - 4))
