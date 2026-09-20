@@ -10,7 +10,7 @@ Last completed module: **M2 — Vertical slice** (2026-09-20).
 Neither is ticked in `PORT-PROGRESS.md`: their device passes have not been
 run. The A55 dropped off adb mid-session on 2026-09-20 and never came back, so
 **nothing from M2.5 onward has run on a phone.**
-Next module: **M4 — Weapons** (deps: M2 — may start before the device passes).
+**M4 — Weapons** — *plan written and committed (`docs/superpowers/plans/2026-09-20-m4-weapons.md`), execution NOT started.* Blocked on the uncommitted edits described under "⚠ Uncommitted edits in the tree" below.
 Branch: `feat/godot-port` (no upstream; nothing pushed).
 
 > ### ⚠ Read `godot/VERIFY-ME.md`
@@ -180,13 +180,34 @@ pinned by LAW 1 citations only, not by a spec; `time_reduction` is computed
 for the code-red branch that never reads it (as in the TS); `current_score /
 10000` is int division, equal to `Math.floor` for non-negative scores.
 
+## ⚠ Uncommitted edits in the tree (found 2026-09-21 04:51, mtime 02:56)
+
+Seven tracked files under `godot/src/` carry uncommitted changes that **no
+agent of the SDD session made** (its last activity was 01:10): `game_root.gd`
+(`TOUCH_JOYSTICK_SPEED_SCALE 0.72`), `tilt_input.gd` (`GRAVITY_SENSITIVITY_BOOST
+2.0` + a rewritten gravity projection), `floating_joystick.gd` (`BASE_RADIUS`
+90→115), `effect_layer.gd` (arc segments 32→16), `grid_layer.gd`
+(`show_gridlines = false`), `particle_engine.gd` (`MAX_PARTICLES` 900→400),
+`weapon_system.gd` (nuke kill FX `emit_explosion` → `emit_sparks(…, 6, …)`).
+All carry `DIVERGENCE(M2.5 …): measured on SM_A556E` comments — a device
+pass done outside the session. With them in place the suite, gdformat and
+gdlint are still green (30/30).
+
+They were left exactly as found. A named `git stash` (after saving a patch)
+was attempted so M4 could start on a clean tree and was refused by the
+permission classifier; they were not reverted. **Three things to know before
+committing them yourself:** `particle_engine.gd`, `weapon_system.gd` and
+`grid_layer.gd` are outside M2.5 spec §2.3's allowed set (the sim must not
+learn about the inset/mobile work); "`§10`" is the risk register, not an
+authorising section; and M4 Tasks 1-4 and 6 edit `weapon_system.gd`,
+`effect_layer.gd` and `game_root.gd`, so M4 cannot start until these are
+committed (or stashed) — otherwise the first M4 commit would swallow them.
+
 ## Next: M4 — Weapons
 
-Scope per spec §8 M4: the six remaining weapons in `src/sim/weapon_system.gd`
-(M2 ported `nuke` + orb spawning), `WEAPON_TUNING` parity spec via
-`tools/parity/`, perk-rank effects on radius/duration. Deps: M2 only.
-First step: write `docs/superpowers/plans/2026-09-20-m4-weapons.md` from
-`web/src/tilt-to-live/WeaponSystem.ts` (923 lines) and `WeaponTuning.ts` (87
-lines), read in full, following the M3 plan's form. `freeze_all` in
-`enemy_swarm.gd` is waiting for its M4 caller (`WeaponSystem.ts:542-543`
-freezes inline — decide whether to route through it; either way cite it).
+Plan: `docs/superpowers/plans/2026-09-20-m4-weapons.md` (8 tasks, 8 open
+questions — all ruled on in `.superpowers/sdd/2026-09-20-m4-weapons/progress.md`,
+which also holds the pre-flight scan). First step, **only from a clean tree**:
+`scripts/task-brief <plan> 1` and dispatch Task 1 (perk-rank record,
+`trigger_weapon`, weighted drop table). Stage by explicit path in every M4
+commit — never `git add godot/src`.

@@ -102,6 +102,11 @@ Rebuild, launch, then `"$ADB" -s RRCXB04L8EJ logcat -d | grep M2.5-T8`.
 
 ### Choices only you can make
 
+- [ ] **Seven uncommitted files in `godot/src/`** (your 02:56 device-tuning
+      edits — see `HANDOFF.md` "Uncommitted edits in the tree"). Commit them
+      (one line, `M2.5: tune … from A55 device measurements`) or discard
+      them; M4 implementation is waiting on a clean tree. Note three of them
+      touch files M2.5 spec §2.3 says the module must not touch.
 - [ ] Death-screen assets (spec §7.5, decision D8): research was **deferred to
       M11** (HANDOFF.md, rulings). The panel is hand-styled. Say if you want the
       2–3 candidate list earlier.
