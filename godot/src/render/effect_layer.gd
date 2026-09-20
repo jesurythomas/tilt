@@ -50,7 +50,9 @@ func _draw_particles() -> void:
 				draw_line(Vector2(p.x, p.y), p_to, col, maxf(1.0, p.size))
 			ParticleEngine.Shape.SHARD:
 				# PORT: web/src/tilt-to-live/ParticleEngine.ts:220-225
-				draw_set_transform(Vector2(p.x, p.y), p.life * 10.0, Vector2.ONE)
+				# DIVERGENCE(M2.5 §6.1): draw_set_transform replaces rather than composes, so the
+				# playfield origin must be re-applied here or the shard draws off its sim position.
+				draw_set_transform(_arena_origin + Vector2(p.x, p.y), p.life * 10.0, Vector2.ONE)
 				draw_rect(Rect2(-p.size * 0.5, -p.size * 0.5, p.size, p.size), col)
 				draw_set_transform(_arena_origin, 0.0, Vector2.ONE)
 			_:
