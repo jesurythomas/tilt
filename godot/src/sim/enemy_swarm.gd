@@ -100,6 +100,121 @@ func spawn_seeker(bounds: Vector2, custom_x: float = NAN, custom_y: float = NAN)
 	return enemy
 
 
+## Spawns a charger enemy at an arena edge, aimed at the player.
+## PORT: web/src/tilt-to-live/EnemySwarm.ts:576-607
+func spawn_charger(bounds: Vector2, player_pos: Vector2) -> Types.Enemy:
+	var edge: int = randi() % 4  # PORT: web/src/tilt-to-live/EnemySwarm.ts:577
+	var margin: float = 25.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:578
+	var x: float = 0.0
+	var y: float = 0.0
+	match edge:
+		0:
+			x = randf() * bounds.x
+			y = -margin
+		1:
+			x = bounds.x + margin
+			y = randf() * bounds.y
+		2:
+			x = randf() * bounds.x
+			y = bounds.y + margin
+		_:
+			x = -margin
+			y = randf() * bounds.y
+
+	# PORT: web/src/tilt-to-live/EnemySwarm.ts:588
+	var aim_angle: float = atan2(player_pos.y - y, player_pos.x - x)
+
+	var enemy: Types.Enemy = Types.Enemy.new()
+	enemy.id = _next_enemy_id
+	_next_enemy_id += 1
+	enemy.type = Types.EnemyType.CHARGER
+	enemy.x = x
+	enemy.y = y
+	enemy.vx = 0.0
+	enemy.vy = 0.0
+	enemy.radius = 11.0 * scale  # PORT: web/src/tilt-to-live/EnemySwarm.ts:596
+	enemy.frozen = false
+	enemy.freeze_timer = 0.0
+	enemy.age = 0.0
+	enemy.health = 1.0
+	enemy.state = Types.EnemyState.AIMING  # PORT: web/src/tilt-to-live/EnemySwarm.ts:601
+	enemy.aim_angle = aim_angle
+	enemy.aim_timer = 1.1  # PORT: web/src/tilt-to-live/EnemySwarm.ts:603
+	enemies.append(enemy)
+	return enemy
+
+
+## Spawns an artillery enemy at an arena edge, aimed at the player.
+# PORT-NOTE: Task 4 inserts spawn_pulsar and spawn_specter between this
+# function and spawn_charger above, matching their TS order (:609-667).
+## PORT: web/src/tilt-to-live/EnemySwarm.ts:669-699
+func spawn_artillery(bounds: Vector2, player_pos: Vector2) -> Types.Enemy:
+	var edge: int = randi() % 4  # PORT: web/src/tilt-to-live/EnemySwarm.ts:670
+	var margin: float = 28.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:671
+	var x: float = 0.0
+	var y: float = 0.0
+	match edge:
+		0:
+			x = randf() * bounds.x
+			y = -margin
+		1:
+			x = bounds.x + margin
+			y = randf() * bounds.y
+		2:
+			x = randf() * bounds.x
+			y = bounds.y + margin
+		_:
+			x = -margin
+			y = randf() * bounds.y
+
+	# PORT: web/src/tilt-to-live/EnemySwarm.ts:681
+	var aim_angle: float = atan2(player_pos.y - y, player_pos.x - x)
+
+	var enemy: Types.Enemy = Types.Enemy.new()
+	enemy.id = _next_enemy_id
+	_next_enemy_id += 1
+	enemy.type = Types.EnemyType.ARTILLERY
+	enemy.x = x
+	enemy.y = y
+	enemy.vx = 0.0
+	enemy.vy = 0.0
+	enemy.radius = 13.0 * scale  # PORT: web/src/tilt-to-live/EnemySwarm.ts:689
+	enemy.frozen = false
+	enemy.freeze_timer = 0.0
+	enemy.age = 0.0
+	enemy.health = 2.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:693
+	enemy.aim_angle = aim_angle
+	enemy.fire_cooldown = 2.2 + randf() * 0.8  # PORT: web/src/tilt-to-live/EnemySwarm.ts:695
+	enemies.append(enemy)
+	return enemy
+
+
+## Spawns a bullet travelling from an origin point towards a target.
+## PORT: web/src/tilt-to-live/EnemySwarm.ts:701-722
+func spawn_bullet(origin_x: float, origin_y: float, target_pos: Vector2) -> Types.Enemy:
+	var dx: float = target_pos.x - origin_x
+	var dy: float = target_pos.y - origin_y
+	# PORT: web/src/tilt-to-live/EnemySwarm.ts:704
+	var dist: float = maxf(1.0, sqrt(dx * dx + dy * dy))
+	var speed: float = 260.0 * maxf(0.72, scale)  # PORT: web/src/tilt-to-live/EnemySwarm.ts:705
+
+	var bullet: Types.Enemy = Types.Enemy.new()
+	bullet.id = _next_enemy_id
+	_next_enemy_id += 1
+	bullet.type = Types.EnemyType.BULLET
+	bullet.x = origin_x
+	bullet.y = origin_y
+	bullet.vx = (dx / dist) * speed
+	bullet.vy = (dy / dist) * speed
+	bullet.radius = 5.5 * scale  # PORT: web/src/tilt-to-live/EnemySwarm.ts:714
+	bullet.frozen = false
+	bullet.freeze_timer = 0.0
+	bullet.age = 0.0
+	bullet.health = 1.0
+	enemies.append(bullet)
+	return bullet
+
+
 ## Spawns a wing of seven arrow drones sweeping from one screen edge, or two
 ## wings from both edges. PORT: web/src/tilt-to-live/EnemySwarm.ts:851-882
 func spawn_arrow_formation(bounds: Vector2, is_dual_pincer: bool = false) -> void:
@@ -442,7 +557,7 @@ func update(
 	dt: float,
 	player_pos: Vector2,
 	bounds: Vector2,
-	_particles: ParticleEngine,
+	particles: ParticleEngine,
 	current_score: int = 0,
 	game_mode: Types.GameMode = Types.GameMode.CLASSIC
 ) -> void:
@@ -513,6 +628,24 @@ func update(
 				e.y += e.vy * dt * speed_scale  # PORT: web/src/tilt-to-live/EnemySwarm.ts:171
 			Types.EnemyType.SNAKE_SEGMENT:
 				update_snake_segment(e, dt)  # PORT: web/src/tilt-to-live/EnemySwarm.ts:173-175
+			Types.EnemyType.CHARGER:
+				update_charger(e, player_pos, dt, particles)  # PORT: web/src/tilt-to-live/EnemySwarm.ts:176-178
+			Types.EnemyType.ARTILLERY:
+				update_artillery(e, player_pos, dt)  # PORT: web/src/tilt-to-live/EnemySwarm.ts:179-181
+			Types.EnemyType.BULLET:
+				update_bullet(e, dt, bounds)  # PORT: web/src/tilt-to-live/EnemySwarm.ts:182-183
+				# PORT: web/src/tilt-to-live/EnemySwarm.ts:184-187
+				# PORT-NOTE: the 140-px cull at :202 also names bullets, but this
+				# 60-px cull always fires first — preserved deliberately.
+				if (
+					e.age > 4.5
+					or e.x < -60.0
+					or e.x > bounds.x + 60.0
+					or e.y < -60.0
+					or e.y > bounds.y + 60.0
+				):
+					enemies.remove_at(i)
+					continue
 			_:
 				# TODO(M3): update behaviours for remaining 10 enemy types.
 				pass
@@ -693,6 +826,122 @@ func update_snake_segment(e: Types.Enemy, dt: float) -> void:
 				var factor: float = (dist - target_dist) / dist  # PORT: web/src/tilt-to-live/EnemySwarm.ts:329
 				e.x += dx * factor * 0.4  # PORT: web/src/tilt-to-live/EnemySwarm.ts:330
 				e.y += dy * factor * 0.4  # PORT: web/src/tilt-to-live/EnemySwarm.ts:331
+
+
+## Updates a charger through its aim, charge and cool cycle.
+## PORT: web/src/tilt-to-live/EnemySwarm.ts:337-391
+func update_charger(
+	e: Types.Enemy, player_pos: Vector2, dt: float, particles: ParticleEngine
+) -> void:
+	# PORT-NOTE: spawn_charger always sets both (:601-603), so these defaults
+	# are dead for spawned chargers — preserved deliberately.
+	if e.state == Types.ABSENT:  # PORT: web/src/tilt-to-live/EnemySwarm.ts:338
+		e.state = Types.EnemyState.AIMING
+	if is_nan(e.aim_timer):  # PORT: web/src/tilt-to-live/EnemySwarm.ts:339
+		e.aim_timer = 1.1
+
+	if e.state == Types.EnemyState.AIMING:
+		var dx: float = player_pos.x - e.x
+		var dy: float = player_pos.y - e.y
+		e.aim_angle = atan2(dy, dx)  # PORT: web/src/tilt-to-live/EnemySwarm.ts:344
+
+		var creep_speed: float = 35.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:347
+		e.vx = cos(e.aim_angle) * creep_speed
+		e.vy = sin(e.aim_angle) * creep_speed
+		e.x += e.vx * dt * speed_scale
+		e.y += e.vy * dt * speed_scale
+
+		e.aim_timer -= dt
+		if e.aim_timer <= 0.0:
+			e.state = Types.EnemyState.CHARGING
+			e.special_timer = 0.75  # PORT: web/src/tilt-to-live/EnemySwarm.ts:356
+			var charge_speed: float = 480.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:357
+			e.vx = cos(e.aim_angle) * charge_speed
+			e.vy = sin(e.aim_angle) * charge_speed
+	elif e.state == Types.EnemyState.CHARGING:
+		e.x += e.vx * dt * speed_scale
+		e.y += e.vy * dt * speed_scale
+
+		if randf() < 0.6:  # PORT: web/src/tilt-to-live/EnemySwarm.ts:365
+			# PORT-NOTE: `||` treats undefined, NaN and 0 alike, all giving 0
+			# (EnemySwarm.ts:366) — preserved deliberately.
+			var back_angle: float = (0.0 if is_nan(e.aim_angle) else e.aim_angle) + PI
+			# PORT: web/src/tilt-to-live/EnemySwarm.ts:367
+			particles.emit_thruster_sparks(e.x, e.y, back_angle, Color("#ff5500"))
+
+		if not is_nan(e.special_timer):  # PORT: web/src/tilt-to-live/EnemySwarm.ts:370
+			e.special_timer -= dt
+			if e.special_timer <= 0.0:
+				e.state = Types.EnemyState.COOLING
+				e.special_timer = 0.9  # PORT: web/src/tilt-to-live/EnemySwarm.ts:374
+	elif e.state == Types.EnemyState.COOLING:
+		e.vx *= pow(0.08, dt)  # PORT: web/src/tilt-to-live/EnemySwarm.ts:378
+		e.vy *= pow(0.08, dt)  # PORT: web/src/tilt-to-live/EnemySwarm.ts:379
+		e.x += e.vx * dt * speed_scale
+		e.y += e.vy * dt * speed_scale
+
+		if not is_nan(e.special_timer):  # PORT: web/src/tilt-to-live/EnemySwarm.ts:383
+			e.special_timer -= dt
+			if e.special_timer <= 0.0:
+				e.state = Types.EnemyState.AIMING
+				e.aim_timer = 1.1  # PORT: web/src/tilt-to-live/EnemySwarm.ts:387
+
+
+## Updates artillery: holds a distance band from the player, strafes, and
+## fires timed bullets. PORT: web/src/tilt-to-live/EnemySwarm.ts:393-436
+func update_artillery(e: Types.Enemy, player_pos: Vector2, dt: float) -> void:
+	# PORT-NOTE: three different cooldowns — 2.2 at spawn (:695), 2.6 here,
+	# 2.8 on reload (:426) — preserved deliberately.
+	if is_nan(e.fire_cooldown):  # PORT: web/src/tilt-to-live/EnemySwarm.ts:394
+		e.fire_cooldown = 2.6 + randf() * 0.8  # PORT: web/src/tilt-to-live/EnemySwarm.ts:394
+
+	var dx: float = player_pos.x - e.x
+	var dy: float = player_pos.y - e.y
+	var dist: float = sqrt(dx * dx + dy * dy)
+	e.aim_angle = atan2(dy, dx)  # PORT: web/src/tilt-to-live/EnemySwarm.ts:399
+
+	var move_vx: float = 0.0
+	var move_vy: float = 0.0
+	if dist > 1.0:
+		var nx: float = dx / dist
+		var ny: float = dy / dist
+		if dist < 220.0:  # PORT: web/src/tilt-to-live/EnemySwarm.ts:406
+			move_vx -= nx * 65.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:407
+			move_vy -= ny * 65.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:408
+		elif dist > 320.0:  # PORT: web/src/tilt-to-live/EnemySwarm.ts:409
+			move_vx += nx * 60.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:410
+			move_vy += ny * 60.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:411
+		# PORT: web/src/tilt-to-live/EnemySwarm.ts:413
+		var strafe_dir: float = 1.0 if e.id % 2 == 0 else -1.0
+		move_vx += -ny * strafe_dir * 40.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:414
+		move_vy += nx * strafe_dir * 40.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:415
+
+	var steer: float = 3.0 * dt  # PORT: web/src/tilt-to-live/EnemySwarm.ts:418
+	e.vx += (move_vx - e.vx) * steer
+	e.vy += (move_vy - e.vy) * steer
+	e.x += e.vx * dt * speed_scale
+	e.y += e.vy * dt * speed_scale
+
+	e.fire_cooldown -= dt
+	if e.fire_cooldown <= 0.0:
+		e.fire_cooldown = 2.8 + randf() * 0.8  # PORT: web/src/tilt-to-live/EnemySwarm.ts:426
+		var barrel_len: float = 22.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:427
+		# PORT: web/src/tilt-to-live/EnemySwarm.ts:428
+		var fire_x: float = e.x + cos(e.aim_angle) * barrel_len
+		# PORT: web/src/tilt-to-live/EnemySwarm.ts:429
+		var fire_y: float = e.y + sin(e.aim_angle) * barrel_len
+		spawn_bullet(fire_x, fire_y, player_pos)  # PORT: web/src/tilt-to-live/EnemySwarm.ts:430
+
+		e.vx -= cos(e.aim_angle) * 90.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:433
+		e.vy -= sin(e.aim_angle) * 90.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:434
+
+
+## Integrates a bullet's straight-line flight. The bounds argument is unused
+## in the TypeScript and kept only to match its signature.
+## PORT: web/src/tilt-to-live/EnemySwarm.ts:438-441
+func update_bullet(e: Types.Enemy, dt: float, _bounds: Vector2) -> void:
+	e.x += e.vx * dt * speed_scale
+	e.y += e.vy * dt * speed_scale
 
 
 ## Applies pairwise repulsive separation force to prevent clustering.
