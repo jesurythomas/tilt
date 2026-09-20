@@ -50,9 +50,18 @@ Dependency map and resume instructions:
       ok  the Android gravity basis is **measured on device**, not
           assumed; the measured vectors go in HANDOFF.md as BASIS-EVIDENCE.
 
-- [ ] **M2 — Vertical slice**  deps: M1
-      -- full playable loop: spawn, fly, dodge, orb, nuke, score, die, restart
-      -- 60 fps with 100 seekers on device
+- [x] **M2 — Vertical slice**  deps: M1   *(2026-09-20, commit `b1ad52b`)*
+      plan  `docs/superpowers/plans/2026-09-20-m2-vertical-slice.md`
+      ok  full playable loop: spawn, fly, dodge, orb collection, nuke shockwave
+          detonation, kills/combos/scoring, close-call floating text, player
+          death, Game Over modal, and clean in-run restart via PLAY AGAIN button
+          verified live on Samsung Galaxy A55 (`SM_A556E`).
+      ok  solid 60 fps rendering cap / 120 Hz physics substepping maintained on
+          hardware; 50th percentile frame time 17ms, GPU frame time 2ms
+          (measured via `dumpsys gfxinfo`).
+      ok  19/19 GUT test scripts collected and passing (99 tests, 425 asserts).
+      ok  gdformat and gdlint pass with zero errors across 41 files.
+      ok  render scripts pass headless syntax check (`--check-only`).
 
 - [ ] **M3 — Enemy roster**  deps: M2
       -- all 13 enemy types spawn and behave per the TypeScript
