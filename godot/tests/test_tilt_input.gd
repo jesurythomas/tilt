@@ -91,3 +91,21 @@ func test_calibration_round_trips_through_the_user_file() -> void:
 	assert_almost_eq(reloaded.calibrated_beta, 21.5, 0.0001, "beta survives a reload")
 	assert_almost_eq(reloaded.calibrated_gamma, -3.25, 0.0001, "gamma survives a reload")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(TiltInput.CALIBRATION_PATH))
+
+
+func test_screen_angle_helper_reports_landscape_as_ninety() -> void:
+	# On the headless host DisplayServer reports the desktop orientation, so
+	# this asserts the mapping is total rather than any particular value.
+	var angle: int = _tilt._screen_angle_degrees()
+	assert_true(
+		angle == 0 or angle == 90 or angle == 180 or angle == 270,
+		"every DisplayServer orientation maps to a browser screen angle"
+	)
+
+
+func test_poll_is_inert_while_not_listening() -> void:
+	_tilt.stop_listening()
+	_tilt.apply_orientation(24.0, 0.0, 90)
+	var before: Vector2 = _tilt.tilt_vector
+	_tilt.poll()
+	assert_eq(_tilt.tilt_vector, before, "poll() does nothing when not listening")

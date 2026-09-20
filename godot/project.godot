@@ -36,6 +36,11 @@ gdscript/warnings/unsafe_void_return=2
 window/size/viewport_width=1280
 window/size/viewport_height=720
 
+[input_devices]
+
+sensors/enable_accelerometer=true
+sensors/enable_gravity=true
+
 [physics]
 
 common/physics_ticks_per_second=120

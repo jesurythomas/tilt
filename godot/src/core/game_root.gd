@@ -148,8 +148,7 @@ func _update(dt: float) -> void:
 	# 3. Update Player Ship with scheme checks
 	var effective_mode: Types.ControlMode = _router.resolve_control_mode()
 	if effective_mode == Types.ControlMode.GYRO:
-		# TODO(M1): _tilt.poll() lands with the gravity bridge (Task 12)
-		pass
+		_tilt.poll()
 
 	_player.update(
 		dt,

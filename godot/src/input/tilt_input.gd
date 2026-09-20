@@ -171,6 +171,36 @@ func apply_orientation(beta: float, gamma: float, screen_angle: int) -> void:
 		tilt_vector = Vector2((vx / mag) * scaled_mag, (vy / mag) * scaled_mag)
 
 
+## Reads the device sensor and feeds apply_orientation(). Called once per
+## physics tick by GameRoot while the gyro scheme is active.
+##
+## PORT-NOTE: there is no `deviceorientation` event in Godot. The browser's
+## beta and gamma are the device's pitch and roll in degrees; both are
+## recoverable from the gravity vector, which is what this converts. The axis
+## basis below was measured on the target device — see BASIS-EVIDENCE in
+## HANDOFF.md — not assumed from the sensor documentation:
+##   Pose 1 (flat): gravity=(0.002, -0.170, -9.805)
+##   Pose 2 (neutral landscape): gravity=(-0.058, -7.992, -5.683)
+##   Pose 3 (nose left): gravity=(-2.375, -6.034, -7.357) -> g.x < 0
+##   Pose 4 (nose right): gravity=(3.004, -4.368, -8.250) -> g.x > 0
+##   Pose 5a (top away / up): gravity=(-0.058, -1.513, -9.689) -> pitch decreases
+##   Pose 5b (top toward / down): gravity=(-0.219, -9.489, -2.467) -> pitch increases
+func poll() -> void:
+	if not is_listening:
+		return
+	var g: Vector3 = Input.get_gravity()
+	if g == Vector3.ZERO:
+		g = Input.get_accelerometer()
+	if g == Vector3.ZERO:
+		return
+
+	var roll_deg: float = rad_to_deg(atan2(g.x, sqrt(g.y * g.y + g.z * g.z)))
+	var pitch_deg: float = rad_to_deg(atan2(-g.y, -g.z))
+	var beta: float = DEFAULT_CALIBRATED_BETA + roll_deg
+	var gamma: float = -(pitch_deg - DEFAULT_CALIBRATED_BETA)
+	apply_orientation(beta, gamma, _screen_angle_degrees())
+
+
 # PORT-NOTE: web/src/tilt-to-live/GyroscopeController.ts:31-35 probes for
 # DeviceOrientationEvent on window. The Godot equivalent is the platform:
 # sensors are Android/iOS only (Input.get_gravity() returns Vector3.ZERO
@@ -178,6 +208,20 @@ func apply_orientation(beta: float, gamma: float, screen_angle: int) -> void:
 func _check_support() -> void:
 	var os_name: String = OS.get_name()
 	is_supported = os_name == "Android" or os_name == "iOS"
+
+
+## The screen rotation in the degrees GyroscopeController expects.
+## PORT: web/src/tilt-to-live/GyroscopeController.ts:140-147
+func _screen_angle_degrees() -> int:
+	match DisplayServer.screen_get_orientation():
+		DisplayServer.SCREEN_LANDSCAPE:
+			return 90
+		DisplayServer.SCREEN_REVERSE_LANDSCAPE:
+			return 270
+		DisplayServer.SCREEN_REVERSE_PORTRAIT:
+			return 180
+		_:
+			return 0
 
 
 ## Loads a previously saved calibration from CALIBRATION_PATH, if present.
