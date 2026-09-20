@@ -46,6 +46,14 @@ func _ready() -> void:
 		# A phone has no keyboard; offering one is a dead option.
 		_keyboard_button.visible = not OS.has_feature("mobile")
 
+	# DIVERGENCE(M2.5 §4.3): a plain Control with no minimum size collapses to
+	# 0px inside the VBoxContainers on both the pause and game over panels,
+	# which overflows the HBox onto RESUME / PLAY AGAIN. Node _ready() runs
+	# child-first, so this fallback covers the first layout pass before
+	# HudController._ready() calls set_ui_scale() with the viewport-derived
+	# scale.
+	set_ui_scale(1.0)
+
 
 ## Marks one scheme as the active one.
 func set_active_scheme(scheme: Types.ControlScheme) -> void:
@@ -59,6 +67,12 @@ func set_active_scheme(scheme: Types.ControlScheme) -> void:
 
 ## Scales each button's minimum touch target to the viewport.
 func set_ui_scale(scale: float) -> void:
+	# DIVERGENCE(M2.5 §4.3): the scene root is a plain Control with no minimum
+	# size, so the pause/game-over VBoxContainers allocate it 0px and the
+	# HBox of buttons overflows onto the next sibling (RESUME / PLAY AGAIN).
+	# Reporting the same minimum height here keeps the picker's layout slot
+	# in step with its buttons.
+	custom_minimum_size.y = BASE_TOUCH_TARGET * scale
 	if _tilt_button != null:
 		_tilt_button.custom_minimum_size.y = BASE_TOUCH_TARGET * scale
 	if _touch_button != null:
