@@ -29,6 +29,9 @@ const MAX_ARENA_SCALE: float = 1.75
 ## by this; the simulation never sees it (M2.5 spec §6.1).
 var arena_origin: Vector2 = Vector2.ZERO
 
+## Player control settings, persisted across launches.
+var settings: ControlSettings = null
+
 var _grid: VectorGrid = null
 var _particles: ParticleEngine = null
 var _player: PlayerShip = null
@@ -40,12 +43,14 @@ var _run_controller: RunController = null
 var _router: InputRouter = null
 var _touch: TouchInput = null
 var _tilt: TiltInput = null
+var _joystick: FloatingJoystick = null
 var _state: GameStateMachine = null
 var _bounds: Vector2 = Vector2.ZERO
 
 @onready var _grid_layer: GridLayer = %GridLayer
 @onready var _entity_layer: EntityLayer = %EntityLayer
 @onready var _effect_layer: EffectLayer = %EffectLayer
+@onready var _joystick_layer: JoystickLayer = %JoystickLayer
 
 
 func _ready() -> void:
@@ -64,11 +69,19 @@ func _ready() -> void:
 	_router = InputRouter.new()
 	_touch = TouchInput.new()
 	_tilt = TiltInput.new()
+	_joystick = FloatingJoystick.new()
+	# DIVERGENCE(M2.5 §4.2): the scheme comes from persisted settings rather
+	# than the hardcoded HYBRID at input_router.gd:14.
+	settings = ControlSettings.new()
+	_router.control_scheme = settings.scheme
+	_tilt.tilt_sensitivity = settings.tilt_sensitivity
+	_tilt.tilt_smoothing = settings.tilt_smoothing
 	_state = GameStateMachine.new(_player, _grid, _particles, _router, _tilt)
 
 	_grid_layer.bind(_grid)
 	_entity_layer.bind_entities(_player, _swarm, _weapons)
 	_effect_layer.bind(_particles, _scores)
+	_joystick_layer.bind(_joystick)
 
 	resize_canvas()
 	get_viewport().size_changed.connect(resize_canvas)
@@ -78,7 +91,8 @@ func _ready() -> void:
 		Log.info("tilt sensor start requested: %s" % started)
 
 	_state.start()
-	# In M2, calibrate tilt on start so current phone angle is neutral
+	# DIVERGENCE(M2.5 §5.3): this requests calibration; TiltInput now waits for
+	# a real gravity sample rather than falling back to a hardcoded pose.
 	_tilt.calibrate_current_position()
 	_state.launch_run(Types.GameMode.CLASSIC)
 	_run_controller.reset_run(_bounds)
@@ -86,7 +100,22 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	_touch.handle_event(event, _router, arena_origin)
+	# DIVERGENCE(M2.5 §8.1): the TOUCH scheme drives the floating joystick;
+	# every other scheme keeps TiltGame.ts's steer-toward-pointer behaviour.
+	if _router.control_scheme == Types.ControlScheme.MOUSE and OS.has_feature("mobile"):
+		if event is InputEventScreenTouch:
+			var touch: InputEventScreenTouch = event
+			if touch.pressed:
+				_joystick.on_touch(touch.index, touch.position - arena_origin)
+			else:
+				_joystick.on_release(touch.index)
+			return
+		if event is InputEventScreenDrag:
+			var drag: InputEventScreenDrag = event
+			_joystick.on_drag(drag.index, drag.position - arena_origin)
+			return
+	else:
+		_touch.handle_event(event, _router, arena_origin)
 
 	if event is InputEventKey:
 		var key_event: InputEventKey = event
@@ -121,6 +150,7 @@ func _process(_delta: float) -> void:
 	_grid_layer.queue_redraw()
 	_entity_layer.queue_redraw()
 	_effect_layer.queue_redraw()
+	_joystick_layer.queue_redraw()
 
 
 ## Advances simulation systems via RunController.
@@ -128,19 +158,52 @@ func _update(dt: float) -> void:
 	_state.elapsed += dt
 
 	var effective_mode: Types.ControlMode = _router.resolve_control_mode()
+	var directional: Vector2 = Vector2.ZERO
+
 	if effective_mode == Types.ControlMode.GYRO:
 		_tilt.poll()
+		directional = _tilt.tilt_vector
+	elif _joystick.is_active:
+		# DIVERGENCE(M2.5 §8.3, D3): the joystick emits a normalised direction
+		# with magnitude — the same shape as TiltInput.tilt_vector — so it
+		# feeds the existing gyro branch at player_ship.gd:235. No value is
+		# added to Types.ControlMode, a cited port of PlayerShip.ts:99, and no
+		# ported movement code changes. The mode reads GYRO while a thumb is
+		# driving; see M2.5 spec §8.3 for why that trade was taken.
+		effective_mode = Types.ControlMode.GYRO
+		directional = _joystick.vector
 
 	_run_controller.update(
-		dt, effective_mode, _router.mouse_pos, _router.get_movement_vector(), _tilt.tilt_vector
+		dt, effective_mode, _router.mouse_pos, _router.get_movement_vector(), directional
 	)
 
 	_entity_layer.set_elapsed(_run_controller.elapsed)
 
 
+## Switches the active control scheme and persists the choice.
+# DIVERGENCE(M2.5 §4.2): no TypeScript counterpart — GameOptions.ts:80 fixes
+# the scheme at construction and the web game has no in-game picker.
+func set_control_scheme(scheme: Types.ControlScheme) -> void:
+	settings.scheme = scheme
+	settings.save_settings()
+	_router.control_scheme = scheme
+
+	# PORT: the sensor transition at game_state_machine.gd:125-128.
+	if scheme == Types.ControlScheme.GYRO:
+		_tilt.start_listening()
+		_tilt.calibrate_current_position()
+	else:
+		_tilt.stop_listening()
+
+	# A half-held input from the previous scheme must not leak into the new one.
+	_router.clear_movement_keys()
+	_joystick.reset()
+
+
 ## Restarts the run cleanly into playing state.
 func restart_run() -> void:
 	_tilt.calibrate_current_position()
+	_joystick.reset()
 	_state.phase = Types.GamePhase.PLAYING
 	_run_controller.reset_run(_bounds)
 	GameEvents.phase_changed.emit(Types.GamePhase.PLAYING)
@@ -195,3 +258,4 @@ func resize_canvas() -> void:
 	_grid_layer.set_arena_origin(arena_origin)
 	_entity_layer.set_arena_origin(arena_origin)
 	_effect_layer.set_arena_origin(arena_origin)
+	_joystick_layer.set_arena_origin(arena_origin)

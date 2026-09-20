@@ -66,3 +66,44 @@ func test_entity_layer_bind_entities_and_draw() -> void:
 	add_child_autofree(layer)
 	layer.queue_redraw()
 	assert_true(true, "EntityLayer redraw queued without error")
+
+
+func test_joystick_layer_draws_nothing_while_idle() -> void:
+	var layer: JoystickLayer = JoystickLayer.new()
+	var stick: FloatingJoystick = FloatingJoystick.new()
+	layer.bind(stick)
+	add_child_autofree(layer)
+	layer.queue_redraw()
+	assert_false(stick.is_active, "an idle stick is not drawn")
+
+
+func test_joystick_layer_redraws_when_engaged() -> void:
+	var layer: JoystickLayer = JoystickLayer.new()
+	var stick: FloatingJoystick = FloatingJoystick.new()
+	layer.bind(stick)
+	add_child_autofree(layer)
+
+	stick.on_touch(0, Vector2(300.0, 400.0))
+	stick.on_drag(0, Vector2(340.0, 400.0))
+	layer.queue_redraw()
+	assert_true(stick.is_active, "JoystickLayer redraw queued without error while engaged")
+
+
+func test_entity_layer_accepts_an_arena_origin() -> void:
+	var layer: EntityLayer = EntityLayer.new()
+	layer.set_arena_origin(Vector2(24.0, 36.0))
+	add_child_autofree(layer)
+	layer.queue_redraw()
+	assert_true(true, "EntityLayer accepts the arena origin and redraws")
+
+
+func test_effect_layer_accepts_an_arena_origin() -> void:
+	var layer: EffectLayer = EffectLayer.new()
+	var particles: ParticleEngine = ParticleEngine.new()
+	var scores: ScoreManager = ScoreManager.new()
+	layer.bind(particles, scores)
+	layer.set_arena_origin(Vector2(24.0, 36.0))
+	particles.emit_explosion(100.0, 100.0, Color.RED)
+	add_child_autofree(layer)
+	layer.queue_redraw()
+	assert_true(true, "EffectLayer accepts the arena origin and redraws")

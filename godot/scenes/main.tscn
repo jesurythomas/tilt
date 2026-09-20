@@ -1,10 +1,11 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://src/core/game_root.gd" id="1"]
 [ext_resource type="Script" path="res://src/render/grid_layer.gd" id="2"]
 [ext_resource type="Script" path="res://src/render/entity_layer.gd" id="3"]
 [ext_resource type="Script" path="res://src/render/effect_layer.gd" id="4"]
 [ext_resource type="Script" path="res://src/ui/hud_controller.gd" id="5"]
+[ext_resource type="Script" path="res://src/render/joystick_layer.gd" id="6"]
 
 [node name="GameRoot" type="Node2D"]
 script = ExtResource("1")
@@ -20,6 +21,10 @@ script = ExtResource("3")
 [node name="EffectLayer" type="Node2D" parent="."]
 unique_name_in_owner = true
 script = ExtResource("4")
+
+[node name="JoystickLayer" type="Node2D" parent="."]
+unique_name_in_owner = true
+script = ExtResource("6")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
