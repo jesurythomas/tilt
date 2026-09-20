@@ -142,7 +142,7 @@ func reset_run(new_mode: Types.GameMode) -> void:
 	_router.clear_movement_keys()
 	_router.control_mode = Types.ControlMode.MOUSE
 
-	# TODO(M3): swarm.reset() and swarm.setSpeedScale().
+	# TODO(M7): swarm.setSpeedScale() wiring (progression speed scaling).
 	# TODO(M4): weapons.reset().
 	# TODO(M7): coins.reset().
 	_particles.reset()

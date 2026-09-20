@@ -408,7 +408,7 @@ func _draw_pulsar(e: Types.Enemy) -> void:
 	for p: int in range(8):
 		var a: float = float(p) * PI / 4.0 + _elapsed * 3.0  # PORT: EnemySwarm.ts:1501
 		var r: float = e.radius * 0.55 if p % 2 == 0 else e.radius * 0.22  # PORT: EnemySwarm.ts:1502
-		star.append(Vector2(cos(a) * r, sin(a) * r))
+		star.append(pos + Vector2(cos(a) * r, sin(a) * r))
 	draw_colored_polygon(star, Color.WHITE)  # PORT: EnemySwarm.ts:1498
 
 

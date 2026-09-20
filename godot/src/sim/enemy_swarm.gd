@@ -15,10 +15,6 @@ extends RefCounted
 ## PORT-NOTE: EnemySwarm.render() (EnemySwarm.ts:1191-1648) relocates to
 ## render/entity_layer.gd (spec §4.2/D4) because CanvasItem 2D drawing belongs
 ## to Node2D render layers.
-##
-## PORT-NOTE: partial port for Module 2 per spec §8 M2. Implements seeker tracking,
-## flocking separation, continuous seeker director pacing, and bounds bouncing.
-## Remaining 12 enemy types and 8 formations land in Module 3.
 
 ## Live active enemies. PORT: web/src/tilt-to-live/EnemySwarm.ts:9
 var enemies: Array[Types.Enemy] = []
@@ -569,6 +565,8 @@ func spawn_wall_formation(bounds: Vector2) -> void:
 ## Spawns a sequential gauntlet wall corridor, cycling through top-down,
 ## right-left, bottom-up and left-right on successive calls.
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:972-1063
+# TODO(M10): no caller in web/src — GauntletMaze.ts builds gauntlet walls; M10
+# decides whether its callers route through this.
 func spawn_sequential_gauntlet_wall(bounds: Vector2) -> void:
 	var dir: int = _wall_direction_cycle % 4  # PORT: web/src/tilt-to-live/EnemySwarm.ts:973
 	_wall_direction_cycle += 1
@@ -670,6 +668,8 @@ func spawn_sequential_gauntlet_wall(bounds: Vector2) -> void:
 
 ## Spawns a central rotating obstacle gate of six hazard turret dots.
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:1068-1094
+# TODO(M10): no caller in web/src — GauntletMaze.ts builds gauntlet walls; M10
+# decides whether its callers route through this.
 func spawn_rotating_gate(bounds: Vector2) -> void:
 	var cx: float = bounds.x / 2.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1069
 	var cy: float = bounds.y / 2.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1070
@@ -1271,8 +1271,8 @@ func update_specter(e: Types.Enemy, player_pos: Vector2, dt: float) -> void:
 
 	if dist > 1.0:
 		var speed: float = 145.0 * maxf(0.72, scale)  # PORT: web/src/tilt-to-live/EnemySwarm.ts:500
-		e.vx += ((dx / dist) * speed - e.vx) * 3.8 * dt
-		e.vy += ((dy / dist) * speed - e.vy) * 3.8 * dt
+		e.vx += ((dx / dist) * speed - e.vx) * 3.8 * dt  # PORT: web/src/tilt-to-live/EnemySwarm.ts:501
+		e.vy += ((dy / dist) * speed - e.vy) * 3.8 * dt  # PORT: web/src/tilt-to-live/EnemySwarm.ts:502
 
 	e.x += e.vx * dt * speed_scale
 	e.y += e.vy * dt * speed_scale
@@ -1353,20 +1353,20 @@ func on_enemy_killed(enemy: Types.Enemy, particles: ParticleEngine = null) -> vo
 			var angle: float = float(i) * PI + (randf() * 0.8 - 0.4)
 			var speed: float = 135.0 + randf() * 45.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1163
 
-			var mini: Types.Enemy = Types.Enemy.new()
-			mini.id = _next_enemy_id
+			var mini_seeker: Types.Enemy = Types.Enemy.new()
+			mini_seeker.id = _next_enemy_id
 			_next_enemy_id += 1
-			mini.type = Types.EnemyType.SEEKER
-			mini.x = enemy.x + cos(angle) * 10.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1167
-			mini.y = enemy.y + sin(angle) * 10.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1168
-			mini.vx = cos(angle) * speed
-			mini.vy = sin(angle) * speed
-			mini.radius = 6.5 * scale  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1171
-			mini.frozen = false
-			mini.freeze_timer = 0.0
-			mini.age = 0.0
-			mini.health = 1.0
-			enemies.append(mini)
+			mini_seeker.type = Types.EnemyType.SEEKER
+			mini_seeker.x = enemy.x + cos(angle) * 10.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1167
+			mini_seeker.y = enemy.y + sin(angle) * 10.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1168
+			mini_seeker.vx = cos(angle) * speed
+			mini_seeker.vy = sin(angle) * speed
+			mini_seeker.radius = 6.5 * scale  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1171
+			mini_seeker.frozen = false
+			mini_seeker.freeze_timer = 0.0
+			mini_seeker.age = 0.0
+			mini_seeker.health = 1.0
+			enemies.append(mini_seeker)
 		if particles != null:
 			# PORT: web/src/tilt-to-live/EnemySwarm.ts:1179
 			particles.emit_explosion(enemy.x, enemy.y, Color("#ff4757"), 24)
