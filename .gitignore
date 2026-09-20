@@ -5,3 +5,8 @@ dist/
 .env.*
 !.env.example
 scratch/
+
+# Godot
+.godot/
+godot/android/
+godot/build/

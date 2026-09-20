@@ -19,7 +19,7 @@ mode is not bad architecture. It is plausible-looking invention.
 
 > ### LAW 1 — No invented numbers.
 > Every numeric literal in ported code carries a source citation:
-> `# PORT: src/tilt-to-live/PlayerShip.ts:118`
+> `# PORT: web/src/tilt-to-live/PlayerShip.ts:118`
 > A literal without a citation is a defect, however reasonable it looks.
 > Exempt: `0`, `1`, `-1`, `0.0`, `1.0`, and array indices.
 >
@@ -98,7 +98,7 @@ Mandatory member order, per the official Godot style guide. No deviation.
 
 ```gdscript
 ## player_ship.gd
-## PORTS: src/tilt-to-live/PlayerShip.ts (633 lines, source commit 7be9614)
+## PORTS: web/src/tilt-to-live/PlayerShip.ts (633 lines, source commit 7be9614)
 class_name PlayerShip
 extends RefCounted
 ## Mouse/tilt-driven arrow ship with inertia physics.
@@ -164,7 +164,7 @@ Legal:
 ```gdscript
 var radius: float = 12.0
 var enemies: Array[Enemy] = []
-const MAX_COINS_ON_SCREEN: int = 6  # PORT: src/tilt-to-live/CoinSystem.ts:29
+const MAX_COINS_ON_SCREEN: int = 6  # PORT: web/src/tilt-to-live/CoinSystem.ts:29
 
 func spawn_coin(bounds: Vector2, player: PlayerShip) -> Coin:
     var coin: Coin = Coin.new()
@@ -212,7 +212,7 @@ func apply_flocking_separation() -> void:
 otherwise directly above:
 
 ```gdscript
-const SPAWN_INTERVAL_MIN: float = 2.5  # PORT: src/tilt-to-live/CoinSystem.ts:35
+const SPAWN_INTERVAL_MIN: float = 2.5  # PORT: web/src/tilt-to-live/CoinSystem.ts:35
 ```
 
 **`# PORT-NOTE:` for deliberate divergence** — Law 2. Always states what and

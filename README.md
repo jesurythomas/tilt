@@ -25,9 +25,25 @@ A 3D endless escape through a cursed jungle temple. Choose lanes, jump, slide, m
 
 The games use original procedural models, textures, effects, names, and sound design. They are genre tributes, not reproductions of third-party assets or branding.
 
+## Repository layout
+
+| Path | Contents |
+|---|---|
+| `web/` | The TypeScript / Canvas 2D game. npm root. |
+| `godot/` | Godot 4.7.2 mobile port, in progress. See `godot/CONVENTIONS.md`. |
+| `tools/` | Scripts bridging the two (audio bake, constant parity). |
+| `archive/` | Frozen design boards, backups and screenshots. |
+| `docs/superpowers/specs/` | Design specs. |
+
+The web game is the reference implementation for the Godot port and is not being
+retired — the audio bake step executes `web/src/tilt-to-live/TiltAudio.ts`.
+
+Port design: `docs/superpowers/specs/2026-09-20-tilt-to-live-godot-port-design.md`
+
 ## Run
 
 ```bash
+cd web
 npm install
 npm run dev
 ```
@@ -37,6 +53,7 @@ Open `http://127.0.0.1:5173`.
 ## Verify
 
 ```bash
+cd web
 npm run build
 npm run smoke
 ```
