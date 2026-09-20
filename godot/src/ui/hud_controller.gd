@@ -5,17 +5,18 @@ class_name HudController
 extends Control
 ## Controller for the in-game HUD, Game Over overlay and pause overlay.
 
-# DIVERGENCE(M2.5 §7.2 / D6): main.tscn hardcoded 32/24/20px font sizes with no
-# viewport response, which the parent spec's global constraints forbid. These
-# are the base sizes; set_ui_scale() multiplies them. This is a bug fix, not a
-# divergence from the TypeScript — the web game's HUD is CSS-scaled.
+# Per spec §7.2: main.tscn hardcoded 32/24/20px font sizes with no viewport
+# response, which the parent spec's global constraints forbid. These are the
+# base sizes; set_ui_scale() multiplies them. This is a bug fix, not a
+# divergence from the TypeScript — the web game's HUD is CSS-scaled. Carries
+# no DIVERGENCE tag: spec §7.2 says this fix is not a divergence.
 const BASE_SCORE_FONT: int = 44
 const BASE_BEST_FONT: int = 22
 const BASE_MULTIPLIER_FONT: int = 26
 ## Viewport minimum dimension at which ui_scale is 1.0.
 const UI_SCALE_REFERENCE: float = 720.0
-# DIVERGENCE(M2.5 §7.2 / D6): provisional clamp bounds on ui_scale, pending
-# measurement in the M2.5 device pass.
+# Per spec §7.2: provisional clamp bounds on ui_scale, pending measurement in
+# the M2.5 device pass.
 const MIN_UI_SCALE: float = 0.75
 const MAX_UI_SCALE: float = 2.0
 
@@ -23,6 +24,12 @@ var _pause_button: Button = null
 var _pause_panel: Control = null
 var _resume_button: Button = null
 var _pickers: Array[ControlPicker] = []
+var _score_margin: MarginContainer = null
+# I3: the scene-authored offsets, captured before _apply_arena_origin() ever
+# runs. Used verbatim when no GameRoot is present (tests build the HUD alone).
+var _fallback_score_top: float = 0.0
+var _fallback_pause_right: float = 0.0
+var _fallback_pause_top: float = 0.0
 
 @onready var _score_label: Label = get_node_or_null("%ScoreLabel")
 @onready var _best_label: Label = get_node_or_null("%BestLabel")
@@ -66,9 +73,15 @@ func _ready() -> void:
 	GameEvents.run_ended.connect(_on_run_ended)
 	GameEvents.phase_changed.connect(_on_phase_changed)
 
+	_score_margin = find_child("ScoreMargin", true, false) as MarginContainer
+	if _score_margin != null:
+		_fallback_score_top = _score_margin.offset_top
+
 	_pause_button = find_child("PauseButton", true, false) as Button
 	if _pause_button != null:
 		_pause_button.pressed.connect(_on_pause_pressed)
+		_fallback_pause_right = _pause_button.offset_right
+		_fallback_pause_top = _pause_button.offset_top
 
 	_pause_panel = find_child("PausePanel", true, false) as Control
 	if _pause_panel != null:
@@ -87,6 +100,11 @@ func _ready() -> void:
 
 	set_ui_scale(ui_scale_for(get_viewport_rect().size))
 	get_viewport().size_changed.connect(_on_viewport_resized)
+
+	# I3: HudController is GameRoot's descendant, so GameRoot._ready() (and the
+	# resize_canvas() call that first sets arena_origin) has not necessarily
+	# run yet here. Deferring one frame lets it land before the HUD reads it.
+	_apply_arena_origin.call_deferred()
 
 
 ## Scales HUD text and touch targets to the viewport.
@@ -125,6 +143,13 @@ func _on_score_changed(score: int, multiplier: int, best_score: int) -> void:
 func _on_run_ended(final_score: int, stats: Types.GameStats) -> void:
 	if _game_over_panel == null:
 		return
+
+	# I1: GameRoot._ready() (and its `settings`) has not necessarily run before
+	# HudController._ready() calls _sync_pickers() the first time — HudController
+	# is GameRoot's descendant, so the ancestor's _ready() runs after this
+	# node's — so the death screen's picker shows no active scheme until the
+	# player changes it. Re-syncing whenever this surface opens covers it.
+	_sync_pickers()
 
 	if _final_score_label != null:
 		_final_score_label.text = "SCORE: %d" % final_score
@@ -166,6 +191,23 @@ func _on_restart_button_gui_input(event: InputEvent) -> void:
 
 func _on_viewport_resized() -> void:
 	set_ui_scale(ui_scale_for(get_viewport_rect().size))
+	_apply_arena_origin()
+
+
+# I3 (DIVERGENCE M2.5 §6.1): main.tscn anchors ScoreMargin and PauseButton to
+# the viewport edge with fixed offsets, but GameRoot insets the playfield from
+# the edge for phone bezels, camera cutouts and gesture bars (arena_origin).
+# Null-tolerant: tests build the HUD without a GameRoot and keep the scene's
+# authored offsets.
+func _apply_arena_origin() -> void:
+	var root: GameRoot = get_tree().get_first_node_in_group("game_root") as GameRoot
+	if _score_margin != null:
+		_score_margin.offset_top = root.arena_origin.y if root != null else _fallback_score_top
+	if _pause_button != null:
+		_pause_button.offset_right = (
+			-root.arena_origin.x if root != null else _fallback_pause_right
+		)
+		_pause_button.offset_top = root.arena_origin.y if root != null else _fallback_pause_top
 
 
 func _on_pause_pressed() -> void:
@@ -175,6 +217,11 @@ func _on_pause_pressed() -> void:
 	root.toggle_pause()
 	if _pause_panel != null:
 		_pause_panel.visible = root.is_paused()
+	if root.is_paused():
+		# I1: see the comment in _on_run_ended — the same _ready() ordering
+		# gap leaves the pause overlay's picker unmarked until this surface
+		# opens.
+		_sync_pickers()
 
 
 func _on_scheme_chosen(scheme: Types.ControlScheme) -> void:
