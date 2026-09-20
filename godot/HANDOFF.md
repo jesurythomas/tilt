@@ -4,19 +4,27 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-Last completed module: **M0 — Scaffold** — complete, 2026-09-20, commit `035ccdc`
+Last completed module: **M0b — Android toolchain** — complete, 2026-09-20
 Branch: `feat/godot-port`
-Next module: **M0b — Android toolchain** (blocked on user installs, see below)
+Next module: **M1 — Core loop and input** (nothing blocks it)
 
-All five acceptance commands in the next section were run fresh at module close
-and passed. Nothing in this file is predicted or assumed; every value was read
-off a command's output.
+Every command below was run fresh at module close and passed. Nothing here is
+predicted or assumed; every value was read off a command's output.
+
+## App identity
+
+| | |
+|---|---|
+| Package | `com.jtg.perilpoint` |
+| Label | **Peril Point** |
+| Project name in `project.godot` | still `Tilt to Live` — **see Open questions** |
 
 ## How to verify right now
 
 ```bash
 cd /c/Users/Jesury/Documents/Personal/dread-flock
 GODOT="/c/Users/Jesury/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe"
+ADB="/c/Users/Jesury/AppData/Local/Android/Sdk/platform-tools/adb.exe"
 
 # project loads                                          expect exit 0
 "$GODOT" --headless --path godot --import
@@ -24,11 +32,17 @@ GODOT="/c/Users/Jesury/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stab
 # GUT suite         expect Scripts 1 / Tests 1 / Passing 1, "All tests passed!"
 "$GODOT" --headless --path godot -s addons/gut/gut_cmdln.gd -gdir=res://tests -gexit
 
-# lint                                    expect "Success: no problems found"
+# lint / format                expect "no problems" / "left unchanged"
 gdlint godot/tests
-
-# format check                             expect "1 file would be left unchanged"
 gdformat --check godot/tests
+
+# build a debug APK                                      expect exit 0
+"$GODOT" --headless --path godot --export-debug "Android" build/peril-point-debug.apk
+
+# install and launch
+"$ADB" -s RRCXB04L8EJ install -r godot/build/peril-point-debug.apk
+"$ADB" -s RRCXB04L8EJ shell monkey -p com.jtg.perilpoint -c android.intent.category.LAUNCHER 1
+"$ADB" -s RRCXB04L8EJ shell pidof com.jtg.perilpoint     # a pid = it survived startup
 ```
 
 ## Toolchain facts
@@ -36,113 +50,134 @@ gdformat --check godot/tests
 | Thing | Value |
 |---|---|
 | Godot | `4.7.2.stable.official.ed1daf0bf` — **not on PATH**, use the path above |
-| GUT | **9.6.1** vendored at `godot/addons/gut/` (9.7.1 exists upstream) |
-| gdtoolkit | **4.5.0**, `gdformat` and `gdlint` both on PATH |
-| Python / pip | 3.13.1 / 24.3.1 |
+| GUT | **9.6.1** vendored at `godot/addons/gut/` |
+| gdtoolkit | **4.5.0**, `gdformat` and `gdlint` on PATH |
+| JDK | Temurin **17.0.20.1**, set as Godot's `export/android/java_sdk_path` |
+| Android SDK | `C:\Users\Jesury\AppData\Local\Android\Sdk`, platform `android-37.0`, build-tools `36.0.0` |
+| Device | **SM_A556E** (Galaxy A55), serial `RRCXB04L8EJ` |
+| Last APK | 29,759,129 bytes, `godot/build/` (gitignored) |
 
-Always use the `_console` variant of the Godot exe — the plain `.exe` detaches
-and you get no stdout and no usable exit code.
+Always use the `_console` variant of the Godot exe.
 
-## Three traps, all hit and verified during M0
+**`java` on PATH is OpenJDK 25, not 17.** Harmless — Godot uses its configured
+`java_sdk_path`. If a Gradle build ever misbehaves, check this first. Do not
+"fix" `PATH`; nothing in this project reads it.
 
-**1. `--quit` is not a usable boot check.** It exits **0** for any directory
-that exists, even with no `project.godot` at all, so it cannot fail for the
-right reason. Worse, once a project *does* exist but has no main scene (true
-until M2), Godot 4.7.2 opens a modal `ALERT!` window **even under `--headless`**
-and blocks forever. Use `--import`, which was verified in both directions:
-exit 0 on a valid project, exit 1 on a directory with no project file.
+## adb: two transports, always pass `-s`
+
+The phone is usually visible **twice** — once over USB (`RRCXB04L8EJ`) and once
+over wireless adb-tls. Plain `adb install` then fails as ambiguous. **Always
+pass `-s RRCXB04L8EJ`.**
+
+The wireless link **drops on reboot, sleep or a Wi-Fi change** and it did drop
+mid-module. USB is the reliable path: plug in, accept the prompt. If neither
+shows in `adb devices`, ask the user to reconnect — do not guess at pairing
+commands.
+
+## Four traps, all hit and verified
+
+**1. `--quit` was unusable, and now is not.** It exits **0** for any directory
+that exists, even with no `project.godot`, so it cannot fail for the right
+reason — prefer `--import`, which exits 1 on a directory with no project.
+Its other defect is **fixed**: with no main scene, Godot 4.7.2 used to open a
+modal `ALERT!` **even under `--headless`** and block forever. M0b added a main
+scene, and `--quit` now returns 0 promptly. Confirmed after the change.
 
 **2. `--import` is silent about script errors.** It proves the *project* loads,
 not that any GDScript compiles — a file with a fatal parse error produced no
-output and exit 0. To check one script, use
-`"$GODOT" --headless --path godot --check-only -s <path/to.gd>`, which exits 1
-and prints the parse error.
+output and exit 0. To check one script:
+`"$GODOT" --headless --path godot --check-only -s <path/to.gd>` (exits 1, prints
+the parse error).
 
 **3. GUT exits 0 when a test script fails to parse.** It logs
 `Ignoring script ... because it does not extend GutTest` (misleading — the parse
-failed, so the base class was never seen) and then `Nothing was run.`, and still
-returns 0. With several test scripts the others would run, print
-`All tests passed!` and exit 0 while the broken one is silently skipped.
-**Never accept GUT's exit code alone** — also read the `Scripts` and `Tests`
-counts in the run summary and confirm they are what you expected. No GUT flag
-fixes this; `-gexit_on_success`, `-gerrors_do_not_cause_failure` and
-`-gfailure_error_types` all concern errors during execution, not collection.
+failed, so the base class was never seen), then `Nothing was run.`, and returns
+0. With several scripts the rest would run, print `All tests passed!` and exit 0
+while the broken one is silently skipped. **Never accept GUT's exit code alone**
+— read the `Scripts` and `Tests` counts and confirm they are what you expected.
+No GUT flag fixes this. **This is still unsolved and gets more dangerous the
+moment M1 adds a second spec file.**
+
+**4. `monkey` reporting `Events injected: 1` is not proof the app runs.** It only
+means an intent was dispatched; the app can die immediately after. Use
+`adb shell pidof <pkg>` — a pid is the evidence.
 
 ## Verified project.godot keys
 
-Godot omits any setting left at its default, so the file is shorter than the
-list of things that were set. All values below were confirmed by querying
-`ProjectSettings.get_setting()` at runtime, not by reading the file.
-
-Present in the file:
+Godot omits any setting left at its default, so the file is shorter than the set
+of things that are in force. All values confirmed by querying `ProjectSettings`
+at runtime, not by reading the file.
 
 ```ini
 [application]
+config/name="Tilt to Live"
+run/main_scene="res://scenes/main.tscn"
 run/max_fps=60
 [display]
 window/size/viewport_width=1280
 window/size/viewport_height=720
 [rendering]
 renderer/rendering_method="mobile"
+textures/vram_compression/import_etc2_astc=true
 [debug]
-gdscript/warnings/untyped_declaration=2
-gdscript/warnings/inferred_declaration=2
-gdscript/warnings/unsafe_call_argument=2
-gdscript/warnings/unsafe_method_access=2
-gdscript/warnings/unsafe_property_access=2
-gdscript/warnings/unsafe_cast=2
-gdscript/warnings/shadowed_variable=2
-gdscript/warnings/unused_variable=2
+gdscript/warnings/{untyped_declaration,inferred_declaration,unsafe_call_argument,
+  unsafe_method_access,unsafe_property_access,unsafe_cast,shadowed_variable,
+  unused_variable}=2
 ```
+
+`import_etc2_astc` was added **by Godot itself** during the first Android export;
+it is required for mobile texture compression and was committed deliberately.
 
 Correct but **absent because they are already the Godot 4.7.2 default**:
 
-| Setting | Effective value | Note |
+| Setting | Effective | Note |
 |---|---|---|
-| `display/window/handheld/orientation` | `0` | Index 0 is **Landscape**, confirmed from the property's own hint string `Landscape,Portrait,Reverse Landscape,...` |
-| `display/window/stretch/mode` | `disabled` | Required by spec §4.1 and load-bearing |
-| `debug/gdscript/warnings/unsafe_void_return` | `2` (Error) | Already Error by default in 4.7.2 — so all **nine** required warnings are at Error, though only eight appear in the file |
+| `display/window/handheld/orientation` | `0` | Index 0 is **Landscape**, confirmed from the property's hint string |
+| `display/window/stretch/mode` | `disabled` | spec §4.1, load-bearing |
+| `debug/gdscript/warnings/unsafe_void_return` | `2` | already Error by default — so all **nine** required warnings are Error, though only eight appear in the file |
 
-Warning severity encodes as `0=Ignore, 1=Warn, 2=Error`.
+Severity encodes `0=Ignore, 1=Warn, 2=Error`. `exclude_addons` returns `<null>`
+— that key does not exist in 4.7.2. GUT's vendored code loads fine anyway.
 
-`debug/gdscript/warnings/exclude_addons` returns `<null>` in 4.7.2 — that key
-does not exist in this version. GUT's vendored code nonetheless loads and runs
-fine with all nine warnings at Error, which was verified directly.
+## Device evidence from the M0b launch
 
-## Untyped-rejection proof (observed, not re-runnable)
+- `Godot Engine v4.7.2.stable` / `Vulkan 1.3.279 - **Forward Mobile** - Samsung
+  Xclipse 530` — proves `rendering_method="mobile"` reached the device
+- `OnGodotSetupCompleted`, `OnGodotMainLoopStarted`, no `FATAL EXCEPTION`
+- **Landscape confirmed:** `cur=2340x1080`, `mBounds=Rect(0, 0 - 2340, 1080)`,
+  `land`, `mCurrentRotation=ROTATION_90`, and `deepestLastOrientationSource` is
+  our own `GodotAppLauncher` activity — the app forces it, it is not the sensor
+- A `set_script` error appears in the **export** log but never on the device;
+  the app runs clean. Unexplained, harmless so far. Watch it in M1.
 
-With `var untyped_proof = 1` added to `tests/test_scaffold.gd`, the suite was
-run and Godot refused the script:
+## Export preset
 
-```
-SCRIPT ERROR: Parse Error: Variable "untyped_proof" has no static type. (Warning treated as error.)
-SCRIPT ERROR: Parse Error: The local variable "untyped_proof" is declared but never used in the block. (Warning treated as error.)
-```
-
-The line was then removed and the suite returned to 1 passing test. Note this
-run still exited 0 — see trap 3 above. The proof is the parse error, not the
-exit code.
+`godot/export_presets.cfg` is tracked and contains **no keystore path and no
+password** — Godot omits those keys entirely when they live in Editor Settings,
+which is where the debug keystore is. Keep it that way: a password committed and
+later removed still lives in git history. `gradle_build/use_gradle_build=false`;
+architectures are **arm64-v8a only**.
 
 ## Next module
 
-**M0b — Android toolchain.** Requires user action and several GB of downloads:
-export templates, JDK 17, Android SDK. `ANDROID_HOME` is currently set to a
-path that does not exist and must be corrected.
+**M1 — Core loop and input.** Nothing blocks it. Per the index it needs
+`core/types.gd` (ports `Types.ts`), `core/tuning.gd` (ports `WeaponTuning.ts`),
+`core/log.gd`, and `tools/parity/`. Its acceptance requires tilt verification on
+the physical device, which is now possible.
 
-First concrete step: in the Godot editor, **Editor → Manage Export Templates →
-Download and Install**.
+**M1 must replace `scenes/main.tscn`** — it is a scriptless `Node2D` placeholder
+that exists only so M0b could export and launch something.
 
-M1 depends on M0b because M1's acceptance requires tilt verification on a
-physical device, which an emulator cannot provide.
-
-iOS cannot be exported from this Windows machine and is deferred to M11
-(D1, `PREREQUISITES.md` §3).
+iOS is still deferred to M11 (D1, `PREREQUISITES.md` §3); it needs a macOS host.
 
 ## Open questions
 
-- **How should the GUT collection-failure gap (trap 3) be closed?** It is
-  harmless at one test script and dangerous from M1 onward. Deliberately not
-  solved in M0 — Law 4 forbids adding tooling that the module does not need.
-  Decide when M1 adds its second spec file.
-- Vendored GUT is 9.6.1 while 9.7.1 is available upstream. Pinned deliberately;
-  no reason to move found.
+- **Is the project being renamed to "Peril Point", or is that only the Android
+  app label?** `config/name` in `project.godot` is still `Tilt to Live`, as are
+  the spec, the plans and this repo's docs. The two can differ harmlessly — the
+  label is what users see — but if a full rename is intended it should happen
+  deliberately and in one pass, not drift. **Unresolved; ask before assuming.**
+- **The GUT collection-failure gap (trap 3) is still open** and becomes a real
+  risk as soon as M1 adds a second spec file. Not solved in M0 or M0b because
+  Law 4 forbids adding tooling a module does not need. Decide in M1.
+- The `set_script` error during export is unexplained. No observed consequence.
