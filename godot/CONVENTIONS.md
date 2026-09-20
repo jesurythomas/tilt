@@ -76,19 +76,30 @@ explaining why, and only where the TS genuinely requires it.
 
 ### 1.2 Formatter and linter
 
-gdtoolkit 4.x (`gdformat`, `gdlint`).
-
-> **Module 0 must verify the exact invocations against `--help` and replace this
-> block with the verified commands.** Do not write these from memory — this is
-> the one document whose entire purpose is being unambiguous.
+gdtoolkit 4.x (`gdformat`, `gdlint`). Verified against `--help` on 2026-09-20
+with gdtoolkit **4.5.0**; both are on `PATH` and need no qualification.
 
 ```
-INSTALL:  <filled in by Module 0>
-FORMAT:   <filled in by Module 0>
-LINT:     <filled in by Module 0>
+INSTALL:  pip install "gdtoolkit==4.*"
+FORMAT:   gdformat godot/src godot/tests
+LINT:     gdlint godot/src godot/tests
+CHECK:    gdformat --check godot/src godot/tests
 ```
 
 Both must run clean before any module may be marked done.
+
+Notes, all observed rather than assumed:
+
+- Both take `<path>...` and recurse into directories.
+- `gdformat` **rewrites files in place.** `--check` reports what would change
+  without writing (`--diff` shows the changes and implies `--check`). Prefer
+  `CHECK` in any verification step; reserve bare `FORMAT` for when you intend
+  to reformat.
+- `gdlint` exits 0 on success, non-zero with a list of problems.
+- `godot/src` holds no `.gd` files until M1. Until then both commands are run
+  against `godot/tests` alone.
+- Never run either against `godot/addons/` — GUT is vendored third-party code
+  and is not ours to reformat.
 
 ---
 
