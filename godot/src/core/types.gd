@@ -10,23 +10,21 @@ extends RefCounted
 ## slower and would not interoperate with the engine.
 ##
 ## PORT-NOTE: TypeScript optional fields (`targetAngle?`, `state?`, …) have no
-## GDScript equivalent — a declared field always holds a value. Two different
-## stand-ins are used, because no single one is safe for every field:
+## GDScript equivalent — a declared field always holds a value. Two sentinels
+## are used, because no single one is safe for every field:
 ##   - Identifier and enum-state optionals take `Types.ABSENT`. A record id and
 ##     an enum ordinal are never negative, so -1 cannot collide with real data.
-##   - Numeric and boolean optionals take their natural zero (`0.0`, `false`,
-##     `Vector2.ZERO`), because -1 IS a legal angle, timer and scale.
-## Consumers must check `== Types.ABSENT` only on the first group.
-##
-## PORT-NOTE: the second group loses information the TypeScript relies on.
-## `EnemySwarm.ts` branches on `=== undefined` for fields this port initialises
-## to zero — `targetAngle` (EnemySwarm.ts:300), `aimTimer` (:339),
-## `fireCooldown` (:394), `orbitRadius` (:463), `pulseTimer` (:486) — and those
-## branches can never fire here. `stealthOpacity` is worse: its TypeScript
-## fallback is `?? 0.65` (EnemySwarm.ts:1517), not the 1.0 below.
-## TODO(M1): resolve in M1 Task 3, Step 0 — assigned by the user 2026-09-20.
-## The candidate is NAN plus is_nan() as the `=== undefined` test. Not deferred
-## to M3: the decision was pulled forward so it cannot rot. See HANDOFF.md.
+##   - Float optionals take `NAN`, tested with `is_nan()` as the `=== undefined`
+##     check. `-1` and `0.0` are both legal angles, timers and scales, so
+##     neither can stand in for "unset" without colliding with real data —
+##     `EnemySwarm.ts` branches on `=== undefined` for exactly these fields
+##     (`targetAngle` at EnemySwarm.ts:300, `aimTimer` at :339, `fireCooldown`
+##     at :394, `orbitRadius` at :463, `pulseTimer` at :486, and
+##     `stealthOpacity` at :1517 via `?? 0.65`) and NAN is never a legal
+##     reading, so it cannot collide the way `-1` and `0.0` do.
+## Booleans and `orbit_center` keep their natural default (`false`,
+## `Vector2.ZERO`) because `undefined` is falsy in the TypeScript, so those are
+## already exact.
 
 ## PORT: web/src/tilt-to-live/Types.ts:5
 enum GamePhase { MENU, CINEMATIC, PLAYING, PAUSED, GAME_OVER }
@@ -101,8 +99,10 @@ class ActiveWeapon:
 	var duration: float = 0.0
 	var max_duration: float = 0.0
 	var radius: float = 0.0
-	var max_radius: float = 0.0
-	var angle: float = 0.0
+	## `undefined` in Types.ts:62. NAN until a module sets it; see is_nan().
+	var max_radius: float = NAN
+	## `undefined` in Types.ts:63. NAN until a module sets it; see is_nan().
+	var angle: float = NAN
 	# PORT-NOTE: Types.ts:64 types this `any`. Variant is the honest port and
 	# CONVENTIONS §4 permits it where the data is genuinely dynamic.
 	var data: Variant = null
@@ -147,23 +147,33 @@ class Enemy:
 	var freeze_timer: float = 0.0
 	var age: float = 0.0
 	var health: float = 0.0
-	var target_angle: float = 0.0
-	var special_timer: float = 0.0
+	## `targetAngle?` in Types.ts:99. NAN until a module sets it; see is_nan().
+	var target_angle: float = NAN
+	## `specialTimer?` in Types.ts:100. NAN until a module sets it; see is_nan().
+	var special_timer: float = NAN
 	var leader_id: int = Types.ABSENT
 	var parent_wave_id: int = Types.ABSENT
 	var orbit_center: Vector2 = Vector2.ZERO
-	var orbit_radius: float = 0.0
-	var orbit_speed: float = 0.0
+	## `orbitRadius?` in Types.ts:104. NAN until a module sets it; see is_nan().
+	var orbit_radius: float = NAN
+	## `orbitSpeed?` in Types.ts:105. NAN until a module sets it; see is_nan().
+	var orbit_speed: float = NAN
 	var chilled: bool = false
 	var is_hazard: bool = false
 	var state: int = Types.ABSENT
-	var aim_angle: float = 0.0
-	var aim_timer: float = 0.0
-	var fire_cooldown: float = 0.0
+	## `aimAngle?` in Types.ts:109. NAN until a module sets it; see is_nan().
+	var aim_angle: float = NAN
+	## `aimTimer?` in Types.ts:110. NAN until a module sets it; see is_nan().
+	var aim_timer: float = NAN
+	## `fireCooldown?` in Types.ts:111. NAN until a module sets it; see is_nan().
+	var fire_cooldown: float = NAN
 	var parent_carrier_id: int = Types.ABSENT
-	var orbit_angle: float = 0.0
-	var pulse_timer: float = 0.0
-	var stealth_opacity: float = 1.0
+	## `orbitAngle?` in Types.ts:113. NAN until a module sets it; see is_nan().
+	var orbit_angle: float = NAN
+	## `pulseTimer?` in Types.ts:114. NAN until a module sets it; see is_nan().
+	var pulse_timer: float = NAN
+	## `stealthOpacity?` in Types.ts:115. NAN until a module sets it; see is_nan().
+	var stealth_opacity: float = NAN
 
 
 ## PORT: web/src/tilt-to-live/Types.ts:118-128

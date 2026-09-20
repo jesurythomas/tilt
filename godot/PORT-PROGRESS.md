@@ -58,11 +58,9 @@ Dependency map and resume instructions:
       -- all 13 enemy types spawn and behave per the TypeScript
       -- all 8 formations trigger
       -- GUT wave-director specs pass
-      note  the `Types.Enemy` optional-float representation this module depends
-            on is **fixed in M1 Task 3 Step 0**, not here. If that step was
-            skipped, stop and do it before porting `EnemySwarm.ts`: the
-            `=== undefined` branches at `EnemySwarm.ts:300, 339, 394, 463, 486`
-            cannot fire while those fields default to `0.0`.
+      note  `Types.Enemy` and `Types.ActiveWeapon` float optionals are `NAN`,
+            tested with `is_nan()` as the `=== undefined` check (M1 Task 3
+            Step 0).
 
 - [ ] **M4 — Weapons**  deps: M2
       -- all 7 weapons activate with radius/duration read from the tuning table

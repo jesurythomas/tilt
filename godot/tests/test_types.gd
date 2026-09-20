@@ -26,3 +26,13 @@ func test_optional_fields_use_the_absent_sentinel() -> void:
 	var e: Types.Enemy = Types.Enemy.new()
 	assert_eq(e.state, Types.ABSENT, "state? is absent until a module sets it")
 	assert_eq(e.leader_id, Types.ABSENT, "leaderId? is absent until a module sets it")
+
+
+func test_optional_floats_use_nan_as_the_undefined_sentinel() -> void:
+	var e: Types.Enemy = Types.Enemy.new()
+	assert_true(is_nan(e.target_angle), "targetAngle? is NAN until a module sets it")
+	assert_true(is_nan(e.aim_timer), "aimTimer? is NAN until a module sets it")
+	assert_true(is_nan(e.stealth_opacity), "stealthOpacity? is NAN until a module sets it")
+	var w: Types.ActiveWeapon = Types.ActiveWeapon.new()
+	assert_true(is_nan(w.max_radius), "maxRadius? is NAN until a module sets it")
+	assert_true(is_nan(w.angle), "angle? is NAN until a module sets it")
