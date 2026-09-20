@@ -55,8 +55,8 @@ Copied verbatim from the spec and `CONVENTIONS.md`. Every task in every module p
 
 | # | Module | Deps | Plan | Status |
 |---|---|---|---|---|
-| 0 | Scaffold | — | `2026-09-20-m0-scaffold.md` | planned |
-| 0b | **Android toolchain** (user action, ~4GB) | M0 | not yet written | blocked on user installs |
+| 0 | Scaffold | — | `2026-09-20-m0-scaffold.md` | **done** |
+| 0b | **Android toolchain** | M0 | `2026-09-20-m0b-android-toolchain.md` | planned — installs done |
 | 1 | Core loop and input | M0b | not yet written | — |
 | 2 | **Vertical slice** — first playable | M1 | not yet written | — |
 | 3 | Enemy roster (12 remaining types, 8 formations) | M2 | not yet written | — |
