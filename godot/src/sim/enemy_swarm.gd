@@ -355,6 +355,69 @@ func spawn_carrier(bounds: Vector2, _player_pos: Vector2) -> Types.Enemy:
 	return carrier
 
 
+## Spawns an immediate, dramatic start armada tailored to the mode.
+## TODO(M10): the cinematic calls this (TiltEntranceCinematic.ts:196, :200); no M3 caller.
+## PORT: web/src/tilt-to-live/EnemySwarm.ts:781-799
+func spawn_mode_armada(mode: Types.GameMode, bounds: Vector2, player_pos: Vector2) -> void:
+	if mode == Types.GameMode.CODE_RED:
+		var count: int = 24  # PORT: web/src/tilt-to-live/EnemySwarm.ts:784
+		# PORT: web/src/tilt-to-live/EnemySwarm.ts:785
+		var radius: float = minf(bounds.x, bounds.y) * 0.44
+		for i: int in range(count):
+			# PORT: web/src/tilt-to-live/EnemySwarm.ts:787
+			var angle: float = (float(i) * PI * 2.0) / float(count)
+			var x: float = player_pos.x + cos(angle) * radius
+			var y: float = player_pos.y + sin(angle) * radius
+			spawn_seeker(bounds, x, y)  # PORT: web/src/tilt-to-live/EnemySwarm.ts:790
+	else:
+		var count: int = 8  # PORT: web/src/tilt-to-live/EnemySwarm.ts:794
+		for i: int in range(count):
+			spawn_seeker(bounds)
+
+
+## Picks one of the five classic formations at random and spawns it.
+## PORT: web/src/tilt-to-live/EnemySwarm.ts:801-826
+func trigger_random_formation(player_pos: Vector2, bounds: Vector2, current_score: int = 0) -> void:
+	# PORT: web/src/tilt-to-live/EnemySwarm.ts:806
+	var choices: Array[String] = ["arrow", "circle", "wall", "turret", "snake"]
+	# PORT: web/src/tilt-to-live/EnemySwarm.ts:807
+	var choice: String = choices[randi() % choices.size()]
+
+	match choice:
+		"arrow":
+			spawn_arrow_formation(bounds)
+		"circle":
+			spawn_circle_encirclement(player_pos, bounds, current_score)
+		"wall":
+			spawn_wall_formation(bounds)
+		"turret":
+			spawn_turret(bounds)
+		"snake":
+			spawn_snake(bounds)
+
+
+## Picks one of the three gauntlet-safe formations at random and spawns it.
+## PORT: web/src/tilt-to-live/EnemySwarm.ts:828-849
+func trigger_gauntlet_formation(
+	_player_pos: Vector2, bounds: Vector2, _current_score: int = 0
+) -> void:
+	# Gauntlet mode strictly excludes 'wall' (vertical/horizontal sweeps) and
+	# 'circle' (encirclements). Only fair directional waves that can be
+	# navigated alongside descending walls.
+	# PORT: web/src/tilt-to-live/EnemySwarm.ts:835
+	var choices: Array[String] = ["arrow", "turret", "snake"]
+	# PORT: web/src/tilt-to-live/EnemySwarm.ts:836
+	var choice: String = choices[randi() % choices.size()]
+
+	match choice:
+		"arrow":
+			spawn_arrow_formation(bounds)
+		"turret":
+			spawn_turret(bounds)
+		"snake":
+			spawn_snake(bounds)
+
+
 ## Spawns a wing of seven arrow drones sweeping from one screen edge, or two
 ## wings from both edges. PORT: web/src/tilt-to-live/EnemySwarm.ts:851-882
 func spawn_arrow_formation(bounds: Vector2, is_dual_pincer: bool = false) -> void:
@@ -716,22 +779,73 @@ func update(
 
 		if is_code_red:
 			_spawn_timer = 0.32 + randf() * 0.12  # PORT: web/src/tilt-to-live/EnemySwarm.ts:66
-			# In M2, all spawns are seekers until M3 adds elite types.
-			spawn_seeker(bounds)
-			spawn_seeker(bounds)
+			if current_score >= 24000 and randf() < 0.28:  # PORT: web/src/tilt-to-live/EnemySwarm.ts:67
+				spawn_carrier(bounds, player_pos)
+			elif current_score >= 16000 and randf() < 0.26:  # PORT: web/src/tilt-to-live/EnemySwarm.ts:69
+				spawn_pulsar(bounds, player_pos)
+			elif current_score >= 10000 and randf() < 0.30:  # PORT: web/src/tilt-to-live/EnemySwarm.ts:71
+				spawn_artillery(bounds, player_pos)
+			elif current_score >= 6000 and randf() < 0.28:  # PORT: web/src/tilt-to-live/EnemySwarm.ts:73
+				spawn_specter(bounds, player_pos)
+			elif current_score >= 2500 and randf() < 0.35:  # PORT: web/src/tilt-to-live/EnemySwarm.ts:75
+				spawn_charger(bounds, player_pos)
+			else:
+				# PORT: web/src/tilt-to-live/EnemySwarm.ts:78-79
+				spawn_seeker(bounds)
+				spawn_seeker(bounds)
 		else:
 			# PORT: web/src/tilt-to-live/EnemySwarm.ts:83-84
 			var base_interval: float = maxf(0.42, 1.35 - time_reduction - score_reduction)
 			_spawn_timer = base_interval + randf() * 0.15
-			# PORT: web/src/tilt-to-live/EnemySwarm.ts:98
-			var spawn_count: int = 2 if (current_score >= 12000 and randf() < 0.25) else 1
-			for s: int in range(spawn_count):
-				spawn_seeker(bounds)
+			# Variety unlock: chargers at 5k, specters at 10k, artillery at
+			# 16k, pulsars at 22k, carriers at 32k.
+			if current_score >= 32000 and randf() < 0.22:  # PORT: web/src/tilt-to-live/EnemySwarm.ts:87
+				spawn_carrier(bounds, player_pos)
+			elif current_score >= 22000 and randf() < 0.26:  # PORT: web/src/tilt-to-live/EnemySwarm.ts:89
+				spawn_pulsar(bounds, player_pos)
+			elif current_score >= 16000 and randf() < 0.28:  # PORT: web/src/tilt-to-live/EnemySwarm.ts:91
+				spawn_artillery(bounds, player_pos)
+			elif current_score >= 10000 and randf() < 0.26:  # PORT: web/src/tilt-to-live/EnemySwarm.ts:93
+				spawn_specter(bounds, player_pos)
+			elif current_score >= 5000 and randf() < 0.32:  # PORT: web/src/tilt-to-live/EnemySwarm.ts:95
+				spawn_charger(bounds, player_pos)
+			else:
+				# PORT: web/src/tilt-to-live/EnemySwarm.ts:98
+				var spawn_count: int = 2 if (current_score >= 12000 and randf() < 0.25) else 1
+				for s: int in range(spawn_count):
+					spawn_seeker(bounds)
 
-	# 2. Coordinated Formation Waves. PORT: web/src/tilt-to-live/EnemySwarm.ts:106-132
+	# 2. Coordinated Formation Waves with Mode Specialization.
+	# PORT: web/src/tilt-to-live/EnemySwarm.ts:106-132
+	# TODO(M10): gauntlet and code-red modes are selected by run_controller in
+	# M10; the branches are ported now because they live inside update().
 	if _wave_timer <= 0.0:
-		# TODO(M3): spawn wall, arrow, circle and gauntlet formations.
-		_wave_timer = 6.0 + randf() * 2.0
+		if is_code_red:
+			var roll: float = randf()  # PORT: web/src/tilt-to-live/EnemySwarm.ts:110
+			if roll < 0.35:  # PORT: web/src/tilt-to-live/EnemySwarm.ts:111
+				spawn_wall_formation(bounds)  # PORT: web/src/tilt-to-live/EnemySwarm.ts:112
+			elif roll < 0.70:  # PORT: web/src/tilt-to-live/EnemySwarm.ts:113
+				spawn_arrow_formation(bounds, true)  # PORT: web/src/tilt-to-live/EnemySwarm.ts:114
+			else:
+				# PORT: web/src/tilt-to-live/EnemySwarm.ts:116
+				spawn_circle_encirclement(player_pos, bounds, current_score, true)
+			_wave_timer = 3.6 + randf() * 1.2  # PORT: web/src/tilt-to-live/EnemySwarm.ts:118
+		elif game_mode == Types.GameMode.GAUNTLET:
+			# PORT: web/src/tilt-to-live/EnemySwarm.ts:121
+			trigger_gauntlet_formation(player_pos, bounds, current_score)
+			# PORT: web/src/tilt-to-live/EnemySwarm.ts:122
+			var score_wave_reduction: float = minf(2.0, (float(current_score) / 25000.0) * 2.0)
+			# PORT: web/src/tilt-to-live/EnemySwarm.ts:123
+			var base_wave_interval: float = maxf(8.5, 13.5 - _elapsed * 0.02 - score_wave_reduction)
+			_wave_timer = base_wave_interval + randf() * 2.5  # PORT: web/src/tilt-to-live/EnemySwarm.ts:124
+		else:
+			# PORT: web/src/tilt-to-live/EnemySwarm.ts:127
+			trigger_random_formation(player_pos, bounds, current_score)
+			# PORT: web/src/tilt-to-live/EnemySwarm.ts:122
+			var score_wave_reduction: float = minf(2.0, (float(current_score) / 25000.0) * 2.0)
+			# PORT: web/src/tilt-to-live/EnemySwarm.ts:129
+			var base_wave_interval: float = maxf(5.5, 10.0 - _elapsed * 0.02 - score_wave_reduction)
+			_wave_timer = base_wave_interval + randf() * 2.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:130
 
 	# 3. Update Individual Enemy Physics & Logic.
 	# PORT: web/src/tilt-to-live/EnemySwarm.ts:134-217
