@@ -28,6 +28,11 @@ const DEADZONE_THRESHOLD: float = 0.07  # PORT: web/src/tilt-to-live/GyroscopeCo
 ## Default resting phone tilt.
 const DEFAULT_CALIBRATED_BETA: float = 38.0  # PORT: web/src/tilt-to-live/GyroscopeController.ts:18
 
+# DIVERGENCE(M2.5 §5.4): guards a zero or negative tilt_sensitivity from a
+# division fault. The value is an arbitrary small epsilon, not a measured
+# quantity — it exists only so the divisor cannot reach zero.
+const MIN_SENSITIVITY_DIVISOR: float = 0.0001
+
 ## True when the platform reports motion sensors.
 var is_supported: bool = false
 ## True while the sensor is being polled.
@@ -208,7 +213,7 @@ func apply_orientation(beta: float, gamma: float, screen_angle: int) -> void:
 func _apply_angles(roll: float, pitch: float) -> void:
 	# DIVERGENCE(M2.5 §5.4): the divisor was the bare MAX_TILT_ANGLE. At
 	# tilt_sensitivity 1.0 this is arithmetically identical.
-	var full_deflection: float = MAX_TILT_ANGLE / maxf(0.0001, tilt_sensitivity)
+	var full_deflection: float = MAX_TILT_ANGLE / maxf(MIN_SENSITIVITY_DIVISOR, tilt_sensitivity)
 	var vx: float = maxf(-1.0, minf(1.0, roll / full_deflection))
 	var vy: float = maxf(-1.0, minf(1.0, pitch / full_deflection))
 
