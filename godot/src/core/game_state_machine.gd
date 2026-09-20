@@ -78,6 +78,9 @@ func return_to_menu() -> void:
 	# TODO(M5): audio.stopMusic().
 	# TODO(M11): hide the pause and game-over modals, skip the cinematic,
 	# goalsHUD.setMenuMode(true), menu.show(), updateCursor().
+	# TODO(M11): document.body.classList.remove('tilt-playing') (TiltGame.ts:1512).
+	# PORT-NOTE: TiltGame.ts:1514-1516's onReturnToPortal callback has no
+	# port — the Godot build has no host portal to return to.
 
 
 ## Restarts the current mode from a fresh cinematic.
@@ -89,6 +92,7 @@ func restart() -> void:
 ## Resets the run and begins the entrance cinematic for the active mode.
 ## PORT: web/src/tilt-to-live/TiltGame.ts:1523-1530
 func start_cinematic() -> void:
+	# TODO(M11): goalsHUD.setMenuMode(false) (TiltGame.ts:1524).
 	reset_run(mode)
 	# PORT-NOTE: TiltGame.ts:1526 sets phase = 'cinematic' here and
 	# TiltEntranceCinematic drives the 600 ms cold open. The cinematic is M11
@@ -105,6 +109,8 @@ func stop() -> void:
 	_tilt.stop_listening()
 	# TODO(M5): audio.stopMusic().
 	# TODO(M11): skip the cinematic.
+	# PORT-NOTE: the rAF cancellation (ts:1541-1544) belongs to GameRoot,
+	# same as the loop start noted in start().
 
 
 ## Resets state for a fresh run: centres the ship, resizes the grid, resets
@@ -122,6 +128,7 @@ func reset_run(new_mode: Types.GameMode) -> void:
 		_tilt.stop_listening()
 
 	phase = Types.GamePhase.PLAYING
+	# TODO(M11): document.body.classList.add('tilt-playing') (TiltGame.ts:1563).
 	elapsed = 0.0
 	# PORT-NOTE: TiltGame.ts:1565 also zeroes this.accumulator, the manual
 	# rAF-loop accumulator driving fixed updates. Godot's fixed physics step
@@ -144,6 +151,9 @@ func reset_run(new_mode: Types.GameMode) -> void:
 	_grid.resize(_bounds.x, _bounds.y)
 	# TODO(M5): audio.setMuted/setSfxVolume/setMusicVolume.
 	# TODO(M2): updateHUD().
+	# TODO(M11): hide the pause and game-over modals (TiltGame.ts:1612-1613).
+	# TODO(M9): goalsHUD.updateLive(runTracker) (TiltGame.ts:1615).
+	# TODO(M11): updateCursor() (TiltGame.ts:1616).
 
 
 ## Toggles between the playing and paused phases; no-op in any other phase.
@@ -162,6 +172,6 @@ func toggle_pause() -> void:
 ## Formats elapsed seconds as `m:ss`.
 ## PORT: web/src/tilt-to-live/TiltGame.ts:1644-1648
 func format_time(secs: float) -> String:
-	var m: int = floori(secs / 60.0)
-	var s: int = floori(fmod(secs, 60.0))
+	var m: int = floori(secs / 60.0)  # PORT: web/src/tilt-to-live/TiltGame.ts:1645-1646
+	var s: int = floori(fmod(secs, 60.0))  # PORT: web/src/tilt-to-live/TiltGame.ts:1645-1646
 	return "%d:%02d" % [m, s]
