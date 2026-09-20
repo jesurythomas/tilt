@@ -13,8 +13,31 @@ export class PlayerShip {
   public vy: number = 0;
   public angle: number = -Math.PI / 2;
   public scale: number = 1.0;
+
+  // Equipped ship's hitboxScale/turnRate, captured each update() from the
+  // ShipSkinConfig passed in (that's how PlayerShip already receives
+  // per-ship data). Defaults keep pre-wiring behavior unchanged.
+  private shipHitboxScale: number = 1.0;
+  private shipTurnRate: number = 1.0;
+
+  // Purchasable "hull compact" upgrade (ProgressionManager.getHitboxMultiplier()),
+  // pushed in by TiltGame. Defaults to 1.0 so nothing changes until wired.
+  private hitboxMultiplier: number = 1.0;
+
+  public setHitboxMultiplier(m: number) {
+    this.hitboxMultiplier = m;
+  }
+
+  // Shield bubble radius, driven by perks.shield.radius (WeaponTuning).
+  // Defaults to 20 (the tuning base) so nothing changes until wired.
+  private shieldRadius: number = 20;
+
+  public setShieldRadius(r: number) {
+    this.shieldRadius = r;
+  }
+
   public get radius(): number {
-    return 9 * this.scale;
+    return 9 * this.scale * this.shipHitboxScale * this.hitboxMultiplier;
   }
 
   public setScale(scale: number) {
@@ -80,6 +103,11 @@ export class PlayerShip {
     gyroVector: Point2D = { x: 0, y: 0 }
   ) {
     if (this.isDead) return;
+
+    // Capture equipped ship's hitboxScale/turnRate for this frame (defaults
+    // to 1.0 when no skin is supplied, matching pre-wiring behavior).
+    this.shipHitboxScale = shipSkin?.hitboxScale ?? 1.0;
+    this.shipTurnRate = shipSkin?.turnRate ?? 1.0;
 
     // Countdown shield
     if (this.shieldTimer > 0) {
@@ -177,7 +205,7 @@ export class PlayerShip {
     let diff = targetAngle - this.angle;
     while (diff < -Math.PI) diff += Math.PI * 2;
     while (diff > Math.PI) diff -= Math.PI * 2;
-    this.angle += diff * Math.min(1, dt * 16);
+    this.angle += diff * Math.min(1, dt * 16 * this.shipTurnRate);
 
     // Boundary constraints with gentle bounce
     const pad = this.radius + 6;
@@ -290,7 +318,7 @@ export class PlayerShip {
 
     // 1. Shield Bubble
     if (this.hasShield()) {
-      const shieldRadius = 23;
+      const shieldRadius = this.shieldRadius;
       const pulse = 0.75 + Math.sin(elapsed * 8) * 0.25;
 
       // Outer glow
@@ -324,29 +352,270 @@ export class PlayerShip {
       ctx.restore();
     }
 
-    // 2. Exact Ship Model Rendering Matching the Armory
-    ctx.save();
-    // Center the 48x48 viewBox so (24, 24) is at (0, 0)
-    ctx.translate(-24, -24);
+    // 2. Custom Ship Model Rendering
+    const strokeCol = this.hasShield() ? '#00ffff' : skin.primaryColor;
+    const coreCol = this.hasShield() ? '#00ffff' : skin.accentColor;
 
-    const path = new Path2D(skin.svgPath);
+    switch (skin.shape) {
+      case 'viper':
+        // Twin canards
+        ctx.fillStyle = skin.primaryColor;
+        ctx.beginPath();
+        ctx.moveTo(4, -4); ctx.lineTo(1, -9); ctx.lineTo(-1, -4);
+        ctx.moveTo(4, 4); ctx.lineTo(1, 9); ctx.lineTo(-1, 4);
+        ctx.fill();
 
-    // Hull fill with canonical ship tint
-    ctx.fillStyle = this.hasShield() ? '#00ffff' : skin.tint;
-    ctx.fill(path);
+        // Forward-swept delta hull
+        ctx.fillStyle = skin.hullColor;
+        ctx.beginPath();
+        ctx.moveTo(18, 0); // Needle prow
+        ctx.lineTo(2, -5);
+        ctx.lineTo(-10, -14); // Left wingtip
+        ctx.lineTo(-13, -11);
+        ctx.lineTo(-8, -4);
+        ctx.lineTo(-14, -6); // Left tailfin
+        ctx.lineTo(-14, 6); // Right tailfin
+        ctx.lineTo(-8, 4);
+        ctx.lineTo(-13, 11);
+        ctx.lineTo(-10, 14); // Right wingtip
+        ctx.lineTo(2, 5);
+        ctx.closePath();
+        ctx.fill();
 
-    // High-contrast 1.4px perimeter border
-    ctx.strokeStyle = this.hasShield() ? '#ffffff' : (skin.accentColor || '#ffffff');
-    ctx.lineWidth = 1.4;
-    ctx.stroke(path);
+        ctx.strokeStyle = strokeCol;
+        ctx.lineWidth = 1.8;
+        ctx.stroke();
 
-    // Core energy diode
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(24, 24, 2.2, 0, Math.PI * 2);
-    ctx.fill();
+        // Wingtip laser pods
+        ctx.fillStyle = skin.primaryColor;
+        ctx.beginPath();
+        ctx.arc(-10, -14, 2, 0, Math.PI * 2);
+        ctx.arc(-10, 14, 2, 0, Math.PI * 2);
+        ctx.fill();
 
-    ctx.restore();
+        // Cockpit canopy
+        ctx.fillStyle = coreCol;
+        ctx.beginPath();
+        ctx.moveTo(8, 0);
+        ctx.lineTo(-2, -2.5);
+        ctx.lineTo(-5, 0);
+        ctx.lineTo(-2, 2.5);
+        ctx.closePath();
+        ctx.fill();
+        break;
+
+      case 'phantom':
+        // Stealth diamond faceted voidcraft
+        ctx.fillStyle = skin.hullColor;
+        ctx.beginPath();
+        ctx.moveTo(17, 0); // Prow
+        ctx.lineTo(2, -12); // Left facet
+        ctx.lineTo(-14, -9); // Left rear tip
+        ctx.lineTo(-6, 0); // Rear notch
+        ctx.lineTo(-14, 9); // Right rear tip
+        ctx.lineTo(2, 12); // Right facet
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = strokeCol;
+        ctx.lineWidth = 1.8;
+        ctx.stroke();
+
+        // Spine facet line
+        ctx.strokeStyle = skin.accentColor;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(17, 0);
+        ctx.lineTo(-6, 0);
+        ctx.stroke();
+
+        // Central pulsing dark-matter crystal
+        const pPulse = 0.8 + 0.2 * Math.sin(elapsed * 10);
+        ctx.fillStyle = coreCol;
+        ctx.beginPath();
+        ctx.moveTo(4, 0);
+        ctx.lineTo(-2, -4 * pPulse);
+        ctx.lineTo(-6, 0);
+        ctx.lineTo(-2, 4 * pPulse);
+        ctx.closePath();
+        ctx.fill();
+        break;
+
+      case 'solar':
+        // Heavy reinforced battlecruiser
+        ctx.fillStyle = skin.hullColor;
+        ctx.beginPath();
+        ctx.moveTo(16, -3);
+        ctx.lineTo(16, 3);
+        ctx.lineTo(4, 9);
+        ctx.lineTo(-4, 9);
+        ctx.lineTo(-12, 14); // Right outrigger
+        ctx.lineTo(-14, 12);
+        ctx.lineTo(-10, 5);
+        ctx.lineTo(-13, 0); // Center rear
+        ctx.lineTo(-10, -5);
+        ctx.lineTo(-14, -12);
+        ctx.lineTo(-12, -14); // Left outrigger
+        ctx.lineTo(-4, -9);
+        ctx.lineTo(4, -9);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = strokeCol;
+        ctx.lineWidth = 2.0;
+        ctx.stroke();
+
+        // Armored shoulder insets
+        ctx.fillStyle = skin.primaryColor;
+        ctx.fillRect(-2, -7, 4, 3);
+        ctx.fillRect(-2, 4, 4, 3);
+
+        // Bridge deck
+        ctx.fillStyle = coreCol;
+        ctx.beginPath();
+        ctx.moveTo(6, 0);
+        ctx.lineTo(-2, -2.5);
+        ctx.lineTo(-4, 0);
+        ctx.lineTo(-2, 2.5);
+        ctx.closePath();
+        ctx.fill();
+        break;
+
+      case 'cyber':
+        // Floating vector brackets
+        ctx.strokeStyle = skin.primaryColor;
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(-2, -13); ctx.lineTo(-8, -15); ctx.lineTo(-12, -11);
+        ctx.moveTo(-2, 13); ctx.lineTo(-8, 15); ctx.lineTo(-12, 11);
+        ctx.stroke();
+
+        // Cyber hull
+        ctx.fillStyle = skin.hullColor;
+        ctx.beginPath();
+        ctx.moveTo(16, 0);
+        ctx.lineTo(8, -6);
+        ctx.lineTo(-8, -9);
+        ctx.lineTo(-13, -5);
+        ctx.lineTo(-8, 0);
+        ctx.lineTo(-13, 5);
+        ctx.lineTo(-8, 9);
+        ctx.lineTo(8, 6);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = strokeCol;
+        ctx.lineWidth = 1.8;
+        ctx.stroke();
+
+        // Hex matrix core
+        ctx.strokeStyle = skin.accentColor;
+        ctx.lineWidth = 1.2;
+        ctx.strokeRect(-2, -3, 6, 6);
+
+        ctx.fillStyle = coreCol;
+        ctx.beginPath();
+        ctx.arc(1, 0, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+
+      case 'shuriken':
+        // Dynamic quad-blade ninja star
+        ctx.fillStyle = skin.hullColor;
+        ctx.beginPath();
+        ctx.moveTo(17, 0); // Forward blade
+        ctx.quadraticCurveTo(8, 5, 2, 2);
+        ctx.lineTo(0, 16); // Right blade
+        ctx.quadraticCurveTo(-5, 8, -2, 2);
+        ctx.lineTo(-15, 0); // Rear blade
+        ctx.quadraticCurveTo(-8, -5, -2, -2);
+        ctx.lineTo(0, -16); // Left blade
+        ctx.quadraticCurveTo(5, -8, 2, -2);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = strokeCol;
+        ctx.lineWidth = 1.8;
+        ctx.stroke();
+
+        // Center spinning rune
+        ctx.save();
+        ctx.rotate(elapsed * 6);
+        ctx.strokeStyle = skin.accentColor;
+        ctx.lineWidth = 1.2;
+        ctx.strokeRect(-3, -3, 6, 6);
+        ctx.restore();
+
+        ctx.fillStyle = coreCol;
+        ctx.beginPath();
+        ctx.arc(0, 0, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+
+      case 'celestial':
+        // Floating celestial halo ring
+        ctx.save();
+        ctx.strokeStyle = skin.primaryColor;
+        ctx.lineWidth = 1.6;
+        ctx.setLineDash([6, 3]);
+        ctx.lineDashOffset = -elapsed * 12;
+        ctx.beginPath();
+        ctx.ellipse(-7, 0, 5, 14, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+
+        // Sweeping divine hull
+        ctx.fillStyle = skin.hullColor;
+        ctx.beginPath();
+        ctx.moveTo(18, 0); // Nose
+        ctx.quadraticCurveTo(4, -8, -12, -12); // Left swept wing
+        ctx.quadraticCurveTo(-8, 0, -6, 0); // Notch
+        ctx.quadraticCurveTo(-8, 0, -12, 12); // Right swept wing
+        ctx.quadraticCurveTo(4, 8, 18, 0);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = strokeCol;
+        ctx.lineWidth = 1.8;
+        ctx.stroke();
+
+        // Astral diode cockpit
+        ctx.fillStyle = coreCol;
+        ctx.beginPath();
+        ctx.moveTo(6, 0);
+        ctx.lineTo(-1, -3);
+        ctx.lineTo(-3, 0);
+        ctx.lineTo(-1, 3);
+        ctx.closePath();
+        ctx.fill();
+        break;
+
+      default:
+        // Classic White Arrow Ship
+        ctx.fillStyle = skin.hullColor;
+        ctx.beginPath();
+        ctx.moveTo(15, 0); // Nose tip
+        ctx.lineTo(-12, -9); // Left rear wing
+        ctx.lineTo(-7, 0); // Rear center notch
+        ctx.lineTo(-12, 9); // Right rear wing
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = strokeCol;
+        ctx.lineWidth = 1.8;
+        ctx.stroke();
+
+        ctx.fillStyle = coreCol;
+        ctx.beginPath();
+        ctx.moveTo(5, 0);
+        ctx.lineTo(-4, -3);
+        ctx.lineTo(-2, 0);
+        ctx.lineTo(-4, 3);
+        ctx.closePath();
+        ctx.fill();
+        break;
+    }
 
     // 3. Thruster Flame Plume
     const flameCol = this.hasShield() ? '#00ffee' : (skin.thrusterColor || skin.tint);

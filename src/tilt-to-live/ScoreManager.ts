@@ -20,6 +20,12 @@ export class ScoreManager {
   public floatingTexts: FloatingText[] = [];
   public modeMultiplier: number = 1.0;
 
+  // Progression-driven in-run score multiplier (ProgressionManager.getScoreMultiplier()).
+  // Applies only to in-run SCORE (Gauntlet tick, per-kill points, close-call bonus) —
+  // never to the separate POINTS currency, which already applies its own multiplier
+  // via ProgressionManager.addPoints.
+  public progressionMultiplier: number = 1.0;
+
   public comboCount: number = 0;
   public comboTimer: number = 0;
   public isNewBest: boolean = false;
@@ -32,6 +38,10 @@ export class ScoreManager {
 
   public setModeMultiplier(multiplier: number) {
     this.modeMultiplier = multiplier;
+  }
+
+  public setProgressionMultiplier(multiplier: number) {
+    this.progressionMultiplier = multiplier;
   }
 
   public reset() {
@@ -55,7 +65,7 @@ export class ScoreManager {
 
     if (gameMode === 'gauntlet') {
       // In Gauntlet mode, score is continuously counted by how long the player has lasted
-      this.stats.score += Math.round(250 * dt * this.modeMultiplier);
+      this.stats.score += Math.round(250 * dt * this.modeMultiplier * this.progressionMultiplier);
     }
 
     // Combo window decays
@@ -97,8 +107,8 @@ export class ScoreManager {
       this.addFloatingText(`${this.stats.multiplier}x MULTIPLIER!`, x, y - 20, '#5B8CFF', 18);
     }
 
-    // Base score per kill = 10 * multiplier * modeMultiplier
-    const points = Math.round(10 * this.stats.multiplier * this.modeMultiplier);
+    // Base score per kill = 10 * multiplier * modeMultiplier * progressionMultiplier
+    const points = Math.round(10 * this.stats.multiplier * this.modeMultiplier * this.progressionMultiplier);
     this.stats.score += points;
 
     // Play musical combo note
@@ -124,7 +134,7 @@ export class ScoreManager {
   public registerCloseCall(x: number, y: number, audio: TiltAudio) {
     this.stats.closeCalls++;
     audio.playCloseCall();
-    const bonus = Math.round(250 * this.stats.multiplier * this.modeMultiplier);
+    const bonus = Math.round(250 * this.stats.multiplier * this.modeMultiplier * this.progressionMultiplier);
     this.stats.score += bonus;
     this.addFloatingText('CLOSE CALL! +' + bonus, x, y - 15, '#3DDC97', 17);
   }

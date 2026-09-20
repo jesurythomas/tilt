@@ -339,7 +339,7 @@ export class GauntletMaze {
         ctx.strokeRect(0, 0, seg.width, row.height);
 
         // High-contrast neon pulse line on the leading edge (bottom of descending bar)
-        ctx.strokeStyle = '#ffd700';
+        ctx.strokeStyle = '#FFB14D';
         ctx.lineWidth = 2.5;
         ctx.beginPath();
         ctx.moveTo(0, row.height);
@@ -359,8 +359,8 @@ export class GauntletMaze {
         const rightBeaconX = gap.x + gap.width;
 
         // Left gap edge light
-        ctx.fillStyle = '#00ffaa';
-        ctx.shadowColor = '#00ffaa';
+        ctx.fillStyle = '#3DDC97';
+        ctx.shadowColor = '#3DDC97';
         ctx.shadowBlur = 8;
         ctx.beginPath();
         ctx.arc(leftBeaconX, midY, 3.5 * beaconPulse, 0, Math.PI * 2);
@@ -372,7 +372,7 @@ export class GauntletMaze {
         ctx.fill();
 
         // Soft safe passage beam in gap
-        ctx.strokeStyle = `rgba(0, 255, 170, ${0.15 * beaconPulse})`;
+        ctx.strokeStyle = `rgba(61, 220, 151, ${0.15 * beaconPulse})`;
         ctx.lineWidth = 1.5;
         ctx.setLineDash([4, 4]);
         ctx.beginPath();

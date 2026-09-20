@@ -58,8 +58,8 @@ export class TiltRenderer {
 
     // 1. Arena Background (Themed by gameMode or equipped Arena Theme)
     let bgColors: [string, string, string] = ['#100c1e', '#090712', '#040308'];
-    let gridColor = 'rgba(0, 220, 255, 0.28)';
-    let boundaryCol = 'rgba(0, 220, 255, 0.45)';
+    let gridColor = 'rgba(91, 140, 255, 0.28)';
+    let boundaryCol = 'rgba(91, 140, 255, 0.45)';
 
     if (gameMode === 'code-red') {
       const alertPulse = 0.5 + 0.5 * Math.sin(elapsed * 4);
@@ -235,9 +235,9 @@ export class TiltRenderer {
     if (dist < 1) return; // Keep reticle visible
 
     const skinId = cursorSkin?.id || 'classic';
-    const primary = cursorSkin?.primaryColor || '#00ddff';
-    const accent = cursorSkin?.accentColor || '#00ffee';
-    const tetherColor = cursorSkin?.tetherColor || 'rgba(0, 220, 255, 0.2)';
+    const primary = cursorSkin?.primaryColor || '#5B8CFF';
+    const accent = cursorSkin?.accentColor || '#8FB0FF';
+    const tetherColor = cursorSkin?.tetherColor || 'rgba(91, 140, 255, 0.2)';
 
     // 1. Custom Tether Line toward ship (if enabled in options)
     if (tetherLine && dist > 30) {

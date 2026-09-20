@@ -4,12 +4,15 @@
 // =========================================================================
 
 import { ProgressionManager, WeaponPerks } from './ProgressionManager';
+import { getTunedValue, KEYSTONE_COSTS, TuningUnit, WEAPON_TUNING } from './WeaponTuning';
+import { WeaponType } from './Types';
 
 export type ArmoryTab =
   | 'weapons'
   | 'ships'
   | 'arena'
   | 'handling'
+  | 'boosts'
   | 'perks'
   | 'cursors'
   | 'enemies'
@@ -27,7 +30,30 @@ interface WeaponKeystone {
   key: string;
   name: string;
   description: string;
-  cost: number;
+}
+
+interface BoostConfig {
+  id: string;
+  name: string;
+  effect: string;
+  maxRank: number;
+  getRank: () => number;
+  getCost: () => number | null;
+  buy: () => boolean;
+}
+
+/** Formats a WEAPON_TUNING value per its unit, matching the engine's own math. */
+function formatTuningValue(value: number, unit: TuningUnit): string {
+  switch (unit) {
+    case 'seconds':
+      return `${value.toFixed(1)}s`;
+    case 'percent':
+      return `+${Math.round(value)}%`;
+    case 'range':
+    case 'count':
+    default:
+      return `${Math.round(value)}`;
+  }
 }
 
 interface WeaponConfig {
@@ -40,13 +66,18 @@ interface WeaponConfig {
   keystones: WeaponKeystone[];
 }
 
+/** Formats a points value with the correct singular/plural unit, e.g. "1 pt" / "400 pts". */
+function formatPoints(n: number): string {
+  return `${n.toLocaleString()} ${n === 1 ? 'pt' : 'pts'}`;
+}
+
 export class ArmoryUI {
   private readonly progression: ProgressionManager;
   private readonly onStateChanged: () => void;
   private readonly onCloseModal: () => void;
 
   private containerEl: HTMLElement | null = null;
-  private activeTab: 'weapons' | 'ships' | 'arena' | 'handling' = 'weapons';
+  private activeTab: 'weapons' | 'ships' | 'arena' | 'handling' | 'boosts' = 'weapons';
   private selectedWeaponId: keyof WeaponPerks = 'blackhole';
 
   // Handling live interactive preview state
@@ -71,12 +102,12 @@ export class ArmoryUI {
       iconSvg: `<svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true"><circle cx="15" cy="15" r="11" stroke="#A78BFA" stroke-width="1.4"></circle><circle cx="15" cy="15" r="5" fill="#A78BFA"></circle></svg>`,
       tracks: [
         { key: 'duration', name: 'Duration', effect: '+0.5s / rank', maxRank: 5 },
-        { key: 'radius', name: 'Radius', effect: '+35px / rank', maxRank: 5 },
+        { key: 'radius', name: 'Radius', effect: '+18 range / rank', maxRank: 5 },
         { key: 'gravity', name: 'Pull', effect: '+20% / rank', maxRank: 5 }
       ],
       keystones: [
-        { key: 'invulnerableInside', name: 'Aegis', description: 'You are safe inside the well.', cost: 2500 },
-        { key: 'supernovaCollapse', name: 'Supernova', description: 'Collapse fires a 420px shockwave.', cost: 5000 }
+        { key: 'invulnerableInside', name: 'Aegis', description: 'You are safe inside the well.' },
+        { key: 'supernovaCollapse', name: 'Supernova', description: 'Collapse fires a 320 range shockwave.' }
       ]
     },
     {
@@ -87,12 +118,12 @@ export class ArmoryUI {
       iconSvg: `<svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true"><path d="M15 4 L20 12 L19 22 L15 20 L11 22 L10 12 Z" stroke="#5B8CFF" stroke-width="1.4" fill="rgba(91,140,255,0.2)"></path><circle cx="15" cy="11" r="2.5" fill="#5B8CFF"></circle></svg>`,
       tracks: [
         { key: 'count', name: 'Salvo Count', effect: '+1 missile / rank', maxRank: 5 },
-        { key: 'blastRadius', name: 'Detonation Radius', effect: '+12px / rank', maxRank: 5 },
-        { key: 'flightSpeed', name: 'Propulsion & Agility', effect: '+20% / rank', maxRank: 5 }
+        { key: 'blastRadius', name: 'Detonation Radius', effect: '+6 range / rank', maxRank: 5 },
+        { key: 'flightSpeed', name: 'Propulsion', effect: '+20% / rank', maxRank: 5 }
       ],
       keystones: [
-        { key: 'clusterSplit', name: 'Cluster Split', description: 'Warheads divide into twins on intercept.', cost: 2500 },
-        { key: 'hyperThrusters', name: 'Hyper Thrusters', description: 'Instant target lock and hypersonic velocity.', cost: 4000 }
+        { key: 'clusterSplit', name: 'Cluster Split', description: 'Warheads divide into twins on intercept.' },
+        { key: 'hyperThrusters', name: 'Hyper Thrusters', description: 'Instant target lock and hypersonic velocity.' }
       ]
     },
     {
@@ -102,12 +133,12 @@ export class ArmoryUI {
       description: 'Continuous piercing beam sweeps through swarms.',
       iconSvg: `<svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true"><line x1="4" y1="15" x2="26" y2="15" stroke="#5B8CFF" stroke-width="2.5" stroke-linecap="round"></line><line x1="8" y1="9" x2="22" y2="21" stroke="#5B8CFF" stroke-width="1.2" stroke-dasharray="2,3"></line></svg>`,
       tracks: [
-        { key: 'length', name: 'Beam Reach', effect: '+35px / rank', maxRank: 5 },
+        { key: 'length', name: 'Beam Reach', effect: '+20 range / rank', maxRank: 5 },
         { key: 'duration', name: 'Emission Time', effect: '+0.4s / rank', maxRank: 5 }
       ],
       keystones: [
-        { key: 'crossBeam', name: 'Cross Beam', description: 'Splits beam into 4-way perpendicular cross.', cost: 3500 },
-        { key: 'refractorLance', name: 'Refractor Lance', description: 'Beams bounce off arena perimeter walls.', cost: 4500 }
+        { key: 'crossBeam', name: 'Cross Beam', description: 'Splits beam into 4-way perpendicular cross.' },
+        { key: 'refractorLance', name: 'Refractor Lance', description: 'Beams bounce off arena perimeter walls.' }
       ]
     },
     {
@@ -117,12 +148,12 @@ export class ArmoryUI {
       description: 'Instantaneous arena-clearing shockwave explosion.',
       iconSvg: `<svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true"><circle cx="15" cy="15" r="11" stroke="#FFB14D" stroke-width="1.4"></circle><path d="M15 7 L15 11 M9 20 L12 17 M21 20 L18 17" stroke="#FFB14D" stroke-width="2" stroke-linecap="round"></path><circle cx="15" cy="15" r="3" fill="#FFB14D"></circle></svg>`,
       tracks: [
-        { key: 'radius', name: 'Blast Radius', effect: '+40px / rank', maxRank: 5 },
+        { key: 'radius', name: 'Blast Radius', effect: '+22 range / rank', maxRank: 5 },
         { key: 'speed', name: 'Shockwave Velocity', effect: '+25% / rank', maxRank: 5 }
       ],
       keystones: [
-        { key: 'falloutZone', name: 'Fallout Zone', description: 'Detonation leaves a 3.0s radioactive burn zone.', cost: 3000 },
-        { key: 'chainReaction', name: 'Chain Reaction', description: 'Vaporized dots trigger miniature secondary bombs.', cost: 5000 }
+        { key: 'falloutZone', name: 'Fallout Zone', description: 'Detonation leaves a 3.0s radioactive burn zone.' },
+        { key: 'chainReaction', name: 'Chain Reaction', description: 'Vaporized dots trigger miniature secondary bombs.' }
       ]
     },
     {
@@ -135,8 +166,8 @@ export class ArmoryUI {
         { key: 'duration', name: 'Freeze Duration', effect: '+0.7s / rank', maxRank: 5 }
       ],
       keystones: [
-        { key: 'shatterCascade', name: 'Shatter Cascade', description: 'Shattering one enemy destroys nearby frozen dots.', cost: 2500 },
-        { key: 'cryoNova', name: 'Cryo Nova', description: 'Emits an expansive 360° cryogenic pulse ring.', cost: 4000 }
+        { key: 'shatterCascade', name: 'Shatter Cascade', description: 'Shattering one enemy destroys nearby frozen dots.' },
+        { key: 'cryoNova', name: 'Cryo Nova', description: 'Emits an expansive 360° cryogenic pulse ring.' }
       ]
     },
     {
@@ -147,11 +178,11 @@ export class ArmoryUI {
       iconSvg: `<svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true"><path d="M15 5 L23 8 V15 C23 20 15 25 15 25 C15 25 7 20 7 15 V8 Z" stroke="#3DDC97" stroke-width="1.4" fill="rgba(61,220,151,0.15)"></path></svg>`,
       tracks: [
         { key: 'duration', name: 'Shield Duration', effect: '+1.0s / rank', maxRank: 5 },
-        { key: 'radius', name: 'Bubble Radius', effect: '+4px / rank', maxRank: 5 }
+        { key: 'radius', name: 'Bubble Radius', effect: '+2 range / rank', maxRank: 5 }
       ],
       keystones: [
-        { key: 'batteringRam', name: 'Battering Ram', description: 'Ramming enemies triggers kinetic shockwaves.', cost: 3000 },
-        { key: 'overchargePulse', name: 'Overcharge', description: 'Releases a blast pulse when barrier expires.', cost: 4500 }
+        { key: 'batteringRam', name: 'Battering Ram', description: 'Ramming enemies triggers kinetic shockwaves.' },
+        { key: 'overchargePulse', name: 'Overcharge', description: 'Releases a blast pulse when barrier expires.' }
       ]
     },
     {
@@ -162,12 +193,77 @@ export class ArmoryUI {
       iconSvg: `<svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true"><path d="M17 4 L9 16 H16 L13 26 L23 13 H15 Z" stroke="#FFB14D" stroke-width="1.4" fill="rgba(255,177,77,0.2)"></path></svg>`,
       tracks: [
         { key: 'maxTargets', name: 'Arc Targets', effect: '+3 targets / rank', maxRank: 5 },
-        { key: 'chainRange', name: 'Chain Distance', effect: '+40px / rank', maxRank: 5 }
+        { key: 'chainRange', name: 'Chain Distance', effect: '+22 range / rank', maxRank: 5 }
       ],
       keystones: [
-        { key: 'plasmaArc', name: 'Arc Detonation', description: 'Chained enemies explode upon electrocution.', cost: 3500 },
-        { key: 'superconductor', name: 'Superconductor', description: 'Electric arcs bridge across screen instantly.', cost: 4500 }
+        { key: 'plasmaArc', name: 'Arc Detonation', description: 'Chained enemies explode upon electrocution.' },
+        { key: 'superconductor', name: 'Superconductor', description: 'Electric arcs bridge across screen instantly.' }
       ]
+    }
+  ];
+
+  // Ship catalog `startingWeapon` values are the engine's WeaponType ids, which don't
+  // all match a weaponsCatalog entry id 1:1 (e.g. the engine's 'vortex' is presented
+  // to the player as 'Blackhole'). Map the mismatches here so the Armory never shows
+  // a raw engine id or disagrees with the weapons tab's own naming.
+  private readonly startingWeaponIdAliases: Partial<Record<WeaponType, WeaponConfig['id']>> = {
+    vortex: 'blackhole'
+  };
+
+  /** Resolves a ship's optional startingWeapon to its weaponsCatalog entry, if any. */
+  private getStartingWeaponConfig(weaponType?: WeaponType): WeaponConfig | undefined {
+    if (!weaponType) {
+      return undefined;
+    }
+    const catalogId = this.startingWeaponIdAliases[weaponType] ?? (weaponType as WeaponConfig['id']);
+    return this.weaponsCatalog.find((w) => w.id === catalogId);
+  }
+
+  private readonly boostsCatalog: BoostConfig[] = [
+    {
+      id: 'extraLives',
+      name: 'Extra Life',
+      effect: '+1 starting life / rank',
+      maxRank: 2,
+      getRank: () => this.progression.data.extraLives,
+      getCost: () => this.progression.getExtraLivesCost(),
+      buy: () => this.progression.buyExtraLife()
+    },
+    {
+      id: 'hullCompact',
+      name: 'Hull Compact',
+      effect: '-6% hitbox / rank',
+      maxRank: 3,
+      getRank: () => this.progression.data.hullCompact,
+      getCost: () => this.progression.getHullCompactCost(),
+      buy: () => this.progression.buyHullCompact()
+    },
+    {
+      id: 'enemySlow',
+      name: 'Enemy Slow',
+      effect: '-4% enemy speed / rank',
+      maxRank: 3,
+      getRank: () => this.progression.data.enemySlow,
+      getCost: () => this.progression.getEnemySlowCost(),
+      buy: () => this.progression.buyEnemySlow()
+    },
+    {
+      id: 'scoreMultiplier',
+      name: 'Score Multiplier',
+      effect: '+10% in-run score / rank',
+      maxRank: 4,
+      getRank: () => this.progression.data.scoreMultiplier,
+      getCost: () => this.progression.getScoreMultiplierCost(),
+      buy: () => this.progression.buyScoreMultiplier()
+    },
+    {
+      id: 'pointsMultiplier',
+      name: 'Points Multiplier',
+      effect: '+10% points earned / rank',
+      maxRank: 4,
+      getRank: () => this.progression.data.pointsMultiplier,
+      getCost: () => this.progression.getPointsMultiplierCost(),
+      buy: () => this.progression.buyPointsMultiplier()
     }
   ];
 
@@ -197,7 +293,7 @@ export class ArmoryUI {
 
   public open(tab?: ArmoryTab) {
     if (tab) {
-      const map: Record<string, 'weapons' | 'ships' | 'arena' | 'handling'> = {
+      const map: Record<string, 'weapons' | 'ships' | 'arena' | 'handling' | 'boosts'> = {
         weapons: 'weapons',
         perks: 'weapons',
         ships: 'ships',
@@ -206,7 +302,8 @@ export class ArmoryUI {
         arenas: 'arena',
         enemies: 'arena',
         handling: 'handling',
-        tuning: 'handling'
+        tuning: 'handling',
+        boosts: 'boosts'
       };
       this.activeTab = map[tab] || 'weapons';
     }
@@ -257,12 +354,13 @@ export class ArmoryUI {
             <button class="armory-v2-tab ${this.activeTab === 'ships' ? 'active' : ''}" data-tab="ships" type="button">Ships</button>
             <button class="armory-v2-tab ${this.activeTab === 'arena' ? 'active' : ''}" data-tab="arena" type="button">Arena</button>
             <button class="armory-v2-tab ${this.activeTab === 'handling' ? 'active' : ''}" data-tab="handling" type="button">Handling</button>
+            <button class="armory-v2-tab ${this.activeTab === 'boosts' ? 'active' : ''}" data-tab="boosts" type="button">Boosts</button>
           </nav>
 
           <div class="armory-v2-header-right">
             <!-- Fixed tabular mono font, amber #FFB14D currency display (Findings 8 & 11) -->
             <span class="armory-v2-balance" title="Available Points">
-              ${points.toLocaleString()} <span class="balance-pts-suffix">PTS</span>
+              ${formatPoints(points)}
             </span>
             <button id="btn-armory-close" class="armory-v2-close-btn" type="button" aria-label="Close Armory">
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -306,6 +404,8 @@ export class ArmoryUI {
         return this.renderArenaTab();
       case 'handling':
         return this.renderHandlingTab();
+      case 'boosts':
+        return this.renderBoostsTab();
     }
   }
 
@@ -356,11 +456,28 @@ export class ArmoryUI {
           pipsHtml += `<span class="track-pip ${filled ? 'filled' : 'empty'}"></span>`;
         }
 
+        // Current (and, unless maxed, next-rank) value straight from WEAPON_TUNING,
+        // so the readout can never drift from what the engine actually applies.
+        const tuningEntry = WEAPON_TUNING[selectedConfig.id]?.[track.key];
+        let currentValueHtml = '';
+        if (tuningEntry) {
+          const currentVal = getTunedValue(selectedConfig.id, track.key, currentRank);
+          const currentText = formatTuningValue(currentVal, tuningEntry.unit);
+          if (!isMaxed) {
+            const nextVal = getTunedValue(selectedConfig.id, track.key, currentRank + 1);
+            const nextText = formatTuningValue(nextVal, tuningEntry.unit);
+            currentValueHtml = `<span class="track-current-value">${currentText} &rarr; ${nextText}</span>`;
+          } else {
+            currentValueHtml = `<span class="track-current-value">${currentText}</span>`;
+          }
+        }
+
         return `
           <div class="upgrade-track-card">
             <div class="track-info">
               <strong class="track-title">${track.name}</strong>
               <span class="track-effect">${track.effect}</span>
+              ${currentValueHtml}
             </div>
             <div class="track-pips-bar">
               ${pipsHtml}
@@ -373,7 +490,7 @@ export class ArmoryUI {
               data-track="${track.key}"
               ${isMaxed || !canAfford ? 'disabled' : ''}
             >
-              ${isMaxed ? 'Maxed ✓' : `${cost.toLocaleString()} pts`}
+              ${isMaxed ? 'Maxed ✓' : formatPoints(cost)}
             </button>
           </div>
         `;
@@ -385,7 +502,10 @@ export class ArmoryUI {
       .map((k) => {
         const weaponData = (perks as any)[selectedConfig.id] || {};
         const isUnlocked = !!weaponData[k.key];
-        const canAfford = points >= k.cost && !isUnlocked;
+        // KEYSTONE_COSTS is the same table ProgressionManager.getPerkCost() charges
+        // from, so a displayed price can never undercharge the player again.
+        const cost = KEYSTONE_COSTS[k.key] ?? 2500;
+        const canAfford = points >= cost && !isUnlocked;
 
         return `
           <div class="keystone-card ${isUnlocked ? 'is-unlocked' : ''} ${!isUnlocked && !canAfford ? 'is-locked' : ''}">
@@ -400,7 +520,7 @@ export class ArmoryUI {
               data-keystone="${k.key}"
               ${isUnlocked || !canAfford ? 'disabled' : ''}
             >
-              ${isUnlocked ? 'Unlocked ✓' : `${k.cost.toLocaleString()}`}
+              ${isUnlocked ? 'Unlocked ✓' : formatPoints(cost)}
             </button>
           </div>
         `;
@@ -479,39 +599,37 @@ export class ArmoryUI {
               type="button"
               ${canAfford ? '' : 'disabled'}
             >
-              ${ship.price.toLocaleString()} pts
+              ${formatPoints(ship.price)}
             </button>
           `;
         }
 
         const cardStateClass = isEquipped ? 'is-equipped-card' : isUnlocked ? 'is-unlocked-card' : 'is-locked-card';
 
+        const startingWeaponConfig = this.getStartingWeaponConfig(ship.startingWeapon);
+        const startingWeaponHtml = startingWeaponConfig
+          ? `
+              <div class="ship-loadout-row">
+                <span class="ship-loadout-label">Starts with</span>
+                <span class="ship-loadout-weapon">
+                  <span class="ship-loadout-icon">${startingWeaponConfig.iconSvg}</span>
+                  <span class="ship-loadout-name">${startingWeaponConfig.name}</span>
+                </span>
+              </div>
+            `
+          : '';
+
         return `
           <div class="ship-card ${cardStateClass}">
             <div class="ship-card-preview">
-              <svg width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true" class="ship-hull-svg">
-                <path d="${ship.svgPath}" fill="${ship.tint}"></path>
-              </svg>
+              ${this.progression.getShipSvgPreview(ship.id)}
             </div>
             <div class="ship-card-body">
               <div class="ship-header-row">
                 <strong class="ship-name">${ship.name}</strong>
                 <span class="ship-trait">${ship.trait}</span>
               </div>
-              <div class="ship-stat-row">
-                <span class="stat-label">Hitbox</span>
-                <span class="stat-bar-track">
-                  <span class="stat-bar-fill" style="width: ${ship.hitbox};"></span>
-                </span>
-                <span class="stat-num">${ship.hitbox}</span>
-              </div>
-              <div class="ship-stat-row">
-                <span class="stat-label">Turn</span>
-                <span class="stat-bar-track">
-                  <span class="stat-bar-fill" style="width: ${ship.turn};"></span>
-                </span>
-                <span class="stat-num">${ship.turn}</span>
-              </div>
+              ${startingWeaponHtml}
               <div class="ship-action-slot">
                 ${actionHtml}
               </div>
@@ -526,7 +644,7 @@ export class ArmoryUI {
         <!-- Subheader (Board 10) -->
         <div class="armory-sub-header">
           <span class="sub-header-pill">Hull · ${unlockedCount} of 6 unlocked</span>
-          <span class="sub-header-explain">Hull changes hitbox size and turn rate. Nothing else.</span>
+          <span class="sub-header-explain">Hull changes hitbox size, turn rate, and your starting power-up.</span>
         </div>
 
         <!-- 6 Ships Grid (Board 10) -->
@@ -569,7 +687,7 @@ export class ArmoryUI {
               type="button"
               ${canAfford ? '' : 'disabled'}
             >
-              ${theme.price.toLocaleString()} pts
+              ${formatPoints(theme.price)}
             </button>
           `;
         }
@@ -588,7 +706,7 @@ export class ArmoryUI {
             <div class="arena-card-body">
               <div class="arena-card-header">
                 <strong class="arena-card-title">${theme.name}</strong>
-                <span class="arena-card-cost">${theme.price === 0 ? 'FREE' : `${theme.price.toLocaleString()} pts`}</span>
+                <span class="arena-card-cost">${theme.price === 0 ? 'FREE' : formatPoints(theme.price)}</span>
               </div>
               <p class="arena-card-desc">${theme.description}</p>
               ${btnHtml}
@@ -623,7 +741,7 @@ export class ArmoryUI {
               type="button"
               ${canAfford ? '' : 'disabled'}
             >
-              ${skin.price.toLocaleString()} pts
+              ${formatPoints(skin.price)}
             </button>
           `;
         }
@@ -643,7 +761,7 @@ export class ArmoryUI {
             <div class="arena-card-body">
               <div class="arena-card-header">
                 <strong class="arena-card-title">${skin.name}</strong>
-                <span class="arena-card-cost">${skin.price === 0 ? 'FREE' : `${skin.price.toLocaleString()} pts`}</span>
+                <span class="arena-card-cost">${skin.price === 0 ? 'FREE' : formatPoints(skin.price)}</span>
               </div>
               <p class="arena-card-desc">${skin.description}</p>
               ${btnHtml}
@@ -756,6 +874,63 @@ export class ArmoryUI {
               </span>
             </div>
           </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // =========================================================================
+  // Tab 5: Boosts - permanent run-modifying purchases (extra life, hull,
+  // enemy speed, score/points multipliers). These aren't weapon upgrades,
+  // cosmetic hulls/skins, or control tuning, so they get their own tab
+  // rather than being buried in one of the other four.
+  // =========================================================================
+
+  private renderBoostsTab(): string {
+    const points = this.progression.data.points;
+
+    const boostCardsHtml = this.boostsCatalog
+      .map((boost) => {
+        const currentRank = boost.getRank();
+        const cost = boost.getCost();
+        const isMaxed = cost === null;
+        const canAfford = !isMaxed && points >= (cost as number);
+
+        let pipsHtml = '';
+        for (let i = 0; i < boost.maxRank; i++) {
+          const filled = i < currentRank;
+          pipsHtml += `<span class="boost-pip ${filled ? 'filled' : 'empty'}"></span>`;
+        }
+
+        return `
+          <div class="boost-card">
+            <strong class="boost-title">${boost.name}</strong>
+            <span class="boost-effect">${boost.effect}</span>
+            <div class="boost-pips">
+              ${pipsHtml}
+            </div>
+            <span class="boost-rank">${currentRank}/${boost.maxRank}</span>
+            <button
+              type="button"
+              class="boost-cost-btn ${isMaxed ? 'is-maxed' : ''}"
+              data-boost="${boost.id}"
+              ${isMaxed || !canAfford ? 'disabled' : ''}
+            >
+              ${isMaxed ? 'Maxed ✓' : formatPoints(cost as number)}
+            </button>
+          </div>
+        `;
+      })
+      .join('');
+
+    return `
+      <div class="armory-boosts-layout armory-scroll-body custom-scrollbar">
+        <div class="armory-sub-header">
+          <span class="sub-header-pill">Boosts</span>
+          <span class="sub-header-explain">Permanent, stacking upgrades that carry into every run.</span>
+        </div>
+        <div class="boost-grid">
+          ${boostCardsHtml}
         </div>
       </div>
     `;
@@ -1003,6 +1178,19 @@ export class ArmoryUI {
             this.onStateChanged();
             this.render();
           }
+        }
+      });
+    });
+
+    // 5b. Boosts Tab: Purchase a rank
+    this.containerEl.querySelectorAll('.boost-cost-btn').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const target = e.currentTarget as HTMLElement;
+        const boostId = target.getAttribute('data-boost');
+        const boost = this.boostsCatalog.find((b) => b.id === boostId);
+        if (boost && boost.buy()) {
+          this.onStateChanged();
+          this.render();
         }
       });
     });

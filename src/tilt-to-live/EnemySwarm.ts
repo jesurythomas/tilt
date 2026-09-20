@@ -23,6 +23,16 @@ export class EnemySwarm {
     this.scale = Math.max(0.5, Math.min(1.8, scale));
   }
 
+  // Progression-driven uniform movement slow (ProgressionManager.getEnemySpeedMultiplier()).
+  // Defaults to 1.0 (unchanged) so nothing changes until wired. Scales only the
+  // per-frame translation of enemy movement — never spawn timers, spawn thresholds,
+  // attack/fire cooldowns, or scoring.
+  private speedScale: number = 1.0;
+
+  public setSpeedScale(scale: number) {
+    this.speedScale = Math.max(0.1, Math.min(2, scale));
+  }
+
   public reset() {
     this.enemies = [];
     this.nextEnemyId = 1;
@@ -157,8 +167,8 @@ export class EnemySwarm {
           }
           break;
         case 'spike_mine':
-          e.x += e.vx * dt;
-          e.y += e.vy * dt;
+          e.x += e.vx * dt * this.speedScale;
+          e.y += e.vy * dt * this.speedScale;
           break;
         case 'snake_segment':
           this.updateSnakeSegment(e, dt);
@@ -241,13 +251,13 @@ export class EnemySwarm {
       e.vy += (targetVy - e.vy) * steerStrength;
     }
 
-    e.x += e.vx * dt;
-    e.y += e.vy * dt;
+    e.x += e.vx * dt * this.speedScale;
+    e.y += e.vy * dt * this.speedScale;
   }
 
   private updateArrowDrone(e: Enemy, dt: number) {
-    e.x += e.vx * dt;
-    e.y += e.vy * dt;
+    e.x += e.vx * dt * this.speedScale;
+    e.y += e.vy * dt * this.speedScale;
   }
 
   private updateCircleDot(e: Enemy, playerPos: Point2D, dt: number) {
@@ -268,19 +278,19 @@ export class EnemySwarm {
       e.vy = (dy / dist) * speed;
     }
 
-    e.x += e.vx * dt;
-    e.y += e.vy * dt;
+    e.x += e.vx * dt * this.speedScale;
+    e.y += e.vy * dt * this.speedScale;
   }
 
   private updateWallDot(e: Enemy, dt: number) {
-    e.x += e.vx * dt;
-    e.y += e.vy * dt;
+    e.x += e.vx * dt * this.speedScale;
+    e.y += e.vy * dt * this.speedScale;
   }
 
   private updateRotatingGateDot(e: Enemy, dt: number) {
     if (!e.orbitCenter || e.orbitRadius === undefined || e.orbitSpeed === undefined) return;
     if (e.targetAngle === undefined) e.targetAngle = 0;
-    e.targetAngle += e.orbitSpeed * dt;
+    e.targetAngle += e.orbitSpeed * dt * this.speedScale;
     e.x = e.orbitCenter.x + Math.cos(e.targetAngle) * e.orbitRadius;
     e.y = e.orbitCenter.y + Math.sin(e.targetAngle) * e.orbitRadius;
   }
@@ -294,14 +304,14 @@ export class EnemySwarm {
     while (diff > Math.PI) diff -= Math.PI * 2;
     e.targetAngle += diff * Math.min(1, dt * 2.5);
 
-    e.x += e.vx * dt;
-    e.y += e.vy * dt;
+    e.x += e.vx * dt * this.speedScale;
+    e.y += e.vy * dt * this.speedScale;
   }
 
   private updateSnakeSegment(e: Enemy, dt: number) {
     if (!e.leaderId) {
-      e.x += e.vx * dt;
-      e.y += e.vy * dt;
+      e.x += e.vx * dt * this.speedScale;
+      e.y += e.vy * dt * this.speedScale;
       if (Math.random() < 0.05) {
         const speed = 120;
         const angle = Math.random() * Math.PI * 2;
@@ -337,8 +347,8 @@ export class EnemySwarm {
       const creepSpeed = 35;
       e.vx = Math.cos(e.aimAngle) * creepSpeed;
       e.vy = Math.sin(e.aimAngle) * creepSpeed;
-      e.x += e.vx * dt;
-      e.y += e.vy * dt;
+      e.x += e.vx * dt * this.speedScale;
+      e.y += e.vy * dt * this.speedScale;
 
       e.aimTimer -= dt;
       if (e.aimTimer <= 0) {
@@ -349,8 +359,8 @@ export class EnemySwarm {
         e.vy = Math.sin(e.aimAngle) * chargeSpeed;
       }
     } else if (e.state === 'charging') {
-      e.x += e.vx * dt;
-      e.y += e.vy * dt;
+      e.x += e.vx * dt * this.speedScale;
+      e.y += e.vy * dt * this.speedScale;
 
       if (Math.random() < 0.6) {
         const backAngle = (e.aimAngle || 0) + Math.PI;
@@ -367,8 +377,8 @@ export class EnemySwarm {
     } else if (e.state === 'cooling') {
       e.vx *= Math.pow(0.08, dt);
       e.vy *= Math.pow(0.08, dt);
-      e.x += e.vx * dt;
-      e.y += e.vy * dt;
+      e.x += e.vx * dt * this.speedScale;
+      e.y += e.vy * dt * this.speedScale;
 
       if (e.specialTimer !== undefined) {
         e.specialTimer -= dt;
@@ -408,8 +418,8 @@ export class EnemySwarm {
     const steer = 3.0 * dt;
     e.vx += (moveVx - e.vx) * steer;
     e.vy += (moveVy - e.vy) * steer;
-    e.x += e.vx * dt;
-    e.y += e.vy * dt;
+    e.x += e.vx * dt * this.speedScale;
+    e.y += e.vy * dt * this.speedScale;
 
     e.fireCooldown -= dt;
     if (e.fireCooldown <= 0) {
@@ -426,8 +436,8 @@ export class EnemySwarm {
   }
 
   private updateBullet(e: Enemy, dt: number, _bounds: { width: number; height: number }) {
-    e.x += e.vx * dt;
-    e.y += e.vy * dt;
+    e.x += e.vx * dt * this.speedScale;
+    e.y += e.vy * dt * this.speedScale;
   }
 
   private updateCarrier(e: Enemy, playerPos: Point2D, dt: number) {
@@ -443,15 +453,15 @@ export class EnemySwarm {
       e.vy += (targetVy - e.vy) * 1.5 * dt;
     }
 
-    e.x += e.vx * dt;
-    e.y += e.vy * dt;
+    e.x += e.vx * dt * this.speedScale;
+    e.y += e.vy * dt * this.speedScale;
 
     for (let i = 0; i < this.enemies.length; i++) {
       const sat = this.enemies[i];
       if (sat.parentCarrierId === e.id) {
         if (sat.orbitAngle === undefined) sat.orbitAngle = 0;
         if (sat.orbitRadius === undefined) sat.orbitRadius = 38;
-        sat.orbitAngle += 2.0 * dt;
+        sat.orbitAngle += 2.0 * dt * this.speedScale;
         sat.x = e.x + Math.cos(sat.orbitAngle) * sat.orbitRadius;
         sat.y = e.y + Math.sin(sat.orbitAngle) * sat.orbitRadius;
         sat.vx = 0;
@@ -470,8 +480,8 @@ export class EnemySwarm {
       e.vx += ((dx / dist) * speed - e.vx) * 2.2 * dt;
       e.vy += ((dy / dist) * speed - e.vy) * 2.2 * dt;
     }
-    e.x += e.vx * dt;
-    e.y += e.vy * dt;
+    e.x += e.vx * dt * this.speedScale;
+    e.y += e.vy * dt * this.speedScale;
 
     if (e.pulseTimer === undefined) e.pulseTimer = 2.2;
     e.pulseTimer -= dt;
@@ -491,8 +501,8 @@ export class EnemySwarm {
       e.vx += ((dx / dist) * speed - e.vx) * 3.8 * dt;
       e.vy += ((dy / dist) * speed - e.vy) * 3.8 * dt;
     }
-    e.x += e.vx * dt;
-    e.y += e.vy * dt;
+    e.x += e.vx * dt * this.speedScale;
+    e.y += e.vy * dt * this.speedScale;
 
     e.stealthOpacity = 0.25 + 0.75 * Math.pow(Math.sin(e.age * 3.2), 2);
   }
@@ -1262,7 +1272,7 @@ export class EnemySwarm {
         ctx.stroke();
 
         // Cockpit / Energy Crystal Core
-        ctx.fillStyle = e.state === 'charging' ? '#ffffff' : (skin && skin.id !== 'classic' ? skin.pupilColor : '#ffd700');
+        ctx.fillStyle = e.state === 'charging' ? '#ffffff' : (skin && skin.id !== 'classic' ? skin.pupilColor : '#FFB14D');
         ctx.beginPath();
         ctx.moveTo(6, 0);
         ctx.lineTo(-2, -3.5);

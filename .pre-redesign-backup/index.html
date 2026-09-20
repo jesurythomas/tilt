@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#05040a">
+  <title>Tilt to Live - Neon Arena Survival</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="alternate icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="alternate icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="shortcut icon" href="/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Unbounded:wght@500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./src/styles/game.css">
+</head>
+<body>
+  <div id="app">
+    <section id="tilt-container" class="game-screen" aria-label="Tilt to Live">
+      <div id="tilt-stage" class="tilt-stage">
+        <!-- Interactive Spring-Mass Reactive Canvas -->
+        <canvas id="tilt-canvas" aria-label="Tilt to Live game"></canvas>
+
+        <!-- Always-Visible Left-Side Goals & Milestones HUD -->
+        <aside id="tilt-goals-sidebar" class="tilt-goals-sidebar" aria-label="Active Milestones"></aside>
+
+        <!-- Milestone Completion Notification Toast -->
+        <div id="tilt-goal-toast" class="tilt-goal-toast hidden" aria-live="polite"></div>
+
+        <!-- In-Game Top HUD -->
+        <div class="tilt-hud game-hud">
+          <div class="hud-score">
+            <span id="tilt-score">0</span>
+            <small id="tilt-best">Best 0</small>
+          </div>
+          <div id="tilt-mode-badge" class="hud-mode-pill classic">CLASSIC · 1.0X</div>
+          <div class="hud-actions">
+            <button id="btn-tilt-calibrate" class="icon-control hidden" type="button" title="Calibrate Neutral Tilt" aria-label="Calibrate Neutral Tilt">🎯 Calibrate</button>
+            <button id="btn-tilt-sound" class="icon-control" type="button" title="Toggle sound" aria-label="Toggle sound">Sound on</button>
+            <button id="btn-tilt-armory-hud" class="icon-control armory-badge-control" type="button" title="Armory & Upgrades" aria-label="Armory">⚡ Vault</button>
+            <button id="btn-tilt-pause" class="icon-control" type="button" title="Pause" aria-label="Pause">II</button>
+            <button id="btn-tilt-menu" class="icon-control" type="button" title="Return to Menu" aria-label="Return to Menu">Home</button>
+          </div>
+        </div>
+
+        <!-- Interactive Homepage / Start Menu Screen -->
+        <div id="tilt-menu-screen" class="tilt-menu-screen"></div>
+
+        <!-- Entrance Cinematic Letterbox & Titles -->
+        <div id="tilt-cinematic-overlay" class="tilt-cinematic-overlay hidden" aria-hidden="true">
+          <div class="tilt-cinematic-bar tilt-cinematic-bar-top"></div>
+          <div class="tilt-cinematic-bar tilt-cinematic-bar-bottom"></div>
+          <div class="tilt-cinematic-content">
+            <p class="tilt-cinematic-sub">RED DOT FLEET INCOMING // SECTOR 01</p>
+            <h2 class="tilt-cinematic-title">SPACE INVADERS DETECTED</h2>
+            <div class="tilt-cinematic-badge">TILT TO SURVIVE</div>
+          </div>
+          <div class="tilt-cinematic-skip">Space or Tap to Skip</div>
+        </div>
+
+        <!-- Pause Overlay Modal -->
+        <div id="tilt-pause-overlay" class="game-overlay hidden">
+          <div class="overlay-panel">
+            <p class="eyebrow">Paused</p>
+            <h2>The swarm waits</h2>
+            <p id="tilt-pause-scheme-desc" style="color: #00ddff; font-size: 0.85rem; margin: 8px 0 16px;">Steer with WASD / Arrow Keys or Mouse</p>
+            <button id="btn-tilt-resume" type="button" class="command-button">Resume</button>
+            <button id="btn-tilt-calibrate-pause" type="button" class="command-button hidden" style="margin-top: 10px; background: #00ddff; color: #000;">🎯 Calibrate Neutral Tilt</button>
+            <button id="btn-tilt-armory-pause" type="button" class="secondary-button" style="margin-top: 10px;">⚡ Armory & Upgrades</button>
+            <button id="btn-tilt-menu-pause" type="button" class="secondary-button" style="margin-top: 10px;">Main Menu</button>
+          </div>
+        </div>
+
+        <!-- Game Over Modal -->
+        <div id="tilt-gameover-modal" class="game-overlay hidden">
+          <div class="overlay-panel">
+            <p class="eyebrow">Run terminated</p>
+            <h2>Swarmed by red dots</h2>
+            <strong id="tilt-final-score">0</strong>
+            <dl>
+              <div><dt>Dots Destroyed</dt><dd id="tilt-final-kills">0</dd></div>
+              <div><dt>Max Multiplier</dt><dd id="tilt-final-mult">1x</dd></div>
+              <div><dt>Survival</dt><dd id="tilt-final-time">0s</dd></div>
+            </dl>
+            <div class="gameover-points-box">
+              <div class="points-row"><span>Milestone Points</span><strong id="tilt-earned-points">+0 PTS</strong></div>
+              <small id="tilt-balance-points">Vault: 0 PTS</small>
+            </div>
+            <div id="tilt-gameover-milestones" class="gameover-milestones-list hidden"></div>
+            <button id="btn-tilt-armory-gameover" type="button" class="command-button armory-gold-btn">⚡ Armory & Upgrades</button>
+            <button id="btn-tilt-restart" type="button" class="secondary-button" style="margin-top: 10px;">Play again</button>
+            <button id="btn-tilt-menu-gameover" type="button" class="secondary-button">Main Menu</button>
+          </div>
+        </div>
+
+        <!-- Game Options Modal -->
+        <div id="tilt-options-modal" class="game-overlay hidden tilt-options-overlay"></div>
+
+        <!-- All Goals Trophy Catalog Modal -->
+        <div id="tilt-all-goals-modal" class="game-overlay hidden tilt-all-goals-overlay"></div>
+
+        <!-- Armory & Upgrade Vault Modal -->
+        <div id="tilt-armory-modal" class="game-overlay hidden tilt-armory-overlay"></div>
+      </div>
+    </section>
+  </div>
+  <script type="module" src="./src/main.ts"></script>
+</body>
+</html>

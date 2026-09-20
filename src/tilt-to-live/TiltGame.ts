@@ -8,6 +8,7 @@ import { TiltAudio } from './TiltAudio';
 import { PlayerShip } from './PlayerShip';
 import { EnemySwarm } from './EnemySwarm';
 import { WeaponSystem } from './WeaponSystem';
+import { CoinSystem } from './CoinSystem';
 import { ScoreManager } from './ScoreManager';
 import { TiltRenderer } from './TiltRenderer';
 import { TiltEntranceCinematic } from './TiltEntranceCinematic';
@@ -15,11 +16,23 @@ import { ProgressionManager } from './ProgressionManager';
 import { ArmoryUI } from './ArmoryUI';
 import { Enemy, GameMode, GamePhase, Point2D, WeaponOrb, WeaponType } from './Types';
 import { GoalManager, RunTracker } from './GoalManager';
+import { getTunedValue } from './WeaponTuning';
 import { GameOptionsManager } from './GameOptions';
 import { GoalsHUD } from './GoalsHUD';
 import { TiltMenu } from './TiltMenu';
 import { GauntletMaze } from './GauntletMaze';
 import { GyroscopeController } from './GyroscopeController';
+
+// Global simulation time scale applied ONLY to the fixed-step gameplay delta
+// in TiltGame.loop() (the 'playing' phase accumulator). 1.0 = original speed;
+// 0.75 = 25% slower. This uniformly slows everything driven by that delta -
+// enemy movement, player movement, weapons/orb timers, coin spawn timers,
+// and the survival clock (this.elapsed / ScoreManager.stats.survivalTime) -
+// without hand-tuning individual systems. Tune this single constant to
+// retime the whole game. Deliberately NOT applied to: the cold-open
+// cinematic (real-time dt), menu background simulation (real-time dt), any
+// DOM/UI animation or modal timing, or the game-over setTimeout.
+export const GAME_SPEED = 0.75;
 
 export class TiltGame {
   private readonly canvas: HTMLCanvasElement;
@@ -35,6 +48,7 @@ export class TiltGame {
   public readonly player: PlayerShip;
   public readonly swarm: EnemySwarm = new EnemySwarm();
   public readonly weapons: WeaponSystem = new WeaponSystem();
+  public readonly coins: CoinSystem = new CoinSystem();
   public readonly scores: ScoreManager = new ScoreManager();
   public readonly renderer: TiltRenderer = new TiltRenderer();
   public readonly cinematic: TiltEntranceCinematic;
@@ -82,6 +96,11 @@ export class TiltGame {
   };
   public pointsEarnedThisRun: number = 0;
 
+  // Lives (Wave 2: progression.getStartingLives(), 1-3). Losing a life grants
+  // a temporary shield instead of ending the run; only 0 lives ends it.
+  public lives: number = 1;
+  public maxLivesThisRun: number = 1;
+
   // Loop & Timing
   private isRunning: boolean = false;
   private animationFrame: number | null = null;
@@ -100,6 +119,7 @@ export class TiltGame {
   public durationLabelEl!: HTMLElement;
   public durationFillEl!: HTMLElement;
   public leftRailFillEl!: HTMLElement | null;
+  public livesEl!: HTMLElement;
 
   // Pause Screen (Board 07)
   public pauseModal!: HTMLElement;
@@ -118,7 +138,10 @@ export class TiltGame {
   public finalChainEl!: HTMLElement;
   public finalMultEl!: HTMLElement;
   public finalTimeEl!: HTMLElement;
+  public finalCoinsEl!: HTMLElement;
   public pointsEarnedRowEl!: HTMLElement;
+  public coinsRowEl!: HTMLElement;
+  public coinsDetailEl!: HTMLElement;
   public milestonesListEl!: HTMLElement;
   public retryBtnEl!: HTMLElement;
   public spendBtnEl!: HTMLElement;
@@ -147,6 +170,10 @@ export class TiltGame {
         if (this.options.settings.musicEnabled) {
           this.audio.startMusic();
         }
+        // Wave 2: spawn the equipped ship's starting weapon orb only after
+        // resetRun() (which clears weapon state) AND the cold-open cinematic
+        // has finished — spawning any earlier would be wiped by either.
+        this.spawnStartingWeaponOrb();
       }
     );
 
@@ -301,6 +328,34 @@ export class TiltGame {
           letter-spacing: 0.14em;
           text-transform: uppercase;
           color: #8FB0FF;
+        }
+
+        /* Lives Pips (Wave 2: sits below the chain pill, never overlapping the
+           score block or multiplier chip; hazard red reserved for enemies/death
+           only, so pips use --ok green / --text-4 slate instead). Hidden entirely
+           for the default 1-life run so it never clutters the HUD. */
+        .hud-life-block {
+          position: absolute;
+          left: 40px;
+          top: 202px;
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          pointer-events: none;
+        }
+
+        .hud-life-pip {
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          box-sizing: border-box;
+          border: 1.5px solid #4A5264;
+          background: transparent;
+        }
+
+        .hud-life-pip.is-filled {
+          border-color: #3DDC97;
+          background: #3DDC97;
         }
 
         /* Top-Right 44px Icon Buttons (Board 05) */
@@ -629,7 +684,7 @@ export class TiltGame {
         }
 
         .switch-toggle.is-on .switch-handle {
-          left: 21px;
+          transform: translateX(18px);
           background: #5B8CFF;
         }
 
@@ -731,7 +786,7 @@ export class TiltGame {
 
         .gameover-stat-grid {
           display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
+          grid-template-columns: repeat(4, minmax(0, 1fr));
           gap: 1px;
           background: #262C38;
           border: 1px solid #262C38;
@@ -903,6 +958,17 @@ export class TiltGame {
             font-size: 14px;
           }
 
+          .hud-life-block {
+            left: 20px;
+            top: 166px;
+            gap: 6px;
+          }
+
+          .hud-life-pip {
+            width: 8px;
+            height: 8px;
+          }
+
           .hud-top-right {
             right: 18px;
             top: 54px;
@@ -1035,6 +1101,9 @@ export class TiltGame {
         <span class="hud-chain-label">CHAIN</span>
       </div>
 
+      <!-- Lives Pips (Wave 2: hidden for default 1-life runs) -->
+      <div id="tilt-hud-lives" class="hud-life-block hidden"></div>
+
       <!-- Top-Right 44px Icon Buttons (Board 05) -->
       <div class="hud-top-right">
         <button id="btn-tilt-pause" type="button" class="hud-square-btn" aria-label="Pause" title="Pause (ESC)">
@@ -1065,6 +1134,7 @@ export class TiltGame {
     this.modeBadgeEl = document.getElementById('tilt-hud-mode');
     this.chainPillEl = this.requireElement('tilt-hud-chain');
     this.chainCountEl = this.requireElement('tilt-chain-count');
+    this.livesEl = this.requireElement('tilt-hud-lives');
     this.durationIndicatorEl = this.requireElement('tilt-hud-duration');
     this.durationLabelEl = this.requireElement('tilt-hud-duration-label');
     this.durationFillEl = this.requireElement('tilt-hud-duration-bar-fill');
@@ -1134,11 +1204,19 @@ export class TiltGame {
             <span id="tilt-final-time" class="stat-number">0:00</span>
             <span class="stat-label">Alive</span>
           </div>
+          <div class="stat-cell">
+            <span id="tilt-final-coins" class="stat-number" style="color: #FFB14D;">0</span>
+            <span class="stat-label">Coins</span>
+          </div>
         </div>
         <div class="gameover-points-section">
           <div class="gameover-points-row">
             <span class="points-label">Points earned</span>
             <span id="tilt-final-points-row" class="points-val">+0 <span class="points-arrow">→</span> 0</span>
+          </div>
+          <div id="tilt-gameover-coins-row" class="gameover-points-row hidden">
+            <span class="points-label">Coin pickups</span>
+            <span id="tilt-final-coins-detail" class="points-val">0 · +0 pts</span>
           </div>
           <div id="tilt-gameover-milestones" class="gameover-milestones-list hidden"></div>
         </div>
@@ -1161,7 +1239,10 @@ export class TiltGame {
     this.finalChainEl = this.requireElement('tilt-final-chain');
     this.finalMultEl = this.finalChainEl;
     this.finalTimeEl = this.requireElement('tilt-final-time');
+    this.finalCoinsEl = this.requireElement('tilt-final-coins');
     this.pointsEarnedRowEl = this.requireElement('tilt-final-points-row');
+    this.coinsRowEl = this.requireElement('tilt-gameover-coins-row');
+    this.coinsDetailEl = this.requireElement('tilt-final-coins-detail');
     this.milestonesListEl = this.requireElement('tilt-gameover-milestones');
     this.retryBtnEl = this.requireElement('btn-tilt-retry');
     this.spendBtnEl = this.requireElement('btn-tilt-spend');
@@ -1467,6 +1548,7 @@ export class TiltGame {
     this.options.setMode(mode);
     const modeConfig = this.options.getModeConfig(mode);
     this.scores.setModeMultiplier(modeConfig.scoreMultiplier);
+    this.scores.setProgressionMultiplier(this.progression.getScoreMultiplier());
 
     if (this.options.settings.controlScheme === 'gyro') {
       this.gyro.startListening();
@@ -1482,6 +1564,14 @@ export class TiltGame {
     this.elapsed = 0;
     this.accumulator = 0;
     this.pointsEarnedThisRun = 0;
+    this.maxLivesThisRun = this.progression.getStartingLives();
+    this.lives = this.maxLivesThisRun;
+    // Hull Compact shrinks the hitbox; it stacks with the equipped ship's own hitboxScale.
+    this.player.setHitboxMultiplier(this.progression.getHitboxMultiplier());
+    // The shield.radius perk's only consumer is the bubble PlayerShip draws.
+    this.player.setShieldRadius(
+      getTunedValue('shield', 'radius', this.progression.data.perks.shield.radius)
+    );
     this.railProgress = 0;
     if (this.leftRailFillEl) this.leftRailFillEl.style.height = '0%';
 
@@ -1506,7 +1596,9 @@ export class TiltGame {
     this.controlMode = 'mouse';
 
     this.swarm.reset();
+    this.swarm.setSpeedScale(this.progression.getEnemySpeedMultiplier());
     this.weapons.reset();
+    this.coins.reset();
     this.particles.reset();
     this.scores.reset();
     this.gauntletMaze.reset(width, height);
@@ -1743,10 +1835,15 @@ export class TiltGame {
       this.particles.update(dt);
       this.cinematic.update(dt, width, height);
     } else if (this.phase === 'playing') {
+      // Accumulate REAL time so the substep cadence (how many 120Hz steps run
+      // per real second) is unaffected by GAME_SPEED - only scale the
+      // simulation delta actually passed to update(), so the whole sim
+      // advances 25% slower per real second without destabilizing the
+      // fixed-step accumulator.
       this.accumulator += dt;
       const fixedDt = 1 / 120; // 120Hz physics sub-stepping for silky precision
       while (this.accumulator >= fixedDt) {
-        this.update(fixedDt);
+        this.update(fixedDt * GAME_SPEED);
         this.accumulator -= fixedDt;
       }
     }
@@ -1802,7 +1899,7 @@ export class TiltGame {
         this.scores.stats.score,
         this.elapsed,
         this.particles,
-        () => this.triggerPlayerDeath()
+        () => this.loseLife()
       );
     }
 
@@ -1830,6 +1927,18 @@ export class TiltGame {
       activeMode
     );
 
+    // 5.5 Update Coin Pickups (own spawn timer, independent of weapon orbs)
+    const modeConfig = this.options.getModeConfig(activeMode);
+    this.coins.update(
+      dt,
+      this.player,
+      bounds,
+      this.particles,
+      this.audio,
+      modeConfig.scoreMultiplier,
+      (value) => this.progression.addPointsCredited(value)
+    );
+
     // 6. Update Scores and Combos
     this.scores.update(dt, activeMode);
 
@@ -1846,6 +1955,27 @@ export class TiltGame {
 
     // 9. Update HUD DOM
     this.updateHUD();
+  }
+
+  // Wave 2: spawns the equipped ship's startingWeapon orb, offset from the
+  // player's centered spawn point so it's reachable but not sitting on top
+  // of them. Called only from the cinematic-complete callback (see comment
+  // there) so it always lands after resetRun() clears weapon state.
+  private spawnStartingWeaponOrb() {
+    const startingWeapon = this.progression.getEquippedShip().startingWeapon;
+    if (!startingWeapon) return;
+
+    const width = this.canvas.width / this.pixelRatio;
+    const height = this.canvas.height / this.pixelRatio;
+    const bounds = { width, height };
+
+    const angle = Math.random() * Math.PI * 2;
+    const dist = Math.min(width, height) * 0.28;
+    const margin = 60;
+    const x = Math.max(margin, Math.min(width - margin, width / 2 + Math.cos(angle) * dist));
+    const y = Math.max(margin, Math.min(height - margin, height / 2 + Math.sin(angle) * dist));
+
+    this.weapons.spawnOrb(bounds, startingWeapon, x, y);
   }
 
   private handleEnemyKilled(enemy: Enemy, weaponType: WeaponType) {
@@ -1887,7 +2017,7 @@ export class TiltGame {
         if (this.player.hasShield()) {
           // Shield rams and kills red dot!
           this.handleEnemyKilled(e, 'shield');
-          this.particles.emitExplosion(e.x, e.y, '#00ffcc', 20);
+          this.particles.emitExplosion(e.x, e.y, '#3DDC97', 20);
           this.swarm.enemies.splice(i, 1);
           continue;
         } else if (e.frozen) {
@@ -1898,8 +2028,8 @@ export class TiltGame {
           this.swarm.enemies.splice(i, 1);
           continue;
         } else {
-          // Lethal Crash!
-          this.triggerPlayerDeath();
+          // Crash! Costs a life — ends the run only once lives run out.
+          this.loseLife();
           return;
         }
       }
@@ -1912,6 +2042,32 @@ export class TiltGame {
     }
   }
 
+  // Wave 2 lives system: called from both the direct-touch collision path and
+  // the Gauntlet wall-crush callback so neither can bypass lives. Decrements
+  // lives; while lives remain, grants a temporary shield and keeps the run
+  // going (combo/multiplier are intentionally NOT reset — see report). Only
+  // ends the run via triggerPlayerDeath() once lives reach zero.
+  private loseLife() {
+    if (this.player.isDead) return;
+    // The Gauntlet crush callback fires every frame the player is pinned, and has no
+    // shield check of its own. Without this guard a single crush drains every life in
+    // consecutive frames. The post-hit shield doubles as the invulnerability window.
+    if (this.player.hasShield()) return;
+
+    this.lives--;
+
+    if (this.lives > 0) {
+      this.player.activateShield(3.0);
+      this.audio.playSiren();
+      this.particles.emitExplosion(this.player.x, this.player.y, '#5B8CFF', 30);
+      this.grid.applyExplosion(this.player.x, this.player.y, 14, 220);
+      this.renderer.triggerShake(14 * this.options.getShakeMultiplier());
+      this.updateHUD();
+    } else {
+      this.triggerPlayerDeath();
+    }
+  }
+
   private triggerPlayerDeath() {
     this.player.isDead = true;
     this.phase = 'game-over';
@@ -1920,7 +2076,7 @@ export class TiltGame {
     this.audio.stopMusic();
 
     this.particles.emitExplosion(this.player.x, this.player.y, '#ffffff', 50);
-    this.particles.emitExplosion(this.player.x, this.player.y, '#00ddff', 30);
+    this.particles.emitExplosion(this.player.x, this.player.y, '#5B8CFF', 30);
     this.grid.applyExplosion(this.player.x, this.player.y, 22, 380);
     this.renderer.triggerShake(24 * this.options.getShakeMultiplier());
 
@@ -1949,16 +2105,29 @@ export class TiltGame {
       this.finalChainEl.textContent = `${Math.max(1, this.scores.stats.maxMultiplier)}×`;
       this.finalMultEl.textContent = `${Math.max(1, this.scores.stats.maxMultiplier)}×`;
       this.finalTimeEl.textContent = timeStr;
+      this.finalCoinsEl.textContent = this.coins.coinsCollected.toString();
 
       let earnedMilestonesPts = 0;
       for (const g of newlyCompleted) {
         earnedMilestonesPts += g.rewardPoints;
       }
-      const totalEarned = Math.max(this.pointsEarnedThisRun, earnedMilestonesPts);
+      // Coin pickups are a second, independent points income stream (on top
+      // of milestone rewards) - fold their raw (pre points-multiplier) value
+      // into the same single "Points earned" total. There is only ever one
+      // currency here (Points, unit pts); coins are just another way to earn it.
+      const totalEarned = Math.max(this.pointsEarnedThisRun, earnedMilestonesPts) + this.coins.pointsFromCoins;
       const balance = this.progression.data.points;
 
       this.pointsEarnedRowEl.innerHTML = `+${totalEarned.toLocaleString()} <span class="points-arrow">→</span> ${balance.toLocaleString()}`;
       this.spendBtnEl.textContent = `Spend ${balance.toLocaleString()}`;
+
+      if (this.coins.coinsCollected > 0) {
+        const coinPts = this.coins.pointsFromCoins;
+        this.coinsDetailEl.textContent = `${this.coins.coinsCollected} · +${coinPts.toLocaleString()} ${coinPts === 1 ? 'pt' : 'pts'}`;
+        this.coinsRowEl.classList.remove('hidden');
+      } else {
+        this.coinsRowEl.classList.add('hidden');
+      }
 
       if (newlyCompleted.length > 0) {
         this.milestonesListEl.innerHTML = newlyCompleted.map(g => `
@@ -1999,6 +2168,20 @@ export class TiltGame {
       this.chainPillEl.classList.remove('hidden');
     } else {
       this.chainPillEl.classList.add('hidden');
+    }
+
+    // Lives Pips (Wave 2): hidden entirely for a default 1-life run so it
+    // doesn't clutter the HUD; otherwise shows one pip per starting life,
+    // filled for lives remaining.
+    if (this.maxLivesThisRun > 1) {
+      let pipsHtml = '';
+      for (let i = 0; i < this.maxLivesThisRun; i++) {
+        pipsHtml += `<span class="hud-life-pip${i < this.lives ? ' is-filled' : ''}"></span>`;
+      }
+      this.livesEl.innerHTML = pipsHtml;
+      this.livesEl.classList.remove('hidden');
+    } else {
+      this.livesEl.classList.add('hidden');
     }
 
     // Active shield or weapon duration progress bar (Board 05: Shield 1.6s with thin progress bar)
@@ -2133,6 +2316,12 @@ export class TiltGame {
       this.gauntletMaze,
       this.options.settings.showGridlines
     );
+
+    // Coin pickups render above the grid/renderer output but below the DOM
+    // HUD overlay (HUD is a separate, independently z-indexed DOM layer).
+    if (this.phase === 'playing' || this.phase === 'paused') {
+      this.coins.render(this.ctx, this.elapsed);
+    }
 
     if (this.phase === 'cinematic') {
       this.cinematic.render(this.ctx, width, height);

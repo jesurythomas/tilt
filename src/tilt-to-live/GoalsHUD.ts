@@ -15,14 +15,45 @@ export class GoalsHUD {
 
   public inMenuMode: boolean = false;
   private completedToastTimer: number | null = null;
+  private isEvaluatingUnlockGoals: boolean = false;
 
   constructor(goalManager: GoalManager, progression: ProgressionManager) {
     this.goalManager = goalManager;
     this.progression = progression;
 
+    // Wire progression into GoalManager here — GoalsHUD is the one place
+    // that already receives both managers, so this is the path TiltGame
+    // needs for unlock goals to ever complete; see checkUnlockGoals() below
+    // for why this class is also the natural place to trigger evaluation.
+    this.goalManager.setProgression(this.progression);
+
     this.initDOM();
     this.setupListeners();
     this.setupHotkey();
+
+    // Catch unlocks the player already owned before this feature existed
+    // (or from a run that ended before the HUD next re-renders).
+    this.checkUnlockGoals();
+  }
+
+  /**
+   * Evaluates the unlock-family goals against current progression state.
+   * Guarded against re-entrancy: evaluateUnlockGoals() synchronously invokes
+   * the onGoalCompleted/onPointsAwarded callbacks wired in setupListeners(),
+   * which call back into render() (and therefore into this method) — the
+   * guard makes that recursion a safe no-op instead of duplicate work.
+   * Also safe to call redundantly from outside this class for the same
+   * reason evaluateUnlockGoals() itself is idempotent: already-completed
+   * goal ids are never re-awarded.
+   */
+  public checkUnlockGoals() {
+    if (this.isEvaluatingUnlockGoals) return;
+    this.isEvaluatingUnlockGoals = true;
+    try {
+      this.goalManager.evaluateUnlockGoals();
+    } finally {
+      this.isEvaluatingUnlockGoals = false;
+    }
   }
 
   private initDOM() {
@@ -226,6 +257,12 @@ export class GoalsHUD {
   public render() {
     if (!this.railEl) return;
 
+    // TiltGame calls render() via handleProgressionChanged() after every
+    // Armory purchase, which makes this the natural place to catch newly
+    // unlocked ships/skins/arenas/weapons without any other file needing to
+    // add a dedicated call.
+    this.checkUnlockGoals();
+
     const completed = this.goalManager.getCompletedCount();
     const total = this.goalManager.getTotalGoalsCount();
     const pct = total > 0 ? (completed / total) * 100 : 0;
@@ -283,6 +320,13 @@ export class GoalsHUD {
     const catalog = this.goalManager.catalog;
 
     const getGoalTier = (goal: Goal): 'Score' | 'Combat' | 'Mastery' => {
+      // Unlock-family goals (ships, enemy skins, arenas, fully-upgraded
+      // weapons) are collection/mastery achievements, not score or combat
+      // ones — bucket them explicitly rather than relying on the substring
+      // fallthrough below to land them in the right place by accident.
+      if (this.goalManager.isUnlockGoal(goal)) {
+        return 'Mastery';
+      }
       if (
         goal.category === 'score' ||
         goal.metric === 'run_score' ||
@@ -325,7 +369,7 @@ export class GoalsHUD {
             <span class="milestones-header-progress-fill" style="width: ${progressPct}%;"></span>
           </span>
           <div class="milestones-header-right">
-            <span class="milestones-header-points">${points.toLocaleString()} <span class="pts-unit">PTS</span></span>
+            <span class="milestones-header-points">${points.toLocaleString()} <span class="pts-unit">${points === 1 ? 'pt' : 'pts'}</span></span>
             <button id="btn-close-milestones" type="button" class="milestones-screen-close" aria-label="Close milestones">
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
                 <path d="M2 2 L12 12 M12 2 L2 12" stroke="#99A1B3" stroke-width="1.5" stroke-linecap="round"></path>
@@ -349,10 +393,14 @@ export class GoalsHUD {
                 <div class="milestones-tier-grid">
                   ${tier.goals.map((goal) => {
                     const isDone = this.goalManager.isCompleted(goal.id);
+                    const isUnlock = this.goalManager.isUnlockGoal(goal);
 
-                    // Compute goal progress representation
+                    // Compute goal progress representation. Unlock-family
+                    // goals have no meaningful numeric target (target is a
+                    // placeholder of 1), so they never compute currentVal /
+                    // a percentage and never render the numeric progress bar.
                     let currentVal = 0;
-                    if (this.goalManager.isTotalGoal(goal)) {
+                    if (!isUnlock && this.goalManager.isTotalGoal(goal)) {
                       currentVal = this.goalManager.getMetricValue(goal.metric, {
                         mode: 'classic',
                         score: 0,
@@ -369,7 +417,9 @@ export class GoalsHUD {
                       });
                     }
 
-                    const pct = Math.min(100, Math.max(0, Math.round((currentVal / goal.target) * 100)));
+                    const pct = isUnlock
+                      ? 0
+                      : Math.min(100, Math.max(0, Math.round((currentVal / goal.target) * 100)));
 
                     if (isDone) {
                       return `
@@ -384,6 +434,22 @@ export class GoalsHUD {
                             <span class="milestone-card-goal">${goal.description}</span>
                           </div>
                           <span class="milestone-card-pts done">+${goal.rewardPoints}</span>
+                        </div>
+                      `;
+                    }
+
+                    // Unlock goals: no numeric progress possible pre-completion,
+                    // just show the description with a locked marker instead of
+                    // an empty/meaningless progress bar.
+                    if (isUnlock) {
+                      return `
+                        <div class="milestone-card is-open is-locked">
+                          <span class="milestone-mark-box open"></span>
+                          <div class="milestone-card-content">
+                            <span class="milestone-card-name">${goal.title}</span>
+                            <span class="milestone-card-goal">${goal.description}</span>
+                          </div>
+                          <span class="milestone-card-pts open">+${goal.rewardPoints}</span>
                         </div>
                       `;
                     }

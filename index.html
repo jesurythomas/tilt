@@ -66,31 +66,8 @@
         <!-- Interactive Homepage / Start Menu Screen -->
         <div id="tilt-menu-screen" class="tilt-menu-screen"></div>
 
-        <!-- Cold Open / Entrance Overlay -->
-        <div id="tilt-cinematic-overlay" class="tilt-cinematic-overlay hidden" aria-hidden="true">
-          <div class="cold-open-stage">
-            <div class="cold-open-ship">
-              <svg width="72" height="72" viewBox="0 0 72 72" fill="none" aria-hidden="true">
-                <path d="M62 36 L20 13 L28 36 L20 59 Z" fill="#5B8CFF"></path>
-              </svg>
-            </div>
-            <h1 class="cold-open-wordmark">TILT TO LIVE</h1>
-            <div class="cold-open-loader">
-              <div class="cold-open-bar-track">
-                <div class="cold-open-bar-fill"></div>
-              </div>
-            </div>
-            <!-- Elements maintained for compatibility with cinematic script -->
-            <div class="tilt-cinematic-bar tilt-cinematic-bar-top" style="display: none;"></div>
-            <div class="tilt-cinematic-bar tilt-cinematic-bar-bottom" style="display: none;"></div>
-            <div class="tilt-cinematic-content" style="display: none;">
-              <p class="tilt-cinematic-sub"></p>
-              <h2 class="tilt-cinematic-title"></h2>
-              <div class="tilt-cinematic-badge"></div>
-            </div>
-            <div class="tilt-cinematic-skip" style="display: none;">Space or Tap to Skip</div>
-          </div>
-        </div>
+        <!-- Cold Open / Entrance Overlay: TiltEntranceCinematic.start() replaces this innerHTML at runtime -->
+        <div id="tilt-cinematic-overlay" class="tilt-cinematic-overlay hidden" aria-hidden="true"></div>
 
         <!-- Pause Overlay Modal -->
         <div id="tilt-pause-overlay" class="game-overlay hidden">
@@ -145,16 +122,17 @@
             <div class="gameover-points-box">
               <div class="points-row">
                 <span>Points earned</span>
-                <strong id="tilt-earned-points">+0 PTS</strong>
+                <strong id="tilt-earned-points">+0</strong>
+                <span class="points-arrow">→</span>
+                <span id="tilt-balance-points">0</span>
               </div>
-              <small id="tilt-balance-points">Vault: 0 PTS</small>
             </div>
             <div id="tilt-gameover-milestones" class="gameover-milestones-list hidden"></div>
             <div class="gameover-actions-stack">
               <button id="btn-tilt-restart" type="button" class="command-button gameover-primary-btn">Retry</button>
               <div class="gameover-secondary-row">
                 <button id="btn-tilt-menu-gameover" type="button" class="secondary-button">Menu</button>
-                <button id="btn-tilt-armory-gameover" type="button" class="secondary-button">Spend PTS</button>
+                <button id="btn-tilt-armory-gameover" type="button" class="secondary-button">Spend 0</button>
               </div>
               <span class="gameover-footer-hint">SPACE to retry</span>
             </div>
@@ -167,7 +145,7 @@
         <!-- All Goals Trophy Catalog Modal -->
         <div id="tilt-all-goals-modal" class="game-overlay hidden tilt-all-goals-overlay"></div>
 
-        <!-- Armory & Upgrade Vault Modal -->
+        <!-- Armory Modal -->
         <div id="tilt-armory-modal" class="game-overlay hidden tilt-armory-overlay"></div>
       </div>
     </section>
