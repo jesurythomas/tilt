@@ -6,12 +6,14 @@ The durable module checklist. Ticked only by the exit protocol in
 Dependency map and resume instructions:
 `docs/superpowers/plans/2026-09-20-tilt-to-live-godot-port-index.md`
 
-- [ ] **M0 — Scaffold**  deps: none
-      -- `$GODOT --headless --path godot --import` exits 0
-      -- GUT suite runs headless and passes
-      -- untyped GDScript is rejected (proof run observed)
-      -- `gdlint` and `gdformat` verified and pinned in CONVENTIONS.md §1.2
-      -- PORT-PROGRESS.md and HANDOFF.md exist
+- [x] **M0 — Scaffold**  deps: none   *(2026-09-20, commit `035ccdc`)*
+      ok  `$GODOT --headless --path godot --import` exits 0
+      ok  GUT suite runs headless: Scripts 1 / Tests 1 / Passing 1, exit 0
+      ok  untyped GDScript is rejected (proof run observed — parse error
+          `Variable "untyped_proof" has no static type. (Warning treated as
+          error.)`; all nine required warnings confirmed at severity 2)
+      ok  `gdlint` and `gdformat` 4.5.0 verified and pinned in CONVENTIONS.md §1.2
+      ok  PORT-PROGRESS.md and HANDOFF.md exist
 
 - [ ] **M0b — Android toolchain**  deps: M0   *(user action, ~4GB downloads)*
       -- export templates installed
