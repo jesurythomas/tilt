@@ -76,21 +76,23 @@ func _init(start_x: float, start_y: float) -> void:
 	reset(start_x, start_y)
 
 
-## PORT: web/src/tilt-to-live/PlayerShip.ts:27-29
+## Sets the purchasable hull-compact multiplier. PORT: web/src/tilt-to-live/PlayerShip.ts:27-29
 func set_hitbox_multiplier(m: float) -> void:
 	_hitbox_multiplier = m
 
 
+## Sets the shield bubble radius from the equipped perk.
 ## PORT: web/src/tilt-to-live/PlayerShip.ts:35-37
 func set_shield_radius(r: float) -> void:
 	shield_radius = r
 
 
-## PORT: web/src/tilt-to-live/PlayerShip.ts:43-45
+## Clamps and applies a new arena scale. PORT: web/src/tilt-to-live/PlayerShip.ts:43-45
 func set_scale(new_scale: float) -> void:
 	scale = maxf(0.5, minf(1.8, new_scale))
 
 
+## Returns the ship to its starting pose, alive and at rest.
 ## PORT: web/src/tilt-to-live/PlayerShip.ts:72-84
 func reset(new_x: float, new_y: float) -> void:
 	x = new_x
@@ -106,17 +108,25 @@ func reset(new_x: float, new_y: float) -> void:
 	trail_history = []
 
 
+## Extends the shield timer to at least duration seconds.
 ## PORT: web/src/tilt-to-live/PlayerShip.ts:86-88
 func activate_shield(duration: float = 6.0) -> void:
 	shield_timer = maxf(shield_timer, duration)
 
 
+## Returns whether the shield is currently up.
 ## PORT: web/src/tilt-to-live/PlayerShip.ts:90-92
 func has_shield() -> bool:
 	return shield_timer > 0.0
 
 
 ## Advances one simulation step. PORT: web/src/tilt-to-live/PlayerShip.ts:94-269
+# PORT-NOTE: the 12 parameters are the TypeScript's 9 (PlayerShip.ts:94-104)
+# with the two object-literal parameters flattened into five scalars —
+# `tuning: {sensitivity, deadzone}` and `shipSkin?: ShipSkinConfig` become
+# `sensitivity`, `deadzone`, `hitbox_scale`, `turn_rate`, `thruster_color`.
+# The arity is dictated by the port surface, not by design choice here.
+# gdlint:ignore=function-arguments-number
 func update(
 	dt: float,
 	target_mouse: Vector2,
