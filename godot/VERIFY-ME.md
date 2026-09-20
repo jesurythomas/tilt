@@ -114,3 +114,44 @@ Write the measured values back into the constants above, change each
 `gdlint godot/src godot/tests`, then commit one line:
 `M2.5: tune inset, scale and tilt from A55 device measurements`.
 Then tick M2.5 in `PORT-PROGRESS.md` with that SHA.
+
+---
+
+## M3 — Enemy roster (device pass, plan Task 7)
+
+Unattended evidence at `11a9165`: 30/30 GUT scripts (184 tests) pass; headless
+`--quit-after 120` exits 0 with no script error; the APK exports (30.3 MB).
+The A55 was still off adb, so **no install, launch or screenshot happened.**
+Run §0 first. An unattended launch dies to the first seekers within seconds,
+so every item below needs a thumb.
+
+- [ ] Survive to 5,000 in classic. A **charger** appears: a dart at the arena
+      edge draws a pulsing dashed red line toward you for ~1 s, then darts
+      at 480 px/s with an orange plume, then coasts. Then repeats.
+- [ ] 10,000: a **specter** — a violet dot with a dashed ring that fades in
+      and out as it homes.
+- [ ] 16,000: **artillery** — a dark hexagon with a magenta barrel that keeps
+      its distance, strafes, and fires a pink comet-tailed bullet every
+      ~3 s; the muzzle glows before each shot.
+- [ ] 22,000: a **pulsar** — a red dot with an expanding corona every 2.2 s
+      and a spinning white star; killing it splits it into two small seekers.
+- [ ] 32,000: a **carrier** — a rotating diamond with a dashed ring and four
+      cyan satellites on tethers; killing it scatters the satellites.
+- [ ] Formations, every ~6-12 s in classic: wall sweep with a five-dot gap;
+      arrow wing of seven from left or right; ring of 12-16 that pauses then
+      closes; a lone turret whose aim tick follows you; a snake of eight.
+- [ ] Flying near a wall dot or a tethered satellite does not push it aside
+      (they are excluded from separation).
+- [ ] Every enemy shape sits exactly on its hitbox (all rotated draws now
+      carry the arena origin) — nudge into a charger and an artillery unit.
+- [ ] Frame time with a wall sweep plus a carrier on screen:
+      `"$ADB" -s RRCXB04L8EJ shell dumpsys gfxinfo com.jtg.perilpoint | grep -A3 50th`
+      — 50th percentile at or under 16 ms. The carrier's tether loop is
+      O(carriers × enemies) per frame, as in the TS.
+
+Not observable in any mode yet (no caller until M4/M10): `freeze_all`,
+`spawn_sequential_gauntlet_wall`, `spawn_rotating_gate`, `spawn_mode_armada`,
+and the gauntlet/code-red director branches. `spike_mine` has no spawner in
+the web game either.
+
+When done: tick M3 in `PORT-PROGRESS.md` with the SHA you tested.

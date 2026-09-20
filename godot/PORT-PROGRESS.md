@@ -83,13 +83,26 @@ Dependency map and resume instructions:
       note  portrait (180/0) tilt axis mappings are unverified; only landscape (90) is
             backed by measured device poses. Game is landscape-locked.
 
-- [ ] **M3 — Enemy roster**  deps: M2
-      -- all 13 enemy types spawn and behave per the TypeScript
-      -- all 8 formations trigger
-      -- GUT wave-director specs pass
-      note  `Types.Enemy` and `Types.ActiveWeapon` float optionals are `NAN`,
-            tested with `is_nan()` as the `=== undefined` check (M1 Task 3
-            Step 0).
+- [ ] **M3 — Enemy roster**  deps: M2   *(code complete 2026-09-21, head `5bb5cc9`; DEVICE PASS PENDING)*
+      plan  `docs/superpowers/plans/2026-09-20-m3-enemy-roster.md`
+      **tick this box only after `godot/VERIFY-ME.md` §M3 is run on the A55**
+      ok  `sim/enemy_swarm.gd` is the full port of `EnemySwarm.ts` minus `render()`:
+          12 remaining behaviours, 7 formation spawners + `spawn_mode_armada`, both
+          `trigger_*` dispatchers, full wave director, `on_enemy_killed`, `freeze_all`.
+          LAW 3 member table verified complete by the final review.
+      ok  `render/entity_layer.gd` draws all 13 types distinctly (`render()` relocated
+          per spec §4.2/D4; radial gradients as two flat circles per M2 precedent).
+      ok  30/30 GUT scripts (184 tests); six new spec files incl. `test_wave_director.gd`
+          pinning every elite threshold on both sides of its boundary (seeded, ≥266
+          spawn events, rarest branch p ≥ 0.09). gdformat/gdlint clean.
+      ok  headless `--quit-after 120` exits 0; APK exports (30,294,124 bytes).
+      note  "13 types spawn" reads as 12 spawnable + the SPIKE_MINE dispatch arm — the
+            web game never spawns a spike mine either (plan open question 5).
+      note  "8 formations" = seven `spawn*` formation methods + `spawn_mode_armada`.
+      note  `freeze_all`, `spawn_sequential_gauntlet_wall`, `spawn_rotating_gate`,
+            `spawn_mode_armada` and the gauntlet/code-red director branches have no
+            caller until M4/M10 (`TODO(M4)`/`TODO(M10)` markers).
+      --  NOT run on a phone (A55 off adb all session). See VERIFY-ME.md §M3.
 
 - [ ] **M4 — Weapons**  deps: M2
       -- all 7 weapons activate with radius/duration read from the tuning table

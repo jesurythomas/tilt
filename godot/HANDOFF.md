@@ -5,10 +5,12 @@ Rewritten at every module stop. Written for a session with zero context.
 ## State
 
 Last completed module: **M2 — Vertical slice** (2026-09-20).
-**M2.5 — Mobile feel** — *code complete 2026-09-21, head `37f9fd4`*. **Not ticked** in
-`PORT-PROGRESS.md`: its device pass has not been run. The A55 dropped off adb
-mid-session, so **nothing from M2.5 onward has run on a phone.**
-Current module: **M3 — Enemy roster** — plan written, execution starting.
+**M2.5 — Mobile feel** — *code complete 2026-09-21, head `37f9fd4`*.
+**M3 — Enemy roster** — *code complete 2026-09-21, head `5bb5cc9`*.
+Neither is ticked in `PORT-PROGRESS.md`: their device passes have not been
+run. The A55 dropped off adb mid-session on 2026-09-20 and never came back, so
+**nothing from M2.5 onward has run on a phone.**
+Next module: **M4 — Weapons** (deps: M2 — may start before the device passes).
 Branch: `feat/godot-port` (no upstream; nothing pushed).
 
 > ### ⚠ Read `godot/VERIFY-ME.md`
@@ -22,15 +24,15 @@ Branch: `feat/godot-port` (no upstream; nothing pushed).
 cd /c/Users/Jesury/Documents/Personal/dread-flock
 GODOT="/c/Users/Jesury/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe"
 
-tools/run_tests.sh                        # expect: OK: 24/24 scripts (137 tests, 516 asserts)
-gdformat --check godot/src godot/tests    # expect: 50 files would be left unchanged
+tools/run_tests.sh                        # expect: OK: 30/30 scripts (184 tests)
+gdformat --check godot/src godot/tests    # expect: 56 files would be left unchanged
 gdlint godot/src godot/tests              # expect: Success: no problems found
 grep -rn "DIVERGENCE" godot/src/ | wc -l  # expect: 35
 "$GODOT" --headless --path godot --quit-after 120   # expect: exit 0, no SCRIPT ERROR
 git checkout godot/project.godot          # headless runs strip one default-valued line; never commit that
 ```
 
-Every command above was run fresh at `37f9fd4` and passed.
+Every command above was run fresh at `5bb5cc9` and passed. `grep -rn "TODO(M3)" godot/src/` is empty.
 
 ## App identity and toolchain
 
@@ -138,13 +140,53 @@ fixed headless and re-reviewed clean:
   forbid it. State the rule in every dispatch and require
   `git log -1 --format=%B` pasted back.
 
-## Next: M3 — Enemy roster
+## M3 — what landed
 
-Plan: `docs/superpowers/plans/2026-09-20-m3-enemy-roster.md` (8 tasks; open
-questions 1-7 at its end are ruled on in
-`.superpowers/sdd/2026-09-20-m3-enemy-roster/progress.md`). First step:
-dispatch Task 1 (sweep formations: arrow drone, circle dot, wall dot, spike
-mine) from a clean tree at `37f9fd4` or later. `enemy_swarm.gd` is untouched by
-M2.5, so the plan's line references hold. The one file both modules edit is
-`render/entity_layer.gd` (M3 Task 6 adds per-type shapes on top of M2.5's
-origin transform).
+Plan `docs/superpowers/plans/2026-09-20-m3-enemy-roster.md`; ledger with every
+ruling `.superpowers/sdd/2026-09-20-m3-enemy-roster/progress.md` (git-ignored;
+rulings are summarised below). 10 commits, `ac81d8c..5bb5cc9`.
+
+| Area | Files |
+|---|---|
+| Full `EnemySwarm.ts` port minus `render()` | `src/sim/enemy_swarm.gd` (1384 lines, 38 funcs; `gdlint` `max-public-methods`/`max-file-lines` suppressed at lines 1-2 under LAW 3) |
+| Per-type drawing (`render()` relocated, spec §4.2/D4) | `src/render/entity_layer.gd` — nine `_draw_*` helpers + two `setLineDash` helpers |
+| Tests | `tests/test_enemy_movers.gd`, `test_enemy_turret_snake.gd`, `test_enemy_charger_artillery.gd`, `test_enemy_carrier_pulsar_specter.gd`, `test_enemy_formations.gd`, `test_wave_director.gd`; one spec added to `test_render_layers.gd` |
+| Untouched | `run_controller.gd` (frame order, `swarm.update` at step 5), `types.gd`, `particle_engine.gd`, `project.godot` |
+
+**Rulings on the plan's seven open questions** (all in the ledger):
+`spawn_mode_armada`/`trigger_gauntlet_formation` ported here with `TODO(M10)`
+call-site markers (LAW 3) · all members public in TS order, matching the M2
+precedent — no `_` rename of TS-privates · radial gradients as two flat circles,
+the baked texture is M11's · "8 formations" = 7 `spawn*` + the armada ·
+`spike_mine` has no spawner in the TS and none was invented · the dead
+`freeze_all`/`spawn_sequential_gauntlet_wall`/`spawn_rotating_gate` are ported
+and tested with `TODO(M4)`/`TODO(M10)`.
+
+**Known structural quirk:** the spawner block sits before `update()` and the
+updaters, inherited from M2's ordering; within each group the TS order is
+exact. A future housekeeping commit may reorder the groups and normalise the
+citation layout (nine `## PORT:` lines are folded onto description lines) in
+one mechanical pass — not worth doing piecemeal.
+
+**Final-review fixes (2026-09-21):** the pulsar's eight-point star was built
+without `pos` and would have drawn at the arena origin — fixed (`5bb5cc9`).
+Same class as the two M2.5 transform bugs: after any render edit, grep
+`draw_set_transform(Vector2(` and check every polygon is built relative to the
+entity's position.
+
+**Deferred minors:** interval constants (`0.32+0.12`, `1.35/0.42/0.15`,
+`3.6+1.2`, `13.5/8.5/2.5`, `10.0/5.5/2.0`) and per-branch probabilities are
+pinned by LAW 1 citations only, not by a spec; `time_reduction` is computed
+for the code-red branch that never reads it (as in the TS); `current_score /
+10000` is int division, equal to `Math.floor` for non-negative scores.
+
+## Next: M4 — Weapons
+
+Scope per spec §8 M4: the six remaining weapons in `src/sim/weapon_system.gd`
+(M2 ported `nuke` + orb spawning), `WEAPON_TUNING` parity spec via
+`tools/parity/`, perk-rank effects on radius/duration. Deps: M2 only.
+First step: write `docs/superpowers/plans/2026-09-20-m4-weapons.md` from
+`web/src/tilt-to-live/WeaponSystem.ts` (923 lines) and `WeaponTuning.ts` (87
+lines), read in full, following the M3 plan's form. `freeze_all` in
+`enemy_swarm.gd` is waiting for its M4 caller (`WeaponSystem.ts:542-543`
+freezes inline — decide whether to route through it; either way cite it).
