@@ -186,7 +186,7 @@ func spawn_pulsar(bounds: Vector2, _player_pos: Vector2) -> Types.Enemy:
 ## Spawns a specter enemy at an arena edge.
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:637-667
 func spawn_specter(bounds: Vector2, _player_pos: Vector2) -> Types.Enemy:
-	var edge: int = randi() % 4  # PORT: web/src/tilt-to-live/EnemySwarm.ts:638
+	var edge: int = randi() % 4  # PORT: web/src/tilt-to-live/EnemySwarm.ts:640
 	var margin: float = 20.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:641
 	var x: float = 0.0
 	var y: float = 0.0
@@ -1263,6 +1263,7 @@ func on_enemy_killed(enemy: Types.Enemy, particles: ParticleEngine = null) -> vo
 # inline); ported because spec §8 M3 names it.
 # TODO(M4): the freeze weapon decides whether to route through this.
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:1184-1189
+# PORT: web/src/tilt-to-live/EnemySwarm.ts:1184
 func freeze_all(duration: float = 7.0) -> void:
 	for e: Types.Enemy in enemies:
 		e.frozen = true
