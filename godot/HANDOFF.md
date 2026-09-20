@@ -5,11 +5,34 @@ Rewritten at every module stop. Written for a session with zero context.
 ## State
 
 Last completed module: **M0b — Android toolchain** — complete, 2026-09-20
-Branch: `feat/godot-port`
-Next module: **M1 — Core loop and input** (nothing blocks it)
+Branch: `feat/godot-port` (no upstream; nothing pushed)
+Current module: **M1 — Core loop and input — IN PROGRESS, do not restart it.**
 
-Every command below was run fresh at module close and passed. Nothing here is
-predicted or assumed; every value was read off a command's output.
+> **Read this before writing any code.** M1 is mid-flight, which is unusual for
+> this file — it is normally rewritten only at a module *stop*.
+>
+> 1. **`docs/superpowers/plans/2026-09-20-m1-core-loop-and-input.md`** — the
+>    approved 14-task plan. Tasks 1 and 2 are done and ticked; **resume at
+>    Task 3** (`core/tuning.gd` + the parity harness). Its "Open questions"
+>    section is already resolved — do not re-ask those.
+> 2. **`godot/CONVENTIONS.md`** — normative, read in full. The five port laws
+>    and the nine warnings-as-errors are machine-enforced.
+> 3. **This file's *Open questions*** — one deferred decision is owed before
+>    M3, not now. It is marked BLOCKER on M3 in `PORT-PROGRESS.md`.
+>
+> **The plan's code blocks are drafts, not gospel.** Two were wrong already —
+> a `gdlint` member-order violation and a doc comment contradicting its own
+> code. Diff every block against the TypeScript it cites before typing it in.
+
+Verify the state you are inheriting before adding to it:
+
+```bash
+tools/run_tests.sh                                  # OK: 3/3, 7 tests passing
+gdformat --check godot/src godot/tests && gdlint godot/src godot/tests
+```
+
+Every command below was run fresh and passed. Nothing here is predicted or
+assumed; every value was read off a command's output.
 
 ## App identity
 
@@ -188,12 +211,22 @@ which is where the debug keystore is. Keep it that way: a password committed and
 later removed still lives in git history. `gradle_build/use_gradle_build=false`;
 architectures are **arm64-v8a only**.
 
-## Next module
+## Current module — M1, in progress
 
-**M1 — Core loop and input.** Nothing blocks it. **The plan is written and
-approved:** `docs/superpowers/plans/2026-09-20-m1-core-loop-and-input.md` —
-14 tasks, read it before touching anything. **Tasks 1 and 2 are complete and
-committed, verified green 2026-09-20. Tasks 3-14 remain.**
+**M1 — Core loop and input.** The plan is written and approved:
+`docs/superpowers/plans/2026-09-20-m1-core-loop-and-input.md` — 14 tasks.
+**Tasks 1 and 2 are complete and committed, verified green 2026-09-20.
+Tasks 3-14 remain — resume at Task 3 (`core/tuning.gd` + the parity harness),
+which has not been started.** See *State* at the top for the read order and the
+commands that verify what you are inheriting.
+
+What landed, and the commit for each:
+
+| | |
+|---|---|
+| `src/core/log.gd` + autoload, `tests/test_log.gd` | `55795d7` |
+| `src/core/types.gd`, `tests/test_types.gd` | `bba32fe` |
+| `tools/run_tests.sh` re-imports before GUT | `d784471` |
 
 Two corrections the plan's own code blocks need, both already applied — expect
 more of the same, so diff the plan against the TypeScript rather than typing it
@@ -331,9 +364,14 @@ own preamble.
   while the TypeScript fallback is `?? 0.65` (`EnemySwarm.ts:1517`).
   Nothing in M1 reads any of these fields, so M1 is unaffected and the port was
   left as the approved plan wrote it (Law 2: raise, do not silently fix).
-  **Decide before M3 ports `EnemySwarm.ts`.** The obvious candidate is `NAN`
-  for the float optionals — `is_nan()` is then the exact `=== undefined` test
-  and NAN is never a legal reading — which would change ~12 initialisers here.
+  **Put to the user 2026-09-20 and deliberately deferred — do not re-ask
+  whether to raise it, and do not quietly apply a fix in the meantime.** The
+  decision owed is *which* representation, and it is owed **before M3 ports
+  `EnemySwarm.ts`**, not before the next M1 task. The candidate on the table is
+  `NAN` for the float optionals — `is_nan()` is then the exact `=== undefined`
+  test and NAN is never a legal reading — costing ~12 initialisers in
+  `src/core/types.gd`. Also carried as a BLOCKER line on M3 in
+  `PORT-PROGRESS.md` and as `TODO(M3)` in `src/core/types.gd:27`.
 - **Does Node 24 import `WeaponTuning.ts` directly?** The parity dumper relies
   on native type stripping. M1 Task 3 carries a `tsc` fallback. Unknown until
   that task runs.
