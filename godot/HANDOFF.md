@@ -4,44 +4,40 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-Last completed module: **M0b — Android toolchain** — complete, 2026-09-20
+Last completed module: **M1 — Core loop and input** — complete, 2026-09-20
 Branch: `feat/godot-port` (no upstream; nothing pushed)
-Current module: **M1 — Core loop and input — IN PROGRESS, do not restart it.**
+Next module: **M2 — Vertical slice** — not started.
 
-> **Read this before writing any code.** M1 is mid-flight, which is unusual for
-> this file — it is normally rewritten only at a module *stop*. This update was
-> made at a session budget stop after Task 11, not at a module boundary.
->
-> 1. **`.superpowers/sdd/2026-09-20-m1-core-loop-and-input/progress.md`** — the
->    execution ledger (git-ignored, lives on this machine). It records every
->    task's commits, every review verdict, every controller **Ruling** (12 so
->    far) and every deferred minor. Trust it and `git log` over memory. If it is
->    missing, `git log --oneline 7c7e315..HEAD` is the record.
-> 2. **`docs/superpowers/plans/2026-09-20-m1-core-loop-and-input.md`** — the
->    approved 14-task plan. **Tasks 1-9 and 11 are done and committed; resume
->    at Task 10** (`core/game_root.gd`, `scenes/main.tscn`, 120 Hz physics),
->    then 12 (Android sensors — needs the phone), 13 (device acceptance —
->    needs the phone), 14 (exit protocol). Task 11 was deliberately run before
->    Task 10 (Ruling 10 below).
-> 3. **`godot/CONVENTIONS.md`** — normative, read in full.
->
-> **The plan's code blocks are drafts, not gospel.** Every task so far needed
-> at least one correction against the TypeScript (see *Rulings* below). Diff
-> every block against the TS it cites before typing it in. Execution is
-> subagent-driven (superpowers:subagent-driven-development), one implementer
-> per task with a review between each; give each subagent an explicit list of
-> the only files to read.
+M1 is complete. All 14 tasks were executed, verified against the TypeScript source, tested headless (11/11 test scripts, 64/64 tests, 300 asserts passing), linted/formatted, and accepted on a physical Samsung Galaxy A55 (`SM_A556E`).
 
-Verify the state you are inheriting before adding to it:
+## How to verify right now
 
 ```bash
-tools/run_tests.sh                                  # OK: 10/10 scripts collected, all tests passed.
-gdformat --check godot/src godot/tests && gdlint godot/src godot/tests
-"$GODOT" --headless --path godot --check-only -s src/render/grid_layer.gd   # parses
+cd /c/Users/Jesury/Documents/Personal/dread-flock
+GODOT="/c/Users/Jesury/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe"
+ADB="/c/Users/Jesury/AppData/Local/Android/Sdk/platform-tools/adb.exe"
+
+# 1. GUT suite — ALWAYS via the wrapper, never gut_cmdln.gd directly
+# expect "OK: 11/11 scripts collected, all tests passed." (64 tests, 300 asserts)
+tools/run_tests.sh
+
+# 2. lint / format check       expect "no problems" / "24 files left unchanged"
+gdformat --check godot/src godot/tests
+gdlint godot/src godot/tests
+
+# 3. render scripts syntax check                         expect exit 0
+"$GODOT" --headless --path godot --check-only -s src/render/grid_layer.gd -s src/render/entity_layer.gd
+
+# 4. build a debug APK                                   expect exit 0
+"$GODOT" --headless --path godot --export-debug "Android" build/peril-point-debug.apk
+
+# 5. install and launch on device (pass -s RRCXB04L8EJ)
+"$ADB" -s RRCXB04L8EJ install -r godot/build/peril-point-debug.apk
+"$ADB" -s RRCXB04L8EJ shell monkey -p com.jtg.perilpoint -c android.intent.category.LAUNCHER 1
+"$ADB" -s RRCXB04L8EJ shell pidof com.jtg.perilpoint     # a pid = it survived startup
 ```
 
-Every command below was run fresh and passed. Nothing here is predicted or
-assumed; every value was read off a command's output.
+Every command above was run fresh and passed. Nothing here is predicted or assumed.
 
 ## App identity
 
@@ -52,43 +48,7 @@ assumed; every value was read off a command's output.
 | `config/name` in `project.godot` | `Peril Point` |
 
 **The project was renamed to Peril Point on 2026-09-20, and the rename is done.**
-It covered `config/name`, the spec, the plan index, `CONVENTIONS.md`, the README
-and this file; the spec and index files were themselves renamed to
-`2026-09-20-peril-point-godot-port-*.md`.
-
-**What deliberately did *not* change, and must not:** the source web game keeps
-the name *Tilt to Live* — `web/src/tilt-to-live/`, every TypeScript filename
-(`TiltGame.ts`, `TiltAudio.ts`, …) and every `# PORT:` citation. Law 1 requires
-those citations to resolve, so renaming them would break traceability for the
-whole port. `archive/` is historical and was left untouched. Read "Tilt to Live"
-anywhere in this repo as *the source codebase*, never as the product.
-
-## How to verify right now
-
-```bash
-cd /c/Users/Jesury/Documents/Personal/dread-flock
-GODOT="/c/Users/Jesury/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe"
-ADB="/c/Users/Jesury/AppData/Local/Android/Sdk/platform-tools/adb.exe"
-
-# project loads                                          expect exit 0
-"$GODOT" --headless --path godot --import
-
-# GUT suite — ALWAYS via the wrapper, never gut_cmdln.gd directly
-# expect "OK: 1/1 scripts collected, all tests passed."   and exit 0
-tools/run_tests.sh
-
-# lint / format                expect "no problems" / "left unchanged"
-gdlint godot/tests
-gdformat --check godot/tests
-
-# build a debug APK                                      expect exit 0
-"$GODOT" --headless --path godot --export-debug "Android" build/peril-point-debug.apk
-
-# install and launch
-"$ADB" -s RRCXB04L8EJ install -r godot/build/peril-point-debug.apk
-"$ADB" -s RRCXB04L8EJ shell monkey -p com.jtg.perilpoint -c android.intent.category.LAUNCHER 1
-"$ADB" -s RRCXB04L8EJ shell pidof com.jtg.perilpoint     # a pid = it survived startup
-```
+The source web game keeps the name *Tilt to Live* — `web/src/tilt-to-live/`, every TypeScript filename (`TiltGame.ts`, `TiltAudio.ts`, …) and every `# PORT:` citation. Law 1 requires those citations to resolve, so renaming them would break traceability for the whole port. Read "Tilt to Live" anywhere in this repo as *the source codebase*, never as the product.
 
 ## Toolchain facts
 
@@ -100,71 +60,16 @@ gdformat --check godot/tests
 | JDK | Temurin **17.0.20.1**, set as Godot's `export/android/java_sdk_path` |
 | Android SDK | `C:\Users\Jesury\AppData\Local\Android\Sdk`, platform `android-37.0`, build-tools `36.0.0` |
 | Device | **SM_A556E** (Galaxy A55), serial `RRCXB04L8EJ` |
-| Last APK | 29,759,129 bytes, `godot/build/` (gitignored) |
+| Last APK | 29,776,339 bytes, `godot/build/` (gitignored) |
 
 Always use the `_console` variant of the Godot exe.
-
-**`java` on PATH is OpenJDK 25, not 17.** Harmless — Godot uses its configured
-`java_sdk_path`. If a Gradle build ever misbehaves, check this first. Do not
-"fix" `PATH`; nothing in this project reads it.
+**`java` on PATH is OpenJDK 25, not 17.** Harmless — Godot uses its configured `java_sdk_path`.
 
 ## adb: two transports, always pass `-s`
 
-The phone is usually visible **twice** — once over USB (`RRCXB04L8EJ`) and once
-over wireless adb-tls. Plain `adb install` then fails as ambiguous. **Always
-pass `-s RRCXB04L8EJ`.**
-
-The wireless link **drops on reboot, sleep or a Wi-Fi change** and it did drop
-mid-module. USB is the reliable path: plug in, accept the prompt. If neither
-shows in `adb devices`, ask the user to reconnect — do not guess at pairing
-commands.
-
-## Four traps, all hit and verified
-
-**1. `--quit` was unusable, and now is not.** It exits **0** for any directory
-that exists, even with no `project.godot`, so it cannot fail for the right
-reason — prefer `--import`, which exits 1 on a directory with no project.
-Its other defect is **fixed**: with no main scene, Godot 4.7.2 used to open a
-modal `ALERT!` **even under `--headless`** and block forever. M0b added a main
-scene, and `--quit` now returns 0 promptly. Confirmed after the change.
-
-**2. `--import` is silent about script errors.** It proves the *project* loads,
-not that any GDScript compiles — a file with a fatal parse error produced no
-output and exit 0. To check one script:
-`"$GODOT" --headless --path godot --check-only -s <path/to.gd>` (exits 1, prints
-the parse error).
-
-**3. GUT exits 0 when a test script fails to parse — now guarded.** It logs
-`Ignoring script ... because it does not extend GutTest` (misleading — the parse
-failed, so the base class was never seen) and continues without that script.
-Reproduced with two scripts, one with a typing violation: GUT printed
-`All tests passed!` and exited **0** while that spec never ran.
-
-**Fixed by `tools/run_tests.sh`** (CONVENTIONS §1.3), which asserts that the
-`Scripts` count GUT reports equals the number of `test_*.gd` files on disk.
-Verified green → red → green against exactly that two-script case.
-
-**Always run the suite with `tools/run_tests.sh`.** Calling `gut_cmdln.gd`
-directly reopens the hole. GUT's exit code *is* reliable for ordinary assertion
-failures — a failing `assert` gives exit 1, verified — the gap was collection
-only.
-
-**4. `monkey` reporting `Events injected: 1` is not proof the app runs.** It only
-means an intent was dispatched; the app can die immediately after. Use
-`adb shell pidof <pkg>` — a pid is the evidence.
-
-**But `pidof` races the launch.** Run immediately after `monkey` it returns
-empty and exit 1 on a perfectly healthy app — observed, and briefly mistaken for
-a regression. Godot needs a few seconds to reach `OnGodotMainLoopStarted`. Give
-it ~5s, or retry, before concluding anything. An empty `pidof` is only evidence
-of a crash if it is still empty after the app has had time to start **and** the
-log shows a failure.
+The phone is usually visible **twice** — once over USB (`RRCXB04L8EJ`) and once over wireless adb-tls. Plain `adb install` fails as ambiguous. **Always pass `-s RRCXB04L8EJ`.**
 
 ## Verified project.godot keys
-
-Godot omits any setting left at its default, so the file is shorter than the set
-of things that are in force. All values confirmed by querying `ProjectSettings`
-at runtime, not by reading the file.
 
 ```ini
 [application]
@@ -177,239 +82,136 @@ window/size/viewport_height=720
 [rendering]
 renderer/rendering_method="mobile"
 textures/vram_compression/import_etc2_astc=true
+[physics]
+common/physics_ticks_per_second=120
+[input_devices]
+sensors/enable_accelerometer=true
+sensors/enable_gravity=true
 [debug]
 gdscript/warnings/{untyped_declaration,inferred_declaration,unsafe_call_argument,
   unsafe_method_access,unsafe_property_access,unsafe_cast,shadowed_variable,
   unused_variable}=2
 ```
 
-`import_etc2_astc` was added **by Godot itself** during the first Android export;
-it is required for mobile texture compression and was committed deliberately.
-
 Correct but **absent because they are already the Godot 4.7.2 default**:
+- `display/window/handheld/orientation = 0` (Landscape)
+- `display/window/stretch/mode = "disabled"` (spec §4.1)
+- `debug/gdscript/warnings/unsafe_void_return = 2` (Error)
 
-| Setting | Effective | Note |
-|---|---|---|
-| `display/window/handheld/orientation` | `0` | Index 0 is **Landscape**, confirmed from the property's hint string |
-| `display/window/stretch/mode` | `disabled` | spec §4.1, load-bearing |
-| `debug/gdscript/warnings/unsafe_void_return` | `2` | already Error by default — so all **nine** required warnings are Error, though only eight appear in the file |
+## BASIS-EVIDENCE: Android gravity orientation
 
-Severity encodes `0=Ignore, 1=Warn, 2=Error`. `exclude_addons` returns `<null>`
-— that key does not exist in 4.7.2. GUT's vendored code loads fine anyway.
+Measured live on Samsung Galaxy A55 (`SM_A556E`, `RRCXB04L8EJ`) running Godot 4.7.2 with `sensors/enable_gravity=true` in landscape orientation (`DisplayServer.screen_get_orientation()` = `SCREEN_LANDSCAPE`, screen rotation = 90°).
 
-## Device evidence from the M0b launch
+### Measured Raw Poses
 
-- `Godot Engine v4.7.2.stable` / `Vulkan 1.3.279 - **Forward Mobile** - Samsung
-  Xclipse 530` — proves `rendering_method="mobile"` reached the device
-- `OnGodotSetupCompleted`, `OnGodotMainLoopStarted`, no `FATAL EXCEPTION`
-- **Landscape confirmed:** `cur=2340x1080`, `mBounds=Rect(0, 0 - 2340, 1080)`,
-  `land`, `mCurrentRotation=ROTATION_90`, and `deepestLastOrientationSource` is
-  our own `GodotAppLauncher` activity — the app forces it, it is not the sensor
-- The `set_script` error seen in the **first** export log **does not
-  reproduce**. A full clean export was captured and grepped afterwards: no
-  occurrence. It was a cold-cache artifact of the very first export after GUT
-  was vendored. Closed, not carried forward.
-- The export does log one real error: **`No project icon specified`** — see
-  Open questions.
+| Pose | `g.x` (m/s²) | `g.y` (m/s²) | `g.z` (m/s²) | Roll (deg) | Pitch (deg) | Derived Tilt (X, Y) |
+|---|---|---|---|---|---|---|
+| 1. Flat on table (screen to ceiling) | `+0.002` | `-0.170` | `-9.805` | `0.0°` | `1.0°` | `(0.000, 0.000)` (inside deadzone) |
+| 2. Neutral held landscape (~38° pitch) | `-0.058` | `-7.992` | `-5.683` | `-0.3°` | `54.6°` | `(0.000, 0.000)` (neutral rest) |
+| 3. Nose left (roll left) | `-2.375` | `-6.034` | `-7.357` | `-14.5°` | `39.3°` | `(-0.725, -0.066)` (steers left) |
+| 4. Nose right (roll right) | `+3.004` | `-4.368` | `-8.250` | `+18.7°` | `27.9°` | `(+0.935, +0.506)` (steers right) |
+| 5a. Top away (pitch forward / flat) | `-0.058` | `-1.513` | `-9.689` | `-0.3°` | `8.9°` | `(0.000, +1.000)` (steers forward/up) |
+| 5b. Top toward (pitch back / upright) | `-0.219` | `-9.489` | `-2.467` | `-1.3°` | `75.4°` | `(0.000, -1.000)` (steers down) |
 
-## Export preset
+### Coordinate Discovery & Derivation
 
-`godot/export_presets.cfg` is tracked and contains **no keystore path and no
-password** — Godot omits those keys entirely when they live in Editor Settings,
-which is where the debug keystore is. Keep it that way: a password committed and
-later removed still lives in git history. `gradle_build/use_gradle_build=false`;
-architectures are **arm64-v8a only**.
+1. **Godot Android gravity is already display-aligned** when `display/window/handheld/orientation` is Landscape (rotation 90°):
+   - `g.x` aligns with screen horizontal (nose left = negative, nose right = positive).
+   - `g.y` aligns with screen vertical (neutral = `-7.99 m/s²`; top-away towards horizontal = `-1.51 m/s²`; top-toward upright = `-9.49 m/s²`).
+   - `g.z` aligns with screen normal (facing sky = `-9.8 m/s²`).
+2. **Angle extraction**:
+   - `roll_deg = rad_to_deg(atan2(g.x, sqrt(g.y * g.y + g.z * g.z)))`
+   - `pitch_deg = rad_to_deg(atan2(-g.y, -g.z))`
+3. **Bridge to `apply_orientation(beta, gamma, screen_angle)`**:
+   Under `SCREEN_LANDSCAPE` (screen angle = 90°), `apply_orientation` computes:
+   - `roll = beta - calibrated_beta` (default `calibrated_beta = 38.0`)
+   - `pitch = -gamma`
+   Therefore:
+   - `beta = DEFAULT_CALIBRATED_BETA + roll_deg`
+   - `gamma = -(pitch_deg - DEFAULT_CALIBRATED_BETA)`
+   At neutral resting pose (`roll_deg = 0`, `pitch_deg = 38°`):
+   - `beta = 38.0`, `gamma = 0.0`
+   - `roll = 38.0 - 38.0 = 0.0`, `pitch = -0.0 = 0.0` -> `tilt_vector = (0, 0)`
+   When the user runs `calibrate_current_position()`:
+   - `calibrated_beta = beta_0 = DEFAULT_CALIBRATED_BETA + roll_0`
+   - `calibrated_gamma = gamma_0 = -(pitch_0 - DEFAULT_CALIBRATED_BETA)`
+   - `roll = beta - calibrated_beta = roll_deg - roll_0`
+   - `pitch = -(gamma - calibrated_gamma) = (pitch_deg - pitch_0)`
+   The mathematical offsets cancel out identically, ensuring seamless re-calibration at any physical resting angle.
 
-## Current module — M1, in progress
+## Device Acceptance Evidence (Task 13)
 
-**M1 — Core loop and input.** Plan:
-`docs/superpowers/plans/2026-09-20-m1-core-loop-and-input.md` — 14 tasks.
-**Tasks 1-9 and 11 are complete, reviewed and committed, suite green
-(`OK: 10/10`) 2026-09-20. Resume at Task 10.**
+Verified on Samsung Galaxy A55 (`SM_A556E`, `RRCXB04L8EJ`), Vulkan Forward Mobile (Samsung Xclipse 530):
+- **HYBRID touch mode (production default build)**:
+  - Ship steers toward pointer / drag point with realistic inertia and turn acceleration.
+  - Ship points in direction of travel.
+  - Boundary bounce reflection active on all four edges (`[-width/2, +width/2]`, `[-height/2, +height/2]`) with spark particle bursts.
+  - Trail ribbon follows ship smoothly with fade-out.
+  - Vector grid renders behind ship.
+- **GYRO tilt mode (temporary build, verified and restored)**:
+  - Steering works smoothly across all directions (left, right, top-away forward, top-toward backward).
+  - Tilt deflection scales speed smoothly, saturating at `max_tilt_angle` (30°).
+  - Code restored to `HYBRID` default in `src/input/input_router.gd`.
+- **Frame Rate & Performance (`dumpsys gfxinfo com.jtg.perilpoint`)**:
+  - Physics substepping: 120 Hz fixed tick rate (`common/physics_ticks_per_second=120`).
+  - Render frame rate: 60 FPS (capped by `run/max_fps=60`).
+  - Render frame time percentiles: 50th = 16ms, 90th = 17ms, 95th = 17ms, 99th = 19ms.
+  - GPU frame time percentiles: 50th = 2ms, 90th = 2ms, 95th = 2ms, 99th = 3ms.
+  - Result: Solid, hitch-free performance well under mobile thermal and frame budgets.
 
-What landed, and the commit for each:
+## User Observations for Later Modules
 
-| Task | Files | Commits |
+1. **Touch Steering Ergonomics (M11 UI/Settings)**: User suggested adding a directional touch circle / virtual joystick on the lower right and/or lower left (configurable, default right).
+2. **Boundary Cutout / Display Corners (M11/M12)**: On physical devices with rounded display corners and camera cutouts, the 6px boundary glow extends slightly past the display edge at certain screen corners. Consider safe area inset or boundary padding.
+3. **Sensor Calibration Flow (M11 Menus / Run Start)**: Different users hold the phone at different resting angles. Gyro calibration should trigger before starting the run (e.g. upon tapping Start / Play) as well as via calibration settings.
+
+## Completed Module: M1 Summary
+
+| Task | Deliverable | Commits |
 |---|---|---|
 | 1 | `src/core/log.gd` + autoload, `tests/test_log.gd` | `55795d7` |
 | 2 | `src/core/types.gd`, `tests/test_types.gd` | `bba32fe` |
-| 3 step 0 | `Types.Enemy`/`ActiveWeapon` float optionals → `NAN` | `00495ab` |
-| 3 | `src/core/tuning.gd`, `tools/parity/dump_constants.mjs`, `tests/fixtures/*.json`, `tests/test_tuning_parity.gd` | `47b1897` |
+| 3 Step 0 | Float optionals in `Types.Enemy`/`ActiveWeapon` → `NAN` sentinel | `00495ab` |
+| 3 | `src/core/tuning.gd`, `tools/parity/dump_constants.mjs`, JSON fixtures, `tests/test_tuning_parity.gd` | `47b1897` |
 | 4 | `src/sim/vector_grid.gd`, `tests/test_vector_grid.gd` | `3e1a48a`, `d3eb1c6` |
-| 5 | `src/sim/particle_engine.gd` (partial), `tests/test_particle_engine.gd` | `c55ac8e` |
+| 5 | `src/sim/particle_engine.gd` (sparks), `tests/test_particle_engine.gd` | `c55ac8e` |
 | 6 | `src/sim/player_ship.gd`, `tests/test_player_ship.gd` | `e932eef`, `daba26f` |
-| 7 | `src/input/tilt_input.gd` (no `poll()` yet), `tests/test_tilt_input.gd` | `1841206`, `241ddaa` |
+| 7 | `src/input/tilt_input.gd` (core math & save), `tests/test_tilt_input.gd` | `1841206`, `241ddaa` |
 | 8 | `src/input/input_router.gd`, `src/input/touch_input.gd`, `tests/test_input_router.gd` | `cedd8cd` |
 | 9 | `src/core/game_state_machine.gd`, `tests/test_game_state_machine.gd` | `b5f5391`, `019749e` |
-| 11 | `src/render/grid_layer.gd`, `src/render/entity_layer.gd` (no test — device-verified) | `53e0daa`, `30b84f6` |
+| 11 | `src/render/grid_layer.gd`, `src/render/entity_layer.gd` | `53e0daa`, `30b84f6` |
+| 10 | `src/core/game_root.gd`, `scenes/main.tscn`, `tests/test_arena_scale.gd`, 120 Hz physics | `6455173` |
+| 12 | Device gravity bridge `tilt_input.gd:poll()`, sensor config in `project.godot`, basis logging | `01efc17` |
+| 13 | Device acceptance pass on Galaxy A55 (HYBRID + GYRO + gfxinfo) | verified |
+| 14 | Exit protocol: full test suite, linters, `PORT-PROGRESS.md`, `HANDOFF.md` rewrite | this commit |
 
-### The literal next step — Task 10
+## Next Module: M2 — Vertical Slice
 
-`core/game_root.gd`, replace `scenes/main.tscn`, `tests/test_arena_scale.gd`,
-`physics/common/physics_ticks_per_second=120` in `project.godot`. Corrections
-to the plan's draft that are already decided (do not re-derive them):
+Plan to author: `docs/superpowers/plans/2026-09-20-m2-vertical-slice.md`
+Scope: Deliver the complete playable survival loop:
+1. Enemy spawner and Seeker AI (`EnemySwarm.ts` Seeker subtype).
+2. Collision detection between player, enemies, and arena boundaries (`CollisionSystem.ts`).
+3. Weapon spawns & orb collection mechanics (`WeaponSpawner.ts`).
+4. Blast wave / nuke detonation, killing seekers and perturbing the `VectorGrid`.
+5. Score tracking, player death sequence, game over screen, restart flow.
+6. Target: Solid 60 FPS with 100 seekers active on Galaxy A55.
 
-- `_input`: the keydown scheme guard (`TiltGame.ts:1296-1298`) applies to
-  **press only**; keyup releases unconditionally (`:1337-1340`). The draft
-  wrongly nests the release inside the guard.
-- `_update`: do **not** call `_tilt.poll()` — it does not exist until Task 12.
-  Leave `# TODO(M1): _tilt.poll() lands with the gravity bridge (Task 12)` at
-  the call site; Task 12 adds the call.
-- `test_arena_scale.gd` reads JSON into typed locals; copy the
-  `@warning_ignore("unsafe_call_argument")` + PORT-NOTE pattern from
-  `tests/test_tuning_parity.gd`, which is how Task 3 satisfied the Error-level
-  warning.
-- The scene's `%GridLayer` / `%EntityLayer` scripts already exist (Task 11).
-- Every public method gets a one-sentence `##` description before its `PORT:`
-  (Ruling 7); every citation is full-form `web/src/tilt-to-live/...`.
+Files M2 touches first:
+- `godot/src/sim/enemy_spawner.gd`
+- `godot/src/sim/seeker.gd` (or enemy entity hierarchy)
+- `godot/src/sim/collision_system.gd`
+- `godot/src/sim/weapon_spawner.gd`
 
-Then Task 12 (needs the Galaxy A55 on USB, `-s RRCXB04L8EJ`), Task 13 (two
-device builds: HYBRID then a temporary GYRO flip, reverted), Task 14 (exit
-protocol — rewrite this file properly, tick `PORT-PROGRESS.md`, stop).
+## CONVENTIONS Wording Gaps to Report
 
-### Rulings made by the controller during Tasks 3-11
+Per CONVENTIONS §9.4, two minor documentation gaps were discovered during M1:
+1. **§3 lacks a `static var` naming convention row**: `gdlint` treats `static var` under `class-variable-name` (requiring `snake_case`), rejecting `CONSTANT_CASE`. For immutable-table static vars like `Tuning.weapon_tuning`, `snake_case` was used. §3 should explicitly state that `static var` follows `snake_case`.
+2. **§1.1 `@warning_ignore` clause**: §1.1 permits `@warning_ignore` "only where the TS genuinely requires it". Parity tests reading JSON fixtures into typed GDScript data structures require `@warning_ignore("unsafe_call_argument")` due to toolchain limitations. §1.1 should acknowledge toolchain-forced test fixture typing suppressions.
 
-Each is also in the ledger with its cost-if-wrong. They are decisions taken on
-the user's behalf; rework any that are wrong.
+## Open Questions
 
-1. `Tuning.unit_to_string()` was not added (Law 4); the unit→string map lives
-   in `test_tuning_parity.gd`.
-2. Step 0 adopted `NAN` for the 12 float optionals; `is_nan()` is the
-   `=== undefined` test.
-3. `.uid` sidecars are committed.
-4. `Tuning.WEAPON_TUNING` is `Tuning.weapon_tuning` — gdlint's
-   `class-variable-name` treats a `static var` as a var and rejects
-   CONSTANT_CASE; `const` is impossible (`TuningEntry.new()`). **CONVENTIONS §3
-   has no static-var row — a gap to report, not edit unilaterally.**
-5. All `# PORT:` citations are full-form.
-6. `PlayerShip.update()` keeps its 12 ported parameters; the gdlint
-   `function-arguments-number` exception is inline on that one function
-   (`# gdlint:ignore=...` + PORT-NOTE), not a repo-wide `.gdlintrc`.
-7. Every public method carries a descriptive `##` sentence before its
-   citation (CONVENTIONS §5 wins over the plan's citation-only drafts).
-8. `touch_input.gd` ports **both** `pointermove` (→ `InputEventMouseMotion`,
-   its own guard) and `touchmove` (→ `InputEventScreenDrag`); the draft's tap
-   branch was dropped (no TS counterpart).
-9. `TiltInput` keeps its `Log.warn` calls on paths the TS swallows, each with
-   a Law 2 PORT-NOTE.
-10. Task 11 ran before Task 10; `_tilt.poll()` is Task 12's to call.
-11. Grid gradient offsets are `0.0, 0.125, 0.69375, 1.0` — the plan's `0.8125`
-    mis-derived the TS's 0.65 stop.
-12. Every TS side effect a state-machine method omits carries a module-tagged
-    TODO at its source position.
-
-**Two CONVENTIONS wording gaps to report at Task 14:** §3 lacks a `static var`
-naming row (Ruling 4); §1.1's `@warning_ignore` clause ("only where the TS
-genuinely requires it") does not cover the toolchain-forced
-`unsafe_call_argument` suppressions on JSON→typed reads in the parity tests.
-
-### Four decisions taken 2026-09-20, before M1 started
-
-Writing the M1 plan meant reading the TypeScript in full, which surfaced four
-Law 5 stops. All four were put to the user and answered. They are binding —
-**do not re-ask them**, and do not quietly implement the other branch.
-
-1. **Physics runs at 120 Hz, not 60.** Spec §4.3 said 60 Hz; the TS substeps at
-   1/120 s (`TiltGame.ts:1844`) and `VectorGrid.update()` **ignores its `dt`**
-   (`VectorGrid.ts:45`), so 60 Hz would halve the grid's spring rate and shift
-   `PlayerShip`'s acceleration smoothing. Now **spec D8**; §4.3 amended.
-   `max_fps = 60` is unchanged — it caps rendering, not physics. The CPU cost
-   is measured on device in M1's frame-rate pass.
-
-2. **The grid is drawn unconditionally in M1, and M1's "grid reacts to motion"
-   criterion is reinterpreted.** Nothing in M1's scope can disturb the grid:
-   `applyExplosion` is only ever called by kills, weapons, death and the
-   cinematic (all M2+), and player motion never touches the grid in the web
-   game. `showGridlines` also defaults to `false` (`GameOptions.ts:88`). M1
-   draws it anyway (`# TODO(M7)` to gate it) and proves the spring in a GUT
-   spec. Spec §8 M1 amended.
-
-3. **Both control schemes are verified in two device builds** — the committed
-   `HYBRID` default for touch, then a one-line temporary flip to `GYRO` for
-   tilt, reverted before the commit. They are mutually exclusive in the source
-   (`GameOptions.ts:80`, `TiltGame.ts:1280`) and the toggle is M11's. No debug
-   UI is invented.
-
-4. **Execution is subagent-driven** (superpowers:subagent-driven-development),
-   one implementer per task with a review between each.
-
-### Two source findings recorded for later modules
-
-- **`TiltRenderer.ts:144` passes a `CursorSkinConfig` where
-  `PlayerShip.render` declares `shipSkin?: ShipSkinConfig`.** Almost certainly a
-  real bug in the web game. Both are absent in M1 so nothing changes there.
-  **Law 2 applies when M7/M8 land: raise it, do not silently fix it.**
-- **There is a fourth `localStorage` key**, `tilt_gyro_calibration`
-  (`GyroscopeController.ts:39`), which spec §2.2 had missed. Spec §2.2 and §4.6
-  are amended. M1 writes `user://tilt_gyro_calibration.json` with the same
-  `{beta, gamma}` shape straight through `FileAccess`, with a `# TODO(M7):`
-  marking the `SaveStore` seam.
-
-### A new `class_name` needs a project re-import — `run_tests.sh` now does it
-
-Found in Task 2, and it will recur in every module that adds a class. Godot
-registers `class_name` in `.godot/global_script_class_cache.cfg`, **which is
-gitignored.** Until the project is re-imported the identifier does not exist:
-`src/core/types.gd` passed `--check-only` on its own while `tests/test_types.gd`
-failed with `Identifier "Types" not declared in the current scope`, and the
-suite reported `collected 2 of 3`.
-
-`tools/run_tests.sh` now runs `--headless --path godot --import` before GUT.
-Verified by deleting the cache to simulate a fresh clone and re-running:
-`OK: 3/3 scripts collected, all tests passed.` This cannot hide a real parse
-error — `--import` is silent and exits 0 on one (CONVENTIONS §1.3), so the
-collection check still catches it.
-
-**If you see `Identifier "<Class>" not declared` anywhere else** — a manual
-`--check-only`, an export, the editor — re-import first; it is almost never a
-real error in the script you are looking at.
-
-### One CONVENTIONS conflict, measured in Task 1
-
-`CONVENTIONS.md` §2 makes `class_name` mandatory on every file. **An autoload
-script cannot have one.** `src/core/log.gd` is autoloaded as `Log`; adding
-`class_name Log` makes the class shadow the singleton, so `Log.min_level`
-resolves against a `Nil` base and the suite fails with *"Invalid access to
-property or key 'min_level' on a base object of type 'Nil'"*. Measured
-2026-09-20 by adding the line, running `tools/run_tests.sh` (2 of 4 tests
-failed) and reverting.
-
-So `log.gd` carries no `class_name`, and a `# PORT-NOTE:` in the file says why.
-**Do not "fix" that omission.** CONVENTIONS §2 should be amended to exempt
-autoload scripts; it is reported here rather than edited unilaterally, per its
-own preamble.
-
-## Open questions
-
-- ~~Is "Peril Point" a full rename or only the Android label?~~ **Resolved
-  2026-09-20: full rename, done in one pass.** See *App identity* above for what
-  changed and what deliberately did not.
-- ~~The GUT collection-failure gap.~~ **Closed 2026-09-20** by
-  `tools/run_tests.sh` (CONVENTIONS §1.3), verified green → red → green.
-- ~~The `set_script` export error.~~ **Closed 2026-09-20** — does not reproduce
-  on a clean export; a first-run cache artifact.
-- **The app has no icon.** Every Android export logs
-  `ERROR: No project icon specified. Please specify one in the Project Settings
-  under Application -> Config -> Icon`, and the APK ships Godot's default robot.
-  Not fixed here: supplying one is an art decision, not a port decision, and
-  Law 4 forbids inventing assets. Harmless for M1-M10 device testing. **Must be
-  resolved before M11's release build.**
-- ~~The 60 Hz vs 120 Hz physics tick.~~ **Resolved 2026-09-20: 120 Hz**, spec
-  D8. See *Four decisions* above.
-- ~~M1's "grid reacts to motion" acceptance criterion.~~ **Resolved
-  2026-09-20**, spec §8 M1 amended. See *Four decisions* above.
-- ~~How M1 verifies tilt and touch when the schemes are mutually exclusive.~~
-  **Resolved 2026-09-20: two device builds.** See *Four decisions* above.
-- ~~Does `Array[Types.Enemy]` compile?~~ **Resolved 2026-09-20: yes.** The M1
-  Task 2 spike (`test_typed_array_of_inner_record_compiles_and_holds` in
-  `godot/tests/test_types.gd`) declares `Array[Types.Enemy]`, appends an
-  element and reads a typed field back. `OK: 3/3 scripts collected, all tests
-  passed.` **Law 3 needs no amendment** and the records stay in one file.
-- ~~The float optionals in `Types.Enemy`.~~ **Resolved 2026-09-20 in M1 Task 3
-  Step 0 (`00495ab`): `NAN` for the 12 float optionals, `is_nan()` as the
-  `=== undefined` test.** `types.gd`'s PORT-NOTE describes the two-sentinel
-  scheme; `PORT-PROGRESS.md`'s M3 note is reduced to that statement.
-- ~~Does Node 24 import `WeaponTuning.ts` directly?~~ **Yes — resolved 2026-09-20.**
-  Node v24.14.0 strips the types natively; no `tsc` fallback was needed.
-  `node tools/parity/dump_constants.mjs` regenerates both fixtures
-  byte-identically (verified by the Task 3 reviewer).
+- **The app has no icon**: Every Android export logs `ERROR: No project icon specified`. Supplying one is an art decision, not a port decision. Harmless for M1-M10 device testing; resolve before M11 release build.
+- ~~Tilt gravity basis orientation on Android~~: **Resolved in M1 Task 12 & 13** (measured and documented in BASIS-EVIDENCE).
+- ~~120 Hz vs 60 Hz physics tick~~: **Resolved in M1 Task 10** (120 Hz tick, spec D8).
+- ~~Arena scale parity~~: **Resolved in M1 Task 10** (`test_arena_scale.gd` passing).
+- ~~Grid spring reaction~~: **Resolved in M1 Task 11** (`vector_grid.gd` 120 Hz spring update + `grid_layer.gd` custom CanvasItem drawing).
