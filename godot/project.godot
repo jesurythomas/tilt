@@ -13,6 +13,7 @@ config_version=5
 config/name="Tilt to Live"
 config/features=PackedStringArray("4.7")
 run/max_fps=60
+run/main_scene="res://scenes/main.tscn"
 
 [debug]
 

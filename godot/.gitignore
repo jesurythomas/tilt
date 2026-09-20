@@ -1,0 +1,5 @@
+# Build output — never commit an APK
+build/
+*.apk
+*.aab
+*.idsig
