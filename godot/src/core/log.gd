@@ -1,5 +1,8 @@
 ## log.gd
 ## PORTS: nothing — new file per spec §7; CONVENTIONS §6 bans bare print()
+# PORT-NOTE: no `class_name`, against CONVENTIONS §2. An autoload script cannot
+# carry one: `class_name Log` shadows the `Log` singleton and every call site
+# resolves against a Nil base. Measured, not assumed — see HANDOFF.md.
 extends Node
 ## Leveled logging. Autoloaded as `Log`; the only sanctioned output path in
 ## this project. Not a simulation system, so autoloading it is permitted
