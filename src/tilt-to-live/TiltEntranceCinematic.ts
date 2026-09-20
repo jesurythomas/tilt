@@ -1,5 +1,5 @@
 // =========================================================================
-// TiltEntranceCinematic.ts - Space Invaders March & Hyperspace Warp Cutscene
+// TiltEntranceCinematic.ts - Sleek 600ms 'Cold Open' Entrance System
 // =========================================================================
 
 import { TiltAudio } from './TiltAudio';
@@ -9,19 +9,7 @@ import { VectorGrid } from './VectorGrid';
 import { ParticleEngine } from './ParticleEngine';
 import { TiltRenderer } from './TiltRenderer';
 import { WeaponSystem } from './WeaponSystem';
-
 import { GameMode } from './Types';
-
-interface InvaderUnit {
-  gridCol: number;
-  gridRow: number;
-  x: number;
-  y: number;
-  targetX: number;
-  targetY: number;
-  scatterVx: number;
-  scatterVy: number;
-}
 
 export class TiltEntranceCinematic {
   private readonly audio: TiltAudio;
@@ -29,20 +17,17 @@ export class TiltEntranceCinematic {
   private readonly swarm: EnemySwarm;
   private readonly grid: VectorGrid;
   private readonly particles: ParticleEngine;
-  private readonly renderer: TiltRenderer;
+  public readonly renderer: TiltRenderer;
   private readonly weapons: WeaponSystem;
   private readonly onFinish: () => void;
-  private gameMode: GameMode = 'classic';
 
+  private gameMode: GameMode = 'classic';
   public isPlaying: boolean = false;
   public elapsed: number = 0;
-  public readonly duration: number = 3.2; // 3.2s total
+  public readonly duration: number = 0.6; // 600ms sleek cold open hold
 
   private overlayEl: HTMLElement | null = null;
-  private invaders: InvaderUnit[] = [];
-  private marchStep: number = 0;
-  private nextMarchTime: number = 0;
-  private warpTriggered: boolean = false;
+  private boundSkipHandler: ((e: Event) => void) | null = null;
 
   constructor(
     audio: TiltAudio,
@@ -62,6 +47,7 @@ export class TiltEntranceCinematic {
     this.renderer = renderer;
     this.weapons = weapons;
     this.onFinish = onFinish;
+
     this.overlayEl = document.getElementById('tilt-cinematic-overlay');
   }
 
@@ -69,71 +55,51 @@ export class TiltEntranceCinematic {
     this.gameMode = mode;
     this.isPlaying = true;
     this.elapsed = 0;
-    this.marchStep = 0;
-    this.nextMarchTime = 0.05;
-    this.warpTriggered = false;
 
-    // Update cinematic cutscene titles per mode
-    const titleEl = document.querySelector('.tilt-cinematic-title');
-    const subEl = document.querySelector('.tilt-cinematic-sub');
-    const badgeEl = document.querySelector('.tilt-cinematic-badge');
-
-    if (mode === 'code-red') {
-      if (titleEl) titleEl.textContent = 'CODE RED PROTOCOL';
-      if (subEl) subEl.textContent = '⚠️ EMERGENCY ALERT // HYPER-LETHAL SECTOR';
-      if (badgeEl) badgeEl.textContent = '1.5X SCORE // INSTANT HOSTILE ARMADA';
-      this.audio.playSiren();
-    } else if (mode === 'gauntlet') {
-      if (titleEl) titleEl.textContent = 'THE GAUNTLET';
-      if (subEl) subEl.textContent = '⚠️ DESCENDING WALL MAZE // FIND THE GAPS';
-      if (badgeEl) badgeEl.textContent = '1.25X MULTIPLIER // SURVIVAL SCORE ACCELERATION';
-      this.audio.playGauntletKlaxon();
-    } else {
-      if (titleEl) titleEl.textContent = 'SPACE INVADERS DETECTED';
-      if (subEl) subEl.textContent = 'RED DOT FLEET INCOMING // SECTOR 01';
-      if (badgeEl) badgeEl.textContent = '1.0X SCORE // TILT TO SURVIVE';
-    }
-
-    if (this.overlayEl) {
-      this.overlayEl.classList.remove('hidden');
-    }
-
-    // Clear active swarm for cinematic
+    // Reset arena state for clean match launch
     this.swarm.reset();
     this.weapons.reset();
 
-    // Position player ship in lower center
+    // Center player ship pointing up
     const cx = width / 2;
-    const cy = height / 2 + 100;
+    const cy = height / 2;
     this.player.reset(cx, cy);
+    this.player.angle = -Math.PI / 2;
 
-    // Build 6x4 Space Invader formation centered in upper half
-    this.invaders = [];
-    const cols = 6;
-    const rows = 4;
-    const spacingX = 46;
-    const spacingY = 36;
-    const startX = cx - ((cols - 1) * spacingX) / 2;
-    const startY = height * 0.22;
+    // Grid ripple and particles at launch origin
+    this.grid.applyExplosion(cx, cy, 260, 60);
+    this.particles.emitExplosion(cx, cy, '#5B8CFF', 24);
 
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        const x = startX + c * spacingX;
-        const y = startY + r * spacingY;
-        // Pre-compute outward scatter velocity
-        const angle = Math.atan2(y - height * 0.4, x - cx) + (Math.random() * 0.4 - 0.2);
-        const speed = 260 + Math.random() * 180;
-        this.invaders.push({
-          gridCol: c,
-          gridRow: r,
-          x,
-          y,
-          targetX: x,
-          targetY: y,
-          scatterVx: Math.cos(angle) * speed,
-          scatterVy: Math.sin(angle) * speed
-        });
-      }
+    // Audio cue
+    this.audio.playWarpIn();
+
+    // Update overlay with Board 08 'Cold Open' DOM layout
+    if (this.overlayEl) {
+      this.overlayEl.innerHTML = `
+        <div class="tilt-cold-open-root">
+          <div class="cold-open-glow"></div>
+          <div class="cold-open-center">
+            <svg class="cold-open-ship-svg" width="72" height="72" viewBox="0 0 72 72" fill="none" aria-hidden="true">
+              <path d="M62 36 L20 13 L28 36 L20 59 Z" fill="#5B8CFF"></path>
+            </svg>
+            <h1 class="cold-open-title">TILT TO LIVE</h1>
+          </div>
+          <div class="cold-open-bar-wrapper">
+            <div class="cold-open-progress-track">
+              <div id="cold-open-bar-fill" class="cold-open-progress-fill" style="width: 0%;"></div>
+            </div>
+          </div>
+        </div>
+      `;
+      this.overlayEl.classList.remove('hidden');
+
+      // Immediate skip on click, touch or tap
+      this.boundSkipHandler = (e: Event) => {
+        e.preventDefault();
+        this.skip(width, height);
+      };
+      this.overlayEl.addEventListener('click', this.boundSkipHandler, { once: true });
+      this.overlayEl.addEventListener('touchstart', this.boundSkipHandler, { once: true, passive: false });
     }
   }
 
@@ -141,88 +107,20 @@ export class TiltEntranceCinematic {
     if (!this.isPlaying) return false;
 
     this.elapsed += dt;
-    const t = this.elapsed;
-    const cx = width / 2;
-    const cy = height / 2 + 100;
+    const progress = Math.min(1.0, this.elapsed / this.duration);
 
-    // -----------------------------------------------------------------------
-    // STAGE 1: Space Invader March (0.0s - 1.2s)
-    // -----------------------------------------------------------------------
-    if (t < 1.2) {
-      if (t >= this.nextMarchTime && this.marchStep < 4) {
-        this.audio.playSpaceInvaderStep(this.marchStep);
+    // Update progress bar
+    const fillEl = document.getElementById('cold-open-bar-fill');
+    if (fillEl) {
+      fillEl.style.width = `${Math.round(progress * 100)}%`;
+    }
 
-        // Step offsets: Right, Right, Down, Left
-        let dx = 0;
-        let dy = 0;
-        if (this.marchStep === 0 || this.marchStep === 1) dx = 24;
-        else if (this.marchStep === 2) dy = 26;
-        else if (this.marchStep === 3) dx = -24;
+    // Keep player oriented and in place
+    this.player.x = width / 2;
+    this.player.y = height / 2;
+    this.player.angle = -Math.PI / 2;
 
-        for (const inv of this.invaders) {
-          inv.targetX += dx;
-          inv.targetY += dy;
-        }
-
-        // Ripple grid under invaders
-        const marchCenterY = height * 0.25 + this.marchStep * 8;
-        this.grid.applyExplosion(cx, marchCenterY, 180, 45);
-
-        this.marchStep++;
-        this.nextMarchTime += 0.28;
-      }
-
-      // Smooth step slide
-      for (const inv of this.invaders) {
-        inv.x += (inv.targetX - inv.x) * Math.min(1.0, dt * 14);
-        inv.y += (inv.targetY - inv.y) * Math.min(1.0, dt * 14);
-      }
-
-    } else if (t < 2.0) {
-      // -----------------------------------------------------------------------
-      // STAGE 2: Player Hyperspace Warp-In (1.2s - 2.0s)
-      // -----------------------------------------------------------------------
-      if (!this.warpTriggered) {
-        this.warpTriggered = true;
-        this.audio.playInvasionAlarm();
-        this.audio.playWarpIn();
-        this.renderer.triggerShake(14);
-        this.grid.applyExplosion(cx, cy, 320, 110);
-        this.particles.emitExplosion(cx, cy, '#00f0ff', 40);
-      }
-
-      const warpProgress = (t - 1.2) / 0.8;
-
-      // Ship angle spins into alignment pointing up towards armada
-      this.player.angle = -Math.PI / 2 + (1.0 - warpProgress) * Math.PI * 2;
-      this.player.x = cx;
-      this.player.y = cy;
-
-      // Spawn engine wake sparks
-      this.particles.emitSparks(cx, cy + 15, 2, '#00e5ff', 40);
-
-    } else if (t < this.duration) {
-      // -----------------------------------------------------------------------
-      // STAGE 3: Armada Scatter & "READY... GO!" (2.0s - 3.2s)
-      // -----------------------------------------------------------------------
-      this.player.angle = -Math.PI / 2;
-
-      // Invaders scatter across the playfield
-      for (const inv of this.invaders) {
-        inv.x += inv.scatterVx * dt;
-        inv.y += inv.scatterVy * dt;
-        // Bounce on boundary during scatter
-        if (inv.x < 30 || inv.x > width - 30) inv.scatterVx *= -1;
-        if (inv.y < 30 || inv.y > height - 30) inv.scatterVy *= -1;
-      }
-
-      // Spawn starter weapon orb if not yet spawned
-      if (this.weapons.orbs.length === 0) {
-        this.weapons.spawnOrb({ width, height }, 'nuke', cx, height * 0.45);
-      }
-
-    } else {
-      // Cinematic finished!
+    if (this.elapsed >= this.duration) {
       this.finish(width, height);
       return true;
     }
@@ -233,89 +131,43 @@ export class TiltEntranceCinematic {
   public render(ctx: CanvasRenderingContext2D, width: number, height: number) {
     if (!this.isPlaying) return;
 
-    const t = this.elapsed;
+    const cx = width / 2;
+    const cy = height / 2;
+    const progress = Math.min(1.0, this.elapsed / this.duration);
 
-    // 1. Draw Space Invaders Formation (Stages 1 & 2) or Scattered (Stage 3)
-    for (const inv of this.invaders) {
-      ctx.save();
-      ctx.translate(inv.x, inv.y);
+    // Canvas background radial wash
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(width, height) * 0.55);
+    grad.addColorStop(0, 'rgba(91, 140, 255, 0.08)');
+    grad.addColorStop(0.75, 'rgba(8, 9, 14, 0.95)');
+    grad.addColorStop(1, '#08090E');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
 
-      // Glowing red invader body
-      ctx.shadowColor = '#ff2050';
-      ctx.shadowBlur = 12;
-      ctx.fillStyle = '#ff3366';
+    // Render ship vector on canvas as backup/underlay
+    ctx.save();
+    ctx.translate(cx, cy - 30);
+    ctx.shadowColor = 'rgba(91, 140, 255, 0.85)';
+    ctx.shadowBlur = 24;
+    ctx.fillStyle = '#5B8CFF';
+    ctx.beginPath();
+    ctx.moveTo(0, -32);
+    ctx.lineTo(22, 28);
+    ctx.lineTo(0, 16);
+    ctx.lineTo(-22, 28);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
 
-      // Retro Space Invader Glyph (stylized vector crab)
-      ctx.beginPath();
-      ctx.arc(0, 0, 7, 0, Math.PI * 2);
-      ctx.fill();
+    // 200px thin progress bar on canvas
+    const barW = 200;
+    const barH = 2;
+    const barX = (width - barW) / 2;
+    const barY = height - 120;
 
-      // Invader Horns / Antennas
-      ctx.strokeStyle = '#ff7090';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(-4, -6);
-      ctx.lineTo(-7, -11);
-      ctx.moveTo(4, -6);
-      ctx.lineTo(7, -11);
-      // Feet
-      const legPhase = Math.sin(t * 8) > 0;
-      if (legPhase) {
-        ctx.moveTo(-4, 6);
-        ctx.lineTo(-7, 10);
-        ctx.moveTo(4, 6);
-        ctx.lineTo(7, 10);
-      } else {
-        ctx.moveTo(-4, 6);
-        ctx.lineTo(-3, 10);
-        ctx.moveTo(4, 6);
-        ctx.lineTo(3, 10);
-      }
-      ctx.stroke();
-
-      // Yellow glowing eye slits
-      ctx.fillStyle = '#ffea00';
-      ctx.fillRect(-3, -2, 2, 2);
-      ctx.fillRect(1, -2, 2, 2);
-
-      ctx.restore();
-    }
-
-    // 2. Hyperspace Warp Vector Rings (Stage 2)
-    if (t >= 1.2 && t < 2.2) {
-      const cx = width / 2;
-      const cy = height / 2 + 100;
-      const progress = (t - 1.2) / 1.0;
-      const radius = progress * 140;
-
-      ctx.save();
-      ctx.strokeStyle = `rgba(0, 240, 255, ${Math.max(0, 1 - progress)})`;
-      ctx.lineWidth = 3;
-      ctx.shadowColor = '#00f0ff';
-      ctx.shadowBlur = 16;
-      ctx.beginPath();
-      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-      ctx.stroke();
-
-      ctx.beginPath();
-      ctx.arc(cx, cy, radius * 0.6, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    // 3. "READY... GO!" Arcade Callout (Stage 3)
-    if (t >= 2.0 && t < this.duration) {
-      ctx.save();
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.font = '800 48px "Cabinet Grotesk", sans-serif';
-      ctx.fillStyle = '#00f0ff';
-      ctx.shadowColor = '#00f0ff';
-      ctx.shadowBlur = 24;
-      const calloutText = t < 2.6 ? 'READY...' : 'GO!';
-      ctx.fillText(calloutText, width / 2, height / 2);
-      ctx.restore();
-    }
+    ctx.fillStyle = '#1B2029';
+    ctx.fillRect(barX, barY, barW, barH);
+    ctx.fillStyle = '#5B8CFF';
+    ctx.fillRect(barX, barY, barW * progress, barH);
   }
 
   public skip(width: number, height: number) {
@@ -324,36 +176,46 @@ export class TiltEntranceCinematic {
   }
 
   private finish(width: number, height: number) {
+    if (!this.isPlaying) return;
     this.isPlaying = false;
 
+    // Clean up overlay element
     if (this.overlayEl) {
       this.overlayEl.classList.add('hidden');
+      if (this.boundSkipHandler) {
+        this.overlayEl.removeEventListener('click', this.boundSkipHandler);
+        this.overlayEl.removeEventListener('touchstart', this.boundSkipHandler);
+        this.boundSkipHandler = null;
+      }
     }
 
-    // Convert cinematic into initial mode-specific armada
+    // Initialize mode-specific arena armada
     this.swarm.reset();
 
     if (this.gameMode === 'code-red') {
-      // 24-dot perimeter armada closing in immediately + Vortex and Nuke
       this.swarm.spawnModeArmada('code-red', { width, height }, { x: this.player.x, y: this.player.y });
       this.weapons.spawnOrb({ width, height }, 'vortex', width / 2 - 80, height * 0.45);
       this.weapons.spawnOrb({ width, height }, 'nuke', width / 2 + 80, height * 0.45);
     } else if (this.gameMode === 'gauntlet') {
-      // Normal seeker swarm + initial weapon orb
       this.swarm.spawnModeArmada('gauntlet', { width, height }, { x: this.player.x, y: this.player.y });
       this.weapons.spawnOrb({ width, height }, 'nuke', width / 2, height * 0.45);
     } else {
-      // Classic: standard 8 seekers + 1 nuke
-      for (let i = 0; i < Math.min(8, this.invaders.length); i++) {
-        const inv = this.invaders[i];
-        const safeX = Math.max(40, Math.min(width - 40, inv.x));
-        const safeY = Math.max(40, Math.min(height - 40, inv.y));
-        this.swarm.spawnSeeker({ width, height }, safeX, safeY);
+      // Standard: 8 initial seeker dots in safe radius + 1 nuke
+      const count = 8;
+      const radius = 260;
+      for (let i = 0; i < count; i++) {
+        const ang = (i / count) * Math.PI * 2;
+        const x = Math.max(40, Math.min(width - 40, width / 2 + Math.cos(ang) * radius));
+        const y = Math.max(40, Math.min(height - 40, height / 2 + Math.sin(ang) * radius));
+        this.swarm.spawnSeeker({ width, height }, x, y);
       }
       this.weapons.spawnOrb({ width, height }, 'nuke', width / 2, height * 0.45);
     }
 
+    // Player invulnerability shield buffer on spawn
     this.player.activateShield(2.5);
+
+    // Seamless handover to playing phase
     this.onFinish();
   }
 }

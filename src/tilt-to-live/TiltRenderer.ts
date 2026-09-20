@@ -58,14 +58,15 @@ export class TiltRenderer {
 
     // 1. Arena Background (Themed by gameMode or equipped Arena Theme)
     let bgColors: [string, string, string] = ['#100c1e', '#090712', '#040308'];
-    let gridColor = 'rgba(0, 220, 255, 0.28)';
-    let boundaryCol = 'rgba(0, 220, 255, 0.45)';
+    let gridColor = 'rgba(91, 140, 255, 0.28)';
+    let boundaryCol = 'rgba(91, 140, 255, 0.45)';
 
     if (gameMode === 'code-red') {
       const alertPulse = 0.5 + 0.5 * Math.sin(elapsed * 4);
-      bgColors = ['#2e050c', '#160205', '#080102'];
-      gridColor = `rgba(255, 30, 50, ${0.32 + 0.1 * alertPulse})`;
-      boundaryCol = `rgba(255, 42, 75, ${0.65 + 0.25 * alertPulse})`;
+      // Plasma / deep void atmosphere (Color discipline: hazard red is quarantined strictly to hostile dots)
+      bgColors = ['#180e28', '#0c0716', '#05030a'];
+      gridColor = `rgba(167, 139, 250, ${0.28 + 0.08 * alertPulse})`;
+      boundaryCol = `rgba(167, 139, 250, ${0.55 + 0.2 * alertPulse})`;
     } else if (gameMode === 'gauntlet') {
       bgColors = ['#221403', '#110a01', '#060301'];
       gridColor = 'rgba(255, 170, 0, 0.35)';
@@ -97,13 +98,12 @@ export class TiltRenderer {
       grid.render(ctx, gridColor);
     }
 
-    // 3. Mode-Specific Atmosphere Overlays
+    // 3. Mode-Specific Atmosphere Overlays (Color discipline: #FF4757 quarantined to hostile dots)
     if (gameMode === 'code-red') {
-      // Crimson alert vignette
       const alertPulse = 0.5 + 0.5 * Math.sin(elapsed * 4);
       const vig = ctx.createRadialGradient(width / 2, height / 2, width * 0.35, width / 2, height / 2, width * 0.75);
-      vig.addColorStop(0, 'rgba(255, 0, 40, 0)');
-      vig.addColorStop(1, `rgba(255, 0, 40, ${0.12 * alertPulse})`);
+      vig.addColorStop(0, 'rgba(167, 139, 250, 0)');
+      vig.addColorStop(1, `rgba(167, 139, 250, ${0.10 * alertPulse})`);
       ctx.fillStyle = vig;
       ctx.fillRect(0, 0, width, height);
     } else if (gameMode === 'gauntlet') {
@@ -131,34 +131,27 @@ export class TiltRenderer {
       gauntletMaze.render(ctx, { width, height }, elapsed);
     }
 
-    // 5. Floating Weapon Orbs & Active Weapons
+    // 5. Floating Weapon Orbs & Active Weapons (Bloom / canvas glow preserved)
     weapons.render(ctx, elapsed);
 
-    // 6. Red Dot Enemies (Themed by equipped skin and gameMode)
+    // 6. Red Dot Enemies (Themed by equipped skin and gameMode; highContrastHalo respected)
     swarm.render(ctx, elapsed, enemySkin, highContrastHalo, gameMode);
 
     // 7. Particle Explosions & Shards
     particles.render(ctx);
 
-    // 8. Player Ship (Themed by equipped Ship Model)
+    // 8. Player Ship (Themed by equipped Ship Model; bloom on shield & thruster glow preserved)
     player.render(ctx, elapsed, cursorSkin);
 
-    // 9. Mouse Location Guidance Reticle (Themed by equipped Cursor Skin)
+    // 9. Mouse Location Guidance Reticle (Themed by equipped Cursor Skin; tetherLine respected)
     if (!player.isDead && controlMode === 'mouse') {
       this.renderMouseReticle(ctx, mousePos, player, elapsed, cursorSkin, tetherLine);
     }
 
-    // 10. Floating Score & Combo Milestone Texts
+    // 10. Floating Score & Combo Milestone Texts (Strict color discipline)
     scores.renderFloatingTexts(ctx);
 
-    // 11. Multiplier Dial & Corner HUD
-    this.renderInGameHUD(ctx, width, height, scores, player, elapsed, gameMode);
-
-    // 12. Mode Announcement Banner during first 2.8 seconds
-    if (elapsed < 2.8) {
-      this.renderModeAnnouncementBanner(ctx, width, height, gameMode, elapsed);
-    }
-
+    // Finding 6 Fix: Nothing painted over arena centre; HUD is cleanly managed by DOM in-run HUD without collision
     ctx.restore();
   }
 
@@ -166,14 +159,21 @@ export class TiltRenderer {
     ctx: CanvasRenderingContext2D,
     width: number,
     height: number,
+    player: PlayerShip,
+    swarm: EnemySwarm,
+    weapons: WeaponSystem,
     grid: VectorGrid,
     particles: ParticleEngine,
-    mousePos: Point2D,
-    _elapsed: number,
+    elapsed: number,
+    cursorSkin?: CursorSkinConfig,
+    enemySkin?: EnemySkinConfig,
     arenaTheme?: ArenaThemeConfig,
-    showGridlines: boolean = false
+    showGridlines: boolean = false,
+    highContrastHalo: boolean = true
   ) {
-    // 1. Arena Background
+    ctx.save();
+
+    // 1. Arena Background Gradient
     const bg = ctx.createRadialGradient(
       width / 2,
       height / 2,
@@ -194,16 +194,30 @@ export class TiltRenderer {
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, width, height);
 
-    // 2. Vector Grid (only if enabled)
+    // 2. Vector Grid (if enabled)
     if (showGridlines) {
       grid.render(ctx, arenaTheme?.gridColor);
     }
 
-    // 3. Subtle ambient disturbance from mouse
-    grid.applyExplosion(mousePos.x, mousePos.y, 0.4, 45);
+    // 3. Perimeter Boundary Hairline
+    const boundaryCol = arenaTheme?.boundaryColor || 'rgba(91, 140, 255, 0.35)';
+    ctx.strokeStyle = boundaryCol;
+    ctx.lineWidth = 2.0;
+    ctx.strokeRect(6, 6, width - 12, height - 12);
 
-    // 4. Ambient floating particles
+    // 4. Floating Weapon Orbs & Active Weapon Visuals
+    weapons.render(ctx, elapsed);
+
+    // 5. Red Dot Enemies (themed with equipped enemy variation)
+    swarm.render(ctx, elapsed, enemySkin, highContrastHalo, 'classic');
+
+    // 6. Particle FX (sparkles, thruster plumes, explosion shockwaves)
     particles.render(ctx);
+
+    // 7. Autopilot Player Ship
+    player.render(ctx, elapsed, cursorSkin);
+
+    ctx.restore();
   }
 
   private renderMouseReticle(
@@ -221,9 +235,9 @@ export class TiltRenderer {
     if (dist < 1) return; // Keep reticle visible
 
     const skinId = cursorSkin?.id || 'classic';
-    const primary = cursorSkin?.primaryColor || '#00ddff';
-    const accent = cursorSkin?.accentColor || '#00ffee';
-    const tetherColor = cursorSkin?.tetherColor || 'rgba(0, 220, 255, 0.2)';
+    const primary = cursorSkin?.primaryColor || '#5B8CFF';
+    const accent = cursorSkin?.accentColor || '#8FB0FF';
+    const tetherColor = cursorSkin?.tetherColor || 'rgba(91, 140, 255, 0.2)';
 
     // 1. Custom Tether Line toward ship (if enabled in options)
     if (tetherLine && dist > 30) {
@@ -438,7 +452,7 @@ export class TiltRenderer {
     ctx.restore();
   }
 
-  private renderInGameHUD(
+  public renderInGameHUD(
     ctx: CanvasRenderingContext2D,
     width: number,
     _height: number,
@@ -449,54 +463,54 @@ export class TiltRenderer {
   ) {
     ctx.save();
 
-    // Multiplier Badge (Top Left under Score)
+    // Multiplier Badge (Top Left under Score) - Ion blue tint, NEVER in hazard red
     const mult = scores.stats.multiplier;
-    const multColor = mult > 10 ? '#ff0055' : mult > 5 ? '#ffaa00' : '#00ffee';
+    const multColor = '#5B8CFF';
 
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
 
     const badgeW = 96;
     const badgeH = 24;
-    ctx.fillStyle = 'rgba(10, 8, 18, 0.75)';
-    ctx.strokeStyle = multColor;
-    ctx.lineWidth = 1.5;
+    ctx.fillStyle = 'rgba(20, 24, 33, 0.85)';
+    ctx.strokeStyle = 'rgba(91, 140, 255, 0.45)';
+    ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.roundRect(20, 72, badgeW, badgeH, 4);
     ctx.fill();
     ctx.stroke();
 
-    ctx.font = '800 12px "Unbounded", sans-serif';
+    ctx.font = '600 12px "IBM Plex Mono", monospace';
     ctx.fillStyle = multColor;
-    ctx.fillText(`${mult}X MULT`, 28, 77);
+    ctx.fillText(`${mult}× CHAIN`, 28, 77);
 
     // Kills counter next to badge
-    ctx.font = '600 11px "DM Mono", monospace';
-    ctx.fillStyle = 'rgba(230, 222, 210, 0.65)';
+    ctx.font = '500 11px "IBM Plex Mono", monospace';
+    ctx.fillStyle = '#7A8397';
     ctx.fillText(`KILLS: ${scores.stats.kills}`, 128, 77);
 
     // Shield remaining indicator if active
     if (player.hasShield()) {
       const shieldSecs = player.shieldTimer.toFixed(1);
       ctx.textAlign = 'center';
-      ctx.font = '700 11px "Unbounded", sans-serif';
-      ctx.fillStyle = '#00ffcc';
+      ctx.font = '500 11px "IBM Plex Mono", monospace';
+      ctx.fillStyle = '#5B8CFF';
       ctx.fillText(`SHIELD: ${shieldSecs}s`, width / 2, 52);
 
       // Duration bar
       const barWidth = 120;
-      const barHeight = 4;
+      const barHeight = 3;
       const fill = (player.shieldTimer / 6.0) * barWidth;
-      ctx.fillStyle = 'rgba(0, 40, 30, 0.6)';
+      ctx.fillStyle = '#1B2029';
       ctx.fillRect(width / 2 - barWidth / 2, 66, barWidth, barHeight);
-      ctx.fillStyle = '#00ffcc';
+      ctx.fillStyle = '#5B8CFF';
       ctx.fillRect(width / 2 - barWidth / 2, 66, fill, barHeight);
     }
 
     ctx.restore();
   }
 
-  private renderModeAnnouncementBanner(
+  public renderModeAnnouncementBanner(
     ctx: CanvasRenderingContext2D,
     width: number,
     _height: number,
@@ -511,19 +525,19 @@ export class TiltRenderer {
 
     let title = 'CLASSIC SURVIVAL';
     let sub = 'STANDARD 1.0X SCORE // THE NEON ARENA';
-    let color = '#00ddff';
-    let boxBg = 'rgba(0, 40, 60, 0.88)';
+    let color = '#5B8CFF';
+    let boxBg = 'rgba(20, 24, 33, 0.92)';
 
     if (gameMode === 'code-red') {
-      title = '⚠️ CODE RED PROTOCOL';
+      title = 'CODE RED PROTOCOL';
       sub = '1.5X SCORE // INSTANT HYPER-SWARM AMBUSH';
-      color = '#ff2a4b';
-      boxBg = 'rgba(60, 10, 20, 0.92)';
+      color = '#A78BFA'; // Plasma purple, never hazard red
+      boxBg = 'rgba(26, 18, 38, 0.92)';
     } else if (gameMode === 'gauntlet') {
-      title = '🚧 THE GAUNTLET';
+      title = 'THE GAUNTLET';
       sub = '1.25X MULTIPLIER // DESCENDING WALL MAZE';
-      color = '#ffaa00';
-      boxBg = 'rgba(50, 35, 10, 0.92)';
+      color = '#FFB14D';
+      boxBg = 'rgba(38, 28, 16, 0.92)';
     }
 
     const boxW = Math.min(460, width - 32);
@@ -532,19 +546,19 @@ export class TiltRenderer {
 
     ctx.fillStyle = boxBg;
     ctx.strokeStyle = color;
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.roundRect(width / 2 - boxW / 2, boxY, boxW, boxH, 8);
+    ctx.roundRect(width / 2 - boxW / 2, boxY, boxW, boxH, 6);
     ctx.fill();
     ctx.stroke();
 
     const isNarrow = width < 480;
-    ctx.font = isNarrow ? '800 11px "Unbounded", sans-serif' : '800 13px "Unbounded", sans-serif';
+    ctx.font = isNarrow ? '700 12px "Archivo", sans-serif' : '700 14px "Archivo", sans-serif';
     ctx.fillStyle = color;
     ctx.fillText(title, width / 2, boxY + 16);
 
-    ctx.font = isNarrow ? '600 9px "DM Mono", monospace' : '600 10.5px "DM Mono", monospace';
-    ctx.fillStyle = '#ffffff';
+    ctx.font = isNarrow ? '500 9.5px "IBM Plex Mono", monospace' : '500 11px "IBM Plex Mono", monospace';
+    ctx.fillStyle = '#99A1B3';
     ctx.fillText(sub, width / 2, boxY + 32);
 
     ctx.restore();

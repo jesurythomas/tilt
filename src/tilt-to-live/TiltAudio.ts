@@ -499,6 +499,37 @@ export class TiltAudio {
     osc.stop(now + 0.14);
   }
 
+  // Coin pickup: quiet, bright two-note chime distinct from playOrbPickup's
+  // single sine sweep - it needs to fire often (coins are frequent) without
+  // becoming annoying, so it's short and lower-gain than the other cues.
+  public playCoinPickup() {
+    if (!this.ctx || !this.sfxGain || this.muted) return;
+    const now = this.ctx.currentTime;
+
+    const osc1 = this.ctx.createOscillator();
+    const gain1 = this.ctx.createGain();
+    osc1.type = 'triangle';
+    osc1.frequency.setValueAtTime(988, now); // B5
+    gain1.gain.setValueAtTime(0.14, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+    osc1.connect(gain1);
+    gain1.connect(this.sfxGain);
+    osc1.start(now);
+    osc1.stop(now + 0.09);
+
+    const osc2 = this.ctx.createOscillator();
+    const gain2 = this.ctx.createGain();
+    osc2.type = 'triangle';
+    osc2.frequency.setValueAtTime(1318, now + 0.06); // E6
+    gain2.gain.setValueAtTime(0.001, now + 0.06);
+    gain2.gain.linearRampToValueAtTime(0.12, now + 0.07);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+    osc2.connect(gain2);
+    gain2.connect(this.sfxGain);
+    osc2.start(now + 0.06);
+    osc2.stop(now + 0.17);
+  }
+
   public playNuke() {
     if (!this.ctx || !this.sfxGain || this.muted) return;
     const now = this.ctx.currentTime;

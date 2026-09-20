@@ -1,0 +1,2376 @@
+/* =========================================================================
+   Tilt to Live — "Modern Space" stylesheet
+   -------------------------------------------------------------------------
+   Rules this sheet enforces (SPEC §0):
+     1. --hazard / #FF4757 / any red is for ENEMIES AND DEATH ONLY. The single
+        place red appears below is `.armory-dot.dot-classic`, the preview
+        swatch that depicts the crimson enemy skin. No chrome — no border,
+        badge, mode name, score or button — is ever red.
+     2. No glow on UI chrome. No coloured box-shadow, no text-shadow, no
+        filter: drop-shadow anywhere. The only shadow in this file is the
+        neutral `0 32px 80px rgba(0,0,0,0.6)` on modals and sheets.
+     3. Monospace is for numerals only. Prose uses the sans stack. Uppercase +
+        letter-spacing appears only on 10–11px mono micro-labels.
+   Section map:
+     1  Tokens                     9  Overlay + modal base
+     2  Reset, utilities, icons   10  Pause overlay
+     3  Stage + canvas            11  Game over
+     4  Controls (buttons etc.)   12  Settings modal
+     5  In-run HUD                13  All-milestones modal
+     6  Shield readout            14  Armory
+     7  Milestones (rail/list)    15  Cinematic
+     8  Menu screen               16  Responsive
+   ========================================================================= */
+
+/* =========================================================================
+   1. TOKENS
+   ========================================================================= */
+:root {
+  /* Grounds and surfaces */
+  --void:      #08090E;
+  --arena:     #0D1016;
+  --panel:     #141821;
+  --panel-2:   #1B2029;
+  --panel-3:   #12161F;
+
+  /* Lines */
+  --line:      #262C38;
+  --line-hi:   #3A4252;
+
+  /* Text ramp */
+  --text:      #E6E9F0;
+  --text-2:    #C7CDDB;
+  --text-3:    #99A1B3;
+  --text-4:    #7A8397;
+  --text-5:    #4A5264;
+
+  /* Accents */
+  --ion:       #5B8CFF;
+  --ion-soft:  #8FB0FF;
+  --ion-wash:  rgba(91, 140, 255, 0.12);
+  --ion-edge:  rgba(91, 140, 255, 0.45);
+  --flare:     #FFB14D;
+  --flare-dim: #8A7449;
+  --flare-wash: rgba(255, 177, 77, 0.12);
+  --flare-edge: rgba(255, 177, 77, 0.45);
+  --plasma:    #A78BFA;
+  --ok:        #3DDC97;
+  --hazard:    #FF4757; /* enemies and death only — never used on chrome */
+
+  /* Radii */
+  --radius-s:  3px;
+  --radius:    4px;
+  --radius-l:  6px;
+  --radius-xl: 10px;
+
+  /* Type */
+  --font-display: 'Archivo', system-ui, sans-serif;
+  --font-body:    'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono:    'IBM Plex Mono', ui-monospace, monospace;
+
+  /* Legacy aliases — kept so any stale reference still resolves. */
+  --ink:         var(--void);
+  --paper:       var(--text);
+  --muted:       var(--text-4);
+  --blood:       var(--hazard);
+  --gold:        var(--flare);
+  --neon-cyan:   var(--ion);
+  --neon-mint:   var(--ok);
+  --neon-orange: var(--flare);
+  --border:      var(--line);
+}
+
+/* =========================================================================
+   2. RESET, UTILITIES, ICONS
+   ========================================================================= */
+* { box-sizing: border-box; }
+
+html, body, #app {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: var(--void);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+button { font: inherit; color: inherit; }
+
+h1, h2, h3, h4, p { margin: 0; }
+
+/* Hiding utilities. `.hidden` is toggled by script and must beat every
+   component's own `display`; `.tilt-compat-hidden` is permanent. */
+[hidden] { display: none !important; }
+.hidden { display: none !important; pointer-events: none !important; }
+.tilt-compat-hidden { display: none !important; pointer-events: none !important; }
+
+/* Focus ring — never removed anywhere in this sheet. */
+:focus-visible {
+  outline: 2px solid var(--ion-edge);
+  outline-offset: 3px;
+}
+
+/* Inline stroke icons. Most SVGs carry explicit width/height attributes;
+   this is the fallback for any that do not. */
+.tilt-icon {
+  flex: 0 0 auto;
+  flex-shrink: 0;
+  stroke: currentColor;
+  vertical-align: middle;
+}
+.tilt-icon:not([width]) { width: 1em; height: 1em; }
+
+/* Text span sitting beside an icon inside a button. */
+.tilt-btn-text { display: inline-block; }
+
+/* Keyboard hints under a modal's actions. */
+.tilt-key-hint {
+  margin: 4px 0 0;
+  text-align: center;
+  font: 400 11px/1.4 var(--font-mono);
+  color: var(--text-5);
+}
+
+.custom-scrollbar { scrollbar-width: thin; scrollbar-color: var(--line-hi) transparent; }
+.custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--line-hi);
+  border-radius: var(--radius-s);
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: var(--text-5); }
+
+/* =========================================================================
+   3. STAGE + CANVAS  (geometry unchanged — do not alter)
+   ========================================================================= */
+.game-screen {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: var(--arena);
+}
+
+#tilt-container { background: var(--arena); }
+
+.tilt-stage {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--arena);
+}
+
+.tilt-stage #tilt-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+  cursor: var(--custom-cursor, crosshair);
+}
+
+/* =========================================================================
+   4. CONTROLS
+   ========================================================================= */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 54px;
+  padding: 0 22px;
+  background: var(--ion);
+  color: var(--void);
+  border: none;
+  border-radius: var(--radius-l);
+  font: 600 15px/1 var(--font-body);
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+.btn-primary:hover:not(:disabled) { background: #7099FF; }
+.btn-primary:disabled { opacity: 0.45; cursor: default; }
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  background: transparent;
+  color: var(--text-2);
+  border: 1px solid var(--line-hi);
+  border-radius: var(--radius);
+  font: 500 14px/1 var(--font-body);
+  cursor: pointer;
+  transition: border-color 140ms ease, color 140ms ease, background 140ms ease;
+}
+.btn-secondary:hover:not(:disabled) {
+  border-color: var(--ion-edge);
+  color: var(--text);
+  background: var(--ion-wash);
+}
+.btn-secondary:disabled { opacity: 0.4; cursor: default; }
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 8px;
+  background: transparent;
+  border: none;
+  color: var(--text-3);
+  font: 500 13px/1 var(--font-body);
+  cursor: pointer;
+  transition: color 140ms ease;
+}
+.btn-ghost:hover { color: var(--text); }
+
+/* Switch — 44x26 pill. Rendered childless: the knob is a ::after. The
+   button's own text is suppressed because script may write textContent. */
+.opt-switch {
+  position: relative;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--line-hi);
+  border-radius: 13px;
+  background: var(--panel-2);
+  font-size: 0;
+  line-height: 0;
+  color: transparent;
+  cursor: pointer;
+  overflow: hidden;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+.opt-switch::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--text-4);
+  transform: translateY(-50%);
+  transition: left 140ms ease, background 140ms ease;
+}
+.opt-switch.is-on,
+.opt-switch[aria-checked='true'] {
+  background: var(--ion);
+  border-color: var(--ion);
+}
+.opt-switch.is-on::after,
+.opt-switch[aria-checked='true']::after {
+  left: 21px;
+  background: var(--void);
+}
+
+/* Range inputs (Settings + Armory handling). */
+input[type='range'],
+.armory-slider-input {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  background: transparent;
+  cursor: pointer;
+}
+input[type='range']::-webkit-slider-runnable-track {
+  height: 4px;
+  background: var(--panel-2);
+  border-radius: var(--radius-s);
+}
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -6px;
+  border: none;
+  border-radius: 50%;
+  background: var(--ion);
+}
+input[type='range']::-moz-range-track {
+  height: 4px;
+  background: var(--panel-2);
+  border-radius: var(--radius-s);
+}
+input[type='range']::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: 50%;
+  background: var(--ion);
+}
+
+.slider-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.slider-boundary {
+  flex: 0 0 auto;
+  font: 400 11px/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-5);
+  white-space: nowrap;
+}
+
+.tuning-value-pill {
+  flex: 0 0 auto;
+  min-width: 56px;
+  text-align: right;
+  font: 500 13px/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+}
+
+/* Rank pips (Armory upgrade rows). */
+.rank-pips {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+/* An empty pip is a hollow slot with a --text-4 ring: clearly readable at 0/5
+   without reading as filled. A filled pip is solid --ion. */
+.pip {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-s);
+  background: transparent;
+  border: 1px solid var(--text-4);
+}
+.pip.filled {
+  background: var(--ion);
+  border-color: var(--ion);
+}
+
+/* =========================================================================
+   5. IN-RUN HUD
+   ========================================================================= */
+.tilt-hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  padding: calc(env(safe-area-inset-top) + 18px) 24px 16px 24px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  pointer-events: none;
+}
+
+/* The top HUD lives in the DOM permanently. Suppress it while the start menu
+   is up, so Pause/Quit do not float over the menu on wide viewports. */
+.tilt-stage:has(#tilt-menu-screen:not(.hidden)) .tilt-hud { display: none; }
+
+.hud-left {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.hud-score-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.hud-score {
+  display: block;
+  font: 500 52px/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.hud-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hud-meta-best,
+.hud-meta-mode {
+  font: 400 12px/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-4);
+  white-space: nowrap;
+}
+
+.hud-meta-sep {
+  display: block;
+  width: 1px;
+  height: 10px;
+  background: var(--line);
+}
+
+/* Per-mode colour hooks. Scoped, because `.menu-mode-row` uses the same
+   modifier names for a completely different treatment. Never --hazard. */
+.hud-meta-mode.mode-classic  { color: var(--ion-soft); }
+.hud-meta-mode.mode-gauntlet { color: var(--flare); }
+.hud-meta-mode.mode-code-red { color: var(--plasma); }
+
+.hud-mult-chip {
+  display: inline-block;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  background: var(--panel);
+  font: 500 11px/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-4);
+}
+
+.hud-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.hud-icon-btn {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--text-3);
+  cursor: pointer;
+  transition: border-color 140ms ease, color 140ms ease, background 140ms ease;
+}
+.hud-icon-btn:hover {
+  border-color: var(--line-hi);
+  color: var(--text);
+  background: var(--panel);
+}
+
+/* =========================================================================
+   6. SHIELD READOUT (bottom centre)
+   ========================================================================= */
+.tilt-shield-wrap {
+  position: absolute;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom) + 26px);
+  z-index: 11;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.tilt-shield-track {
+  width: 240px;
+  height: 3px;
+  border-radius: var(--radius-s);
+  background: var(--panel-2);
+  overflow: hidden;
+}
+
+/* No `width` here on purpose — TiltGame writes style.width as a percentage. */
+.tilt-shield-fill {
+  height: 100%;
+  border-radius: var(--radius-s);
+  background: var(--ion);
+  transition: width 100ms linear;
+}
+
+.tilt-shield-label {
+  font: 400 11px/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-4);
+}
+
+/* =========================================================================
+   7. MILESTONES — in-run rail, menu list, toast
+   ========================================================================= */
+
+/* --- Menu-screen list. A panel anchored to the RIGHT edge of the stage with a
+   fixed top offset, so it belongs to the layout instead of floating mid-arena.
+   The width shrinks with the viewport and is floored by the 576px menu panel +
+   a 40px gutter, so it can never overlap the menu's left panel. --- */
+.tilt-goals-sidebar {
+  position: absolute;
+  left: auto;
+  right: 48px;
+  top: 96px;
+  width: min(320px, calc(100vw - 664px));
+  max-width: 320px;
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  pointer-events: none;
+}
+.tilt-goals-sidebar.collapsed { width: auto; align-items: flex-end; }
+.tilt-goals-sidebar.mobile-menu-hide { display: none; }
+
+/* Below 900px the panel would collide with the full-width menu panel, so the
+   menu-screen list drops out entirely. The in-run rail is unaffected. */
+@media (max-width: 900px) {
+  .tilt-goals-sidebar:not(.is-rail) { display: none; }
+}
+
+/* --- In-run rail: 4px, pinned left, takes no playfield width. --- */
+.tilt-goals-sidebar.is-rail {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  padding: 0;
+  margin: 0;
+  gap: 0;
+  display: block;
+  background: none;
+  border: none;
+  pointer-events: none;
+}
+
+.goals-rail {
+  position: relative;
+  width: 4px;
+  height: 100%;
+  background: var(--line);
+  overflow: hidden;
+}
+
+/* height comes from an inline style written by GoalsHUD — do not set it.
+   The fill is anchored at the TOP of the track and grows downward, so the rail
+   reads as one progress column starting at the top of the stage. */
+.goals-rail-fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  background: var(--ion);
+}
+
+/* top comes from an inline style written by GoalsHUD — do not set it.
+   --void is dark enough to read as a notch against both the --line track and
+   the --ion fill. */
+.goals-rail-tick {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--void);
+}
+
+/* --- Collapsed tab --- */
+.goals-expand-tab {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  color: var(--text-3);
+  cursor: pointer;
+}
+.goals-expand-tab:hover { border-color: var(--line-hi); }
+
+.goals-star-icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--flare);
+}
+
+.goals-expand-label {
+  font: 500 10px/1 var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--text-4);
+}
+
+.goals-expand-badge,
+.goals-count-badge {
+  font: 500 11px/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-4);
+}
+
+.goals-toggle-glyph {
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-5);
+}
+
+/* --- Expanded list header --- */
+.goals-sidebar-header {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 8px 8px 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+}
+
+.goals-header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.goals-header-title strong {
+  font: 500 10px/1 var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--text-4);
+}
+
+.goals-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.goals-points-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+.goals-points-label {
+  font: 500 10px/1 var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-4);
+}
+/* Fixed size — never scales with the value. */
+.goals-points-value {
+  font: 500 15px/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--flare);
+}
+
+.goals-collapse-btn {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--text-4);
+  cursor: pointer;
+}
+.goals-collapse-btn:hover { color: var(--text-2); background: var(--panel-2); }
+
+/* --- Active goal cards --- */
+.goals-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.goal-hud-card {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+}
+
+.goal-card-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.goal-card-title {
+  font: 500 13px/1.3 var(--font-body);
+  color: var(--text-2);
+}
+
+.goal-card-reward {
+  flex: 0 0 auto;
+  font: 500 12px/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--flare);
+  white-space: nowrap;
+}
+
+.goal-card-desc {
+  font: 400 12px/1.4 var(--font-body);
+  color: var(--text-4);
+}
+
+.goal-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.goal-progress-track {
+  flex: 1;
+  height: 4px;
+  border-radius: var(--radius-s);
+  background: var(--panel-2);
+  overflow: hidden;
+}
+
+/* width is written inline by GoalsHUD.updateLive. */
+.goal-progress-fill {
+  height: 100%;
+  border-radius: var(--radius-s);
+  background: var(--ion);
+  transition: width 120ms ease-out;
+}
+
+.goal-progress-val {
+  flex: 0 0 auto;
+  font: 400 11px/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-4);
+  white-space: nowrap;
+}
+
+.goals-all-cleared {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 18px 14px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  text-align: center;
+}
+.goals-cleared-icon {
+  display: inline-flex;
+  color: var(--ok);
+}
+.goals-all-cleared p {
+  font: 400 12.5px/1.4 var(--font-body);
+  color: var(--text-3);
+}
+
+.goals-view-all-btn {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--text-3);
+  font: 500 13px/1 var(--font-body);
+  cursor: pointer;
+  transition: color 140ms ease, background 140ms ease;
+}
+.goals-view-all-btn:hover { color: var(--text); background: var(--panel); }
+
+/* --- Milestone toast (bottom left) --- */
+.tilt-goal-toast {
+  position: absolute;
+  left: 24px;
+  bottom: calc(env(safe-area-inset-bottom) + 24px);
+  z-index: 30;
+  max-width: min(340px, calc(100vw - 48px));
+  pointer-events: none;
+  animation: toastRise 240ms ease-out;
+}
+
+@keyframes toastRise {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.goal-toast-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+}
+
+.toast-icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--ok);
+}
+
+.toast-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.toast-text small {
+  font: 500 10px/1 var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--text-4);
+}
+.toast-text strong {
+  font: 600 13px/1.3 var(--font-body);
+  color: var(--text);
+}
+
+.toast-reward {
+  flex: 0 0 auto;
+  font: 500 12px/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--flare);
+  white-space: nowrap;
+}
+
+/* =========================================================================
+   8. MENU SCREEN
+   ========================================================================= */
+.tilt-menu-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  background: rgba(8, 9, 14, 0.45);
+}
+
+.tilt-menu-content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
+.menu-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 26px;
+  width: 576px;
+  max-width: 100%;
+  height: 100%;
+  padding: 48px 56px calc(env(safe-area-inset-bottom) + 40px);
+  background: var(--void);
+  border-right: 1px solid var(--line);
+  overflow-y: auto;
+}
+
+/* --- Wordmark --- */
+.menu-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.menu-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-stretch: 118%;
+  font-size: clamp(44px, 5vw, 64px);
+  line-height: 0.92;
+  letter-spacing: -0.015em;
+  color: var(--text);
+}
+
+.menu-title-line { display: block; }
+
+.menu-subtitle {
+  font: 400 15px/1.5 var(--font-body);
+  color: var(--text-3);
+}
+
+/* --- Mode rows --- */
+.menu-modes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.menu-mode-row {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  min-height: 64px;
+  padding: 0;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 140ms ease, background 140ms ease;
+}
+.menu-mode-row:hover { border-color: var(--line-hi); }
+.menu-mode-row.is-selected {
+  border-color: var(--ion);
+  background: var(--panel-2);
+}
+
+/* The one permitted left accent bar (SPEC §3). */
+.mode-rail {
+  flex: 0 0 3px;
+  background: var(--line-hi);
+}
+.menu-mode-row.mode-classic  .mode-rail { background: var(--ion); }
+.menu-mode-row.mode-gauntlet .mode-rail { background: var(--flare); }
+.menu-mode-row.mode-code-red .mode-rail { background: var(--plasma); }
+
+.mode-row-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  padding: 12px 14px;
+}
+
+.mode-row-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mode-row-name {
+  font: 600 15px/1.2 var(--font-body);
+  color: var(--text);
+}
+
+.mode-row-mult {
+  flex: 0 0 auto;
+  font: 400 12px/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-4);
+}
+
+.mode-row-line {
+  font: 400 12.5px/1.35 var(--font-body);
+  color: var(--text-4);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mode-row-dot {
+  position: relative;
+  flex: 0 0 16px;
+  align-self: center;
+  width: 16px;
+  height: 16px;
+  margin-right: 16px;
+  border: 1px solid var(--line-hi);
+  border-radius: 50%;
+}
+.menu-mode-row.is-selected .mode-row-dot { border-color: var(--ion); }
+.menu-mode-row.is-selected .mode-row-dot::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: var(--ion);
+}
+.menu-mode-row.mode-gauntlet.is-selected .mode-row-dot { border-color: var(--flare); }
+.menu-mode-row.mode-gauntlet.is-selected .mode-row-dot::after { background: var(--flare); }
+.menu-mode-row.mode-code-red.is-selected .mode-row-dot { border-color: var(--plasma); }
+.menu-mode-row.mode-code-red.is-selected .mode-row-dot::after { background: var(--plasma); }
+
+/* --- Actions --- */
+.menu-play-btn {
+  width: 100%;
+  min-height: 56px;
+  margin-top: 4px;
+}
+
+.menu-links {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.menu-link {
+  padding: 0;
+  min-height: 44px;
+}
+
+/* --- Bottom stat row --- */
+.menu-stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.menu-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+}
+.menu-stat + .menu-stat {
+  padding-left: 16px;
+  border-left: 1px solid var(--line);
+}
+
+.menu-stat-action {
+  padding: 0;
+  background: none;
+  border: none;
+  border-left: 1px solid var(--line);
+  text-align: left;
+  cursor: pointer;
+}
+.menu-stat-action:hover .menu-stat-label { color: var(--text-3); }
+
+/* Fixed 17px — the size must never depend on the value (SPEC §3). */
+.menu-stat-value {
+  font: 500 17px/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.menu-stat-points { color: var(--flare); }
+
+.menu-stat-label {
+  font: 500 10px/1 var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--text-4);
+  transition: color 140ms ease;
+}
+
+.menu-first-run {
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  font: 400 12px/1.4 var(--font-body);
+  color: var(--text-5);
+}
+
+/* =========================================================================
+   9. OVERLAY + MODAL BASE
+   ========================================================================= */
+.game-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(8, 9, 14, 0.72);
+  backdrop-filter: blur(6px);
+  pointer-events: auto;
+}
+
+.overlay-panel {
+  position: relative;
+  z-index: 41;
+  width: min(440px, 100%);
+  max-height: calc(100vh - 40px);
+  padding: 28px;
+  background: var(--panel-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.6);
+  text-align: left;
+  pointer-events: auto;
+}
+
+/* Element defaults for panel content. `:where()` keeps these at element-level
+   specificity so every component class below simply wins. (This replaces the
+   old `.overlay-panel p:not(.eyebrow)` — the negation is a no-op now that the
+   `eyebrow` element is gone from every panel.) */
+:where(.overlay-panel) h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-stretch: 112%;
+  font-size: 22px;
+  line-height: 1.2;
+  color: var(--text);
+}
+
+:where(.overlay-panel) p {
+  font: 400 13px/1.5 var(--font-body);
+  color: var(--text-3);
+}
+
+/* Shared header row used by Settings, Milestones and the Armory. */
+.armory-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex: none;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.armory-title-group {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex: none;
+}
+.armory-title-group h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-stretch: 112%;
+  font-size: 20px;
+  line-height: 1.2;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.all-goals-count {
+  font: 500 12px/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-4);
+}
+
+.armory-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+  margin-left: auto;
+}
+
+.armory-close-btn {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--text-3);
+  cursor: pointer;
+  transition: border-color 140ms ease, color 140ms ease;
+}
+.armory-close-btn:hover { border-color: var(--line-hi); color: var(--text); }
+
+/* =========================================================================
+   10. PAUSE OVERLAY
+   ========================================================================= */
+.tilt-pause-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(380px, 100%);
+  overflow-y: auto;
+}
+
+.tilt-pause-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-stretch: 112%;
+  font-size: 28px;
+  line-height: 1.15;
+  color: var(--text);
+  text-align: center;
+}
+
+/* Visible by default — TiltGame adds `.hidden` after the first run. */
+.tilt-pause-scheme {
+  margin-bottom: 6px;
+  font: 400 12px/1.45 var(--font-body);
+  color: var(--text-4);
+  text-align: center;
+}
+
+.tilt-pause-primary { width: 100%; margin-top: 4px; }
+.tilt-pause-action { width: 100%; }
+
+.tilt-switch-list {
+  display: flex;
+  flex-direction: column;
+  margin: 8px 0 2px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.tilt-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 46px;
+}
+.tilt-switch-row + .tilt-switch-row { border-top: 1px solid var(--line); }
+
+.tilt-switch-label {
+  font: 400 14px/1 var(--font-body);
+  color: var(--text-2);
+}
+
+.tilt-pause-link {
+  align-self: center;
+  margin-top: 2px;
+}
+
+/* =========================================================================
+   11. GAME OVER
+   ========================================================================= */
+.tilt-gameover-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: min(420px, 100%);
+  text-align: center;
+  overflow-y: auto;
+}
+
+/* Grab handle — only shown when the panel becomes a bottom sheet. */
+.tilt-sheet-handle {
+  display: none;
+  width: 40px;
+  height: 4px;
+  margin: 0 auto 4px;
+  border-radius: var(--radius-s);
+  background: var(--line-hi);
+}
+
+/* Never --hazard. Mono, tabular, 68px. */
+.tilt-final-score {
+  display: block;
+  font: 500 68px/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.tilt-gameover-sub {
+  font: 400 13px/1.4 var(--font-body);
+  color: var(--text-3);
+}
+
+/* Reward signal, so it carries --flare like the points row — not --ion. */
+.tilt-gameover-best {
+  padding: 8px 12px;
+  background: var(--flare-wash);
+  border: 1px solid var(--flare-edge);
+  border-radius: var(--radius);
+  font: 500 12px/1.3 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--flare);
+}
+
+.tilt-stat-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  overflow: hidden;
+}
+
+.tilt-stat-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 12px 8px;
+  min-width: 0;
+}
+.tilt-stat-cell + .tilt-stat-cell { border-left: 1px solid var(--line); }
+
+.tilt-stat-value {
+  font: 500 20px/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.tilt-stat-label {
+  font: 500 11px/1 var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-4);
+  white-space: nowrap;
+}
+
+.tilt-points-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tilt-points-label {
+  font: 400 13px/1 var(--font-body);
+  color: var(--text-3);
+}
+
+.tilt-points-values {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+/* Fixed 15px — never sized off the value. */
+.tilt-points-earned {
+  font: 500 15px/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--flare);
+}
+
+.tilt-points-arrow {
+  font: 400 13px/1 var(--font-mono);
+  color: var(--text-5);
+}
+
+.tilt-points-balance {
+  font: 500 15px/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--flare-dim);
+}
+
+.gameover-milestones-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+}
+
+.gameover-milestone-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+}
+
+.milestone-star {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  color: var(--flare);
+}
+
+.milestone-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.milestone-info strong {
+  font: 600 13px/1.3 var(--font-body);
+  color: var(--text-2);
+}
+.milestone-info small {
+  font: 400 11.5px/1.35 var(--font-body);
+  color: var(--text-4);
+}
+
+.milestone-reward {
+  flex: 0 0 auto;
+  font: 500 12px/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--flare);
+  white-space: nowrap;
+}
+
+.tilt-gameover-primary {
+  width: 100%;
+  margin-top: 2px;
+}
+
+.tilt-gameover-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.tilt-gameover-actions > .btn-secondary { width: 100%; }
+
+/* =========================================================================
+   12. SETTINGS MODAL
+   ========================================================================= */
+.tilt-options-panel {
+  display: flex;
+  flex-direction: column;
+  width: min(520px, 100%);
+  max-height: min(86vh, calc(100vh - 40px));
+  padding: 0;
+  overflow: hidden;
+}
+
+.options-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px 20px 22px;
+}
+
+.options-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.options-section + .options-section { margin-top: 20px; }
+
+.options-section-label {
+  font: 500 10px/1 var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--text-4);
+}
+
+.options-row.opt-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 44px;
+  padding: 10px 14px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.options-row.opt-row.opt-row-stack {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.opt-row-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.opt-row-label {
+  font: 500 14px/1.3 var(--font-body);
+  color: var(--text-2);
+}
+
+.opt-row-hint {
+  font: 400 12px/1.4 var(--font-body);
+  color: var(--text-5);
+}
+
+.options-button-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.opt-scheme-group {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.opt-btn {
+  flex: 1 1 auto;
+  min-width: 72px;
+  min-height: 44px;
+  padding: 8px 12px;
+  background: transparent;
+  border: 1px solid var(--line-hi);
+  border-radius: var(--radius);
+  color: var(--text-2);
+  font: 500 13px/1.2 var(--font-body);
+  cursor: pointer;
+  transition: border-color 140ms ease, color 140ms ease, background 140ms ease;
+}
+.opt-btn:hover { border-color: var(--ion-edge); }
+.opt-btn.active {
+  background: var(--panel-2);
+  border-color: var(--ion);
+  color: var(--ion-soft);
+}
+
+.opt-btn-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+
+.opt-btn-title { font: 500 13px/1.2 var(--font-body); }
+
+.opt-btn-sub {
+  font: 400 10px/1.2 var(--font-mono);
+  color: var(--text-5);
+  white-space: nowrap;
+}
+
+.opt-slider-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.opt-row-btn {
+  flex: 0 0 auto;
+  min-width: 112px;
+  white-space: nowrap;
+}
+
+/* =========================================================================
+   13. ALL-MILESTONES MODAL
+   ========================================================================= */
+.tilt-all-goals-panel {
+  display: flex;
+  flex-direction: column;
+  width: min(720px, 100%);
+  max-height: min(86vh, calc(100vh - 40px));
+  padding: 0;
+  overflow: hidden;
+}
+
+.all-goals-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px 20px 22px;
+}
+
+.all-goals-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.catalog-goal-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+}
+.catalog-goal-card.is-goal-done {
+  background: var(--panel-2);
+  border-color: rgba(61, 220, 151, 0.28);
+}
+
+.catalog-goal-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.goal-check-glyph {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: var(--flare);
+}
+.catalog-goal-card.is-goal-done .goal-check-glyph { color: var(--ok); }
+
+.catalog-goal-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.catalog-goal-copy h4 {
+  font: 600 13.5px/1.3 var(--font-body);
+  color: var(--text-2);
+}
+.catalog-goal-copy p {
+  font: 400 12px/1.4 var(--font-body);
+  color: var(--text-4);
+}
+
+.catalog-goal-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+  flex: 0 0 auto;
+}
+
+.catalog-goal-reward {
+  font: 500 12px/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--flare);
+  white-space: nowrap;
+}
+
+.catalog-goal-status {
+  padding: 2px 6px;
+  border-radius: var(--radius-s);
+  font: 500 11px/1.3 var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-5);
+  border: 1px solid var(--line);
+}
+.catalog-goal-card.is-goal-done .catalog-goal-status {
+  color: var(--ok);
+  border-color: rgba(61, 220, 151, 0.35);
+}
+
+/* =========================================================================
+   14. ARMORY
+   ========================================================================= */
+
+/* Full-bleed ground, not a centring flexbox for a nested card. */
+.tilt-armory-overlay {
+  z-index: 42;
+  display: block;
+  place-items: stretch;
+  padding: 0;
+  background: var(--void);
+  backdrop-filter: none;
+}
+
+.armory-shell {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: var(--void);
+}
+
+.armory-shell .armory-header {
+  padding: 12px 24px;
+  padding-top: calc(env(safe-area-inset-top) + 12px);
+}
+
+.armory-points {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.armory-points-label {
+  font: 500 10px/1 var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--text-4);
+}
+
+/* FIXED 15px, always --flare, never sized or coloured off the value. */
+.armory-points-value {
+  font: 500 15px/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--flare);
+}
+
+/* --- Tabs --- */
+.armory-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.armory-tabs::-webkit-scrollbar { display: none; }
+
+.armory-tab-btn {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 16px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  color: var(--text-3);
+  font: 500 14px/1 var(--font-body);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 140ms ease, background 140ms ease, border-color 140ms ease;
+}
+.armory-tab-btn:hover { color: var(--text-2); }
+.armory-tab-btn.active {
+  background: var(--panel-2);
+  border-color: var(--line);
+  color: var(--ion-soft);
+}
+
+/* --- Content --- */
+.armory-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.armory-panel {
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.armory-panel-weapons {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.armory-section-label {
+  display: block;
+  margin-bottom: 10px;
+  font: 500 10px/1 var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--text-4);
+}
+
+/* --- Weapons: left list --- */
+.armory-weapon-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.armory-weapon-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease;
+}
+.armory-weapon-item:hover { border-color: var(--line-hi); }
+.armory-weapon-item.is-selected {
+  border-color: var(--ion);
+  background: var(--panel-2);
+}
+
+.armory-weapon-item-name {
+  font: 500 14px/1.2 var(--font-body);
+  color: var(--text-2);
+}
+
+.armory-weapon-item-rank {
+  flex: 0 0 auto;
+  min-width: 42px;
+  text-align: right;
+  font: 400 12px/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-4);
+}
+
+/* --- Weapons: main pane --- */
+.armory-weapon-main {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.armory-weapon-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.armory-weapon-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-stretch: 112%;
+  font-size: 22px;
+  line-height: 1.2;
+  color: var(--text);
+}
+
+.armory-weapon-desc {
+  font: 400 13px/1.45 var(--font-body);
+  color: var(--text-3);
+}
+
+/* --- Upgrade rows --- */
+.armory-upgrade-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.armory-upgrade-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 56px;
+  padding: 10px 14px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+}
+
+.armory-upgrade-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.armory-upgrade-name {
+  font: 500 14px/1.2 var(--font-body);
+  color: var(--text-2);
+}
+
+.armory-upgrade-effect {
+  font: 400 12px/1.2 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-4);
+}
+
+.armory-upgrade-meter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
+.armory-rank-readout {
+  min-width: 34px;
+  text-align: right;
+  font: 400 12px/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-4);
+}
+
+.armory-cost-btn {
+  flex: 0 0 auto;
+  min-width: 92px;
+  min-height: 44px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.armory-cost-btn.is-maxed {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  background: none;
+  border: none;
+  color: var(--text-5);
+  font: 500 13px/1 var(--font-body);
+  cursor: default;
+}
+
+.armory-cost-btn.is-owned {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 12px;
+  background: none;
+  border: 1px solid rgba(61, 220, 151, 0.35);
+  border-radius: var(--radius);
+  color: var(--ok);
+  font: 500 13px/1 var(--font-body);
+  cursor: default;
+}
+
+/* --- One-off unlocks --- */
+.armory-unlocks {
+  margin-top: 4px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.armory-unlock-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.armory-unlock-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 14px;
+  background: var(--panel);
+  border: 1px solid rgba(167, 139, 250, 0.32);
+  border-radius: var(--radius-l);
+}
+.armory-unlock-card.is-owned {
+  border-color: rgba(61, 220, 151, 0.3);
+}
+.armory-unlock-card.is-owned .armory-unlock-effect { color: var(--text-4); }
+
+.armory-unlock-name {
+  font: 600 14px/1.2 var(--font-body);
+  color: var(--plasma);
+}
+.armory-unlock-card.is-owned .armory-unlock-name { color: var(--text-2); }
+
+.armory-unlock-effect {
+  flex: 1;
+  font: 400 12.5px/1.45 var(--font-body);
+  color: var(--text-3);
+}
+
+.armory-unlock-card .armory-cost-btn { width: 100%; }
+
+/* --- Ships --- */
+.armory-ship-grid,
+.armory-tile-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.armory-ship-card,
+.armory-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+}
+.armory-ship-card.is-equipped,
+.armory-tile.is-equipped {
+  background: var(--panel-2);
+  border-color: var(--ok);
+}
+.armory-ship-card.is-equipped .armory-ship-plate,
+.armory-tile.is-equipped .armory-dot { background: var(--panel-3); }
+
+.armory-ship-plate {
+  display: grid;
+  place-items: center;
+  height: 100px;
+  background: var(--panel-2);
+  border-radius: var(--radius);
+}
+
+.ship-preview-svg {
+  display: block;
+  width: 56px;
+  height: 56px;
+}
+
+.armory-ship-name,
+.armory-tile-name {
+  font: 600 15px/1.2 var(--font-body);
+  color: var(--text);
+}
+
+.armory-ship-trait,
+.armory-tile-trait {
+  flex: 1;
+  font: 400 12px/1.4 var(--font-body);
+  color: var(--text-4);
+}
+
+.armory-stat-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.armory-stat-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.armory-stat-name {
+  flex: 0 0 52px;
+  font: 500 11px/1 var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-4);
+}
+
+.armory-stat-track {
+  display: block;
+  flex: 1;
+  height: 4px;
+  border-radius: var(--radius-s);
+  background: var(--panel-2);
+  overflow: hidden;
+}
+
+/* Width comes only from the lvl-* classes below. */
+.armory-stat-fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-s);
+  background: var(--ion);
+}
+.armory-stat-fill.lvl-1 { width: 20%; }
+.armory-stat-fill.lvl-2 { width: 40%; }
+.armory-stat-fill.lvl-3 { width: 60%; }
+.armory-stat-fill.lvl-4 { width: 80%; }
+.armory-stat-fill.lvl-5 { width: 100%; }
+
+.armory-action-btn {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 2px;
+}
+
+.armory-action-btn.is-equipped {
+  color: var(--ok);
+  border-color: rgba(61, 220, 151, 0.4);
+  background: none;
+  cursor: default;
+}
+
+/* --- Arena tiles --- */
+.armory-subsection { margin-bottom: 24px; }
+.armory-subsection:last-child { margin-bottom: 0; }
+
+.armory-tile-plate {
+  display: grid;
+  place-items: center;
+  height: 64px;
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+/* Arena-theme swatches: each reproduces the theme's bgGradient + gridColor
+   from ProgressionManager.arenaThemeCatalog. */
+.armory-swatch {
+  background-color: var(--sw-c, var(--panel-2));
+  background-image:
+    repeating-linear-gradient(0deg, var(--sw-grid) 0 1px, transparent 1px 12px),
+    repeating-linear-gradient(90deg, var(--sw-grid) 0 1px, transparent 1px 12px),
+    linear-gradient(150deg, var(--sw-a), var(--sw-b) 55%, var(--sw-c));
+}
+.armory-swatch.theme-void      { --sw-a: #0D1016; --sw-b: #0A0D13; --sw-c: #08090E; --sw-grid: rgba(91, 140, 255, 0.30); }
+.armory-swatch.theme-synthwave { --sw-a: #170B1C; --sw-b: #0F0714; --sw-c: #08090E; --sw-grid: rgba(236, 72, 200, 0.32); }
+.armory-swatch.theme-nebula    { --sw-a: #12101F; --sw-b: #0C0A16; --sw-c: #08090E; --sw-grid: rgba(167, 139, 250, 0.34); }
+.armory-swatch.theme-matrix    { --sw-a: #0A1714; --sw-b: #07100D; --sw-c: #08090E; --sw-grid: rgba(61, 220, 151, 0.34); }
+.armory-swatch.theme-supernova { --sw-a: #17120B; --sw-b: #0E0B08; --sw-c: #08090E; --sw-grid: rgba(255, 177, 77, 0.34); }
+.armory-swatch.theme-blueprint { --sw-a: #0E1626; --sw-b: #0A101B; --sw-c: #08090E; --sw-grid: rgba(230, 233, 240, 0.36); }
+
+/* Enemy-skin swatches. These depict the hostile dots, not chrome — this is
+   the ONLY place in the sheet where enemy red appears (`.dot-classic`), and
+   none of these colours is allowed to leak onto a border, label or button. */
+.armory-dot {
+  background: var(--panel-2);
+}
+.armory-dot::after {
+  content: '';
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, var(--dot-a), var(--dot-b) 58%, var(--dot-c));
+  border: 1px solid var(--dot-edge);
+}
+.armory-dot.dot-classic { --dot-a: #ff6677; --dot-b: #ee1133; --dot-c: #990011; --dot-edge: #ff8899; }
+.armory-dot.dot-toxic   { --dot-a: #88ff99; --dot-b: #11ee44; --dot-c: #007722; --dot-edge: #aaffbb; }
+.armory-dot.dot-glitch  { --dot-a: #88ffff; --dot-b: #00bfff; --dot-c: #0044aa; --dot-edge: #00ffff; }
+.armory-dot.dot-magma   { --dot-a: #ffcc00; --dot-b: #ff5500; --dot-c: #881100; --dot-edge: #ffaa33; }
+.armory-dot.dot-void    { --dot-a: #9944ff; --dot-b: #330066; --dot-c: #080014; --dot-edge: #cc88ff; }
+.armory-dot.dot-gold    { --dot-a: #fff6b3; --dot-b: #FFB14D; --dot-c: #aa7700; --dot-edge: #fff088; }
+
+/* --- Handling --- */
+.armory-handling-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 20px;
+  align-items: start;
+}
+
+.armory-handling-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.armory-handling-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-stretch: 112%;
+  font-size: 22px;
+  line-height: 1.2;
+  color: var(--text);
+}
+
+.armory-slider-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+}
+
+.armory-slider-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.armory-slider-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.armory-slider-name {
+  font: 500 14px/1.3 var(--font-body);
+  color: var(--text-2);
+}
+
+.armory-slider-hint {
+  font: 400 12px/1.4 var(--font-body);
+  color: var(--text-5);
+}
+
+.armory-handling-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.armory-reset-btn {
+  min-width: 96px;
+}
+
+.armory-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+}
+
+.armory-preview-plate {
+  display: grid;
+  place-items: center;
+  height: 100px;
+  background: var(--panel-2);
+  border-radius: var(--radius);
+}
+
+.armory-preview-stats {
+  display: flex;
+  flex-direction: column;
+}
+
+.armory-preview-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 30px;
+}
+.armory-preview-row + .armory-preview-row { border-top: 1px solid var(--line); }
+
+.armory-preview-key {
+  font: 500 11px/1 var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-4);
+}
+
+.armory-preview-val {
+  font: 500 13px/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+  text-align: right;
+}
+
+/* =========================================================================
+   15. CINEMATIC — a 600ms wordmark hold over the arena
+   ========================================================================= */
+.tilt-cinematic-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.tilt-cinematic-content {
+  display: grid;
+  place-items: center;
+}
+
+.tilt-cinematic-wordmark {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-stretch: 118%;
+  font-size: clamp(32px, 7vw, 72px);
+  line-height: 1;
+  letter-spacing: 0.01em;
+  color: var(--text);
+}
+
+/* =========================================================================
+   16. RESPONSIVE
+   ========================================================================= */
+
+/* --- Tablet / narrow desktop --- */
+@media (max-width: 1100px) {
+  .armory-panel-weapons { grid-template-columns: 240px minmax(0, 1fr); }
+}
+
+@media (max-width: 980px) {
+  .armory-panel-weapons { grid-template-columns: minmax(0, 1fr); }
+  .armory-ship-grid,
+  .armory-tile-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 900px) {
+  .menu-panel {
+    width: 100%;
+    border-right: none;
+    padding: 40px 28px calc(env(safe-area-inset-bottom) + 32px);
+  }
+  .armory-handling-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* --- Mobile (SPEC §6) --- */
+@media (max-width: 640px) {
+  /* Menu: full width, 24px gutters, 46px targets. */
+  .menu-panel {
+    gap: 22px;
+    padding: calc(env(safe-area-inset-top) + 32px) 24px calc(env(safe-area-inset-bottom) + 28px);
+  }
+  .menu-title { font-size: clamp(36px, 12vw, 48px); }
+  .menu-subtitle { font-size: 14px; }
+  .menu-mode-row { min-height: 66px; }
+  .menu-play-btn { min-height: 56px; }
+  .menu-link { min-height: 46px; }
+  .menu-links { gap: 16px; }
+  .menu-stat-value { font-size: 17px; }
+
+  /* HUD: 34px score, two 46px icon buttons, 180px shield bar. */
+  .tilt-hud { padding: calc(env(safe-area-inset-top) + 12px) 16px 12px 16px; }
+  .hud-score { font-size: 34px; }
+  .hud-meta-best,
+  .hud-meta-mode { font-size: 11px; }
+  .hud-icon-btn { width: 46px; height: 46px; }
+  .tilt-shield-track { width: 180px; }
+
+  .tilt-goal-toast {
+    left: 16px;
+    right: 16px;
+    max-width: none;
+    bottom: calc(env(safe-area-inset-bottom) + 76px);
+  }
+
+  /* Game over becomes a bottom sheet. */
+  #tilt-gameover-modal {
+    place-items: end stretch;
+    padding: 0;
+  }
+  .tilt-gameover-panel {
+    width: 100%;
+    max-width: none;
+    max-height: 92vh;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    padding: 12px 20px calc(env(safe-area-inset-bottom) + 20px);
+  }
+  .tilt-sheet-handle { display: block; }
+  .tilt-final-score { font-size: 52px; }
+  .tilt-gameover-primary { min-height: 52px; }
+  .tilt-gameover-actions > .btn-secondary { min-height: 46px; }
+
+  /* Pause */
+  .tilt-pause-panel { padding: 24px 20px calc(env(safe-area-inset-bottom) + 20px); }
+  .tilt-pause-action,
+  .tilt-pause-link { min-height: 46px; }
+
+  /* Settings */
+  .game-overlay { padding: 14px; }
+  .opt-scheme-group { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .opt-btn { min-height: 46px; }
+  .options-row.opt-row { padding: 10px 12px; }
+
+  /* Armory: single column, horizontally scrollable tabs. */
+  .tilt-armory-overlay { padding: 0; }
+  .armory-shell .armory-header {
+    flex-wrap: wrap;
+    gap: 10px 12px;
+    padding: 10px 16px;
+    padding-top: calc(env(safe-area-inset-top) + 10px);
+  }
+  .armory-tabs {
+    order: 3;
+    flex: 1 0 100%;
+    gap: 6px;
+    padding-bottom: 2px;
+  }
+  .armory-tab-btn { min-height: 46px; }
+  .armory-panel { padding: 16px; }
+  .armory-ship-grid,
+  .armory-tile-grid,
+  .armory-unlock-grid { grid-template-columns: minmax(0, 1fr); }
+  .armory-upgrade-row {
+    flex-wrap: wrap;
+    gap: 10px 12px;
+  }
+  .armory-upgrade-text { flex: 1 0 100%; }
+  .armory-upgrade-meter { flex: 1 1 auto; }
+  .armory-cost-btn { min-height: 46px; }
+  .armory-action-btn { min-height: 46px; }
+  .armory-weapon-item { min-height: 46px; }
+  .armory-close-btn { width: 46px; height: 46px; }
+
+  .all-goals-scroll { padding: 14px 16px 20px; }
+  .catalog-goal-card { gap: 12px; }
+}

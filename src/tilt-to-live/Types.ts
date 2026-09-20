@@ -26,7 +26,9 @@ export type EnemyType =
   | 'charger'
   | 'artillery'
   | 'carrier'
-  | 'bullet';
+  | 'bullet'
+  | 'pulsar'
+  | 'specter';
 
 export interface Point2D {
   x: number;
@@ -109,6 +111,8 @@ export interface Enemy {
   fireCooldown?: number;
   parentCarrierId?: number;
   orbitAngle?: number;
+  pulseTimer?: number;
+  stealthOpacity?: number;
 }
 
 export interface FloatingText {

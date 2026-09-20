@@ -13,8 +13,31 @@ export class PlayerShip {
   public vy: number = 0;
   public angle: number = -Math.PI / 2;
   public scale: number = 1.0;
+
+  // Equipped ship's hitboxScale/turnRate, captured each update() from the
+  // ShipSkinConfig passed in (that's how PlayerShip already receives
+  // per-ship data). Defaults keep pre-wiring behavior unchanged.
+  private shipHitboxScale: number = 1.0;
+  private shipTurnRate: number = 1.0;
+
+  // Purchasable "hull compact" upgrade (ProgressionManager.getHitboxMultiplier()),
+  // pushed in by TiltGame. Defaults to 1.0 so nothing changes until wired.
+  private hitboxMultiplier: number = 1.0;
+
+  public setHitboxMultiplier(m: number) {
+    this.hitboxMultiplier = m;
+  }
+
+  // Shield bubble radius, driven by perks.shield.radius (WeaponTuning).
+  // Defaults to 20 (the tuning base) so nothing changes until wired.
+  private shieldRadius: number = 20;
+
+  public setShieldRadius(r: number) {
+    this.shieldRadius = r;
+  }
+
   public get radius(): number {
-    return 9 * this.scale;
+    return 9 * this.scale * this.shipHitboxScale * this.hitboxMultiplier;
   }
 
   public setScale(scale: number) {
@@ -80,6 +103,11 @@ export class PlayerShip {
     gyroVector: Point2D = { x: 0, y: 0 }
   ) {
     if (this.isDead) return;
+
+    // Capture equipped ship's hitboxScale/turnRate for this frame (defaults
+    // to 1.0 when no skin is supplied, matching pre-wiring behavior).
+    this.shipHitboxScale = shipSkin?.hitboxScale ?? 1.0;
+    this.shipTurnRate = shipSkin?.turnRate ?? 1.0;
 
     // Countdown shield
     if (this.shieldTimer > 0) {
@@ -177,7 +205,7 @@ export class PlayerShip {
     let diff = targetAngle - this.angle;
     while (diff < -Math.PI) diff += Math.PI * 2;
     while (diff > Math.PI) diff -= Math.PI * 2;
-    this.angle += diff * Math.min(1, dt * 16);
+    this.angle += diff * Math.min(1, dt * 16 * this.shipTurnRate);
 
     // Boundary constraints with gentle bounce
     const pad = this.radius + 6;
@@ -245,9 +273,16 @@ export class PlayerShip {
 
     const skin: ShipSkinConfig = shipSkin || {
       id: 'classic',
-      name: 'Classic Arrow',
+      name: 'Arrow',
+      trait: 'Balanced',
       price: 0,
       description: '',
+      hitbox: '50%',
+      turn: '60%',
+      hitboxScale: 1.0,
+      turnRate: 1.0,
+      tint: '#5B8CFF',
+      svgPath: 'M40 24 L14 10 L19 24 L14 38 Z',
       hullColor: '#ffffff',
       primaryColor: '#00ddff',
       accentColor: '#00ffee',
@@ -283,7 +318,7 @@ export class PlayerShip {
 
     // 1. Shield Bubble
     if (this.hasShield()) {
-      const shieldRadius = 23;
+      const shieldRadius = this.shieldRadius;
       const pulse = 0.75 + Math.sin(elapsed * 8) * 0.25;
 
       // Outer glow
@@ -581,6 +616,17 @@ export class PlayerShip {
         ctx.fill();
         break;
     }
+
+    // 3. Thruster Flame Plume
+    const flameCol = this.hasShield() ? '#00ffee' : (skin.thrusterColor || skin.tint);
+    const flameLen = 6 + Math.random() * 6;
+    ctx.fillStyle = flameCol;
+    ctx.beginPath();
+    ctx.moveTo(-13, -3.5);
+    ctx.lineTo(-13 - flameLen, 0);
+    ctx.lineTo(-13, 3.5);
+    ctx.closePath();
+    ctx.fill();
 
     ctx.restore();
   }

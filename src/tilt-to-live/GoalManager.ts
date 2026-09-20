@@ -2,13 +2,22 @@
 // GoalManager.ts - Milestone-Based Achievement, Challenge & Points Engine
 // =========================================================================
 
+// Type-only import: erased at compile time, so this never creates a runtime
+// circular dependency even though ProgressionManager.ts has no reference
+// back to GoalManager today.
+import type { ProgressionManager, ProgressionData, WeaponPerks } from './ProgressionManager';
+
 export interface Goal {
   id: string;
-  category: 'score' | 'combat' | 'combo' | 'weapons' | 'survival' | 'modes' | 'cumulative';
+  category: 'score' | 'combat' | 'combo' | 'weapons' | 'survival' | 'modes' | 'cumulative' | 'unlocks';
   title: string;
   description: string;
   target: number;
   rewardPoints: number;
+  // targetId carries the id an unlock-family goal checks against (a ship id,
+  // enemy skin id, arena theme id, or WeaponPerks key). Unused by every
+  // pre-existing numeric-progress goal.
+  targetId?: string;
   metric:
     | 'run_score'
     | 'run_kills'
@@ -27,7 +36,12 @@ export interface Goal {
     | 'total_kills'
     | 'total_survival'
     | 'total_points'
-    | 'total_score';
+    | 'total_score'
+    // Unlock Metrics: checked against ProgressionManager data, not RunTracker.
+    | 'ship_unlocked'
+    | 'enemy_skin_unlocked'
+    | 'arena_unlocked'
+    | 'weapon_fully_upgraded';
 }
 
 export interface CumulativeStats {
@@ -59,6 +73,12 @@ export class GoalManager {
   private completedGoalIds: Set<string> = new Set();
   private onGoalCompletedCb?: (goal: Goal) => void;
   private onPointsAwardedCb?: (pts: number) => void;
+
+  // Optional progression reference for the unlock-family goals. Injected via
+  // the constructor or setProgression() — evaluateUnlockGoals() is a no-op
+  // (and every unlock goal simply stays incomplete) when this is unset, so
+  // GoalManager never throws or otherwise depends on progression existing.
+  private progression?: ProgressionManager;
 
   public readonly catalog: Goal[] = [
     // Score Milestones
@@ -397,6 +417,225 @@ export class GoalManager {
       target: 25,
       rewardPoints: 5,
       metric: 'total_points'
+    },
+
+    // Unlock Milestones: Ships
+    {
+      id: 'unlock_ship_solar',
+      category: 'unlocks',
+      title: 'Aegis Ascendant',
+      description: 'Unlock the Aegis ship',
+      target: 1,
+      rewardPoints: 2,
+      metric: 'ship_unlocked',
+      targetId: 'solar'
+    },
+    {
+      id: 'unlock_ship_cyber',
+      category: 'unlocks',
+      title: 'Matrix Runner',
+      description: 'Unlock the Matrix ship',
+      target: 1,
+      rewardPoints: 3,
+      metric: 'ship_unlocked',
+      targetId: 'cyber'
+    },
+    {
+      id: 'unlock_ship_shuriken',
+      category: 'unlocks',
+      title: 'Bladed Vanguard',
+      description: 'Unlock the Shuriken ship',
+      target: 1,
+      rewardPoints: 3,
+      metric: 'ship_unlocked',
+      targetId: 'shuriken'
+    },
+    {
+      id: 'unlock_ship_revenant',
+      category: 'unlocks',
+      title: 'Reborn in Fire',
+      description: 'Unlock the Revenant ship',
+      target: 1,
+      rewardPoints: 6,
+      metric: 'ship_unlocked',
+      targetId: 'revenant'
+    },
+
+    // Unlock Milestones: Enemy Skins
+    {
+      id: 'unlock_skin_toxic',
+      category: 'unlocks',
+      title: 'Biohazard Collector',
+      description: 'Unlock the Toxic Biohazard enemy skin',
+      target: 1,
+      rewardPoints: 2,
+      metric: 'enemy_skin_unlocked',
+      targetId: 'toxic'
+    },
+    {
+      id: 'unlock_skin_glitch',
+      category: 'unlocks',
+      title: 'Glitch Collector',
+      description: 'Unlock the Cyber Glitch enemy skin',
+      target: 1,
+      rewardPoints: 2,
+      metric: 'enemy_skin_unlocked',
+      targetId: 'glitch'
+    },
+    {
+      id: 'unlock_skin_magma',
+      category: 'unlocks',
+      title: 'Magma Collector',
+      description: 'Unlock the Molten Magma enemy skin',
+      target: 1,
+      rewardPoints: 3,
+      metric: 'enemy_skin_unlocked',
+      targetId: 'magma'
+    },
+    {
+      id: 'unlock_skin_void',
+      category: 'unlocks',
+      title: 'Void Collector',
+      description: 'Unlock the Abyssal Void enemy skin',
+      target: 1,
+      rewardPoints: 3,
+      metric: 'enemy_skin_unlocked',
+      targetId: 'void'
+    },
+    {
+      id: 'unlock_skin_gold',
+      category: 'unlocks',
+      title: 'Gold Collector',
+      description: 'Unlock the Midas Gold enemy skin',
+      target: 1,
+      rewardPoints: 4,
+      metric: 'enemy_skin_unlocked',
+      targetId: 'gold'
+    },
+
+    // Unlock Milestones: Arena Themes
+    {
+      id: 'unlock_arena_synthwave',
+      category: 'unlocks',
+      title: 'Sunset Cartographer',
+      description: 'Unlock the Synthwave Sunset arena',
+      target: 1,
+      rewardPoints: 2,
+      metric: 'arena_unlocked',
+      targetId: 'synthwave'
+    },
+    {
+      id: 'unlock_arena_nebula',
+      category: 'unlocks',
+      title: 'Nebula Cartographer',
+      description: 'Unlock the Cosmic Nebula arena',
+      target: 1,
+      rewardPoints: 2,
+      metric: 'arena_unlocked',
+      targetId: 'nebula'
+    },
+    {
+      id: 'unlock_arena_matrix',
+      category: 'unlocks',
+      title: 'Terminal Cartographer',
+      description: 'Unlock the Matrix Terminal arena',
+      target: 1,
+      rewardPoints: 3,
+      metric: 'arena_unlocked',
+      targetId: 'matrix'
+    },
+    {
+      id: 'unlock_arena_supernova',
+      category: 'unlocks',
+      title: 'Furnace Cartographer',
+      description: 'Unlock the Supernova Furnace arena',
+      target: 1,
+      rewardPoints: 3,
+      metric: 'arena_unlocked',
+      targetId: 'supernova'
+    },
+    {
+      id: 'unlock_arena_blueprint',
+      category: 'unlocks',
+      title: 'Blueprint Cartographer',
+      description: 'Unlock the Architectural Blueprint arena',
+      target: 1,
+      rewardPoints: 4,
+      metric: 'arena_unlocked',
+      targetId: 'blueprint'
+    },
+
+    // Unlock Milestones: Weapons Fully Upgraded (every numeric perk at max rank,
+    // every boolean keystone unlocked)
+    {
+      id: 'weapon_maxed_blackhole',
+      category: 'unlocks',
+      title: 'Singularity Perfected',
+      description: 'Fully upgrade the Vortex: max every perk rank and unlock every keystone',
+      target: 1,
+      rewardPoints: 6,
+      metric: 'weapon_fully_upgraded',
+      targetId: 'blackhole'
+    },
+    {
+      id: 'weapon_maxed_nuke',
+      category: 'unlocks',
+      title: 'Nuclear Doctrine',
+      description: 'Fully upgrade the Nuke: max every perk rank and unlock every keystone',
+      target: 1,
+      rewardPoints: 6,
+      metric: 'weapon_fully_upgraded',
+      targetId: 'nuke'
+    },
+    {
+      id: 'weapon_maxed_shield',
+      category: 'unlocks',
+      title: 'Absolute Defense',
+      description: 'Fully upgrade the Shield: max every perk rank and unlock every keystone',
+      target: 1,
+      rewardPoints: 6,
+      metric: 'weapon_fully_upgraded',
+      targetId: 'shield'
+    },
+    {
+      id: 'weapon_maxed_missiles',
+      category: 'unlocks',
+      title: 'Missile Command',
+      description: 'Fully upgrade Homing Missiles: max every perk rank',
+      target: 1,
+      rewardPoints: 6,
+      metric: 'weapon_fully_upgraded',
+      targetId: 'missiles'
+    },
+    {
+      id: 'weapon_maxed_laser',
+      category: 'unlocks',
+      title: 'Photon Perfection',
+      description: 'Fully upgrade the Laser Lance: max every perk rank and unlock every keystone',
+      target: 1,
+      rewardPoints: 6,
+      metric: 'weapon_fully_upgraded',
+      targetId: 'laser'
+    },
+    {
+      id: 'weapon_maxed_lightning',
+      category: 'unlocks',
+      title: 'Storm Overlord',
+      description: 'Fully upgrade Chain Lightning: max every perk rank',
+      target: 1,
+      rewardPoints: 6,
+      metric: 'weapon_fully_upgraded',
+      targetId: 'lightning'
+    },
+    {
+      id: 'weapon_maxed_freeze',
+      category: 'unlocks',
+      title: 'Absolute Zero',
+      description: 'Fully upgrade Freeze: max every perk rank and unlock every keystone',
+      target: 1,
+      rewardPoints: 6,
+      metric: 'weapon_fully_upgraded',
+      targetId: 'freeze'
     }
   ];
 
@@ -407,9 +646,10 @@ export class GoalManager {
     totalScore: 0
   };
 
-  constructor() {
+  constructor(progression?: ProgressionManager) {
     this.loadCompleted();
     this.loadCumulative();
+    this.progression = progression;
   }
 
   public setCallbacks(
@@ -418,6 +658,15 @@ export class GoalManager {
   ) {
     this.onGoalCompletedCb = onGoalCompleted;
     this.onPointsAwardedCb = onPointsAwarded;
+  }
+
+  /**
+   * Wires (or rewires) the ProgressionManager reference used by
+   * evaluateUnlockGoals(). Safe to call at any time, including never — an
+   * absent progression reference just means unlock goals never complete.
+   */
+  public setProgression(progression: ProgressionManager) {
+    this.progression = progression;
   }
 
   private loadCompleted() {
@@ -467,6 +716,21 @@ export class GoalManager {
     return goal.category === 'cumulative' || goal.metric.startsWith('total_');
   }
 
+  /**
+   * Unlock-family goals (ship/enemy-skin/arena/weapon-fully-upgraded). These
+   * are neither per-run nor tracker-driven cumulative goals — they're
+   * evaluated separately by evaluateUnlockGoals() against ProgressionManager
+   * state, so both evaluateLiveTotalGoals() and evaluateRun() skip them.
+   */
+  public isUnlockGoal(goal: Goal): boolean {
+    return (
+      goal.metric === 'ship_unlocked' ||
+      goal.metric === 'enemy_skin_unlocked' ||
+      goal.metric === 'arena_unlocked' ||
+      goal.metric === 'weapon_fully_upgraded'
+    );
+  }
+
   public getCompletedCount(): number {
     return this.completedGoalIds.size;
   }
@@ -492,6 +756,7 @@ export class GoalManager {
 
     for (const goal of this.catalog) {
       if (this.completedGoalIds.has(goal.id)) continue;
+      if (this.isUnlockGoal(goal)) continue;
       if (!this.isTotalGoal(goal)) continue;
 
       const current = this.getMetricValue(goal.metric, tracker);
@@ -530,6 +795,7 @@ export class GoalManager {
     // 2. Evaluate Total / Cumulative milestones (unlimited per game)
     for (const goal of this.catalog) {
       if (this.completedGoalIds.has(goal.id)) continue;
+      if (this.isUnlockGoal(goal)) continue;
       if (!this.isTotalGoal(goal)) continue;
 
       const current = this.getMetricValue(goal.metric, tracker);
@@ -544,6 +810,7 @@ export class GoalManager {
     const eligibleRunGoals: Goal[] = [];
     for (const goal of this.catalog) {
       if (this.completedGoalIds.has(goal.id)) continue;
+      if (this.isUnlockGoal(goal)) continue;
       if (this.isTotalGoal(goal)) continue;
 
       const current = this.getMetricValue(goal.metric, tracker);
@@ -574,6 +841,88 @@ export class GoalManager {
     }
 
     return newlyCompleted;
+  }
+
+  /**
+   * Evaluates the unlock-family goals (ships, enemy skins, arena themes,
+   * fully-upgraded weapons) against current ProgressionManager state.
+   *
+   * Unlock goals are not run-scoped — a player can buy something from the
+   * Armory outside a run — so this is a separate entry point from
+   * evaluateLiveTotalGoals()/evaluateRun() and must be called wherever
+   * progression state may have just changed.
+   *
+   * Safe to call repeatedly / redundantly: it is a no-op when no
+   * ProgressionManager has been wired (setProgression()/constructor), and it
+   * skips every goal already present in completedGoalIds before checking or
+   * awarding it, so an already-completed unlock goal is never re-awarded.
+   */
+  public evaluateUnlockGoals(): Goal[] {
+    const newlyCompleted: Goal[] = [];
+    if (!this.progression) return newlyCompleted;
+
+    const data = this.progression.data;
+
+    for (const goal of this.catalog) {
+      if (this.completedGoalIds.has(goal.id)) continue;
+      if (!this.isUnlockGoal(goal)) continue;
+
+      if (this.checkUnlockGoal(goal, data)) {
+        this.completedGoalIds.add(goal.id);
+        this.cumulative.totalPointsEarned += goal.rewardPoints;
+        newlyCompleted.push(goal);
+      }
+    }
+
+    if (newlyCompleted.length > 0) {
+      this.saveCompleted();
+      this.saveCumulative();
+
+      for (const goal of newlyCompleted) {
+        if (this.onPointsAwardedCb) {
+          this.onPointsAwardedCb(goal.rewardPoints);
+        }
+        if (this.onGoalCompletedCb) {
+          this.onGoalCompletedCb(goal);
+        }
+      }
+    }
+
+    return newlyCompleted;
+  }
+
+  private checkUnlockGoal(goal: Goal, data: ProgressionData): boolean {
+    const id = goal.targetId;
+    if (!id) return false;
+
+    switch (goal.metric) {
+      case 'ship_unlocked':
+        return data.unlockedCursors.includes(id);
+      case 'enemy_skin_unlocked':
+        return data.unlockedEnemySkins.includes(id);
+      case 'arena_unlocked':
+        return data.unlockedArenaThemes.includes(id);
+      case 'weapon_fully_upgraded':
+        return this.isWeaponFullyUpgraded(data.perks, id as keyof WeaponPerks);
+      default:
+        return false;
+    }
+  }
+
+  /**
+   * True when every numeric perk track on the given weapon is at the
+   * enforced max rank (5, per ProgressionManager.upgradePerk) and every
+   * boolean keystone perk on it has been unlocked. Reads whatever fields
+   * actually exist on the weapon's WeaponPerks entry rather than assuming a
+   * fixed shape, so it stays correct if perks are added/removed per weapon.
+   */
+  private isWeaponFullyUpgraded(perks: WeaponPerks, weapon: keyof WeaponPerks): boolean {
+    const weaponPerks = perks[weapon] as Record<string, number | boolean> | undefined;
+    if (!weaponPerks) return false;
+
+    return Object.values(weaponPerks).every((value) =>
+      typeof value === 'number' ? value >= 5 : value === true
+    );
   }
 
   public getMetricValue(metric: Goal['metric'], tracker: RunTracker): number {

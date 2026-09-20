@@ -93,82 +93,118 @@ export class TiltMenu {
     const bestScore = this.scores.stats.bestScore;
     const points = this.progression.data.points;
 
+    // Resolve next milestone teaser
+    const activeGoals = this.goals.getActiveGoals(1);
+    let nextTeaser: { title: string; desc: string; pct: number } | null = null;
+    if (activeGoals.length > 0) {
+      const g = activeGoals[0].goal;
+      let currentVal = 0;
+      if (g.category === 'cumulative' || g.metric.startsWith('total_')) {
+        currentVal = this.goals.getMetricValue(g.metric, {
+          mode: 'classic',
+          score: 0,
+          kills: 0,
+          multiplier: 1,
+          survivalTime: 0,
+          closeCalls: 0,
+          nukesDetonated: 0,
+          vortexAbsorbs: 0,
+          laserSlices: 0,
+          missilesFired: 0,
+          freezeShatters: 0,
+          shieldRams: 0
+        });
+      } else if (g.metric === 'run_score') {
+        currentVal = Math.min(g.target, bestScore);
+      }
+      const pct = Math.min(100, Math.max(0, Math.round((currentVal / g.target) * 100)));
+      nextTeaser = {
+        title: g.title,
+        desc: g.description,
+        pct
+      };
+    }
+
     this.menuContainerEl.innerHTML = `
-      <div class="tilt-menu-content">
-        <!-- Top Stats Pill Bar -->
-        <header class="menu-top-bar">
-          <div class="menu-stat-chip">
-            <span class="stat-glyph">🏆</span>
-            <small>BEST SCORE</small>
-            <strong>${bestScore.toLocaleString()}</strong>
+      <div class="tilt-menu-wrapper">
+        <!-- Left Menu Sidebar (Board 04) -->
+        <div class="tilt-menu-sidebar">
+          <!-- Hero Title & Subtitle (Cut 'HYPER-NEON BULLET DODGE ARENA') -->
+          <div class="menu-hero-header">
+            <h1 class="menu-hero-title">TILT<br>TO LIVE</h1>
+            <p class="menu-hero-subtitle">Move to dodge. The guns fire themselves.</p>
           </div>
-          <div class="menu-stat-chip">
-            <span class="stat-glyph">★</span>
-            <small>MILESTONES</small>
-            <strong>${completedGoals}/${totalGoals}</strong>
-          </div>
-          <div class="menu-stat-chip menu-vault-chip" id="menu-btn-armory-quick">
-            <span class="stat-glyph">◈</span>
-            <small>VAULT</small>
-            <strong>${points.toLocaleString()} PTS</strong>
-          </div>
-        </header>
 
-        <!-- Main Title & Branding -->
-        <div class="menu-hero">
-          <p class="menu-eyebrow">HYPER-NEON BULLET DODGE ARENA</p>
-          <h1 class="menu-title">TILT TO LIVE</h1>
-          <p class="menu-subtitle">Weapons are your only salvation. Steer with WASD or mouse to survive relentless red dot swarms.</p>
-        </div>
+          <div class="menu-rule-divider"></div>
 
-        <!-- Mode Selector Cards -->
-        <section class="menu-modes-section" aria-label="Game Modes">
-          <p class="section-label">SELECT GAME MODE</p>
-          <div class="menu-modes-grid">
+          <!-- Mode Cards (3 Cards: Standard, Gauntlet, Code Red) -->
+          <div class="menu-modes-column" role="radiogroup" aria-label="Game Modes">
             ${this.options.modes.map((m) => {
               const isSelected = m.id === currentMode;
+              const formattedMult = m.scoreMultiplier.toFixed(m.scoreMultiplier % 1 === 0 ? 1 : 2);
               return `
-                <div class="menu-mode-card ${isSelected ? 'selected' : ''}" data-mode="${m.id}" role="button" tabindex="0">
-                  <div class="mode-card-header">
-                    <span class="mode-badge" style="border-color: ${m.color}; color: ${m.color}; background: ${m.glow};">
-                      ${m.badge}
-                    </span>
-                    <span class="mode-mult">${m.scoreMultiplier}x SCORE</span>
+                <div class="menu-mode-card ${isSelected ? 'selected' : ''}" data-mode="${m.id}" role="radio" aria-checked="${isSelected}" tabindex="0" style="border-color: ${isSelected ? m.color : '#262C38'}; background: ${isSelected ? '#141821' : '#0F131B'};">
+                  <div class="mode-left-indicator" style="background: ${m.color};"></div>
+                  <div class="mode-info-block">
+                    <div class="mode-header-line">
+                      <strong class="mode-name" style="${isSelected ? 'color: #E6E9F0;' : 'color: #C7CDDB;'}">${m.name}</strong>
+                      <span class="mode-mult-text" style="color: ${m.color};">${formattedMult}×</span>
+                    </div>
+                    <span class="mode-tagline-text" style="${isSelected ? 'color: #99A1B3;' : 'color: #7A8397;'}">${m.tagline}</span>
                   </div>
-                  <h3>${m.name}</h3>
-                  <p class="mode-tagline">${m.tagline}</p>
-                  <p class="mode-desc">${m.description}</p>
-                  <div class="mode-select-indicator">
-                    <span>${isSelected ? '● ACTIVE MODE' : 'SELECT MODE'}</span>
-                  </div>
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true" style="align-self: center; flex-shrink: 0;">
+                    ${isSelected
+                      ? `<circle cx="9" cy="9" r="8" stroke="${m.color}" stroke-width="1.5"></circle><circle cx="9" cy="9" r="4" fill="${m.color}"></circle>`
+                      : `<circle cx="9" cy="9" r="8" stroke="#3A4252" stroke-width="1.5"></circle>`
+                    }
+                  </svg>
                 </div>
               `;
             }).join('')}
           </div>
-        </section>
 
-        <!-- Action Button Controls -->
-        <div class="menu-actions-row">
-          <button id="btn-menu-launch" type="button" class="menu-launch-button" aria-label="Launch selected game mode">
-            <span class="launch-icon">▶</span>
-            <div class="launch-text">
-              <small>ENTER THE ARENA</small>
-              <strong>LAUNCH ${this.options.getModeConfig().name.toUpperCase()}</strong>
+          <!-- Play Button & Clean Nav Links -->
+          <div class="menu-launch-group">
+            <button id="btn-menu-launch" type="button" class="menu-play-button" aria-label="Play game">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 2.5 L13 8 L4 13.5 Z" fill="#08090E"></path></svg>
+              Play
+            </button>
+            <div class="menu-nav-links-row">
+              <button id="btn-menu-armory" type="button" class="menu-clean-nav-link">Armory</button>
+              <button id="btn-menu-goals" type="button" class="menu-clean-nav-link">Milestones</button>
+              <button id="btn-menu-options" type="button" class="menu-clean-nav-link">Settings</button>
             </div>
-          </button>
-
-          <div class="menu-sub-buttons">
-            <button id="btn-menu-armory" type="button" class="menu-sub-btn">
-              <span>⚡</span> The Armory & Vault
-            </button>
-            <button id="btn-menu-options" type="button" class="menu-sub-btn">
-              <span>⚙️</span> Game Options
-            </button>
-            <button id="btn-menu-goals" type="button" class="menu-sub-btn">
-              <span>🏆</span> Milestone Trophies
-            </button>
           </div>
+
+          <!-- Stats Footer: If bestScore > 0, show Best, Points, Milestones. If 0 (first run), hide until first run ends -->
+          ${bestScore > 0 ? `
+          <div class="menu-stats-row">
+            <div class="menu-stat-metric">
+              <span class="stat-metric-label">Best</span>
+              <span class="stat-metric-val">${bestScore.toLocaleString()}</span>
+            </div>
+            <div class="menu-stat-metric">
+              <span class="stat-metric-label">Points</span>
+              <span class="stat-metric-val stat-points-val">${points.toLocaleString()}</span>
+            </div>
+            <div class="menu-stat-metric">
+              <span class="stat-metric-label">Milestones</span>
+              <span class="stat-metric-val">${completedGoals}<span class="stat-denom">/${totalGoals}</span></span>
+            </div>
+          </div>
+          ` : ''}
         </div>
+
+        <!-- Next Milestone Teaser Banner (bottom right / mobile) -->
+        ${nextTeaser ? `
+        <div class="menu-next-milestone-teaser">
+          <span class="teaser-next-tag">Next</span>
+          <span class="teaser-desc">${nextTeaser.title} — ${nextTeaser.desc}</span>
+          <span class="teaser-progress-track">
+            <span class="teaser-progress-fill" style="width: ${nextTeaser.pct}%;"></span>
+          </span>
+        </div>
+        ` : ''}
       </div>
     `;
 
@@ -187,6 +223,15 @@ export class TiltMenu {
           this.render();
         }
       });
+      card.addEventListener('keydown', (e) => {
+        if ((e as KeyboardEvent).key === 'Enter' || (e as KeyboardEvent).key === ' ') {
+          const mode = (e.currentTarget as HTMLElement).getAttribute('data-mode') as GameMode;
+          if (mode) {
+            this.options.setMode(mode);
+            this.render();
+          }
+        }
+      });
     });
 
     // Launch Game button
@@ -195,23 +240,17 @@ export class TiltMenu {
       this.onLaunchGame(this.options.settings.mode);
     });
 
-    // Quick Armory shortcut
-    this.menuContainerEl.querySelector('#menu-btn-armory-quick')?.addEventListener('click', () => {
-      this.onOpenArmory();
-    });
-
+    // Clean Nav Links
     this.menuContainerEl.querySelector('#btn-menu-armory')?.addEventListener('click', () => {
       this.onOpenArmory();
     });
 
-    // Options Modal
-    this.menuContainerEl.querySelector('#btn-menu-options')?.addEventListener('click', () => {
-      this.openOptionsModal();
-    });
-
-    // Goals / Trophies Modal
     this.menuContainerEl.querySelector('#btn-menu-goals')?.addEventListener('click', () => {
       this.onOpenAllGoals();
+    });
+
+    this.menuContainerEl.querySelector('#btn-menu-options')?.addEventListener('click', () => {
+      this.openOptionsModal();
     });
   }
 
@@ -219,111 +258,150 @@ export class TiltMenu {
     if (!this.optionsModalEl) return;
 
     const s = this.options.settings;
-    const tuning = this.progression.data.tuning;
+
+    const renderToggleSwitch = (id: string, label: string, hint: string, checked: boolean) => {
+      const ring = checked ? '#5B8CFF' : '#3A4252';
+      const track = checked ? 'rgba(91, 140, 255, 0.2)' : '#1B2029';
+      const knob = checked ? '#5B8CFF' : '#626B7E';
+      const side = checked ? 'right: 3px;' : 'left: 3px;';
+      return `
+        <div class="settings-switch-row">
+          <div class="switch-row-info">
+            <span class="switch-row-label">${label}</span>
+            <span class="switch-row-hint">${hint}</span>
+          </div>
+          <button id="${id}" type="button" role="switch" aria-checked="${checked ? 'true' : 'false'}" class="settings-switch-btn" style="border-color: ${ring}; background: ${track};">
+            <span class="settings-switch-knob" style="${side} background: ${knob};"></span>
+          </button>
+        </div>
+      `;
+    };
+
+    const isCurrentShake = (val: string) => {
+      if (val === 'normal' || val === 'full') {
+        return s.screenShake === 'normal' || s.screenShake === 'full';
+      }
+      return s.screenShake === val;
+    };
+
+    const schemes = [
+      { id: 'mouse', name: 'Mouse', keys: 'point to steer' },
+      { id: 'keyboard', name: 'Keys', keys: 'WASD / arrows' },
+      { id: 'hybrid', name: 'Both', keys: 'whichever moves' },
+      { id: 'gyro', name: 'Tilt', keys: 'phone gyroscope' }
+    ];
 
     this.optionsModalEl.innerHTML = `
-      <div class="overlay-panel tilt-options-panel" role="dialog" aria-modal="true" aria-label="Game Settings">
-        <div class="armory-header">
-          <div class="armory-title-group">
-            <p class="eyebrow">CONFIGURATION</p>
-            <h2>Game Options & Settings</h2>
-          </div>
-          <div class="armory-header-right">
-            <button id="btn-close-options" class="armory-close-btn" type="button" aria-label="Close Options">✕</button>
-          </div>
+      <div class="overlay-panel tilt-options-panel" role="dialog" aria-modal="true" aria-label="Settings">
+        <!-- Settings Header (Board 12) -->
+        <div class="settings-modal-header">
+          <h2 class="settings-modal-title">Settings</h2>
+          <button id="btn-close-options" type="button" class="settings-modal-close" aria-label="Close settings">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <path d="M2 2 L12 12 M12 2 L2 12" stroke="#99A1B3" stroke-width="1.5" stroke-linecap="round"></path>
+            </svg>
+          </button>
         </div>
 
-        <div class="options-body custom-scrollbar">
-          <!-- Controls Section -->
-          <div class="options-section">
-            <span class="options-section-label">STEERING CONTROLS</span>
-            <div class="options-row">
-              <label>Control Scheme</label>
-              <div class="options-button-group">
-                <button class="opt-btn ${s.controlScheme === 'hybrid' ? 'active' : ''}" data-opt="controlScheme" data-val="hybrid" type="button">
-                  WASD / Arrows + Mouse
-                </button>
-                <button class="opt-btn ${s.controlScheme === 'mouse' ? 'active' : ''}" data-opt="controlScheme" data-val="mouse" type="button">
-                  Mouse Only
-                </button>
-                <button class="opt-btn ${s.controlScheme === 'keyboard' ? 'active' : ''}" data-opt="controlScheme" data-val="keyboard" type="button">
-                  Keyboard (WASD / Arrows)
-                </button>
-                <button class="opt-btn ${s.controlScheme === 'gyro' ? 'active' : ''}" data-opt="controlScheme" data-val="gyro" type="button">
-                  📱 Gyro / Tilt
-                </button>
-              </div>
-            </div>
-            <div class="options-row" style="flex-direction: column; align-items: stretch; gap: 8px;">
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <label style="font-size: 11.5px; font-weight: 700; text-transform: uppercase;">Steering Sensitivity</label>
-                <span id="opt-val-sensitivity" class="tuning-value-pill">${tuning.sensitivity.toFixed(1)}x</span>
-              </div>
-              <div class="slider-wrapper">
-                <span class="slider-boundary">0.5x</span>
-                <input id="opt-slider-sensitivity" type="range" min="0.5" max="2.0" step="0.1" value="${tuning.sensitivity}">
-                <span class="slider-boundary">2.0x</span>
-              </div>
-            </div>
-            ${s.controlScheme === 'gyro' ? `
-            <div class="options-row" style="background: rgba(0, 221, 255, 0.08); border-color: rgba(0, 221, 255, 0.3);">
-              <div>
-                <strong style="color: var(--neon-cyan); display: block; font-size: 13px;">Neutral Tilt Calibration</strong>
-                <small style="color: var(--paper); opacity: 0.85; font-size: 11px;">Hold device at your comfortable resting angle, then tap Calibrate.</small>
-              </div>
-              <button id="opt-btn-calibrate-gyro" class="command-button" type="button" style="width: auto; padding: 10px 18px; font-size: 11.5px; white-space: nowrap;">
-                🎯 Calibrate Neutral Tilt
-              </button>
-            </div>
-            ` : ''}
-          </div>
+        <!-- Settings Body Grid (Readability first, Audio, Controls, Data) -->
+        <div class="settings-modal-body custom-scrollbar">
+          <!-- Left Column: Readability & Audio -->
+          <div class="settings-col">
+            <!-- Readability Section (Decides whether game is playable. Changed most, sits first) -->
+            <div class="settings-section">
+              <span class="settings-section-heading">Readability</span>
+              <p class="settings-section-caption">Decides whether the game is playable. Changed most, so it sits first.</p>
 
-          <!-- Audio Section -->
-          <div class="options-section">
-            <span class="options-section-label">AUDIO & SOUNDTRACK</span>
-            <div class="options-row">
-              <label>Sound Effects</label>
-              <button id="opt-toggle-sfx" class="opt-toggle-btn ${s.sfxEnabled ? 'active' : ''}" type="button">
-                ${s.sfxEnabled ? 'ENABLED' : 'MUTED'}
-              </button>
+              <div class="settings-section-items">
+                ${renderToggleSwitch(
+                  's-halo',
+                  'Enemy outlines',
+                  'Adds a white ring to every hostile dot.',
+                  s.highContrastHalo
+                )}
+
+                ${renderToggleSwitch(
+                  's-aim',
+                  'Aim line',
+                  'Draws the line from ship to cursor.',
+                  s.tetherLine
+                )}
+
+                ${renderToggleSwitch(
+                  's-grid',
+                  'Background grid',
+                  'Off by default — it competes with the dots.',
+                  s.showGridlines
+                )}
+
+                <!-- Screen Shake Row -->
+                <div class="settings-switch-row">
+                  <div class="switch-row-info">
+                    <span class="switch-row-label">Screen shake</span>
+                  </div>
+                  <div class="settings-segmented-group">
+                    <button type="button" class="settings-segment-btn ${isCurrentShake('off') ? 'active' : ''}" data-shake="off">Off</button>
+                    <button type="button" class="settings-segment-btn ${isCurrentShake('low') ? 'active' : ''}" data-shake="low">Low</button>
+                    <button type="button" class="settings-segment-btn ${isCurrentShake('full') ? 'active' : ''}" data-shake="full">Full</button>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="options-row">
-              <label>Synthwave Music</label>
-              <button id="opt-toggle-music" class="opt-toggle-btn ${s.musicEnabled ? 'active' : ''}" type="button">
-                ${s.musicEnabled ? 'ENABLED' : 'MUTED'}
-              </button>
+
+            <!-- Audio Section -->
+            <div class="settings-section">
+              <span class="settings-section-heading">Audio</span>
+              <div class="settings-section-items">
+                ${renderToggleSwitch('s-sfx', 'Sound', 'Audio effects, weapons, and impacts.', s.sfxEnabled)}
+                ${renderToggleSwitch('s-mus', 'Music', 'High-tempo synthwave electronic soundtrack.', s.musicEnabled)}
+              </div>
             </div>
           </div>
 
-          <!-- Visuals & Screen FX Section -->
-          <div class="options-section">
-            <span class="options-section-label">VISUALS & ACCESSIBILITY</span>
-            <div class="options-row">
-              <label>Screen Shake Impact</label>
-              <div class="options-button-group">
-                <button class="opt-btn ${s.screenShake === 'off' ? 'active' : ''}" data-opt="screenShake" data-val="off" type="button">Off</button>
-                <button class="opt-btn ${s.screenShake === 'low' ? 'active' : ''}" data-opt="screenShake" data-val="low" type="button">Low</button>
-                <button class="opt-btn ${s.screenShake === 'normal' ? 'active' : ''}" data-opt="screenShake" data-val="normal" type="button">Normal</button>
-                <button class="opt-btn ${s.screenShake === 'extreme' ? 'active' : ''}" data-opt="screenShake" data-val="extreme" type="button">Extreme</button>
+          <!-- Right Column: Controls & Data -->
+          <div class="settings-col">
+            <!-- Controls Section -->
+            <div class="settings-section">
+              <span class="settings-section-heading">Controls</span>
+              <div class="settings-schemes-grid">
+                ${schemes.map((c) => {
+                  const isActive = s.controlScheme === c.id;
+                  return `
+                    <button type="button" class="settings-scheme-card ${isActive ? 'active' : ''}" data-scheme="${c.id}">
+                      <span class="scheme-name" style="color: ${isActive ? '#E6E9F0' : '#C7CDDB'};">${c.name}</span>
+                      <span class="scheme-keys">${c.keys}</span>
+                    </button>
+                  `;
+                }).join('')}
               </div>
-            </div>
-            <div class="options-row">
-              <label>Targeting Tether Line</label>
-              <button id="opt-toggle-tether" class="opt-toggle-btn ${s.tetherLine ? 'active' : ''}" type="button">
-                ${s.tetherLine ? 'ENABLED' : 'DISABLED'}
+
+              ${s.controlScheme === 'gyro' ? `
+              <div class="settings-gyro-calibrate-row">
+                <div>
+                  <strong style="color: #5B8CFF; display: block; font-size: 13px;">Neutral Tilt Calibration</strong>
+                  <small style="color: #99A1B3; font-size: 11px;">Rest device at comfortable angle, then calibrate.</small>
+                </div>
+                <button id="opt-btn-calibrate-gyro" type="button" class="settings-calibrate-btn">
+                  Calibrate Neutral Tilt
+                </button>
+              </div>
+              ` : ''}
+
+              <button id="btn-settings-armory-link" type="button" class="settings-sub-link">
+                Turn rate and deadzone live in the Armory
               </button>
             </div>
-            <div class="options-row">
-              <label>High-Contrast Dot Halo</label>
-              <button id="opt-toggle-halo" class="opt-toggle-btn ${s.highContrastHalo ? 'active' : ''}" type="button">
-                ${s.highContrastHalo ? 'ENABLED' : 'DISABLED'}
-              </button>
-            </div>
-            <div class="options-row">
-              <label>Background Vector Grid</label>
-              <button id="opt-toggle-grid" class="opt-toggle-btn ${s.showGridlines ? 'active' : ''}" type="button">
-                ${s.showGridlines ? 'ENABLED' : 'DISABLED'}
-              </button>
+
+            <!-- Data Section -->
+            <div class="settings-section">
+              <span class="settings-section-heading">Data</span>
+              <div class="settings-reset-row">
+                <div class="switch-row-info">
+                  <span class="switch-row-label">Reset progress</span>
+                  <span class="switch-row-hint">Scores, points and unlocks. Cannot be undone.</span>
+                </div>
+                <button id="btn-settings-reset-data" type="button" class="settings-reset-btn">Reset</button>
+              </div>
             </div>
           </div>
         </div>
@@ -337,59 +415,73 @@ export class TiltMenu {
   private bindOptionsEvents() {
     if (!this.optionsModalEl) return;
 
+    // Close settings modal and backdrop click
     this.optionsModalEl.querySelector('#btn-close-options')?.addEventListener('click', () => {
       this.optionsModalEl?.classList.add('hidden');
     });
+    this.optionsModalEl.onclick = (e) => {
+      if (e.target === this.optionsModalEl) {
+        this.optionsModalEl?.classList.add('hidden');
+      }
+    };
 
-    // Control scheme & Screen shake button groups
-    this.optionsModalEl.querySelectorAll('.opt-btn').forEach((btn) => {
+    // Readability switch toggles
+    this.optionsModalEl.querySelector('#s-halo')?.addEventListener('click', () => {
+      this.options.settings.highContrastHalo = !this.options.settings.highContrastHalo;
+      this.options.save();
+      this.openOptionsModal();
+    });
+
+    this.optionsModalEl.querySelector('#s-aim')?.addEventListener('click', () => {
+      this.options.settings.tetherLine = !this.options.settings.tetherLine;
+      this.options.save();
+      this.openOptionsModal();
+    });
+
+    this.optionsModalEl.querySelector('#s-grid')?.addEventListener('click', () => {
+      this.options.settings.showGridlines = !this.options.settings.showGridlines;
+      this.options.save();
+      this.openOptionsModal();
+    });
+
+    // Screen Shake segmented buttons
+    this.optionsModalEl.querySelectorAll('.settings-segment-btn').forEach((btn) => {
       btn.addEventListener('click', (e) => {
-        const target = e.currentTarget as HTMLElement;
-        const opt = target.getAttribute('data-opt');
-        const val = target.getAttribute('data-val');
-        if (opt === 'controlScheme' && val) {
-          this.options.settings.controlScheme = val as any;
-          this.options.save();
-          this.openOptionsModal();
-        } else if (opt === 'screenShake' && val) {
-          this.options.settings.screenShake = val as any;
+        const shake = (e.currentTarget as HTMLElement).getAttribute('data-shake');
+        if (shake) {
+          this.options.settings.screenShake = shake as any;
           this.options.save();
           this.openOptionsModal();
         }
       });
     });
 
-    // Toggle buttons
-    this.optionsModalEl.querySelector('#opt-toggle-sfx')?.addEventListener('click', () => {
+    // Audio toggles
+    this.optionsModalEl.querySelector('#s-sfx')?.addEventListener('click', () => {
       this.options.settings.sfxEnabled = !this.options.settings.sfxEnabled;
       this.options.save();
       this.openOptionsModal();
     });
 
-    this.optionsModalEl.querySelector('#opt-toggle-music')?.addEventListener('click', () => {
+    this.optionsModalEl.querySelector('#s-mus')?.addEventListener('click', () => {
       this.options.settings.musicEnabled = !this.options.settings.musicEnabled;
       this.options.save();
       this.openOptionsModal();
     });
 
-    this.optionsModalEl.querySelector('#opt-toggle-tether')?.addEventListener('click', () => {
-      this.options.settings.tetherLine = !this.options.settings.tetherLine;
-      this.options.save();
-      this.openOptionsModal();
+    // Controls scheme cards
+    this.optionsModalEl.querySelectorAll('.settings-scheme-card').forEach((card) => {
+      card.addEventListener('click', (e) => {
+        const scheme = (e.currentTarget as HTMLElement).getAttribute('data-scheme');
+        if (scheme) {
+          this.options.settings.controlScheme = scheme as any;
+          this.options.save();
+          this.openOptionsModal();
+        }
+      });
     });
 
-    this.optionsModalEl.querySelector('#opt-toggle-halo')?.addEventListener('click', () => {
-      this.options.settings.highContrastHalo = !this.options.settings.highContrastHalo;
-      this.options.save();
-      this.openOptionsModal();
-    });
-
-    this.optionsModalEl.querySelector('#opt-toggle-grid')?.addEventListener('click', () => {
-      this.options.settings.showGridlines = !this.options.settings.showGridlines;
-      this.options.save();
-      this.openOptionsModal();
-    });
-
+    // Gyro neutral tilt calibration
     this.optionsModalEl.querySelector('#opt-btn-calibrate-gyro')?.addEventListener('click', async (e) => {
       const btn = e.currentTarget as HTMLButtonElement;
       btn.disabled = true;
@@ -400,17 +492,32 @@ export class TiltMenu {
       btn.disabled = false;
       btn.innerText = 'Calibrated ✓';
       setTimeout(() => {
-        if (btn) btn.innerText = '🎯 Calibrate Neutral Tilt';
+        if (btn) btn.innerText = 'Calibrate Neutral Tilt';
       }, 1600);
     });
 
-    const sensSlider = this.optionsModalEl.querySelector('#opt-slider-sensitivity') as HTMLInputElement | null;
-    sensSlider?.addEventListener('input', () => {
-      const val = parseFloat(sensSlider.value);
-      this.progression.data.tuning.sensitivity = val;
-      this.progression.save();
-      const valEl = this.optionsModalEl?.querySelector('#opt-val-sensitivity');
-      if (valEl) valEl.textContent = `${val.toFixed(1)}x`;
+    // Armory sub-link
+    this.optionsModalEl.querySelector('#btn-settings-armory-link')?.addEventListener('click', () => {
+      this.optionsModalEl?.classList.add('hidden');
+      this.onOpenArmory();
+    });
+
+    // Reset Data
+    this.optionsModalEl.querySelector('#btn-settings-reset-data')?.addEventListener('click', () => {
+      const confirmed = window.confirm(
+        'Are you sure you want to reset all progress? Your scores, points, milestones, and armory unlocks will be permanently deleted.'
+      );
+      if (confirmed) {
+        try {
+          localStorage.removeItem('tilt_to_live_settings_v1');
+          localStorage.removeItem('tilt_to_live_completed_goals_v1');
+          localStorage.removeItem('tilt_to_live_cumulative_stats_v1');
+          localStorage.removeItem('tilt_to_live_progression_v1');
+          localStorage.removeItem('tilt_to_live_scores_v1');
+          localStorage.removeItem('tilt_goals_hud_collapsed');
+        } catch {}
+        window.location.reload();
+      }
     });
   }
 }

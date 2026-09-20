@@ -8,6 +8,7 @@ import { VectorGrid } from './VectorGrid';
 import { TiltAudio } from './TiltAudio';
 import { PlayerShip } from './PlayerShip';
 import { WeaponPerks } from './ProgressionManager';
+import { WEAPON_TUNING, getTunedValue, SUPERNOVA_SHOCKWAVE } from './WeaponTuning';
 
 export class WeaponSystem {
   public orbs: WeaponOrb[] = [];
@@ -21,7 +22,7 @@ export class WeaponSystem {
   private nextMissileId: number = 1;
   private orbSpawnTimer: number = 2.0;
 
-  private readonly weaponTypes: WeaponType[] = [
+  public readonly weaponTypes: WeaponType[] = [
     'nuke',
     'missiles',
     'lightning',
@@ -64,22 +65,12 @@ export class WeaponSystem {
     this.orbSpawnTimer -= dt;
     if (this.orbSpawnTimer <= 0) {
       if (this.orbs.length < 5) {
-        if (gameMode === 'code-red') {
-          // Heavy crowd clearers for hyper-swarms
-          const roll = Math.random();
-          if (roll < 0.4) {
-            this.spawnOrb(bounds, 'nuke');
-          } else if (roll < 0.7) {
-            this.spawnOrb(bounds, 'vortex');
-          } else {
-            this.spawnOrb(bounds, 'missiles');
-          }
-        } else {
-          // Classic & Gauntlet: normal powerup spawns
-          this.spawnOrb(bounds);
-        }
+        // In ALL modes (including Code Red), all weapons spawn (shield, freeze/shockwave, nuke, missiles, laser, lightning)
+        // Blackhole ('vortex') is calibrated as a rare, high-impact power-up.
+        const type = this.getRandomWeaponType(gameMode);
+        this.spawnOrb(bounds, type);
       }
-      this.orbSpawnTimer = (gameMode === 'code-red' ? 2.0 : 3.0) + Math.random() * 1.5;
+      this.orbSpawnTimer = (gameMode === 'code-red' ? 2.2 : 3.0) + Math.random() * 1.5;
     }
 
     // 2. Update Orbs (lifetime and collision with player)
@@ -116,7 +107,7 @@ export class WeaponSystem {
         case 'nuke': {
           // Rapidly expanding blast ring
           const progress = 1 - w.duration / w.maxDuration;
-          w.radius = (w.maxRadius || 460) * progress;
+          w.radius = (w.maxRadius || WEAPON_TUNING.nuke.radius.base * this.scale) * progress;
 
           // Vaporize enemies inside or near blast radius
           for (let eIdx = enemies.length - 1; eIdx >= 0; eIdx--) {
@@ -142,7 +133,7 @@ export class WeaponSystem {
           w.x = player.x;
           w.y = player.y;
           w.angle = (w.angle || 0) + dt * Math.PI * 3.5; // Rapid 360 deg spin
-          const beamLength = 340;
+          const beamLength = w.radius || WEAPON_TUNING.laser.length.base * this.scale;
 
           // Check enemies intersecting line segment from (-beamLength) to (+beamLength)
           const cosA = Math.cos(w.angle);
@@ -190,7 +181,7 @@ export class WeaponSystem {
         }
 
         case 'vortex': {
-          const pullRadius = w.radius || 460;
+          const pullRadius = w.radius || WEAPON_TUNING.blackhole.radius.base * this.scale;
           const pullRadius2 = pullRadius * pullRadius;
 
           // Event Horizon Cloak Keystone Perk: Player is invulnerable while inside blackhole radius!
@@ -266,7 +257,7 @@ export class WeaponSystem {
       if (w.duration <= 0) {
         if (w.type === 'vortex') {
           // Collapse Shockwave Detonation!
-          const blastRadius = w.data?.supernovaCollapse ? 420 : 260;
+          const blastRadius = w.data?.supernovaCollapse ? SUPERNOVA_SHOCKWAVE : 260;
           const blastRadius2 = blastRadius * blastRadius;
           audio.playNuke();
           particles.emitExplosion(w.x, w.y, '#9d4edd', w.data?.supernovaCollapse ? 65 : 45);
@@ -343,8 +334,8 @@ export class WeaponSystem {
       }
 
       if (hit || m.lifetime <= 0) {
-        // Missile blast radius 55px kills cluster
-        const blastRadius = 55;
+        // Missile blast radius kills cluster; perk-tuned via WeaponTuning
+        const blastRadius = getTunedValue('missiles', 'blastRadius', perks?.missiles.blastRadius || 0);
         const blastRadius2 = blastRadius * blastRadius;
 
         audio.playMissileExplode();
@@ -375,6 +366,23 @@ export class WeaponSystem {
     }
   }
 
+  public triggerWeapon(
+    type: WeaponType,
+    x: number,
+    y: number,
+    player: PlayerShip,
+    enemies: Enemy[],
+    particles: ParticleEngine,
+    grid: VectorGrid,
+    audio: TiltAudio,
+    onEnemyKilledOrPerks?: ((enemy: Enemy, weaponType: WeaponType) => void) | WeaponPerks,
+    perks?: WeaponPerks
+  ) {
+    const onKilled = typeof onEnemyKilledOrPerks === 'function' ? onEnemyKilledOrPerks : () => {};
+    const effectivePerks = typeof onEnemyKilledOrPerks === 'function' ? perks : onEnemyKilledOrPerks;
+    this.activateWeapon(type, x, y, player, enemies, particles, grid, audio, onKilled, effectivePerks);
+  }
+
   public activateWeapon(
     type: WeaponType,
     x: number,
@@ -390,7 +398,7 @@ export class WeaponSystem {
     switch (type) {
       case 'nuke': {
         audio.playNuke();
-        const maxRadius = (480 + (perks?.nuke.radius || 0) * 40) * this.scale;
+        const maxRadius = getTunedValue('nuke', 'radius', perks?.nuke.radius || 0) * this.scale;
         const duration = 0.65 / (1 + (perks?.nuke.speed || 0) * 0.25);
         this.activeWeapons.push({
           id: this.nextWeaponId++,
@@ -431,7 +439,7 @@ export class WeaponSystem {
         let currentOrigin: Point2D = { x, y };
         const visitedIds = new Set<number>();
         const maxChains = 14 + (perks?.lightning.maxTargets || 0) * 3;
-        const jumpRange = (280 + (perks?.lightning.chainRange || 0) * 40) * this.scale;
+        const jumpRange = getTunedValue('lightning', 'chainRange', perks?.lightning.chainRange || 0) * this.scale;
 
         for (let chain = 0; chain < maxChains; chain++) {
           let nearestEnemy: Enemy | null = null;
@@ -490,7 +498,7 @@ export class WeaponSystem {
 
       case 'laser': {
         audio.playLaserBeam();
-        const beamLength = (340 + (perks?.laser.length || 0) * 35) * this.scale;
+        const beamLength = getTunedValue('laser', 'length', perks?.laser.length || 0) * this.scale;
         const duration = 1.8 + (perks?.laser.duration || 0) * 0.4;
         this.activeWeapons.push({
           id: this.nextWeaponId++,
@@ -509,7 +517,7 @@ export class WeaponSystem {
       case 'vortex': {
         audio.playVortex();
         const duration = 4.8 + (perks?.blackhole.duration || 0) * 0.5;
-        const radius = (460 + (perks?.blackhole.radius || 0) * 35) * this.scale;
+        const radius = getTunedValue('blackhole', 'radius', perks?.blackhole.radius || 0) * this.scale;
         this.activeWeapons.push({
           id: this.nextWeaponId++,
           type: 'vortex',
@@ -542,17 +550,40 @@ export class WeaponSystem {
       case 'shield': {
         const shieldDuration = 6.0 + (perks?.shield.duration || 0) * 1.0;
         player.activateShield(shieldDuration);
-        particles.emitSparks(player.x, player.y, 25, '#00ffcc', 160);
+        particles.emitSparks(player.x, player.y, 25, '#3DDC97', 160);
         break;
       }
     }
+  }
+
+  public getRandomWeaponType(_gameMode: GameMode = 'classic'): WeaponType {
+    // Weighted probabilities:
+    // Missiles: 20%, Nuke: 18%, Laser: 18%, Lightning: 16%, Freeze: 16%, Shield: 16%, Blackhole (Vortex): 5% (Rare!)
+    const weights: Record<WeaponType, number> = {
+      missiles: 20,
+      nuke: 18,
+      laser: 18,
+      lightning: 16,
+      freeze: 16,
+      shield: 16,
+      vortex: 5
+    };
+
+    const entries = Object.entries(weights) as [WeaponType, number][];
+    const total = entries.reduce((acc, [, w]) => acc + w, 0);
+    let roll = Math.random() * total;
+    for (const [t, w] of entries) {
+      if (roll < w) return t;
+      roll -= w;
+    }
+    return 'missiles';
   }
 
   public spawnOrb(bounds: { width: number; height: number }, specificType?: WeaponType, customX?: number, customY?: number) {
     const pad = Math.max(30, 60 * this.scale);
     const x = customX !== undefined ? customX : pad + Math.random() * (bounds.width - pad * 2);
     const y = customY !== undefined ? customY : pad + Math.random() * (bounds.height - pad * 2);
-    const type = specificType || this.weaponTypes[Math.floor(Math.random() * this.weaponTypes.length)];
+    const type = specificType || this.getRandomWeaponType();
 
     this.orbs.push({
       id: this.nextOrbId++,
@@ -573,8 +604,8 @@ export class WeaponSystem {
       case 'lightning': return '#ffdd00';
       case 'laser': return '#cc22ff';
       case 'vortex': return '#8822ff';
-      case 'freeze': return '#00ffee';
-      case 'shield': return '#00ff66';
+      case 'freeze': return '#8FB0FF';
+      case 'shield': return '#3DDC97';
     }
   }
 
@@ -606,7 +637,7 @@ export class WeaponSystem {
         ctx.arc(w.x, w.y, w.radius, 0, Math.PI * 2);
         ctx.fill();
       } else if (w.type === 'laser') {
-        const beamLength = w.radius || 340;
+        const beamLength = w.radius || WEAPON_TUNING.laser.length.base * this.scale;
         const cosA = Math.cos(w.angle || 0);
         const sinA = Math.sin(w.angle || 0);
 
@@ -649,7 +680,7 @@ export class WeaponSystem {
         // Swirling cosmic black hole singularity
         const pulse = 0.85 + 0.15 * Math.sin(elapsed * 12);
         const radius = 36 * pulse;
-        const pullRadius = w.radius || 460;
+        const pullRadius = w.radius || WEAPON_TUNING.blackhole.radius.base * this.scale;
 
         // 1. Gravitational Lensing Distortions (multiple concentric rings)
         const ringAlpha = 0.22 + 0.08 * Math.sin(elapsed * 6);

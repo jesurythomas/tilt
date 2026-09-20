@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#08090E">
+  <title>Tilt to Live</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="alternate icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="alternate icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="shortcut icon" href="/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./src/styles/game.css">
+</head>
+<body>
+  <div id="app">
+    <section id="tilt-container" class="game-screen" aria-label="Tilt to Live">
+      <div id="tilt-stage" class="tilt-stage">
+        <!-- Playfield -->
+        <canvas id="tilt-canvas" aria-label="Tilt to Live game"></canvas>
+
+        <!-- Milestone rail (in run) / milestone list (in menu) -->
+        <aside id="tilt-goals-sidebar" class="tilt-goals-sidebar" aria-label="Milestones"></aside>
+
+        <!-- Milestone completion toast -->
+        <div id="tilt-goal-toast" class="tilt-goal-toast hidden" aria-live="polite"></div>
+
+        <!-- In-run top HUD -->
+        <div class="tilt-hud game-hud">
+          <div class="hud-left">
+            <div class="hud-score-block">
+              <span id="tilt-score" class="hud-score">0</span>
+              <div class="hud-meta">
+                <span id="tilt-best" class="hud-meta-best">BEST 0</span>
+                <span class="hud-meta-sep" aria-hidden="true"></span>
+                <span id="tilt-mode-badge" class="hud-meta-mode">Standard</span>
+              </div>
+            </div>
+            <span id="tilt-hud-mult" class="hud-mult-chip hidden">1.0x</span>
+          </div>
+
+          <div class="hud-actions">
+            <button id="btn-tilt-pause" class="hud-icon-btn" type="button" aria-label="Pause">
+              <svg class="tilt-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                <line x1="9" y1="5" x2="9" y2="19"></line>
+                <line x1="15" y1="5" x2="15" y2="19"></line>
+              </svg>
+            </button>
+            <button id="btn-tilt-menu" class="hud-icon-btn" type="button" aria-label="Quit to menu">
+              <svg class="tilt-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                <path d="M4 10.5 12 4l8 6.5"></path>
+                <path d="M6 10v9h12v-9"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Shield readout, bottom centre -->
+        <div id="tilt-shield-wrap" class="tilt-shield-wrap hidden" aria-hidden="true">
+          <div class="tilt-shield-track">
+            <div id="tilt-shield-fill" class="tilt-shield-fill"></div>
+          </div>
+          <span id="tilt-shield-label" class="tilt-shield-label">Shield 0.0s</span>
+        </div>
+
+        <!-- Start menu -->
+        <div id="tilt-menu-screen" class="tilt-menu-screen"></div>
+
+        <!-- Entrance cinematic: wordmark hold -->
+        <div id="tilt-cinematic-overlay" class="tilt-cinematic-overlay hidden" aria-hidden="true">
+          <div class="tilt-cinematic-content">
+            <div class="tilt-cinematic-wordmark">TILT TO LIVE</div>
+            <p class="tilt-cinematic-sub tilt-compat-hidden"></p>
+            <h2 class="tilt-cinematic-title tilt-compat-hidden"></h2>
+            <div class="tilt-cinematic-badge tilt-compat-hidden"></div>
+          </div>
+          <div class="tilt-cinematic-skip tilt-compat-hidden"></div>
+        </div>
+
+        <!-- Pause overlay -->
+        <div id="tilt-pause-overlay" class="game-overlay hidden">
+          <div class="overlay-panel tilt-pause-panel" role="dialog" aria-modal="true" aria-label="Paused">
+            <h2 class="tilt-pause-title">Paused</h2>
+            <p id="tilt-pause-scheme-desc" class="tilt-pause-scheme">Steer with WASD or the mouse</p>
+
+            <button id="btn-tilt-resume" type="button" class="btn-primary tilt-pause-primary">Resume</button>
+            <button id="btn-tilt-restart-pause" type="button" class="btn-secondary tilt-pause-action">Restart run</button>
+            <button id="btn-tilt-menu-pause" type="button" class="btn-secondary tilt-pause-action">Quit to menu</button>
+
+            <div class="tilt-switch-list">
+              <div class="tilt-switch-row">
+                <span class="tilt-switch-label">Sound</span>
+                <button id="btn-tilt-sound" type="button" class="opt-switch" role="switch" aria-checked="true" aria-label="Sound"></button>
+              </div>
+              <div class="tilt-switch-row">
+                <span class="tilt-switch-label">Music</span>
+                <button id="btn-tilt-music-pause" type="button" class="opt-switch" role="switch" aria-checked="true" aria-label="Music"></button>
+              </div>
+            </div>
+
+            <button id="btn-tilt-calibrate" type="button" class="btn-secondary tilt-pause-action hidden">
+              <svg class="tilt-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                <rect x="7" y="2.5" width="10" height="19" rx="2"></rect>
+                <line x1="10.5" y1="18.5" x2="13.5" y2="18.5"></line>
+              </svg>
+              <span class="tilt-btn-text">Calibrate</span>
+            </button>
+
+            <button id="btn-tilt-settings-pause" type="button" class="btn-ghost tilt-pause-link">
+              <svg class="tilt-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"></path>
+              </svg>
+              <span class="tilt-btn-text">Settings</span>
+            </button>
+
+            <p class="tilt-key-hint">ESC to resume</p>
+
+            <!-- Kept for id compatibility only; never shown -->
+            <button id="btn-tilt-calibrate-pause" type="button" class="btn-secondary tilt-compat-hidden">Calibrate</button>
+            <button id="btn-tilt-armory-pause" type="button" class="btn-secondary tilt-compat-hidden">Armory</button>
+            <button id="btn-tilt-armory-hud" type="button" class="btn-secondary tilt-compat-hidden">Armory</button>
+          </div>
+        </div>
+
+        <!-- Game over -->
+        <div id="tilt-gameover-modal" class="game-overlay hidden">
+          <div class="overlay-panel tilt-gameover-panel" role="dialog" aria-modal="true" aria-label="Run over">
+            <div class="tilt-sheet-handle" aria-hidden="true"></div>
+
+            <strong id="tilt-final-score" class="tilt-final-score">0</strong>
+            <p id="tilt-gameover-sub" class="tilt-gameover-sub">Swarmed</p>
+            <div id="tilt-gameover-best" class="tilt-gameover-best hidden"></div>
+
+            <div class="tilt-stat-strip">
+              <div class="tilt-stat-cell">
+                <span id="tilt-final-kills" class="tilt-stat-value">0</span>
+                <span class="tilt-stat-label">Kills</span>
+              </div>
+              <div class="tilt-stat-cell">
+                <span id="tilt-final-mult" class="tilt-stat-value">1.0x</span>
+                <span class="tilt-stat-label">Best chain</span>
+              </div>
+              <div class="tilt-stat-cell">
+                <span id="tilt-final-time" class="tilt-stat-value">0s</span>
+                <span class="tilt-stat-label">Alive</span>
+              </div>
+            </div>
+
+            <div class="tilt-points-line">
+              <span class="tilt-points-label">Points earned</span>
+              <span class="tilt-points-values">
+                <strong id="tilt-earned-points" class="tilt-points-earned">+0</strong>
+                <span class="tilt-points-arrow" aria-hidden="true">&rarr;</span>
+                <span id="tilt-balance-points" class="tilt-points-balance">0</span>
+              </span>
+            </div>
+
+            <div id="tilt-gameover-milestones" class="gameover-milestones-list hidden"></div>
+
+            <button id="btn-tilt-restart" type="button" class="btn-primary tilt-gameover-primary" autofocus>Retry</button>
+            <div class="tilt-gameover-actions">
+              <button id="btn-tilt-menu-gameover" type="button" class="btn-secondary">Menu</button>
+              <button id="btn-tilt-armory-gameover" type="button" class="btn-secondary">Spend</button>
+            </div>
+
+            <p class="tilt-key-hint">SPACE to retry</p>
+          </div>
+        </div>
+
+        <!-- Settings modal -->
+        <div id="tilt-options-modal" class="game-overlay hidden tilt-options-overlay"></div>
+
+        <!-- All milestones modal -->
+        <div id="tilt-all-goals-modal" class="game-overlay hidden tilt-all-goals-overlay"></div>
+
+        <!-- Armory -->
+        <div id="tilt-armory-modal" class="game-overlay hidden tilt-armory-overlay"></div>
+      </div>
+    </section>
+  </div>
+  <script type="module" src="./src/main.ts"></script>
+</body>
+</html>

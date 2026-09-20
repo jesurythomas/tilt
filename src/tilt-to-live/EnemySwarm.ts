@@ -23,6 +23,16 @@ export class EnemySwarm {
     this.scale = Math.max(0.5, Math.min(1.8, scale));
   }
 
+  // Progression-driven uniform movement slow (ProgressionManager.getEnemySpeedMultiplier()).
+  // Defaults to 1.0 (unchanged) so nothing changes until wired. Scales only the
+  // per-frame translation of enemy movement — never spawn timers, spawn thresholds,
+  // attack/fire cooldowns, or scoring.
+  private speedScale: number = 1.0;
+
+  public setSpeedScale(scale: number) {
+    this.speedScale = Math.max(0.1, Math.min(2, scale));
+  }
+
   public reset() {
     this.enemies = [];
     this.nextEnemyId = 1;
@@ -52,30 +62,40 @@ export class EnemySwarm {
       const scoreReduction = Math.min(0.35, (currentScore / 30000) * 0.35);
 
       if (isCodeRed) {
-        // Code Red: fast twin spawns with elite units appearing earlier!
+        // Code Red: fast twin spawns with elite units appearing immediately
         this.spawnTimer = 0.32 + Math.random() * 0.12;
-        if (currentScore >= 35000 && Math.random() < 0.28) {
-          this.spawnCharger(bounds, playerPos);
-        } else if (currentScore >= 75000 && Math.random() < 0.25) {
+        if (currentScore >= 24000 && Math.random() < 0.28) {
+          this.spawnCarrier(bounds, playerPos);
+        } else if (currentScore >= 16000 && Math.random() < 0.26) {
+          this.spawnPulsar(bounds, playerPos);
+        } else if (currentScore >= 10000 && Math.random() < 0.30) {
           this.spawnArtillery(bounds, playerPos);
+        } else if (currentScore >= 6000 && Math.random() < 0.28) {
+          this.spawnSpecter(bounds, playerPos);
+        } else if (currentScore >= 2500 && Math.random() < 0.35) {
+          this.spawnCharger(bounds, playerPos);
         } else {
           this.spawnSeeker(bounds);
           this.spawnSeeker(bounds);
         }
       } else {
-        // Classic & Gauntlet standard pacing with score-based variety unlocks!
+        // Classic & Gauntlet standard pacing with score-based variety unlocks
         let baseInterval = Math.max(0.42, 1.35 - timeReduction - scoreReduction);
         this.spawnTimer = baseInterval + Math.random() * 0.15;
 
-        // Variety unlock at 50k, 100k, 150k!
-        if (currentScore >= 150000 && Math.random() < 0.22) {
+        // Variety unlock: chargers at 5k, specters at 10k, artillery at 16k, pulsars at 22k, carriers at 32k!
+        if (currentScore >= 32000 && Math.random() < 0.22) {
           this.spawnCarrier(bounds, playerPos);
-        } else if (currentScore >= 100000 && Math.random() < 0.25) {
+        } else if (currentScore >= 22000 && Math.random() < 0.26) {
+          this.spawnPulsar(bounds, playerPos);
+        } else if (currentScore >= 16000 && Math.random() < 0.28) {
           this.spawnArtillery(bounds, playerPos);
-        } else if (currentScore >= 50000 && Math.random() < 0.32) {
+        } else if (currentScore >= 10000 && Math.random() < 0.26) {
+          this.spawnSpecter(bounds, playerPos);
+        } else if (currentScore >= 5000 && Math.random() < 0.32) {
           this.spawnCharger(bounds, playerPos);
         } else {
-          const spawnCount = currentScore >= 15000 && Math.random() < 0.25 ? 2 : 1;
+          const spawnCount = currentScore >= 12000 && Math.random() < 0.25 ? 2 : 1;
           for (let s = 0; s < spawnCount; s++) {
             this.spawnSeeker(bounds);
           }
@@ -86,24 +106,27 @@ export class EnemySwarm {
     // 2. Coordinated Formation Waves with Mode Specialization
     if (this.waveTimer <= 0) {
       if (isCodeRed) {
-        // Code Red: rapid-fire aggressive ambushes
-        if (Math.random() < 0.5) {
-          this.spawnArrowFormation(bounds, true); // Dual pincer attack!
+        // Code Red: rapid-fire aggressive ambushes including horizontal & vertical wall sweeps
+        const roll = Math.random();
+        if (roll < 0.35) {
+          this.spawnWallFormation(bounds); // Line sweep (horizontal or vertical)
+        } else if (roll < 0.70) {
+          this.spawnArrowFormation(bounds, true); // Dual pincer attack
         } else {
-          this.spawnCircleEncirclement(playerPos, bounds, currentScore, true); // Tight encirclement!
+          this.spawnCircleEncirclement(playerPos, bounds, currentScore, true); // Tight circle
         }
         this.waveTimer = 3.6 + Math.random() * 1.2;
       } else if (gameMode === 'gauntlet') {
-        // Gauntlet: DO NOT spawn vertical or horizontal walls or circle encirclements!
+        // Gauntlet: strictly excludes vertical and horizontal wall sweeps (handled by descending walls)
         this.triggerGauntletFormation(playerPos, bounds, currentScore);
         const scoreWaveReduction = Math.min(2.0, (currentScore / 25000) * 2.0);
         const baseWaveInterval = Math.max(8.5, 13.5 - this.elapsed * 0.02 - scoreWaveReduction);
         this.waveTimer = baseWaveInterval + Math.random() * 2.5;
       } else {
-        // Classic standard formations
+        // Classic: standard formations including frequent horizontal & vertical wall sweeps
         this.triggerRandomFormation(playerPos, bounds, currentScore);
         const scoreWaveReduction = Math.min(2.0, (currentScore / 25000) * 2.0);
-        const baseWaveInterval = Math.max(6.5, 11.5 - this.elapsed * 0.02 - scoreWaveReduction);
+        const baseWaveInterval = Math.max(5.5, 10.0 - this.elapsed * 0.02 - scoreWaveReduction);
         this.waveTimer = baseWaveInterval + Math.random() * 2.0;
       }
     }
@@ -144,8 +167,8 @@ export class EnemySwarm {
           }
           break;
         case 'spike_mine':
-          e.x += e.vx * dt;
-          e.y += e.vy * dt;
+          e.x += e.vx * dt * this.speedScale;
+          e.y += e.vy * dt * this.speedScale;
           break;
         case 'snake_segment':
           this.updateSnakeSegment(e, dt);
@@ -165,6 +188,12 @@ export class EnemySwarm {
           break;
         case 'carrier':
           this.updateCarrier(e, playerPos, dt);
+          break;
+        case 'pulsar':
+          this.updatePulsar(e, playerPos, dt, particles);
+          break;
+        case 'specter':
+          this.updateSpecter(e, playerPos, dt);
           break;
       }
 
@@ -222,13 +251,13 @@ export class EnemySwarm {
       e.vy += (targetVy - e.vy) * steerStrength;
     }
 
-    e.x += e.vx * dt;
-    e.y += e.vy * dt;
+    e.x += e.vx * dt * this.speedScale;
+    e.y += e.vy * dt * this.speedScale;
   }
 
   private updateArrowDrone(e: Enemy, dt: number) {
-    e.x += e.vx * dt;
-    e.y += e.vy * dt;
+    e.x += e.vx * dt * this.speedScale;
+    e.y += e.vy * dt * this.speedScale;
   }
 
   private updateCircleDot(e: Enemy, playerPos: Point2D, dt: number) {
@@ -249,19 +278,19 @@ export class EnemySwarm {
       e.vy = (dy / dist) * speed;
     }
 
-    e.x += e.vx * dt;
-    e.y += e.vy * dt;
+    e.x += e.vx * dt * this.speedScale;
+    e.y += e.vy * dt * this.speedScale;
   }
 
   private updateWallDot(e: Enemy, dt: number) {
-    e.x += e.vx * dt;
-    e.y += e.vy * dt;
+    e.x += e.vx * dt * this.speedScale;
+    e.y += e.vy * dt * this.speedScale;
   }
 
   private updateRotatingGateDot(e: Enemy, dt: number) {
     if (!e.orbitCenter || e.orbitRadius === undefined || e.orbitSpeed === undefined) return;
     if (e.targetAngle === undefined) e.targetAngle = 0;
-    e.targetAngle += e.orbitSpeed * dt;
+    e.targetAngle += e.orbitSpeed * dt * this.speedScale;
     e.x = e.orbitCenter.x + Math.cos(e.targetAngle) * e.orbitRadius;
     e.y = e.orbitCenter.y + Math.sin(e.targetAngle) * e.orbitRadius;
   }
@@ -275,14 +304,14 @@ export class EnemySwarm {
     while (diff > Math.PI) diff -= Math.PI * 2;
     e.targetAngle += diff * Math.min(1, dt * 2.5);
 
-    e.x += e.vx * dt;
-    e.y += e.vy * dt;
+    e.x += e.vx * dt * this.speedScale;
+    e.y += e.vy * dt * this.speedScale;
   }
 
   private updateSnakeSegment(e: Enemy, dt: number) {
     if (!e.leaderId) {
-      e.x += e.vx * dt;
-      e.y += e.vy * dt;
+      e.x += e.vx * dt * this.speedScale;
+      e.y += e.vy * dt * this.speedScale;
       if (Math.random() < 0.05) {
         const speed = 120;
         const angle = Math.random() * Math.PI * 2;
@@ -318,8 +347,8 @@ export class EnemySwarm {
       const creepSpeed = 35;
       e.vx = Math.cos(e.aimAngle) * creepSpeed;
       e.vy = Math.sin(e.aimAngle) * creepSpeed;
-      e.x += e.vx * dt;
-      e.y += e.vy * dt;
+      e.x += e.vx * dt * this.speedScale;
+      e.y += e.vy * dt * this.speedScale;
 
       e.aimTimer -= dt;
       if (e.aimTimer <= 0) {
@@ -330,8 +359,8 @@ export class EnemySwarm {
         e.vy = Math.sin(e.aimAngle) * chargeSpeed;
       }
     } else if (e.state === 'charging') {
-      e.x += e.vx * dt;
-      e.y += e.vy * dt;
+      e.x += e.vx * dt * this.speedScale;
+      e.y += e.vy * dt * this.speedScale;
 
       if (Math.random() < 0.6) {
         const backAngle = (e.aimAngle || 0) + Math.PI;
@@ -348,8 +377,8 @@ export class EnemySwarm {
     } else if (e.state === 'cooling') {
       e.vx *= Math.pow(0.08, dt);
       e.vy *= Math.pow(0.08, dt);
-      e.x += e.vx * dt;
-      e.y += e.vy * dt;
+      e.x += e.vx * dt * this.speedScale;
+      e.y += e.vy * dt * this.speedScale;
 
       if (e.specialTimer !== undefined) {
         e.specialTimer -= dt;
@@ -389,8 +418,8 @@ export class EnemySwarm {
     const steer = 3.0 * dt;
     e.vx += (moveVx - e.vx) * steer;
     e.vy += (moveVy - e.vy) * steer;
-    e.x += e.vx * dt;
-    e.y += e.vy * dt;
+    e.x += e.vx * dt * this.speedScale;
+    e.y += e.vy * dt * this.speedScale;
 
     e.fireCooldown -= dt;
     if (e.fireCooldown <= 0) {
@@ -407,8 +436,8 @@ export class EnemySwarm {
   }
 
   private updateBullet(e: Enemy, dt: number, _bounds: { width: number; height: number }) {
-    e.x += e.vx * dt;
-    e.y += e.vy * dt;
+    e.x += e.vx * dt * this.speedScale;
+    e.y += e.vy * dt * this.speedScale;
   }
 
   private updateCarrier(e: Enemy, playerPos: Point2D, dt: number) {
@@ -424,21 +453,58 @@ export class EnemySwarm {
       e.vy += (targetVy - e.vy) * 1.5 * dt;
     }
 
-    e.x += e.vx * dt;
-    e.y += e.vy * dt;
+    e.x += e.vx * dt * this.speedScale;
+    e.y += e.vy * dt * this.speedScale;
 
     for (let i = 0; i < this.enemies.length; i++) {
       const sat = this.enemies[i];
       if (sat.parentCarrierId === e.id) {
         if (sat.orbitAngle === undefined) sat.orbitAngle = 0;
         if (sat.orbitRadius === undefined) sat.orbitRadius = 38;
-        sat.orbitAngle += 2.0 * dt;
+        sat.orbitAngle += 2.0 * dt * this.speedScale;
         sat.x = e.x + Math.cos(sat.orbitAngle) * sat.orbitRadius;
         sat.y = e.y + Math.sin(sat.orbitAngle) * sat.orbitRadius;
         sat.vx = 0;
         sat.vy = 0;
       }
     }
+  }
+
+  private updatePulsar(e: Enemy, playerPos: Point2D, dt: number, particles: ParticleEngine) {
+    const dx = playerPos.x - e.x;
+    const dy = playerPos.y - e.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (dist > 1) {
+      const speed = 72 * Math.max(0.72, this.scale);
+      e.vx += ((dx / dist) * speed - e.vx) * 2.2 * dt;
+      e.vy += ((dy / dist) * speed - e.vy) * 2.2 * dt;
+    }
+    e.x += e.vx * dt * this.speedScale;
+    e.y += e.vy * dt * this.speedScale;
+
+    if (e.pulseTimer === undefined) e.pulseTimer = 2.2;
+    e.pulseTimer -= dt;
+    if (e.pulseTimer <= 0) {
+      e.pulseTimer = 2.2;
+      particles.emitSparks(e.x, e.y, 14, '#ff4757', 140);
+    }
+  }
+
+  private updateSpecter(e: Enemy, playerPos: Point2D, dt: number) {
+    const dx = playerPos.x - e.x;
+    const dy = playerPos.y - e.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (dist > 1) {
+      const speed = 145 * Math.max(0.72, this.scale);
+      e.vx += ((dx / dist) * speed - e.vx) * 3.8 * dt;
+      e.vy += ((dy / dist) * speed - e.vy) * 3.8 * dt;
+    }
+    e.x += e.vx * dt * this.speedScale;
+    e.y += e.vy * dt * this.speedScale;
+
+    e.stealthOpacity = 0.25 + 0.75 * Math.pow(Math.sin(e.age * 3.2), 2);
   }
 
   private applyFlockingSeparation() {
@@ -535,6 +601,66 @@ export class EnemySwarm {
       state: 'aiming',
       aimAngle,
       aimTimer: 1.1
+    };
+    this.enemies.push(enemy);
+    return enemy;
+  }
+
+  public spawnPulsar(bounds: { width: number; height: number }, _playerPos: Point2D): Enemy {
+    const edge = Math.floor(Math.random() * 4);
+    const margin = 26;
+    let x = 0;
+    let y = 0;
+    switch (edge) {
+      case 0: x = Math.random() * bounds.width; y = -margin; break;
+      case 1: x = bounds.width + margin; y = Math.random() * bounds.height; break;
+      case 2: x = Math.random() * bounds.width; y = bounds.height + margin; break;
+      default: x = -margin; y = Math.random() * bounds.height; break;
+    }
+
+    const enemy: Enemy = {
+      id: this.nextEnemyId++,
+      type: 'pulsar',
+      x,
+      y,
+      vx: 0,
+      vy: 0,
+      radius: 12.5 * this.scale,
+      frozen: false,
+      freezeTimer: 0,
+      age: 0,
+      health: 2,
+      pulseTimer: 2.2
+    };
+    this.enemies.push(enemy);
+    return enemy;
+  }
+
+  public spawnSpecter(bounds: { width: number; height: number }, _playerPos: Point2D): Enemy {
+    const edge = Math.floor(Math.random() * 4);
+    const margin = 20;
+    let x = 0;
+    let y = 0;
+    switch (edge) {
+      case 0: x = Math.random() * bounds.width; y = -margin; break;
+      case 1: x = bounds.width + margin; y = Math.random() * bounds.height; break;
+      case 2: x = Math.random() * bounds.width; y = bounds.height + margin; break;
+      default: x = -margin; y = Math.random() * bounds.height; break;
+    }
+
+    const enemy: Enemy = {
+      id: this.nextEnemyId++,
+      type: 'specter',
+      x,
+      y,
+      vx: 0,
+      vy: 0,
+      radius: 8 * this.scale,
+      frozen: false,
+      freezeTimer: 0,
+      age: 0,
+      health: 1,
+      stealthOpacity: 0.8
     };
     this.enemies.push(enemy);
     return enemy;
@@ -1030,6 +1156,28 @@ export class EnemySwarm {
       if (particles) {
         particles.emitExplosion(enemy.x, enemy.y, '#ff1155', 40);
       }
+    } else if (enemy.type === 'pulsar') {
+      // Pulsar explodes and splits into two aggressive mini-seekers
+      for (let i = 0; i < 2; i++) {
+        const angle = i * Math.PI + (Math.random() * 0.8 - 0.4);
+        const speed = 135 + Math.random() * 45;
+        this.enemies.push({
+          id: this.nextEnemyId++,
+          type: 'seeker',
+          x: enemy.x + Math.cos(angle) * 10,
+          y: enemy.y + Math.sin(angle) * 10,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          radius: 6.5 * this.scale,
+          frozen: false,
+          freezeTimer: 0,
+          age: 0,
+          health: 1
+        });
+      }
+      if (particles) {
+        particles.emitExplosion(enemy.x, enemy.y, '#ff4757', 24);
+      }
     }
   }
 
@@ -1045,7 +1193,7 @@ export class EnemySwarm {
     elapsed: number,
     skin?: import('./ProgressionManager').EnemySkinConfig,
     highContrastHalo: boolean = true,
-    gameMode: GameMode = 'classic'
+    _gameMode: GameMode = 'classic'
   ) {
     ctx.save();
     for (const e of this.enemies) {
@@ -1124,7 +1272,7 @@ export class EnemySwarm {
         ctx.stroke();
 
         // Cockpit / Energy Crystal Core
-        ctx.fillStyle = e.state === 'charging' ? '#ffffff' : (skin && skin.id !== 'classic' ? skin.pupilColor : '#ffd700');
+        ctx.fillStyle = e.state === 'charging' ? '#ffffff' : (skin && skin.id !== 'classic' ? skin.pupilColor : '#FFB14D');
         ctx.beginPath();
         ctx.moveTo(6, 0);
         ctx.lineTo(-2, -3.5);
@@ -1317,6 +1465,92 @@ export class EnemySwarm {
         continue;
       }
 
+      // 6. Pulsar Shockwave Unit (Pulsing energy corona ring)
+      if (e.type === 'pulsar') {
+        const pulsePhase = e.pulseTimer !== undefined ? (2.2 - e.pulseTimer) / 2.2 : 0;
+        const ringRadius = e.radius + 5 + pulsePhase * 16;
+        const ringAlpha = (1 - pulsePhase) * 0.8;
+
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, ringAlpha);
+        ctx.strokeStyle = skin ? skin.borderColor : '#ff4757';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, ringRadius, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+
+        const [inner, mid, outer] = skin ? skin.bodyGradient : ['#ff8899', '#ee1133', '#990011'];
+        const pulsarGrad = ctx.createRadialGradient(0, 0, 1, 0, 0, e.radius);
+        pulsarGrad.addColorStop(0, inner);
+        pulsarGrad.addColorStop(0.6, mid);
+        pulsarGrad.addColorStop(1, outer);
+
+        ctx.fillStyle = pulsarGrad;
+        ctx.strokeStyle = skin ? skin.borderColor : '#ffa502';
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Pulsar spinning star core
+        ctx.fillStyle = skin ? skin.pupilColor : '#ffffff';
+        ctx.beginPath();
+        for (let p = 0; p < 8; p++) {
+          const a = (p * Math.PI) / 4 + elapsed * 3;
+          const r = p % 2 === 0 ? e.radius * 0.55 : e.radius * 0.22;
+          const px = Math.cos(a) * r;
+          const py = Math.sin(a) * r;
+          if (p === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.restore();
+        continue;
+      }
+
+      // 7. Phasing Specter (Translucent stealth drone)
+      if (e.type === 'specter') {
+        const alpha = e.stealthOpacity ?? 0.65;
+        ctx.globalAlpha = alpha;
+
+        // Phasing dashed perimeter
+        ctx.strokeStyle = skin ? skin.borderColor : '#a78bfa';
+        ctx.lineWidth = 1.6;
+        ctx.setLineDash([4, 4]);
+        ctx.lineDashOffset = -elapsed * 25;
+        ctx.beginPath();
+        ctx.arc(0, 0, e.radius + 3, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        const [inner, mid, outer] = skin ? skin.bodyGradient : ['#c4b5fd', '#8b5cf6', '#4c1d95'];
+        const specterGrad = ctx.createRadialGradient(0, 0, 1, 0, 0, e.radius);
+        specterGrad.addColorStop(0, inner);
+        specterGrad.addColorStop(0.65, mid);
+        specterGrad.addColorStop(1, outer);
+
+        ctx.fillStyle = specterGrad;
+        ctx.strokeStyle = skin ? skin.borderColor : '#e0e7ff';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // White core eye
+        ctx.fillStyle = skin ? skin.pupilColor : '#ffffff';
+        ctx.beginPath();
+        ctx.arc(0, 0, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+        continue;
+      }
+
       // Evil Dot Appearance (Themed by Mode & equipped Skin)
       const pulse = 0.85 + 0.15 * Math.sin(elapsed * 9 + e.id);
 
@@ -1324,14 +1558,12 @@ export class EnemySwarm {
       if (highContrastHalo) {
         if (e.chilled) {
           ctx.strokeStyle = 'rgba(140, 240, 255, 0.7)';
-        } else if (skin && skin.id !== 'classic') {
+        } else if (skin) {
           ctx.strokeStyle = skin.glowColor;
         } else if (e.isHazard) {
           ctx.strokeStyle = 'rgba(255, 180, 0, 0.7)';
-        } else if (gameMode === 'code-red') {
-          ctx.strokeStyle = 'rgba(255, 30, 60, 0.7)';
         } else {
-          ctx.strokeStyle = skin ? skin.glowColor : 'rgba(255, 255, 255, 0.35)';
+          ctx.strokeStyle = 'rgba(255, 30, 60, 0.7)';
         }
         ctx.lineWidth = 1.2;
         ctx.beginPath();
@@ -1342,14 +1574,12 @@ export class EnemySwarm {
       // Outer Glow Color
       if (e.chilled) {
         ctx.fillStyle = 'rgba(130, 230, 255, 0.55)';
-      } else if (skin && skin.id !== 'classic') {
+      } else if (skin) {
         ctx.fillStyle = skin.glowColor;
       } else if (e.isHazard) {
         ctx.fillStyle = 'rgba(255, 170, 0, 0.45)';
-      } else if (gameMode === 'code-red') {
-        ctx.fillStyle = 'rgba(255, 20, 40, 0.5)';
       } else {
-        ctx.fillStyle = skin ? skin.glowColor : 'rgba(255, 30, 60, 0.35)';
+        ctx.fillStyle = 'rgba(255, 30, 60, 0.35)';
       }
       ctx.beginPath();
       ctx.arc(0, 0, (e.radius + 4) * pulse, 0, Math.PI * 2);
@@ -1361,7 +1591,7 @@ export class EnemySwarm {
         bodyGrad.addColorStop(0, '#e0f8ff');
         bodyGrad.addColorStop(0.65, '#55bbff');
         bodyGrad.addColorStop(1, '#115599');
-      } else if (skin && skin.id !== 'classic') {
+      } else if (skin) {
         bodyGrad.addColorStop(0, skin.bodyGradient[0]);
         bodyGrad.addColorStop(0.65, skin.bodyGradient[1]);
         bodyGrad.addColorStop(1, skin.bodyGradient[2]);
@@ -1369,14 +1599,6 @@ export class EnemySwarm {
         bodyGrad.addColorStop(0, '#fff066');
         bodyGrad.addColorStop(0.65, '#ffaa00');
         bodyGrad.addColorStop(1, '#884400');
-      } else if (gameMode === 'code-red') {
-        bodyGrad.addColorStop(0, '#ff4455');
-        bodyGrad.addColorStop(0.65, '#dd0011');
-        bodyGrad.addColorStop(1, '#770008');
-      } else if (skin) {
-        bodyGrad.addColorStop(0, skin.bodyGradient[0]);
-        bodyGrad.addColorStop(0.65, skin.bodyGradient[1]);
-        bodyGrad.addColorStop(1, skin.bodyGradient[2]);
       } else {
         bodyGrad.addColorStop(0, '#ff6677');
         bodyGrad.addColorStop(0.65, '#ee1133');
@@ -1389,12 +1611,10 @@ export class EnemySwarm {
 
       ctx.strokeStyle = e.chilled
         ? '#aae6ff'
-        : (skin && skin.id !== 'classic')
+        : skin
         ? skin.borderColor
         : e.isHazard
         ? '#ffd555'
-        : skin
-        ? skin.borderColor
         : '#ff8899';
       ctx.lineWidth = 1.2;
       ctx.stroke();
@@ -1402,12 +1622,10 @@ export class EnemySwarm {
       // Theme Pupil / Core Dot
       ctx.fillStyle = e.chilled
         ? '#002244'
-        : (skin && skin.id !== 'classic')
+        : skin
         ? skin.pupilColor
         : e.isHazard
         ? '#221100'
-        : skin
-        ? skin.pupilColor
         : '#110005';
       ctx.beginPath();
       ctx.arc(0, 0, e.radius * 0.38, 0, Math.PI * 2);

@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#05040a">
-  <title>Tilt to Live - Neon Arena Survival</title>
+  <meta name="theme-color" content="#08090E">
+  <title>Tilt to Live</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="alternate icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
   <link rel="alternate icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
@@ -12,7 +12,7 @@
   <link rel="shortcut icon" href="/favicon.ico">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Unbounded:wght@500;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./src/styles/game.css">
 </head>
 <body>
@@ -22,75 +22,120 @@
         <!-- Interactive Spring-Mass Reactive Canvas -->
         <canvas id="tilt-canvas" aria-label="Tilt to Live game"></canvas>
 
-        <!-- Always-Visible Left-Side Goals & Milestones HUD -->
-        <aside id="tilt-goals-sidebar" class="tilt-goals-sidebar" aria-label="Active Milestones"></aside>
+        <!-- Left-Side Edge Milestone Rail (#tilt-edge-rail) -->
+        <aside id="tilt-edge-rail" class="tilt-edge-rail" aria-label="Milestones Progress Rail"></aside>
 
         <!-- Milestone Completion Notification Toast -->
         <div id="tilt-goal-toast" class="tilt-goal-toast hidden" aria-live="polite"></div>
 
         <!-- In-Game Top HUD -->
         <div class="tilt-hud game-hud">
-          <div class="hud-score">
-            <span id="tilt-score">0</span>
-            <small id="tilt-best">Best 0</small>
+          <div class="hud-score-block">
+            <div class="hud-score">
+              <span id="tilt-score">0</span>
+              <div class="hud-score-sub">
+                <small id="tilt-best">BEST 0</small>
+                <span class="hud-sep"></span>
+                <div id="tilt-mode-badge" class="hud-mode-pill classic">Standard</div>
+              </div>
+            </div>
+            <div id="tilt-multiplier-pill" class="hud-multiplier-pill">
+              <span id="tilt-mult-val" class="mult-num">1×</span>
+              <span class="mult-label">chain</span>
+            </div>
           </div>
-          <div id="tilt-mode-badge" class="hud-mode-pill classic">CLASSIC · 1.0X</div>
           <div class="hud-actions">
-            <button id="btn-tilt-calibrate" class="icon-control hidden" type="button" title="Calibrate Neutral Tilt" aria-label="Calibrate Neutral Tilt">🎯 Calibrate</button>
-            <button id="btn-tilt-sound" class="icon-control" type="button" title="Toggle sound" aria-label="Toggle sound">Sound on</button>
-            <button id="btn-tilt-armory-hud" class="icon-control armory-badge-control" type="button" title="Armory & Upgrades" aria-label="Armory">⚡ Vault</button>
-            <button id="btn-tilt-pause" class="icon-control" type="button" title="Pause" aria-label="Pause">II</button>
-            <button id="btn-tilt-menu" class="icon-control" type="button" title="Return to Menu" aria-label="Return to Menu">Home</button>
+            <button id="btn-tilt-calibrate" class="icon-control hidden" type="button" title="Calibrate Neutral Tilt" aria-label="Calibrate Neutral Tilt">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="8" r="2" fill="currentColor"/></svg>
+            </button>
+            <button id="btn-tilt-sound" class="icon-control" type="button" title="Toggle sound" aria-label="Toggle sound">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 5.5H5.5L9 2.5V13.5L5.5 10.5H3V5.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M12 5.5C12.8 6.3 13.3 7.3 13.3 8.5C13.3 9.7 12.8 10.7 12 11.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            </button>
+            <button id="btn-tilt-armory-hud" class="icon-control armory-badge-control hidden" type="button" title="Armory" aria-label="Armory">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 2L14 5V11L8 14L2 11V5L8 2Z" stroke="currentColor" stroke-width="1.4"/></svg>
+            </button>
+            <button id="btn-tilt-pause" class="icon-control" type="button" title="Pause" aria-label="Pause">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="4" y="3" width="3" height="10" rx="1" fill="currentColor"/><rect x="9" y="3" width="3" height="10" rx="1" fill="currentColor"/></svg>
+            </button>
+            <button id="btn-tilt-menu" class="icon-control" type="button" title="Return to Menu" aria-label="Return to Menu">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2.5 7.5L8 2.5L13.5 7.5V13H2.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+            </button>
           </div>
         </div>
 
         <!-- Interactive Homepage / Start Menu Screen -->
         <div id="tilt-menu-screen" class="tilt-menu-screen"></div>
 
-        <!-- Entrance Cinematic Letterbox & Titles -->
-        <div id="tilt-cinematic-overlay" class="tilt-cinematic-overlay hidden" aria-hidden="true">
-          <div class="tilt-cinematic-bar tilt-cinematic-bar-top"></div>
-          <div class="tilt-cinematic-bar tilt-cinematic-bar-bottom"></div>
-          <div class="tilt-cinematic-content">
-            <p class="tilt-cinematic-sub">RED DOT FLEET INCOMING // SECTOR 01</p>
-            <h2 class="tilt-cinematic-title">SPACE INVADERS DETECTED</h2>
-            <div class="tilt-cinematic-badge">TILT TO SURVIVE</div>
-          </div>
-          <div class="tilt-cinematic-skip">Space or Tap to Skip</div>
-        </div>
+        <!-- Cold Open / Entrance Overlay: TiltEntranceCinematic.start() replaces this innerHTML at runtime -->
+        <div id="tilt-cinematic-overlay" class="tilt-cinematic-overlay hidden" aria-hidden="true"></div>
 
         <!-- Pause Overlay Modal -->
         <div id="tilt-pause-overlay" class="game-overlay hidden">
-          <div class="overlay-panel">
-            <p class="eyebrow">Paused</p>
-            <h2>The swarm waits</h2>
-            <p id="tilt-pause-scheme-desc" style="color: #00ddff; font-size: 0.85rem; margin: 8px 0 16px;">Steer with WASD / Arrow Keys or Mouse</p>
-            <button id="btn-tilt-resume" type="button" class="command-button">Resume</button>
-            <button id="btn-tilt-calibrate-pause" type="button" class="command-button hidden" style="margin-top: 10px; background: #00ddff; color: #000;">🎯 Calibrate Neutral Tilt</button>
-            <button id="btn-tilt-armory-pause" type="button" class="secondary-button" style="margin-top: 10px;">⚡ Armory & Upgrades</button>
-            <button id="btn-tilt-menu-pause" type="button" class="secondary-button" style="margin-top: 10px;">Main Menu</button>
+          <div class="overlay-panel tilt-pause-card">
+            <div class="pause-header">
+              <h2>Paused</h2>
+              <span id="tilt-pause-stats" class="pause-stats"></span>
+            </div>
+            <p id="tilt-pause-scheme-desc" class="pause-scheme-desc">Steer with mouse or keys</p>
+            <div class="pause-actions-stack">
+              <button id="btn-tilt-resume" type="button" class="command-button pause-primary-btn">Resume</button>
+              <button id="btn-tilt-calibrate-pause" type="button" class="secondary-button hidden">Calibrate Tilt</button>
+              <button id="btn-tilt-armory-pause" type="button" class="secondary-button">Armory</button>
+              <button id="btn-tilt-menu-pause" type="button" class="secondary-button">Quit to menu</button>
+            </div>
+            <div class="pause-divider"></div>
+            <div class="pause-toggles">
+              <div class="pause-toggle-row">
+                <label for="p-sound">Sound</label>
+                <button id="p-sound" type="button" role="switch" aria-checked="true" class="ui-switch switch-on" aria-label="Toggle Sound">
+                  <span class="switch-knob"></span>
+                </button>
+              </div>
+              <div class="pause-toggle-row">
+                <label for="p-music">Music</label>
+                <button id="p-music" type="button" role="switch" aria-checked="false" class="ui-switch" aria-label="Toggle Music">
+                  <span class="switch-knob"></span>
+                </button>
+              </div>
+            </div>
+            <span class="pause-footer-hint">ESC to resume</span>
           </div>
         </div>
 
         <!-- Game Over Modal -->
         <div id="tilt-gameover-modal" class="game-overlay hidden">
-          <div class="overlay-panel">
-            <p class="eyebrow">Run terminated</p>
-            <h2>Swarmed by red dots</h2>
-            <strong id="tilt-final-score">0</strong>
-            <dl>
-              <div><dt>Dots Destroyed</dt><dd id="tilt-final-kills">0</dd></div>
-              <div><dt>Max Multiplier</dt><dd id="tilt-final-mult">1x</dd></div>
-              <div><dt>Survival</dt><dd id="tilt-final-time">0s</dd></div>
+          <div class="overlay-panel tilt-gameover-card">
+            <div class="mobile-sheet-handle"></div>
+            <div class="gameover-score-header">
+              <strong id="tilt-final-score">0</strong>
+              <p id="tilt-gameover-sub" class="gameover-sub">Swarmed — Standard, 1.0×</p>
+            </div>
+            <div id="tilt-gameover-best-banner" class="gameover-best-banner">
+              <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><path d="M6.5 1 L8.2 4.7 L12 5.2 L9.2 8 L9.9 12 L6.5 10.1 L3.1 12 L3.8 8 L1 5.2 L4.8 4.7 Z" stroke="#FFB14D" stroke-width="1.1" stroke-linejoin="round"/></svg>
+              <span>New best</span>
+            </div>
+            <dl class="gameover-stats-grid">
+              <div class="stat-cell"><dd id="tilt-final-kills">0</dd><dt>Kills</dt></div>
+              <div class="stat-cell"><dd id="tilt-final-mult">1x</dd><dt>Best chain</dt></div>
+              <div class="stat-cell"><dd id="tilt-final-time">0s</dd><dt>Alive</dt></div>
             </dl>
             <div class="gameover-points-box">
-              <div class="points-row"><span>Milestone Points</span><strong id="tilt-earned-points">+0 PTS</strong></div>
-              <small id="tilt-balance-points">Vault: 0 PTS</small>
+              <div class="points-row">
+                <span>Points earned</span>
+                <strong id="tilt-earned-points">+0</strong>
+                <span class="points-arrow">→</span>
+                <span id="tilt-balance-points">0</span>
+              </div>
             </div>
             <div id="tilt-gameover-milestones" class="gameover-milestones-list hidden"></div>
-            <button id="btn-tilt-armory-gameover" type="button" class="command-button armory-gold-btn">⚡ Armory & Upgrades</button>
-            <button id="btn-tilt-restart" type="button" class="secondary-button" style="margin-top: 10px;">Play again</button>
-            <button id="btn-tilt-menu-gameover" type="button" class="secondary-button">Main Menu</button>
+            <div class="gameover-actions-stack">
+              <button id="btn-tilt-restart" type="button" class="command-button gameover-primary-btn">Retry</button>
+              <div class="gameover-secondary-row">
+                <button id="btn-tilt-menu-gameover" type="button" class="secondary-button">Menu</button>
+                <button id="btn-tilt-armory-gameover" type="button" class="secondary-button">Spend 0</button>
+              </div>
+              <span class="gameover-footer-hint">SPACE to retry</span>
+            </div>
           </div>
         </div>
 
@@ -100,7 +145,7 @@
         <!-- All Goals Trophy Catalog Modal -->
         <div id="tilt-all-goals-modal" class="game-overlay hidden tilt-all-goals-overlay"></div>
 
-        <!-- Armory & Upgrade Vault Modal -->
+        <!-- Armory Modal -->
         <div id="tilt-armory-modal" class="game-overlay hidden tilt-armory-overlay"></div>
       </div>
     </section>
