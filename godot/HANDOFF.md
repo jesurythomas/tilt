@@ -4,8 +4,13 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-Last completed module: **M0 — Scaffold** (pending exit protocol)
+Last completed module: **M0 — Scaffold** — complete, 2026-09-20, commit `035ccdc`
 Branch: `feat/godot-port`
+Next module: **M0b — Android toolchain** (blocked on user installs, see below)
+
+All five acceptance commands in the next section were run fresh at module close
+and passed. Nothing in this file is predicted or assumed; every value was read
+off a command's output.
 
 ## How to verify right now
 
