@@ -9,10 +9,11 @@ Target engine: Godot 4.7.2-stable (GDScript; standard build, not .NET)
 
 ## 1. Summary
 
-Port the existing TypeScript/Canvas2D game **Tilt to Live** (~13,250 lines across
+Port the existing TypeScript/Canvas 2D game **Tilt to Live** (~13,250 lines across
 22 modules) to Godot 4.7.2 as a **landscape mobile game** for Android and iOS.
 
-The port is sequenced as **12 self-contained modules**. Each module ends in a
+The port is sequenced as **13 self-contained modules** (M0, M0b, M1–M11). Each
+module ends in a
 runnable build, a hard stop, and a written handoff, so work can pause when
 credits run out and resume cold in a new session — or jump to a different module
 whose dependencies are already met.
@@ -432,14 +433,37 @@ depends on M3; M11 depends on all.
 - gdtoolkit 4.x installed; **exact verified `gdformat`/`gdlint` invocations
   recorded in `CONVENTIONS.md`** (verified against `--help`, not from memory)
 - GUT addon installed and running an empty suite headless
-- Android export preset; `tools/` directories created
+- `tools/` directory created
 - `CONVENTIONS.md`, `PORT-PROGRESS.md`, `HANDOFF.md` written
 
-**Accept:** `godot --headless --quit` exits 0; a debug APK is produced; `gdlint`
-runs clean; GUT runs an empty suite headless.
+**Accept:** `godot --headless --path godot --quit` exits 0; the GUT suite runs
+headless and passes; **untyped GDScript is observed being rejected**; `gdlint`
+runs clean; no `<filled in by Module 0>` placeholder remains.
+
+### Module 0b — Android toolchain
+**Deps:** M0 · **Requires user action and several GB of downloads**
+
+Amended 2026-09-20. The spec originally folded "a debug APK builds" into Module
+0. An environment check that day found this unachievable: the export-templates
+directory is empty, no JDK exists anywhere on disk, and `ANDROID_HOME` is set to
+a path that does not exist. Blocking Module 0 on multi-gigabyte user-side
+installs would defeat the clean module boundaries this plan is built around, so
+the toolchain is its own module.
+
+- Export templates downloaded and installed (Editor → Manage Export Templates)
+- JDK 17 installed; Android SDK installed; `ANDROID_HOME` corrected
+- Godot Editor Settings → Export → Android: Java SDK and Android SDK paths set
+- Debug keystore generated; Android export preset added
+- **Keystore credentials must not be committed.** `export_presets.cfg` is
+  tracked; passwords are supplied by environment variable.
+
+**Accept:** a debug APK builds, installs and launches on a physical device.
+
+**Why M1 depends on this:** M1's acceptance requires verifying landscape tilt
+axis mapping on real hardware, which an emulator cannot provide.
 
 ### Module 1 — Core loop and input
-**Deps:** M0
+**Deps:** M0b
 - `core/types.gd` (ports `Types.ts`), `core/tuning.gd` (ports `WeaponTuning.ts`),
   `core/log.gd`
 - `tools/parity/` dumper + first parity fixture and GUT spec
