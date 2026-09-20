@@ -41,6 +41,7 @@ func _ready() -> void:
 
 	if _restart_button != null:
 		_restart_button.pressed.connect(_on_restart_pressed)
+		_restart_button.gui_input.connect(_on_restart_button_gui_input)
 
 	GameEvents.score_changed.connect(_on_score_changed)
 	GameEvents.run_ended.connect(_on_run_ended)
@@ -90,3 +91,10 @@ func _on_restart_pressed() -> void:
 	var root: GameRoot = get_tree().get_first_node_in_group("game_root") as GameRoot
 	if root != null:
 		root.restart_run()
+
+
+func _on_restart_button_gui_input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch:
+		var st: InputEventScreenTouch = event as InputEventScreenTouch
+		if st.pressed:
+			_on_restart_pressed()

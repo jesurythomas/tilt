@@ -62,7 +62,7 @@ func _ready() -> void:
 	Log.info("M2 boot: bounds=%s arena_scale=%f" % [_bounds, arena_scale(_bounds.x, _bounds.y)])
 
 
-func _input(event: InputEvent) -> void:
+func _unhandled_input(event: InputEvent) -> void:
 	_touch.handle_event(event, _router)
 
 	if event is InputEventKey:
