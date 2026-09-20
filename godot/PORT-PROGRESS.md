@@ -63,6 +63,21 @@ Dependency map and resume instructions:
       ok  gdformat and gdlint pass with zero errors across 41 files.
       ok  render scripts pass headless syntax check (`--check-only`).
 
+- [ ] **M2.5 — Mobile feel**  deps: M2   *(in progress — stopped after Task 5 of 9, head `1b326b5`)*
+      plan  `docs/superpowers/plans/2026-09-20-m2.5-mobile-feel.md`
+      spec  `docs/superpowers/specs/2026-09-20-m2.5-mobile-feel-design.md`
+      **resume here → `godot/M2.5-REMAINING.md`**
+      ok  control-scheme persistence, tilt rework (deferred calibration + single
+          rotation transform + sensitivity), floating joystick, arena inset,
+          raised entity-scale ceiling, GameRoot integration.
+      ok  23/23 GUT scripts passing (130 tests, 483 asserts); gdformat/gdlint clean.
+      --  Task 6 control picker + pause overlay; Task 7 scene layout; Task 8
+          DEVICE PASS on the A55; Task 9 asset research + exit protocol.
+      note  NOT yet run on a phone. MAX_ARENA_SCALE, MIN_INSET_*, MAX_INSET_RATIO,
+          KNOB_RADIUS, tilt sensitivity/smoothing are all PROVISIONAL until Task 8.
+      note  portrait (180/0) tilt axis mappings are unverified; only landscape (90)
+          is backed by measured device poses. Game is landscape-locked.
+
 - [ ] **M3 — Enemy roster**  deps: M2
       -- all 13 enemy types spawn and behave per the TypeScript
       -- all 8 formations trigger

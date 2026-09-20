@@ -6,7 +6,24 @@ Rewritten at every module stop. Written for a session with zero context.
 
 Last completed module: **M2 — Vertical slice** — complete, 2026-09-20
 Branch: `feat/godot-port` (no upstream; nothing pushed)
+Current module: **M2.5 — Mobile feel** — *in progress, stopped after Task 5 of 9.*
 Next module: **M3 — Enemy roster** — not started.
+
+> ### ⚠ M2.5 is mid-flight — read `godot/M2.5-REMAINING.md` before doing anything
+>
+> M2.5 fixes seven device-feel defects found playing M2 on the A55. Tasks 1-5
+> are done and committed (head `1b326b5`, 23 scripts / 130 tests / 483 asserts
+> passing). Tasks 6-9 remain: the control picker, the scene layout, the
+> **device pass**, and asset research plus exit protocol.
+>
+> **Every number M2.5 introduced is provisional until the device pass (Task 8).**
+> Nothing in M2.5 has been run on a phone.
+>
+> `godot/M2.5-REMAINING.md` has the full picture: which files changed, what is
+> left, which constants are unverified, the accepted gaps, and why
+> `MAX_ARENA_SCALE` exists. Its §2 lists the exact files to check.
+> Spec: `docs/superpowers/specs/2026-09-20-m2.5-mobile-feel-design.md`.
+> Every ruling made during execution: `.superpowers/sdd/2026-09-20-m2.5-mobile-feel/progress.md`.
 
 M2 is complete. All 12 tasks were executed, verified against the TypeScript source, tested headless (19/19 test scripts, 99/99 tests, 425 asserts passing), linted/formatted with 0 errors across 41 files, and accepted on a physical Samsung Galaxy A55 (`SM_A556E`).
 
