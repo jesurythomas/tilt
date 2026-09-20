@@ -221,7 +221,11 @@ func _draw_player() -> void:
 
 	_draw_trail()
 
-	draw_set_transform(Vector2(_player.x, _player.y), _player.angle, Vector2.ONE * _player.scale)
+	# DIVERGENCE(M2.5 §6.1): draw_set_transform replaces rather than composes, so the
+	# playfield origin must be re-applied here or the ship draws off its collision position.
+	draw_set_transform(
+		_arena_origin + Vector2(_player.x, _player.y), _player.angle, Vector2.ONE * _player.scale
+	)
 
 	if _player.has_shield():
 		_draw_shield()
