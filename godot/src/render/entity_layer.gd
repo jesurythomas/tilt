@@ -26,16 +26,6 @@ var _player: PlayerShip = null
 var _elapsed: float = 0.0
 
 
-## Gives this layer the ship it draws. Called by GameRoot.
-func bind(player: PlayerShip) -> void:
-	_player = player
-
-
-## Run clock, for the pulsing shield and thruster flicker.
-func set_elapsed(elapsed: float) -> void:
-	_elapsed = elapsed
-
-
 func _draw() -> void:
 	if _player == null or _player.is_dead:
 		return
@@ -72,6 +62,16 @@ func _draw() -> void:
 	draw_colored_polygon(flame, flame_col)
 
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+## Gives this layer the ship it draws. Called by GameRoot.
+func bind(player: PlayerShip) -> void:
+	_player = player
+
+
+## Run clock, for the pulsing shield and thruster flicker.
+func set_elapsed(elapsed: float) -> void:
+	_elapsed = elapsed
 
 
 ## PORT: web/src/tilt-to-live/PlayerShip.ts:296-312

@@ -46,11 +46,6 @@ func _ready() -> void:
 	_background = _build_background()
 
 
-## Gives this layer the grid it draws. Called by GameRoot.
-func bind(grid: VectorGrid) -> void:
-	_grid = grid
-
-
 func _draw() -> void:
 	if _grid == null:
 		return
@@ -58,6 +53,11 @@ func _draw() -> void:
 
 	draw_rect(Rect2(Vector2.ZERO, size), BG_OUTER)
 	if _background != null:
+		# PORT-NOTE: this block expresses the canvas gradient's centre and
+		# radius as a Rect2/UV mapping onto the pre-baked texture built in
+		# _build_background() — size / 2.0 (centre), Vector2(radius, radius)
+		# and radius * 2.0 (destination rect), fill_from/fill_to (0.5,0.5) and
+		# (1.0,0.5) (radial UV axis) are geometry, not tunable game values.
 		var radius: float = size.x * GRADIENT_OUTER_FACTOR
 		var centre: Vector2 = size / 2.0
 		draw_texture_rect(
@@ -78,6 +78,11 @@ func _draw() -> void:
 	# TODO(M10): code-red and gauntlet background, grid tint and overlays
 	# (TiltRenderer.ts:64-74, 101-118).
 	# TODO(M7): arena theme override (TiltRenderer.ts:76-80).
+
+
+## Gives this layer the grid it draws. Called by GameRoot.
+func bind(grid: VectorGrid) -> void:
+	_grid = grid
 
 
 ## PORT: web/src/tilt-to-live/VectorGrid.ts:86-117
