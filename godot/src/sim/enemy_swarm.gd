@@ -248,6 +248,194 @@ func spawn_wall_formation(bounds: Vector2) -> void:
 			enemies.append(enemy)
 
 
+## Spawns a sequential gauntlet wall corridor, cycling through top-down,
+## right-left, bottom-up and left-right on successive calls.
+## PORT: web/src/tilt-to-live/EnemySwarm.ts:972-1063
+func spawn_sequential_gauntlet_wall(bounds: Vector2) -> void:
+	var dir: int = _wall_direction_cycle % 4  # PORT: web/src/tilt-to-live/EnemySwarm.ts:973
+	_wall_direction_cycle += 1
+	var spacing: float = 22.0 * scale  # PORT: web/src/tilt-to-live/EnemySwarm.ts:975
+	var speed: float = 150.0 * maxf(0.72, scale)  # PORT: web/src/tilt-to-live/EnemySwarm.ts:976
+
+	if dir == 0:
+		var num_dots: int = floori(bounds.x / spacing)  # PORT: web/src/tilt-to-live/EnemySwarm.ts:980
+		# PORT: web/src/tilt-to-live/EnemySwarm.ts:981
+		var gap_index: int = floori(float(num_dots) * 0.25)
+		for i: int in range(num_dots):
+			if absi(i - gap_index) <= 3:  # PORT: web/src/tilt-to-live/EnemySwarm.ts:983
+				continue
+			var enemy: Types.Enemy = Types.Enemy.new()
+			enemy.id = _next_enemy_id
+			_next_enemy_id += 1
+			enemy.type = Types.EnemyType.WALL_DOT
+			enemy.x = float(i) * spacing + 10.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:988
+			enemy.y = -30.0
+			enemy.vx = 0.0
+			enemy.vy = speed
+			enemy.radius = 8.5 * scale  # PORT: web/src/tilt-to-live/EnemySwarm.ts:991
+			enemy.frozen = false
+			enemy.freeze_timer = 0.0
+			enemy.age = 0.0
+			enemy.health = 1.0
+			enemy.is_hazard = true
+			enemies.append(enemy)
+	elif dir == 1:
+		var num_dots: int = floori(bounds.y / spacing)  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1001
+		# PORT: web/src/tilt-to-live/EnemySwarm.ts:1002
+		var gap_index: int = floori(float(num_dots) * 0.7)
+		for i: int in range(num_dots):
+			if absi(i - gap_index) <= 3:  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1004
+				continue
+			var enemy: Types.Enemy = Types.Enemy.new()
+			enemy.id = _next_enemy_id
+			_next_enemy_id += 1
+			enemy.type = Types.EnemyType.WALL_DOT
+			enemy.x = bounds.x + 30.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1008
+			enemy.y = float(i) * spacing + 10.0
+			enemy.vx = -speed
+			enemy.vy = 0.0
+			enemy.radius = 8.5  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1012
+			enemy.frozen = false
+			enemy.freeze_timer = 0.0
+			enemy.age = 0.0
+			enemy.health = 1.0
+			enemy.is_hazard = true
+			enemies.append(enemy)
+	elif dir == 2:
+		var num_dots: int = floori(bounds.x / spacing)  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1022
+		# PORT: web/src/tilt-to-live/EnemySwarm.ts:1023
+		var gap_index: int = floori(float(num_dots) * 0.75)
+		for i: int in range(num_dots):
+			if absi(i - gap_index) <= 3:  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1025
+				continue
+			var enemy: Types.Enemy = Types.Enemy.new()
+			enemy.id = _next_enemy_id
+			_next_enemy_id += 1
+			enemy.type = Types.EnemyType.WALL_DOT
+			enemy.x = float(i) * spacing + 10.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1030
+			enemy.y = bounds.y + 30.0
+			enemy.vx = 0.0
+			enemy.vy = -speed
+			enemy.radius = 8.5  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1033
+			enemy.frozen = false
+			enemy.freeze_timer = 0.0
+			enemy.age = 0.0
+			enemy.health = 1.0
+			enemy.is_hazard = true
+			enemies.append(enemy)
+	else:
+		var num_dots: int = floori(bounds.y / spacing)  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1043
+		# PORT: web/src/tilt-to-live/EnemySwarm.ts:1044
+		var gap_index: int = floori(float(num_dots) * 0.3)
+		for i: int in range(num_dots):
+			if absi(i - gap_index) <= 3:  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1046
+				continue
+			var enemy: Types.Enemy = Types.Enemy.new()
+			enemy.id = _next_enemy_id
+			_next_enemy_id += 1
+			enemy.type = Types.EnemyType.WALL_DOT
+			enemy.x = -30.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1050
+			enemy.y = float(i) * spacing + 10.0
+			enemy.vx = speed
+			enemy.vy = 0.0
+			enemy.radius = 8.5  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1054
+			enemy.frozen = false
+			enemy.freeze_timer = 0.0
+			enemy.age = 0.0
+			enemy.health = 1.0
+			enemy.is_hazard = true
+			enemies.append(enemy)
+	# PORT-NOTE: the top-down wall uses radius 8.5 * scale (:991) while the
+	# other three use unscaled 8.5 (:1012, :1033, :1054) — preserved
+	# deliberately.
+
+
+## Spawns a central rotating obstacle gate of six hazard turret dots.
+## PORT: web/src/tilt-to-live/EnemySwarm.ts:1068-1094
+func spawn_rotating_gate(bounds: Vector2) -> void:
+	var cx: float = bounds.x / 2.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1069
+	var cy: float = bounds.y / 2.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1070
+	# PORT: web/src/tilt-to-live/EnemySwarm.ts:1071
+	var speed: float = (1.0 if randf() < 0.5 else -1.0) * 0.75
+	# PORT: web/src/tilt-to-live/EnemySwarm.ts:1072
+	var offsets: Array[float] = [-80.0, -56.0, -32.0, 32.0, 56.0, 80.0]
+
+	# PORT-NOTE: the gate ignores this.scale entirely — preserved deliberately.
+	for off: float in offsets:
+		var enemy: Types.Enemy = Types.Enemy.new()
+		enemy.id = _next_enemy_id
+		_next_enemy_id += 1
+		enemy.type = Types.EnemyType.TURRET_DOT
+		enemy.x = cx + off
+		enemy.y = cy
+		enemy.vx = 0.0
+		enemy.vy = 0.0
+		enemy.radius = 8.5  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1082
+		enemy.frozen = false
+		enemy.freeze_timer = 0.0
+		enemy.age = 0.0
+		enemy.health = 1.0
+		enemy.orbit_center = Vector2(cx, cy)  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1087
+		enemy.orbit_radius = absf(off)  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1088
+		enemy.orbit_speed = speed
+		enemy.target_angle = 0.0 if off > 0.0 else PI  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1090
+		enemy.is_hazard = true
+		enemies.append(enemy)
+
+
+## Spawns a single slow-drifting three-health turret dot at a random position.
+## PORT: web/src/tilt-to-live/EnemySwarm.ts:1098-1116
+func spawn_turret(bounds: Vector2) -> void:
+	var pad: float = 80.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1099
+	# PORT: web/src/tilt-to-live/EnemySwarm.ts:1100
+	var x: float = pad + randf() * (bounds.x - pad * 2.0)
+	# PORT: web/src/tilt-to-live/EnemySwarm.ts:1101
+	var y: float = pad + randf() * (bounds.y - pad * 2.0)
+
+	var enemy: Types.Enemy = Types.Enemy.new()
+	enemy.id = _next_enemy_id
+	_next_enemy_id += 1
+	enemy.type = Types.EnemyType.TURRET_DOT
+	enemy.x = x
+	enemy.y = y
+	enemy.vx = (randf() - 0.5) * 30.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1108
+	enemy.vy = (randf() - 0.5) * 30.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1109
+	enemy.radius = 12.0 * scale  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1110
+	enemy.frozen = false
+	enemy.freeze_timer = 0.0
+	enemy.age = 0.0
+	enemy.health = 3.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1114
+	enemies.append(enemy)
+
+
+## Spawns an eight-segment snake, head first, trailing along the x axis.
+# PORT-NOTE: named _bounds in the TS yet read at :1119-1120 — preserved
+# deliberately.
+## PORT: web/src/tilt-to-live/EnemySwarm.ts:1118-1139
+func spawn_snake(_bounds: Vector2) -> void:
+	# PORT: web/src/tilt-to-live/EnemySwarm.ts:1119
+	var start_x: float = 60.0 + randf() * (_bounds.x - 120.0)
+	# PORT: web/src/tilt-to-live/EnemySwarm.ts:1120
+	var start_y: float = 60.0 + randf() * (_bounds.y - 120.0)
+	var length: int = 8  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1121
+
+	for i: int in range(length):
+		var enemy: Types.Enemy = Types.Enemy.new()
+		enemy.id = _next_enemy_id
+		_next_enemy_id += 1
+		enemy.type = Types.EnemyType.SNAKE_SEGMENT
+		enemy.x = start_x - float(i) * 14.0 * scale  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1127
+		enemy.y = start_y
+		enemy.vx = 110.0 * maxf(0.72, scale)  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1129
+		enemy.vy = 0.0
+		enemy.radius = (10.0 if i == 0 else 8.0) * scale  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1131
+		enemy.frozen = false
+		enemy.freeze_timer = 0.0
+		enemy.age = 0.0
+		enemy.health = 1.0
+		enemies.append(enemy)
+
+
 ## Updates continuous spawning, individual enemy physics and flocking separation.
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:45-221
 func update(
@@ -311,14 +499,22 @@ func update(
 				update_circle_dot(e, player_pos, dt)
 			Types.EnemyType.WALL_DOT:
 				update_wall_dot(e, dt)
+			# PORT: web/src/tilt-to-live/EnemySwarm.ts:162-168
+			Types.EnemyType.TURRET_DOT:
+				if e.orbit_center != Vector2.ZERO:
+					update_rotating_gate_dot(e, dt)
+				else:
+					update_turret_dot(e, player_pos, dt)
 			# PORT-NOTE: no spawner in EnemySwarm.ts ever creates a spike_mine; the
 			# arm is ported because the dispatch has it (:169-172) — preserved
 			# deliberately.
 			Types.EnemyType.SPIKE_MINE:
 				e.x += e.vx * dt * speed_scale  # PORT: web/src/tilt-to-live/EnemySwarm.ts:170
 				e.y += e.vy * dt * speed_scale  # PORT: web/src/tilt-to-live/EnemySwarm.ts:171
+			Types.EnemyType.SNAKE_SEGMENT:
+				update_snake_segment(e, dt)  # PORT: web/src/tilt-to-live/EnemySwarm.ts:173-175
 			_:
-				# TODO(M3): update behaviours for remaining 12 enemy types.
+				# TODO(M3): update behaviours for remaining 10 enemy types.
 				pass
 
 		# Remove out of bounds drones that completed sweeps.
@@ -433,6 +629,70 @@ func update_circle_dot(e: Types.Enemy, player_pos: Vector2, dt: float) -> void:
 func update_wall_dot(e: Types.Enemy, dt: float) -> void:
 	e.x += e.vx * dt * speed_scale
 	e.y += e.vy * dt * speed_scale
+
+
+## Updates a rotating gate dot: orbits its centre at a fixed radius and speed.
+## PORT: web/src/tilt-to-live/EnemySwarm.ts:290-296
+func update_rotating_gate_dot(e: Types.Enemy, dt: float) -> void:
+	if e.orbit_center == Vector2.ZERO or is_nan(e.orbit_radius) or is_nan(e.orbit_speed):
+		return  # PORT: web/src/tilt-to-live/EnemySwarm.ts:291
+	if is_nan(e.target_angle):
+		e.target_angle = 0.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:292
+	e.target_angle += e.orbit_speed * dt * speed_scale  # PORT: web/src/tilt-to-live/EnemySwarm.ts:293
+	# PORT: web/src/tilt-to-live/EnemySwarm.ts:294
+	e.x = e.orbit_center.x + cos(e.target_angle) * e.orbit_radius
+	# PORT: web/src/tilt-to-live/EnemySwarm.ts:295
+	e.y = e.orbit_center.y + sin(e.target_angle) * e.orbit_radius
+
+
+## Updates a free turret dot: aims at the player, easing towards the target
+## angle, and drifts on its own velocity. PORT: web/src/tilt-to-live/EnemySwarm.ts:298-309
+func update_turret_dot(e: Types.Enemy, player_pos: Vector2, dt: float) -> void:
+	# PORT: web/src/tilt-to-live/EnemySwarm.ts:299
+	var target_angle: float = atan2(player_pos.y - e.y, player_pos.x - e.x)
+	if is_nan(e.target_angle):
+		e.target_angle = target_angle  # PORT: web/src/tilt-to-live/EnemySwarm.ts:300
+
+	var diff: float = target_angle - e.target_angle
+	while diff < -PI:  # PORT: web/src/tilt-to-live/EnemySwarm.ts:303
+		diff += PI * 2.0
+	while diff > PI:  # PORT: web/src/tilt-to-live/EnemySwarm.ts:304
+		diff -= PI * 2.0
+	e.target_angle += diff * minf(1.0, dt * 2.5)  # PORT: web/src/tilt-to-live/EnemySwarm.ts:305
+
+	e.x += e.vx * dt * speed_scale
+	e.y += e.vy * dt * speed_scale
+
+
+## Updates a snake segment: leaderless segments drift and occasionally re-aim;
+## followers close the gap on their leader. PORT: web/src/tilt-to-live/EnemySwarm.ts:311-335
+func update_snake_segment(e: Types.Enemy, dt: float) -> void:
+	if e.leader_id == Types.ABSENT:
+		e.x += e.vx * dt * speed_scale
+		e.y += e.vy * dt * speed_scale
+		if randf() < 0.05:  # PORT: web/src/tilt-to-live/EnemySwarm.ts:315
+			var speed: float = 120.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:316
+			var angle: float = randf() * PI * 2.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:317
+			e.vx = cos(angle) * speed
+			e.vy = sin(angle) * speed
+	else:
+		# PORT-NOTE: nothing in EnemySwarm.ts assigns leaderId, so every segment
+		# is a leader and this branch is unreachable; it also moves without dt
+		# — preserved deliberately.
+		var leader: Types.Enemy = null
+		for other: Types.Enemy in enemies:  # PORT: web/src/tilt-to-live/EnemySwarm.ts:322
+			if other.id == e.leader_id:
+				leader = other
+				break
+		if leader != null:
+			var dx: float = leader.x - e.x
+			var dy: float = leader.y - e.y
+			var dist: float = sqrt(dx * dx + dy * dy)
+			var target_dist: float = 18.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:327
+			if dist > target_dist:
+				var factor: float = (dist - target_dist) / dist  # PORT: web/src/tilt-to-live/EnemySwarm.ts:329
+				e.x += dx * factor * 0.4  # PORT: web/src/tilt-to-live/EnemySwarm.ts:330
+				e.y += dy * factor * 0.4  # PORT: web/src/tilt-to-live/EnemySwarm.ts:331
 
 
 ## Applies pairwise repulsive separation force to prevent clustering.
