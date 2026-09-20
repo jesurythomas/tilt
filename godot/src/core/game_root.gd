@@ -165,13 +165,19 @@ func _update(dt: float) -> void:
 	if effective_mode == Types.ControlMode.GYRO:
 		_tilt.poll()
 		directional = _tilt.tilt_vector
-	elif _joystick.is_active:
+	elif _router.control_scheme == Types.ControlScheme.MOUSE and OS.has_feature("mobile"):
 		# DIVERGENCE(M2.5 §8.3, D3): the joystick emits a normalised direction
 		# with magnitude — the same shape as TiltInput.tilt_vector — so it
 		# feeds the existing gyro branch at player_ship.gd:235. No value is
 		# added to Types.ControlMode, a cited port of PlayerShip.ts:99, and no
-		# ported movement code changes. The mode reads GYRO while a thumb is
-		# driving; see M2.5 spec §8.3 for why that trade was taken.
+		# ported movement code changes. The mode reads GYRO for the whole TOUCH
+		# scheme, not merely while the joystick is active — otherwise lifting
+		# the thumb fell back to resolve_control_mode()'s MOUSE branch, which
+		# steers toward _router.mouse_pos, frozen at the arena centre because
+		# mobile-TOUCH never feeds _touch.handle_event. _joystick.vector is
+		# already Vector2.ZERO when idle, so the gyro branch's damping brings
+		# the ship to rest instead. See M2.5 spec §8.3 for why this trade was
+		# taken.
 		effective_mode = Types.ControlMode.GYRO
 		directional = _joystick.vector
 
