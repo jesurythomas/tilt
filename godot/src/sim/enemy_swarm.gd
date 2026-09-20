@@ -841,7 +841,7 @@ func update(
 		else:
 			# PORT: web/src/tilt-to-live/EnemySwarm.ts:127
 			trigger_random_formation(player_pos, bounds, current_score)
-			# PORT: web/src/tilt-to-live/EnemySwarm.ts:122
+			# PORT: web/src/tilt-to-live/EnemySwarm.ts:128
 			var score_wave_reduction: float = minf(2.0, (float(current_score) / 25000.0) * 2.0)
 			# PORT: web/src/tilt-to-live/EnemySwarm.ts:129
 			var base_wave_interval: float = maxf(5.5, 10.0 - _elapsed * 0.02 - score_wave_reduction)
