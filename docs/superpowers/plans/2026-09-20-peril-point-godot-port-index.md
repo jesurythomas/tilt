@@ -63,8 +63,9 @@ Copied verbatim from the spec and `CONVENTIONS.md`. Every task in every module p
 |---|---|---|---|---|
 | 0 | Scaffold | — | `2026-09-20-m0-scaffold.md` | **done** |
 | 0b | **Android toolchain** | M0 | `2026-09-20-m0b-android-toolchain.md` | planned — installs done |
-| 1 | Core loop and input | M0b | `2026-09-20-m1-core-loop-and-input.md` | planned |
-| 2 | **Vertical slice** — first playable | M1 | not yet written | — |
+| 1 | Core loop and input | M0b | `2026-09-20-m1-core-loop-and-input.md` | **done** |
+| 2 | **Vertical slice** — first playable | M1 | `2026-09-20-m2-vertical-slice.md` | **done** |
+| 2.5 | **Mobile feel** — input, HUD, arena inset | M2 | not yet written | spec approved |
 | 3 | Enemy roster (12 remaining types, 8 formations) | M2 | not yet written | — |
 | 4 | Weapons (6 remaining) | M2 | not yet written | — |
 | 5 | Audio bake + SFX | M2 | not yet written | — |
@@ -76,6 +77,10 @@ Copied verbatim from the spec and `CONVENTIONS.md`. Every task in every module p
 | 11 | Menu, cinematic, export, device pass | all | not yet written | — |
 
 **Independent set:** once M2 is done, modules **3, 4, 5 and 7** depend only on M2 and may be taken in any order. M6 needs M5; M8 and M9 need M7; M10 needs M3; M11 needs everything.
+
+**Why M2.5 exists:** device play of the M2 build on the Samsung Galaxy A55 found seven defects in how the game meets the player — no control-scheme choice, mistuned and drifting tilt, no virtual joystick, a weak score block, undersized entities and UI text, an arena border running under the device bezel, and an unstyled death screen. Every one is a **divergence from the TypeScript source**, which Law 4 permits only against an explicit line of a spec — hence its own spec rather than a round of fixes folded into M2. It is numbered 2.5 rather than appended because M3, M4, M5 and M7 all build on the input and HUD surfaces it changes, and taking it later would mean reworking them. It also introduces the `DIVERGENCE(M<n> §x)` comment tag, binding from here on: `grep -rn "DIVERGENCE" godot/src/` must list every deviation from the port.
+
+**Spec:** `docs/superpowers/specs/2026-09-20-m2.5-mobile-feel-design.md`
 
 **Why M0b exists:** the spec originally folded "a debug APK builds" into M0. The environment check on 2026-09-20 found export templates empty, no JDK anywhere on disk, and `ANDROID_HOME` pointing at a directory that does not exist. That is several GB of user-driven installation and would block M0 indefinitely. It is now its own module so M0 can complete and stop cleanly. M1 needs it because M1's acceptance requires tilt verification on a physical device.
 
