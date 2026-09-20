@@ -12,6 +12,11 @@
 
 **Conventions (binding):** `godot/CONVENTIONS.md`
 
+**Prerequisites (read first):** `godot/PREREQUISITES.md` — what to install by
+hand before anything can run. Module 0 needs one `pip install`; Module 0b needs
+roughly 6 GB of downloads and several GUI installers. It also records that
+**iOS cannot be exported from this Windows machine** and is deferred to M11.
+
 ---
 
 ## Why this is an index rather than one plan

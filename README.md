@@ -30,7 +30,7 @@ The games use original procedural models, textures, effects, names, and sound de
 | Path | Contents |
 |---|---|
 | `web/` | The TypeScript / Canvas 2D game. npm root. |
-| `godot/` | Godot 4.7.2 mobile port, in progress. See `godot/CONVENTIONS.md`. |
+| `godot/` | Godot 4.7.2 mobile port, in progress. Start with `godot/PREREQUISITES.md`. |
 | `tools/` | Scripts bridging the two (audio bake, constant parity). |
 | `archive/` | Frozen design boards, backups and screenshots. |
 | `docs/superpowers/specs/` | Design specs. |

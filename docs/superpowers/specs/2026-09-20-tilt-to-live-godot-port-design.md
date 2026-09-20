@@ -101,7 +101,7 @@ codebase.
 
 | # | Decision | Rationale |
 |---|---|---|
-| D1 | **Target: Android + iOS only** | Tilt controls are natively a mobile idiom. No desktop, no web, no console. |
+| D1 | **Target: Android + iOS only** | Tilt controls are natively a mobile idiom. No desktop, no web, no console. **Amended 2026-09-20:** Godot requires a macOS host with Xcode to export iOS, and the development machine is Windows 11. Android is built here; iOS is deferred until a Mac or macOS CI runner is available. The GDScript is identical for both, so this blocks nothing before M11. See `godot/PREREQUISITES.md` §3. |
 | D2 | **Orientation: landscape** | User decision. Gives the swarm room to flank; matches how the game currently reads. |
 | D3 | **Full fidelity, slice-first sequencing** | All content ports eventually; Module 2 delivers a genuinely playable slice so every later module layers onto something that runs. |
 | D4 | **Rendering: plain-data sim + `_draw()`** | Entities stay as arrays exactly as the TS has them; a handful of `Node2D._draw()` nodes mirror the `ctx` calls near line-for-line. Lowest-risk translation. |
@@ -592,11 +592,14 @@ block and push the player; mode multipliers apply to scoring.
   options modal
 - Entrance cinematic
 - **Glow cost measurement on device**, and the fallback decision from §4.5
-- Android and iOS export presets, icons, splash screens
+- Android export preset, icons, splash screens
+- iOS export preset **only if a macOS host is available** (D1); otherwise this
+  half of the module is explicitly deferred and recorded as such in
+  `PORT-PROGRESS.md` rather than silently skipped
 
 **Accept:** cold boot → menu → cinematic → run → death → menu loops correctly on
-device; sustained 60 fps across a 5-minute run; a signed release build is
-produced.
+device; sustained 60 fps across a 5-minute run; a signed **Android** release
+build is produced. iOS acceptance is deferred with D1.
 
 ---
 
