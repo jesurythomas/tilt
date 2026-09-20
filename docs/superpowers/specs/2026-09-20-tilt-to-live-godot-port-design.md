@@ -10,7 +10,8 @@ Target engine: Godot 4.7.2-stable (GDScript; standard build, not .NET)
 ## 1. Summary
 
 Port the existing TypeScript/Canvas 2D game **Tilt to Live** (~13,250 lines across
-22 modules) to Godot 4.7.2 as a **landscape mobile game** for Android and iOS.
+22 modules) to Godot 4.7.2 as a **landscape mobile game** for Android, with iOS
+deferred until a macOS host is available (D1).
 
 The port is sequenced as **13 self-contained modules** (M0, M0b, M1–M11). Each
 module ends in a

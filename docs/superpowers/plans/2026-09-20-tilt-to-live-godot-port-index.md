@@ -35,7 +35,9 @@ Copied verbatim from the spec and `CONVENTIONS.md`. Every task in every module p
 - **Godot is not on PATH.** Invoke as:
   `GODOT="/c/Users/Jesury/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe"`
   Use the `_console` variant so stdout reaches the shell.
-- **Orientation:** landscape. **Targets:** Android + iOS only.
+- **Orientation:** landscape. **Targets:** Android + iOS only — but iOS requires
+  a macOS host with Xcode and is deferred to M11 (D1, `PREREQUISITES.md` §3).
+  Everything through M10 is Android-only and the GDScript is identical for both.
 - **`content_scale_mode = disabled`.** The sim reads `get_viewport_rect().size` directly. All UI must be responsive (anchors/containers), never pinned to a base resolution.
 - **`max_fps = 60`.** Sim in `_physics_process` at 60 Hz; `_process` only calls `queue_redraw()`.
 - **`arenaScale = clamp(min(width, height) / 680, 0.60, 1.15)`** — reproduced verbatim.
