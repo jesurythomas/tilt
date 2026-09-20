@@ -12,6 +12,10 @@ extends Control
 ## Emitted when the player picks a scheme.
 signal scheme_chosen(scheme: Types.ControlScheme)
 
+# DIVERGENCE(M2.5 §4.3): 48dp minimum touch target, provisional until the
+# device pass.
+const BASE_TOUCH_TARGET: float = 48.0
+
 @onready var _tilt_button: Button = get_node_or_null("%TiltButton")
 @onready var _touch_button: Button = get_node_or_null("%TouchButton")
 @onready var _keyboard_button: Button = get_node_or_null("%KeyboardButton")
@@ -51,6 +55,16 @@ func set_active_scheme(scheme: Types.ControlScheme) -> void:
 		_touch_button.button_pressed = scheme == Types.ControlScheme.MOUSE
 	if _keyboard_button != null:
 		_keyboard_button.button_pressed = scheme == Types.ControlScheme.KEYBOARD
+
+
+## Scales each button's minimum touch target to the viewport.
+func set_ui_scale(scale: float) -> void:
+	if _tilt_button != null:
+		_tilt_button.custom_minimum_size.y = BASE_TOUCH_TARGET * scale
+	if _touch_button != null:
+		_touch_button.custom_minimum_size.y = BASE_TOUCH_TARGET * scale
+	if _keyboard_button != null:
+		_keyboard_button.custom_minimum_size.y = BASE_TOUCH_TARGET * scale
 
 
 func _on_scheme_button_pressed(scheme: Types.ControlScheme) -> void:

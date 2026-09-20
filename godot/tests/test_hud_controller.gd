@@ -110,3 +110,22 @@ func test_ui_scale_grows_the_score_font_on_a_larger_viewport() -> void:
 	var at_two: int = score_lbl.get_theme_font_size("font_size")
 
 	assert_gt(at_two, at_one, "a bigger viewport gets bigger text")
+
+
+func test_control_picker_ui_scale_grows_the_touch_targets() -> void:
+	var picker: ControlPicker = ControlPicker.new()
+	var tilt_button: Button = Button.new()
+	tilt_button.name = "TiltButton"
+	var touch_button: Button = Button.new()
+	touch_button.name = "TouchButton"
+	var keyboard_button: Button = Button.new()
+	keyboard_button.name = "KeyboardButton"
+	picker.add_child(tilt_button)
+	picker.add_child(touch_button)
+	picker.add_child(keyboard_button)
+	add_child_autofree(picker)
+
+	picker.set_ui_scale(1.5)
+	assert_almost_eq(tilt_button.custom_minimum_size.y, 72.0, 0.001)
+	assert_almost_eq(touch_button.custom_minimum_size.y, 72.0, 0.001)
+	assert_almost_eq(keyboard_button.custom_minimum_size.y, 72.0, 0.001)

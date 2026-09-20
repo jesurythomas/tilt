@@ -14,8 +14,11 @@ const BASE_BEST_FONT: int = 22
 const BASE_MULTIPLIER_FONT: int = 26
 ## Viewport minimum dimension at which ui_scale is 1.0.
 const UI_SCALE_REFERENCE: float = 720.0
+# DIVERGENCE(M2.5 §7.2 / D6): provisional clamp bounds on ui_scale, pending
+# measurement in the M2.5 device pass.
+const MIN_UI_SCALE: float = 0.75
+const MAX_UI_SCALE: float = 2.0
 
-var _ui_scale: float = 1.0
 var _pause_button: Button = null
 var _pause_panel: Control = null
 var _resume_button: Button = null
@@ -63,9 +66,6 @@ func _ready() -> void:
 	GameEvents.run_ended.connect(_on_run_ended)
 	GameEvents.phase_changed.connect(_on_phase_changed)
 
-	set_ui_scale(ui_scale_for(get_viewport_rect().size))
-	get_viewport().size_changed.connect(_on_viewport_resized)
-
 	_pause_button = find_child("PauseButton", true, false) as Button
 	if _pause_button != null:
 		_pause_button.pressed.connect(_on_pause_pressed)
@@ -85,10 +85,12 @@ func _ready() -> void:
 			_pickers.append(typed)
 	_sync_pickers()
 
+	set_ui_scale(ui_scale_for(get_viewport_rect().size))
+	get_viewport().size_changed.connect(_on_viewport_resized)
+
 
 ## Scales HUD text and touch targets to the viewport.
 func set_ui_scale(scale: float) -> void:
-	_ui_scale = scale
 	if _score_label != null:
 		_score_label.add_theme_font_size_override("font_size", int(BASE_SCORE_FONT * scale))
 	if _best_label != null:
@@ -97,11 +99,17 @@ func set_ui_scale(scale: float) -> void:
 		_multiplier_label.add_theme_font_size_override(
 			"font_size", int(BASE_MULTIPLIER_FONT * scale)
 		)
+	if _pause_button != null:
+		_pause_button.custom_minimum_size = Vector2(
+			ControlPicker.BASE_TOUCH_TARGET * scale, ControlPicker.BASE_TOUCH_TARGET * scale
+		)
+	for picker: ControlPicker in _pickers:
+		picker.set_ui_scale(scale)
 
 
 ## The ui_scale implied by a viewport size.
 static func ui_scale_for(viewport: Vector2) -> float:
-	return clampf(minf(viewport.x, viewport.y) / UI_SCALE_REFERENCE, 0.75, 2.0)
+	return clampf(minf(viewport.x, viewport.y) / UI_SCALE_REFERENCE, MIN_UI_SCALE, MAX_UI_SCALE)
 
 
 func _on_score_changed(score: int, multiplier: int, best_score: int) -> void:
