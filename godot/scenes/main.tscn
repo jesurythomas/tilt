@@ -1,8 +1,10 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://src/core/game_root.gd" id="1"]
 [ext_resource type="Script" path="res://src/render/grid_layer.gd" id="2"]
 [ext_resource type="Script" path="res://src/render/entity_layer.gd" id="3"]
+[ext_resource type="Script" path="res://src/render/effect_layer.gd" id="4"]
+[ext_resource type="Script" path="res://src/ui/hud_controller.gd" id="5"]
 
 [node name="GameRoot" type="Node2D"]
 script = ExtResource("1")
@@ -14,3 +16,134 @@ script = ExtResource("2")
 [node name="EntityLayer" type="Node2D" parent="."]
 unique_name_in_owner = true
 script = ExtResource("3")
+
+[node name="EffectLayer" type="Node2D" parent="."]
+unique_name_in_owner = true
+script = ExtResource("4")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="Hud" type="Control" parent="CanvasLayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("5")
+
+[node name="TopMargin" type="MarginContainer" parent="CanvasLayer/Hud"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 32.0
+offset_top = 24.0
+offset_right = -32.0
+offset_bottom = 80.0
+grow_horizontal = 2
+mouse_filter = 2
+
+[node name="TopBar" type="HBoxContainer" parent="CanvasLayer/Hud/TopMargin"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="ScoreLabel" type="Label" parent="CanvasLayer/Hud/TopMargin/TopBar"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "0"
+
+[node name="SpacerLeft" type="Control" parent="CanvasLayer/Hud/TopMargin/TopBar"]
+custom_minimum_size = Vector2(16, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="MultiplierLabel" type="Label" parent="CanvasLayer/Hud/TopMargin/TopBar"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.8, 0, 1)
+theme_override_font_sizes/font_size = 24
+text = "1x"
+
+[node name="SpacerCenter" type="Control" parent="CanvasLayer/Hud/TopMargin/TopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="BestLabel" type="Label" parent="CanvasLayer/Hud/TopMargin/TopBar"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 20
+text = "BEST 0"
+
+[node name="GameOverPanel" type="CenterContainer" parent="CanvasLayer/Hud"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="CanvasLayer/Hud/GameOverPanel"]
+custom_minimum_size = Vector2(340, 260)
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="CanvasLayer/Hud/GameOverPanel/Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 24
+
+[node name="VBox" type="VBoxContainer" parent="CanvasLayer/Hud/GameOverPanel/Panel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="CanvasLayer/Hud/GameOverPanel/Panel/Margin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.2, 0.35, 1)
+theme_override_font_sizes/font_size = 36
+text = "GAME OVER"
+horizontal_alignment = 1
+
+[node name="NewBestLabel" type="Label" parent="CanvasLayer/Hud/GameOverPanel/Panel/Margin/VBox"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.2, 1)
+theme_override_font_sizes/font_size = 22
+text = "NEW RECORD!"
+horizontal_alignment = 1
+
+[node name="FinalScoreLabel" type="Label" parent="CanvasLayer/Hud/GameOverPanel/Panel/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "SCORE: 0"
+horizontal_alignment = 1
+
+[node name="FinalKillsLabel" type="Label" parent="CanvasLayer/Hud/GameOverPanel/Panel/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "KILLS: 0"
+horizontal_alignment = 1
+
+[node name="FinalTimeLabel" type="Label" parent="CanvasLayer/Hud/GameOverPanel/Panel/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "TIME: 0:00"
+horizontal_alignment = 1
+
+[node name="RestartButton" type="Button" parent="CanvasLayer/Hud/GameOverPanel/Panel/Margin/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "PLAY AGAIN"
