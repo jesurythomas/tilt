@@ -8,9 +8,9 @@
 
 **Tech Stack:** Godot 4.7.2-stable · Temurin JDK 17.0.20.1 · Android SDK platform `android-37.0`, build-tools `36.0.0` · adb from `platform-tools`.
 
-**Spec:** `docs/superpowers/specs/2026-09-20-tilt-to-live-godot-port-design.md` §8, Module 0b
+**Spec:** `docs/superpowers/specs/2026-09-20-peril-point-godot-port-design.md` §8, Module 0b
 
-**Index:** `docs/superpowers/plans/2026-09-20-tilt-to-live-godot-port-index.md`
+**Index:** `docs/superpowers/plans/2026-09-20-peril-point-godot-port-index.md`
 
 **Conventions (binding):** `godot/CONVENTIONS.md`
 

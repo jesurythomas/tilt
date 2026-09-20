@@ -1,14 +1,20 @@
-# Tilt to Live → Godot Port: Plan Index
+# Peril Point — Godot Port: Plan Index
+
+> **Naming.** The product is **Peril Point** (renamed 2026-09-20, Android id
+> `com.jtg.perilpoint`). The source it ports is the web game *Tilt to Live*,
+> which keeps its name in `web/src/tilt-to-live/`, in every TS filename and in
+> every `# PORT:` citation. Do not rename those — Law 1's citations depend on
+> them.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement each module plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Port Tilt to Live (~13,250 lines of TypeScript in `web/src/tilt-to-live/`) to Godot 4.7.2 GDScript as a landscape Android/iOS game, in 13 modules that each end in a runnable build and a hard stop.
+**Goal:** Port the web game (~13,250 lines of TypeScript in `web/src/tilt-to-live/`) to Godot 4.7.2 GDScript and ship it as **Peril Point**, a landscape Android/iOS game, in 13 modules that each end in a runnable build and a hard stop.
 
 **Architecture:** Plain-data simulation ported near 1:1 from the TypeScript, rendered through a small number of `Node2D._draw()` layers. The web game stays in `web/` as the reference implementation and as a live build dependency (Module 5 executes `TiltAudio.ts` to bake audio). Sim→UI communication is by signal; sim→sim stays direct-reference, preserving exact frame order.
 
 **Tech Stack:** Godot 4.7.2-stable (GDScript, non-.NET) · GUT for headless specs · gdtoolkit 4.x (`gdformat`, `gdlint`) · Node 20+ for the bake and parity tools.
 
-**Spec:** `docs/superpowers/specs/2026-09-20-tilt-to-live-godot-port-design.md`
+**Spec:** `docs/superpowers/specs/2026-09-20-peril-point-godot-port-design.md`
 
 **Conventions (binding):** `godot/CONVENTIONS.md`
 
@@ -93,7 +99,7 @@ Step 5 is not a suggestion. The user is managing a credit budget and has asked e
 
 Paste this:
 
-> Read `godot/HANDOFF.md`, `docs/superpowers/plans/2026-09-20-tilt-to-live-godot-port-index.md`, `docs/superpowers/specs/2026-09-20-tilt-to-live-godot-port-design.md` and `godot/CONVENTIONS.md`. Then write and execute the plan for Module N.
+> Read `godot/HANDOFF.md`, `docs/superpowers/plans/2026-09-20-peril-point-godot-port-index.md`, `docs/superpowers/specs/2026-09-20-peril-point-godot-port-design.md` and `godot/CONVENTIONS.md`. Then write and execute the plan for Module N.
 
 To **jump to a different module** instead of the next one, check the Module map above: any module whose dependencies are ticked in `PORT-PROGRESS.md` may be started.
 

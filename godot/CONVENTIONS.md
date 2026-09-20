@@ -1,10 +1,10 @@
-# CONVENTIONS — Tilt to Live Godot Port
+# CONVENTIONS — Peril Point Godot Port
 
 **Normative. Binding on every module.**
 
 Read this file in full before writing any GDScript in this project. If anything
 here conflicts with your defaults, this file wins. If anything here conflicts
-with `docs/superpowers/specs/2026-09-20-tilt-to-live-godot-port-design.md`, the
+with `docs/superpowers/specs/2026-09-20-peril-point-godot-port-design.md`, the
 spec wins and this file is wrong — report it rather than resolving it silently.
 
 Target engine: **Godot 4.7.2-stable**, GDScript, standard (non-.NET) build.

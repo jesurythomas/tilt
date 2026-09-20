@@ -17,7 +17,19 @@ predicted or assumed; every value was read off a command's output.
 |---|---|
 | Package | `com.jtg.perilpoint` |
 | Label | **Peril Point** |
-| Project name in `project.godot` | still `Tilt to Live` — **see Open questions** |
+| `config/name` in `project.godot` | `Peril Point` |
+
+**The project was renamed to Peril Point on 2026-09-20, and the rename is done.**
+It covered `config/name`, the spec, the plan index, `CONVENTIONS.md`, the README
+and this file; the spec and index files were themselves renamed to
+`2026-09-20-peril-point-godot-port-*.md`.
+
+**What deliberately did *not* change, and must not:** the source web game keeps
+the name *Tilt to Live* — `web/src/tilt-to-live/`, every TypeScript filename
+(`TiltGame.ts`, `TiltAudio.ts`, …) and every `# PORT:` citation. Law 1 requires
+those citations to resolve, so renaming them would break traceability for the
+whole port. `archive/` is historical and was left untouched. Read "Tilt to Live"
+anywhere in this repo as *the source codebase*, never as the product.
 
 ## How to verify right now
 
@@ -102,6 +114,13 @@ moment M1 adds a second spec file.**
 means an intent was dispatched; the app can die immediately after. Use
 `adb shell pidof <pkg>` — a pid is the evidence.
 
+**But `pidof` races the launch.** Run immediately after `monkey` it returns
+empty and exit 1 on a perfectly healthy app — observed, and briefly mistaken for
+a regression. Godot needs a few seconds to reach `OnGodotMainLoopStarted`. Give
+it ~5s, or retry, before concluding anything. An empty `pidof` is only evidence
+of a crash if it is still empty after the app has had time to start **and** the
+log shows a failure.
+
 ## Verified project.godot keys
 
 Godot omits any setting left at its default, so the file is shorter than the set
@@ -110,7 +129,7 @@ at runtime, not by reading the file.
 
 ```ini
 [application]
-config/name="Tilt to Live"
+config/name="Peril Point"
 run/main_scene="res://scenes/main.tscn"
 run/max_fps=60
 [display]
@@ -172,11 +191,9 @@ iOS is still deferred to M11 (D1, `PREREQUISITES.md` §3); it needs a macOS host
 
 ## Open questions
 
-- **Is the project being renamed to "Peril Point", or is that only the Android
-  app label?** `config/name` in `project.godot` is still `Tilt to Live`, as are
-  the spec, the plans and this repo's docs. The two can differ harmlessly — the
-  label is what users see — but if a full rename is intended it should happen
-  deliberately and in one pass, not drift. **Unresolved; ask before assuming.**
+- ~~Is "Peril Point" a full rename or only the Android label?~~ **Resolved
+  2026-09-20: full rename, done in one pass.** See *App identity* above for what
+  changed and what deliberately did not.
 - **The GUT collection-failure gap (trap 3) is still open** and becomes a real
   risk as soon as M1 adds a second spec file. Not solved in M0 or M0b because
   Law 4 forbids adding tooling a module does not need. Decide in M1.

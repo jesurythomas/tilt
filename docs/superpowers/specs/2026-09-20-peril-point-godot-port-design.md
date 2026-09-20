@@ -1,17 +1,26 @@
-# Tilt to Live — Godot Mobile Port: Design
+# Peril Point — Godot Mobile Port: Design
 
 Date: 2026-09-20
 Status: Approved
 Source commit: `7be9614`
 Target engine: Godot 4.7.2-stable (GDScript; standard build, not .NET)
 
+> **Naming.** The shipping product is **Peril Point** (renamed 2026-09-20;
+> Android id `com.jtg.perilpoint`). The **source** it is ported from is the
+> existing web game *Tilt to Live*, which keeps that name throughout: its
+> directory `web/src/tilt-to-live/`, its filenames (`TiltGame.ts`,
+> `TiltAudio.ts`, …) and every `# PORT:` citation are unchanged. Renaming any
+> of those would break the citations Law 1 depends on. Read "Tilt to Live" in
+> this document as *the source codebase*, never as the product name.
+
 ---
 
 ## 1. Summary
 
-Port the existing TypeScript/Canvas 2D game **Tilt to Live** (~13,250 lines across
-22 modules) to Godot 4.7.2 as a **landscape mobile game** for Android, with iOS
-deferred until a macOS host is available (D1).
+Port the existing TypeScript/Canvas 2D game in `web/` (*Tilt to Live*, ~13,250
+lines across 22 modules) to Godot 4.7.2 and ship it as **Peril Point**, a
+**landscape mobile game** for Android, with iOS deferred until a macOS host is
+available (D1).
 
 The port is sequenced as **13 self-contained modules** (M0, M0b, M1–M11). Each
 module ends in a
@@ -350,7 +359,7 @@ Every module ends with these five steps, in order:
 Resume incantation from a cold session:
 
 > Read `godot/HANDOFF.md` and
-> `docs/superpowers/specs/2026-09-20-tilt-to-live-godot-port-design.md`,
+> `docs/superpowers/specs/2026-09-20-peril-point-godot-port-design.md`,
 > then execute Module N.
 
 ### 6.3 Testing

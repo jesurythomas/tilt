@@ -30,7 +30,7 @@ The games use original procedural models, textures, effects, names, and sound de
 | Path | Contents |
 |---|---|
 | `web/` | The TypeScript / Canvas 2D game. npm root. |
-| `godot/` | Godot 4.7.2 mobile port, in progress. Start with `godot/PREREQUISITES.md`. |
+| `godot/` | **Peril Point** — Godot 4.7.2 mobile port, in progress. Start with `godot/PREREQUISITES.md`. |
 | `tools/` | Scripts bridging the two (audio bake, constant parity). |
 | `archive/` | Frozen design boards, backups and screenshots. |
 | `docs/superpowers/specs/` | Design specs. |
@@ -38,7 +38,19 @@ The games use original procedural models, textures, effects, names, and sound de
 The web game is the reference implementation for the Godot port and is not being
 retired — the audio bake step executes `web/src/tilt-to-live/TiltAudio.ts`.
 
-Port design: `docs/superpowers/specs/2026-09-20-tilt-to-live-godot-port-design.md`
+### Peril Point
+
+The Godot mobile port ships as **Peril Point** (Android id `com.jtg.perilpoint`),
+landscape, Android first with iOS deferred until a macOS host is available.
+
+Its source is the web game under `web/src/tilt-to-live/`, which **keeps its own
+name** — the directory, the TypeScript filenames and every `# PORT:` citation in
+the GDScript are unchanged, because the port's traceability rule (Law 1) depends
+on those paths resolving.
+
+- Port design: `docs/superpowers/specs/2026-09-20-peril-point-godot-port-design.md`
+- Plan index: `docs/superpowers/plans/2026-09-20-peril-point-godot-port-index.md`
+- Current state: `godot/HANDOFF.md` · progress: `godot/PORT-PROGRESS.md`
 
 ## Run
 

@@ -4,7 +4,7 @@ The durable module checklist. Ticked only by the exit protocol in
 `CONVENTIONS.md` §9, after the acceptance commands have actually been run.
 
 Dependency map and resume instructions:
-`docs/superpowers/plans/2026-09-20-tilt-to-live-godot-port-index.md`
+`docs/superpowers/plans/2026-09-20-peril-point-godot-port-index.md`
 
 - [x] **M0 — Scaffold**  deps: none   *(2026-09-20, commit `035ccdc`)*
       ok  `$GODOT --headless --path godot --import` exits 0
