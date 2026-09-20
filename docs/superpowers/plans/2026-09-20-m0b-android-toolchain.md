@@ -96,10 +96,10 @@ See the index's Global Constraints section — all of it applies. The ones that 
 ## Decided: package name
 
 ```
-com.jtg.tilt
+com.jtg.perilpoint
 ```
 
-Chosen by the user 2026-09-20. Valid: three lowercase segments, each starting
+Chosen by the user 2026-09-20, who also set the app label to **Peril Point**. Valid: three lowercase segments, each starting
 with a letter, and not `com.example.*` (which the Play Store rejects).
 
 **This is permanent in practice once published.** It is the app's identity on
@@ -239,8 +239,8 @@ GODOT="/c/Users/Jesury/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stab
 |---|---|
 | Name | `Android` |
 | Runnable | **on** |
-| Options → Package → Unique Name | `com.jtg.tilt` |
-| Options → Package → Name | `Tilt to Live` |
+| Options → Package → Unique Name | `com.jtg.perilpoint` |
+| Options → Package → Name | `Peril Point` |
 
 Leave everything else at its default. In particular:
 
@@ -374,13 +374,13 @@ Expected: `Success` and **`exit=0`**.
 
 If it fails with `INSTALL_FAILED_UPDATE_INCOMPATIBLE`, a build signed with a
 different key is already installed. Uninstall it first —
-`"$ADB" uninstall com.jtg.tilt` — then repeat this step.
+`"$ADB" uninstall com.jtg.perilpoint` — then repeat this step.
 
 - [ ] **Step 3: Launch, with the log clean beforehand**
 
 ```bash
 ADB="/c/Users/Jesury/AppData/Local/Android/Sdk/platform-tools/adb.exe"
-PKG="com.jtg.tilt"
+PKG="com.jtg.perilpoint"
 "$ADB" logcat -c
 "$ADB" shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1
 ```
@@ -394,7 +394,7 @@ the app survived.
 
 ```bash
 ADB="/c/Users/Jesury/AppData/Local/Android/Sdk/platform-tools/adb.exe"
-PKG="com.jtg.tilt"
+PKG="com.jtg.perilpoint"
 "$ADB" shell pidof "$PKG"; echo "pidof exit=$?"
 ```
 
@@ -455,7 +455,7 @@ echo "--- no credentials in tracked preset (expect none) ---"
 grep -niE "password" godot/export_presets.cfg | grep -viE '=\s*""' || echo "  none"
 
 echo "--- app alive on device ---"
-"$ADB" shell pidof com.jtg.tilt; echo "pidof exit=$?"
+"$ADB" shell pidof com.jtg.perilpoint; echo "pidof exit=$?"
 
 echo "--- working tree (expect clean, and no .apk) ---"
 git status --short
@@ -529,7 +529,7 @@ dropping the "launches" criterion, would leave the toolchain unproven until M1
 and defeat the point of the module.
 
 **Placeholder scan.** None remain. The package name was the only open value and
-is now fixed at `com.jtg.tilt` in the *Decided* section and in every command
+is now fixed at `com.jtg.perilpoint` in the *Decided* section and in every command
 that uses it.
 
 **Type consistency.** No code interfaces. The named artefacts `$GODOT`, `ADB`,
