@@ -9,27 +9,35 @@ Branch: `feat/godot-port` (no upstream; nothing pushed)
 Current module: **M1 — Core loop and input — IN PROGRESS, do not restart it.**
 
 > **Read this before writing any code.** M1 is mid-flight, which is unusual for
-> this file — it is normally rewritten only at a module *stop*.
+> this file — it is normally rewritten only at a module *stop*. This update was
+> made at a session budget stop after Task 11, not at a module boundary.
 >
-> 1. **`docs/superpowers/plans/2026-09-20-m1-core-loop-and-input.md`** — the
->    approved 14-task plan. Tasks 1 and 2 are done and ticked; **resume at
->    Task 3** (`core/tuning.gd` + the parity harness). Its "Open questions"
->    section is already resolved — do not re-ask those.
-> 2. **`godot/CONVENTIONS.md`** — normative, read in full. The five port laws
->    and the nine warnings-as-errors are machine-enforced.
-> 3. **Task 3 opens with a Step 0 carried over from Task 2** — settling how
->    `Types.Enemy`'s optional floats represent "undefined". Do it first; the
->    plan spells it out. Background is under *Open questions* below.
+> 1. **`.superpowers/sdd/2026-09-20-m1-core-loop-and-input/progress.md`** — the
+>    execution ledger (git-ignored, lives on this machine). It records every
+>    task's commits, every review verdict, every controller **Ruling** (12 so
+>    far) and every deferred minor. Trust it and `git log` over memory. If it is
+>    missing, `git log --oneline 7c7e315..HEAD` is the record.
+> 2. **`docs/superpowers/plans/2026-09-20-m1-core-loop-and-input.md`** — the
+>    approved 14-task plan. **Tasks 1-9 and 11 are done and committed; resume
+>    at Task 10** (`core/game_root.gd`, `scenes/main.tscn`, 120 Hz physics),
+>    then 12 (Android sensors — needs the phone), 13 (device acceptance —
+>    needs the phone), 14 (exit protocol). Task 11 was deliberately run before
+>    Task 10 (Ruling 10 below).
+> 3. **`godot/CONVENTIONS.md`** — normative, read in full.
 >
-> **The plan's code blocks are drafts, not gospel.** Two were wrong already —
-> a `gdlint` member-order violation and a doc comment contradicting its own
-> code. Diff every block against the TypeScript it cites before typing it in.
+> **The plan's code blocks are drafts, not gospel.** Every task so far needed
+> at least one correction against the TypeScript (see *Rulings* below). Diff
+> every block against the TS it cites before typing it in. Execution is
+> subagent-driven (superpowers:subagent-driven-development), one implementer
+> per task with a review between each; give each subagent an explicit list of
+> the only files to read.
 
 Verify the state you are inheriting before adding to it:
 
 ```bash
-tools/run_tests.sh                                  # OK: 3/3, 7 tests passing
+tools/run_tests.sh                                  # OK: 10/10 scripts collected, all tests passed.
 gdformat --check godot/src godot/tests && gdlint godot/src godot/tests
+"$GODOT" --headless --path godot --check-only -s src/render/grid_layer.gd   # parses
 ```
 
 Every command below was run fresh and passed. Nothing here is predicted or
@@ -214,39 +222,86 @@ architectures are **arm64-v8a only**.
 
 ## Current module — M1, in progress
 
-**M1 — Core loop and input.** The plan is written and approved:
+**M1 — Core loop and input.** Plan:
 `docs/superpowers/plans/2026-09-20-m1-core-loop-and-input.md` — 14 tasks.
-**Tasks 1 and 2 are complete and committed, verified green 2026-09-20.
-Tasks 3-14 remain — resume at Task 3 (`core/tuning.gd` + the parity harness),
-which has not been started.** See *State* at the top for the read order and the
-commands that verify what you are inheriting.
+**Tasks 1-9 and 11 are complete, reviewed and committed, suite green
+(`OK: 10/10`) 2026-09-20. Resume at Task 10.**
 
 What landed, and the commit for each:
 
-| | |
-|---|---|
-| `src/core/log.gd` + autoload, `tests/test_log.gd` | `55795d7` |
-| `src/core/types.gd`, `tests/test_types.gd` | `bba32fe` |
-| `tools/run_tests.sh` re-imports before GUT | `d784471` |
+| Task | Files | Commits |
+|---|---|---|
+| 1 | `src/core/log.gd` + autoload, `tests/test_log.gd` | `55795d7` |
+| 2 | `src/core/types.gd`, `tests/test_types.gd` | `bba32fe` |
+| 3 step 0 | `Types.Enemy`/`ActiveWeapon` float optionals → `NAN` | `00495ab` |
+| 3 | `src/core/tuning.gd`, `tools/parity/dump_constants.mjs`, `tests/fixtures/*.json`, `tests/test_tuning_parity.gd` | `47b1897` |
+| 4 | `src/sim/vector_grid.gd`, `tests/test_vector_grid.gd` | `3e1a48a`, `d3eb1c6` |
+| 5 | `src/sim/particle_engine.gd` (partial), `tests/test_particle_engine.gd` | `c55ac8e` |
+| 6 | `src/sim/player_ship.gd`, `tests/test_player_ship.gd` | `e932eef`, `daba26f` |
+| 7 | `src/input/tilt_input.gd` (no `poll()` yet), `tests/test_tilt_input.gd` | `1841206`, `241ddaa` |
+| 8 | `src/input/input_router.gd`, `src/input/touch_input.gd`, `tests/test_input_router.gd` | `cedd8cd` |
+| 9 | `src/core/game_state_machine.gd`, `tests/test_game_state_machine.gd` | `b5f5391`, `019749e` |
+| 11 | `src/render/grid_layer.gd`, `src/render/entity_layer.gd` (no test — device-verified) | `53e0daa`, `30b84f6` |
 
-Two corrections the plan's own code blocks need, both already applied — expect
-more of the same, so diff the plan against the TypeScript rather than typing it
-in: the plan puts `const ABSENT` *before* the enums in `types.gd`, which
-CONVENTIONS §2 forbids and `gdlint` rejects (`class-definitions-order`); and
-its `types.gd` doc comment claimed every optional field takes `Types.ABSENT`,
-which is not what its own code does (see the M3 blocker under *Open questions*).
+### The literal next step — Task 10
 
-It delivers `core/log.gd`, `core/types.gd` (ports `Types.ts`), `core/tuning.gd`
-(ports `WeaponTuning.ts`), `tools/parity/`, `sim/vector_grid.gd`,
-`sim/particle_engine.gd` (partial — only the surface `PlayerShip` calls),
-`sim/player_ship.gd`, `input/tilt_input.gd` (ports `GyroscopeController.ts`),
-`input/input_router.gd`, `input/touch_input.gd`, `core/game_state_machine.gd`,
-`core/game_root.gd`, and the two render layers.
+`core/game_root.gd`, replace `scenes/main.tscn`, `tests/test_arena_scale.gd`,
+`physics/common/physics_ticks_per_second=120` in `project.godot`. Corrections
+to the plan's draft that are already decided (do not re-derive them):
 
-**M1 must replace `scenes/main.tscn`** — it is a scriptless `Node2D` placeholder
-that exists only so M0b could export and launch something.
+- `_input`: the keydown scheme guard (`TiltGame.ts:1296-1298`) applies to
+  **press only**; keyup releases unconditionally (`:1337-1340`). The draft
+  wrongly nests the release inside the guard.
+- `_update`: do **not** call `_tilt.poll()` — it does not exist until Task 12.
+  Leave `# TODO(M1): _tilt.poll() lands with the gravity bridge (Task 12)` at
+  the call site; Task 12 adds the call.
+- `test_arena_scale.gd` reads JSON into typed locals; copy the
+  `@warning_ignore("unsafe_call_argument")` + PORT-NOTE pattern from
+  `tests/test_tuning_parity.gd`, which is how Task 3 satisfied the Error-level
+  warning.
+- The scene's `%GridLayer` / `%EntityLayer` scripts already exist (Task 11).
+- Every public method gets a one-sentence `##` description before its `PORT:`
+  (Ruling 7); every citation is full-form `web/src/tilt-to-live/...`.
 
-iOS is still deferred to M11 (D1, `PREREQUISITES.md` §3); it needs a macOS host.
+Then Task 12 (needs the Galaxy A55 on USB, `-s RRCXB04L8EJ`), Task 13 (two
+device builds: HYBRID then a temporary GYRO flip, reverted), Task 14 (exit
+protocol — rewrite this file properly, tick `PORT-PROGRESS.md`, stop).
+
+### Rulings made by the controller during Tasks 3-11
+
+Each is also in the ledger with its cost-if-wrong. They are decisions taken on
+the user's behalf; rework any that are wrong.
+
+1. `Tuning.unit_to_string()` was not added (Law 4); the unit→string map lives
+   in `test_tuning_parity.gd`.
+2. Step 0 adopted `NAN` for the 12 float optionals; `is_nan()` is the
+   `=== undefined` test.
+3. `.uid` sidecars are committed.
+4. `Tuning.WEAPON_TUNING` is `Tuning.weapon_tuning` — gdlint's
+   `class-variable-name` treats a `static var` as a var and rejects
+   CONSTANT_CASE; `const` is impossible (`TuningEntry.new()`). **CONVENTIONS §3
+   has no static-var row — a gap to report, not edit unilaterally.**
+5. All `# PORT:` citations are full-form.
+6. `PlayerShip.update()` keeps its 12 ported parameters; the gdlint
+   `function-arguments-number` exception is inline on that one function
+   (`# gdlint:ignore=...` + PORT-NOTE), not a repo-wide `.gdlintrc`.
+7. Every public method carries a descriptive `##` sentence before its
+   citation (CONVENTIONS §5 wins over the plan's citation-only drafts).
+8. `touch_input.gd` ports **both** `pointermove` (→ `InputEventMouseMotion`,
+   its own guard) and `touchmove` (→ `InputEventScreenDrag`); the draft's tap
+   branch was dropped (no TS counterpart).
+9. `TiltInput` keeps its `Log.warn` calls on paths the TS swallows, each with
+   a Law 2 PORT-NOTE.
+10. Task 11 ran before Task 10; `_tilt.poll()` is Task 12's to call.
+11. Grid gradient offsets are `0.0, 0.125, 0.69375, 1.0` — the plan's `0.8125`
+    mis-derived the TS's 0.65 stop.
+12. Every TS side effect a state-machine method omits carries a module-tagged
+    TODO at its source position.
+
+**Two CONVENTIONS wording gaps to report at Task 14:** §3 lacks a `static var`
+naming row (Ruling 4); §1.1's `@warning_ignore` clause ("only where the TS
+genuinely requires it") does not cover the toolchain-forced
+`unsafe_call_argument` suppressions on JSON→typed reads in the parity tests.
 
 ### Four decisions taken 2026-09-20, before M1 started
 
@@ -350,29 +405,11 @@ own preamble.
   `godot/tests/test_types.gd`) declares `Array[Types.Enemy]`, appends an
   element and reads a typed field back. `OK: 3/3 scripts collected, all tests
   passed.` **Law 3 needs no amendment** and the records stay in one file.
-- **The float optionals in `Types.Enemy` are not a faithful port yet — M3
-  blocker.** `Types.ts` marks 17 `Enemy` fields optional. `types.gd` gives the
-  id-like and enum-state ones `Types.ABSENT` (-1 can never be a real id or
-  ordinal) but gives the numeric ones their natural zero, because **-1 is a
-  legal angle, timer and scale** so ABSENT cannot serve there. That loses
-  information `EnemySwarm.ts` actually reads:
-  `if (e.targetAngle === undefined) e.targetAngle = targetAngle` (:300),
-  `aimTimer === undefined → 1.1` (:339),
-  `fireCooldown === undefined → 2.6 + rand*0.8` (:394),
-  `orbitRadius === undefined → 38` (:463),
-  `pulseTimer === undefined → 2.2` (:486). With a 0.0 default **none of those
-  branches can ever fire.** Separately, `stealth_opacity` defaults to 1.0 here
-  while the TypeScript fallback is `?? 0.65` (`EnemySwarm.ts:1517`).
-  Nothing in M1 reads any of these fields, so M1 is unaffected and the port was
-  left as the approved plan wrote it (Law 2: raise, do not silently fix).
-  **Put to the user 2026-09-20, who assigned it to M1 Task 3 — it is the next
-  thing to do, not an M3 concern.** It was pulled forward deliberately so it
-  could not rot until Module 3. The decision still owed is *which*
-  representation; the candidate on the table is `NAN` for the float optionals,
-  with `is_nan()` as the exact `=== undefined` test, costing ~12 initialisers.
-  **The full instruction, including the field list, lives in the plan at
-  Task 3, Step 0** — follow it there. Also flagged as `TODO(M1)` in
-  `src/core/types.gd` and as a note on M3 in `PORT-PROGRESS.md`.
-- **Does Node 24 import `WeaponTuning.ts` directly?** The parity dumper relies
-  on native type stripping. M1 Task 3 carries a `tsc` fallback. Unknown until
-  that task runs.
+- ~~The float optionals in `Types.Enemy`.~~ **Resolved 2026-09-20 in M1 Task 3
+  Step 0 (`00495ab`): `NAN` for the 12 float optionals, `is_nan()` as the
+  `=== undefined` test.** `types.gd`'s PORT-NOTE describes the two-sentinel
+  scheme; `PORT-PROGRESS.md`'s M3 note is reduced to that statement.
+- ~~Does Node 24 import `WeaponTuning.ts` directly?~~ **Yes — resolved 2026-09-20.**
+  Node v24.14.0 strips the types natively; no `tsc` fallback was needed.
+  `node tools/parity/dump_constants.mjs` regenerates both fixtures
+  byte-identically (verified by the Task 3 reviewer).
