@@ -58,15 +58,11 @@ Dependency map and resume instructions:
       -- all 13 enemy types spawn and behave per the TypeScript
       -- all 8 formations trigger
       -- GUT wave-director specs pass
-      BLOCKER **resolve this first, before porting `EnemySwarm.ts`.**
-            `Types.Enemy`'s optional *float* fields default to `0.0`, so the
+      note  the `Types.Enemy` optional-float representation this module depends
+            on is **fixed in M1 Task 3 Step 0**, not here. If that step was
+            skipped, stop and do it before porting `EnemySwarm.ts`: the
             `=== undefined` branches at `EnemySwarm.ts:300, 339, 394, 463, 486`
-            can never fire, and `stealth_opacity` defaults to `1.0` where the
-            TypeScript falls back to `?? 0.65` (`EnemySwarm.ts:1517`).
-            Deferred deliberately in M1 Task 2 (`bba32fe`) — M1 reads none of
-            these fields. Candidate fix: `NAN` + `is_nan()` as the exact
-            `undefined` test, ~12 initialisers in `src/core/types.gd`.
-            Full detail under *Open questions* in `HANDOFF.md`.
+            cannot fire while those fields default to `0.0`.
 
 - [ ] **M4 — Weapons**  deps: M2
       -- all 7 weapons activate with radius/duration read from the tuning table

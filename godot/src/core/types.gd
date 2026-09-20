@@ -24,7 +24,9 @@ extends RefCounted
 ## `fireCooldown` (:394), `orbitRadius` (:463), `pulseTimer` (:486) — and those
 ## branches can never fire here. `stealthOpacity` is worse: its TypeScript
 ## fallback is `?? 0.65` (EnemySwarm.ts:1517), not the 1.0 below.
-## TODO(M3): resolve before porting EnemySwarm.ts. Recorded in HANDOFF.md.
+## TODO(M1): resolve in M1 Task 3, Step 0 — assigned by the user 2026-09-20.
+## The candidate is NAN plus is_nan() as the `=== undefined` test. Not deferred
+## to M3: the decision was pulled forward so it cannot rot. See HANDOFF.md.
 
 ## PORT: web/src/tilt-to-live/Types.ts:5
 enum GamePhase { MENU, CINEMATIC, PLAYING, PAUSED, GAME_OVER }

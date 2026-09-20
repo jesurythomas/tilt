@@ -17,8 +17,9 @@ Current module: **M1 — Core loop and input — IN PROGRESS, do not restart it.
 >    section is already resolved — do not re-ask those.
 > 2. **`godot/CONVENTIONS.md`** — normative, read in full. The five port laws
 >    and the nine warnings-as-errors are machine-enforced.
-> 3. **This file's *Open questions*** — one deferred decision is owed before
->    M3, not now. It is marked BLOCKER on M3 in `PORT-PROGRESS.md`.
+> 3. **Task 3 opens with a Step 0 carried over from Task 2** — settling how
+>    `Types.Enemy`'s optional floats represent "undefined". Do it first; the
+>    plan spells it out. Background is under *Open questions* below.
 >
 > **The plan's code blocks are drafts, not gospel.** Two were wrong already —
 > a `gdlint` member-order violation and a doc comment contradicting its own
@@ -364,14 +365,14 @@ own preamble.
   while the TypeScript fallback is `?? 0.65` (`EnemySwarm.ts:1517`).
   Nothing in M1 reads any of these fields, so M1 is unaffected and the port was
   left as the approved plan wrote it (Law 2: raise, do not silently fix).
-  **Put to the user 2026-09-20 and deliberately deferred — do not re-ask
-  whether to raise it, and do not quietly apply a fix in the meantime.** The
-  decision owed is *which* representation, and it is owed **before M3 ports
-  `EnemySwarm.ts`**, not before the next M1 task. The candidate on the table is
-  `NAN` for the float optionals — `is_nan()` is then the exact `=== undefined`
-  test and NAN is never a legal reading — costing ~12 initialisers in
-  `src/core/types.gd`. Also carried as a BLOCKER line on M3 in
-  `PORT-PROGRESS.md` and as `TODO(M3)` in `src/core/types.gd:27`.
+  **Put to the user 2026-09-20, who assigned it to M1 Task 3 — it is the next
+  thing to do, not an M3 concern.** It was pulled forward deliberately so it
+  could not rot until Module 3. The decision still owed is *which*
+  representation; the candidate on the table is `NAN` for the float optionals,
+  with `is_nan()` as the exact `=== undefined` test, costing ~12 initialisers.
+  **The full instruction, including the field list, lives in the plan at
+  Task 3, Step 0** — follow it there. Also flagged as `TODO(M1)` in
+  `src/core/types.gd` and as a note on M3 in `PORT-PROGRESS.md`.
 - **Does Node 24 import `WeaponTuning.ts` directly?** The parity dumper relies
   on native type stripping. M1 Task 3 carries a `tsc` fallback. Unknown until
   that task runs.

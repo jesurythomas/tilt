@@ -512,6 +512,46 @@ git commit -m "M1: port Types.ts enums and records to core/types.gd"
 - Consumes: nothing.
 - Produces: `class_name Tuning` with `static var WEAPON_TUNING: Dictionary[String, Dictionary]`, `const SUPERNOVA_SHOCKWAVE: float`, `const KEYSTONE_COSTS: Dictionary[String, int]`, `const GAME_SPEED: float`, `static func get_tuned_value(weapon: String, track: String, rank: int) -> float`, inner class `Tuning.TuningEntry` (`base: float`, `per_rank: float`, `max: float`, `unit: TuningUnit`), `enum TuningUnit { RANGE, SECONDS, PERCENT, COUNT }`. M4 reads `get_tuned_value` for every weapon radius/duration; M10 reads `GAME_SPEED`. `arena_scale.json` is consumed by Task 10's spec.
 
+- [ ] **Step 0: Settle the optional-float representation in `core/types.gd`**
+
+Carried over from Task 2 and **assigned to Task 3 by the user on 2026-09-20.**
+Do this before the parity work; it is unrelated to tuning but must not rot.
+
+`Types.ts` marks 17 `Enemy` fields optional. Task 2 gave the id-like and
+enum-state ones `Types.ABSENT` (-1 is never a real id or ordinal) but gave the
+numeric ones their natural zero, because **-1 is a legal angle, timer and
+scale**. That loses information `EnemySwarm.ts` actually reads:
+
+| TypeScript | Effect of the `0.0` default |
+|---|---|
+| `if (e.targetAngle === undefined) e.targetAngle = targetAngle` (`EnemySwarm.ts:300`) | branch never fires |
+| `if (e.aimTimer === undefined) e.aimTimer = 1.1` (`:339`) | branch never fires |
+| `if (e.fireCooldown === undefined) e.fireCooldown = 2.6 + rand*0.8` (`:394`) | branch never fires |
+| `if (sat.orbitRadius === undefined) sat.orbitRadius = 38` (`:463`) | branch never fires |
+| `if (e.pulseTimer === undefined) e.pulseTimer = 2.2` (`:486`) | branch never fires |
+| `const alpha = e.stealthOpacity ?? 0.65` (`:1517`) | port defaults to `1.0`, not `0.65` |
+
+**Recommended fix:** `NAN` for the float optionals, with `is_nan()` as the
+`=== undefined` test — NAN is never a legal reading, so it cannot collide the
+way `-1` and `0.0` do. Roughly 12 initialisers in `src/core/types.gd`.
+
+Fields to change in `Types.Enemy`: `target_angle`, `special_timer`,
+`orbit_radius`, `orbit_speed`, `aim_angle`, `aim_timer`, `fire_cooldown`,
+`orbit_angle`, `pulse_timer`, `stealth_opacity`; and in `Types.ActiveWeapon`:
+`max_radius`, `angle` (both optional at `Types.ts:62-63`). Leave `orbit_center`
+as `Vector2.ZERO` and the booleans as `false` — `undefined` is falsy in the
+TypeScript, so those are already exact.
+
+Extend `tests/test_types.gd` to assert the new sentinel, update the two
+`PORT-NOTE` blocks at the top of `types.gd` to describe what the code now does,
+then delete the `TODO(M1)` there, and reduce the M3 note in `PORT-PROGRESS.md`
+to a plain statement of the representation chosen. Nothing in M1 reads these
+fields, so no other task changes.
+
+> If you choose **not** to adopt NAN, that is a real option — but it is then a
+> knowing fidelity trade and Law 2 applies: record it in `HANDOFF.md` and move
+> the blocker back to M3 rather than leaving it silently half-done.
+
 - [ ] **Step 1: Write the parity dumper**
 
 `tools/parity/dump_constants.mjs`:
