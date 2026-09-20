@@ -93,23 +93,21 @@ See the index's Global Constraints section — all of it applies. The ones that 
 
 ---
 
-## Decision required before Task 2
-
-**The Android package name is permanent in practice.** It is the app's identity
-on the Play Store and on every device; changing it after release means a new
-listing and no upgrade path for installed users.
-
-The spec does not state one. This plan proposes:
+## Decided: package name
 
 ```
-com.blackcapital.tilttolive
+com.jtg.tilt
 ```
 
-derived from the repo owner's domain. **Confirm or replace this before running
-Task 2.** It is written into `export_presets.cfg` and into the APK.
+Chosen by the user 2026-09-20. Valid: three lowercase segments, each starting
+with a letter, and not `com.example.*` (which the Play Store rejects).
 
-Godot's own default is `com.example.$genname`, which must **not** be shipped —
-`com.example.*` is rejected by the Play Store.
+**This is permanent in practice once published.** It is the app's identity on
+every device and on the Play Store; changing it after release means a new
+listing and no upgrade path for installed users. It is cost-free to change
+**now** — it lives in exactly two places, `export_presets.cfg` and the installed
+APK, and changing it before first publication costs one edit plus an
+`adb uninstall`. Revisit it before M11's release build, not after.
 
 ---
 
@@ -241,7 +239,7 @@ GODOT="/c/Users/Jesury/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stab
 |---|---|
 | Name | `Android` |
 | Runnable | **on** |
-| Options → Package → Unique Name | the package name agreed above |
+| Options → Package → Unique Name | `com.jtg.tilt` |
 | Options → Package → Name | `Tilt to Live` |
 
 Leave everything else at its default. In particular:
@@ -376,13 +374,13 @@ Expected: `Success` and **`exit=0`**.
 
 If it fails with `INSTALL_FAILED_UPDATE_INCOMPATIBLE`, a build signed with a
 different key is already installed. Uninstall it first —
-`"$ADB" uninstall <package name>` — then repeat this step.
+`"$ADB" uninstall com.jtg.tilt` — then repeat this step.
 
 - [ ] **Step 3: Launch, with the log clean beforehand**
 
 ```bash
 ADB="/c/Users/Jesury/AppData/Local/Android/Sdk/platform-tools/adb.exe"
-PKG="<the package name from Task 2>"
+PKG="com.jtg.tilt"
 "$ADB" logcat -c
 "$ADB" shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1
 ```
@@ -396,7 +394,7 @@ the app survived.
 
 ```bash
 ADB="/c/Users/Jesury/AppData/Local/Android/Sdk/platform-tools/adb.exe"
-PKG="<the package name from Task 2>"
+PKG="com.jtg.tilt"
 "$ADB" shell pidof "$PKG"; echo "pidof exit=$?"
 ```
 
@@ -457,7 +455,7 @@ echo "--- no credentials in tracked preset (expect none) ---"
 grep -niE "password" godot/export_presets.cfg | grep -viE '=\s*""' || echo "  none"
 
 echo "--- app alive on device ---"
-"$ADB" shell pidof "<package name>"; echo "pidof exit=$?"
+"$ADB" shell pidof com.jtg.tilt; echo "pidof exit=$?"
 
 echo "--- working tree (expect clean, and no .apk) ---"
 git status --short
@@ -530,9 +528,9 @@ without one. Task 1 adds the smallest possible placeholder — a scriptless
 dropping the "launches" criterion, would leave the toolchain unproven until M1
 and defeat the point of the module.
 
-**Placeholder scan.** `<the package name from Task 2>` and `<package name>` are
-deliberate: the value is a user decision made in the *Decision required* section
-above, not a value this plan may invent. Every other command is concrete.
+**Placeholder scan.** None remain. The package name was the only open value and
+is now fixed at `com.jtg.tilt` in the *Decided* section and in every command
+that uses it.
 
 **Type consistency.** No code interfaces. The named artefacts `$GODOT`, `ADB`,
 `EXPORT_CMD` and the preset name `Android` are used identically in Tasks 2–5 and
