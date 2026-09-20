@@ -1,0 +1,494 @@
+{
+  "source": "web/src/tilt-to-live/WeaponTuning.ts",
+  "generated_by": "tools/parity/dump_constants.mjs",
+  "weapon_tuning": {
+    "blackhole": {
+      "radius": {
+        "base": 340,
+        "perRank": 18,
+        "max": 430,
+        "unit": "range"
+      },
+      "duration": {
+        "base": 4.8,
+        "perRank": 0.5,
+        "max": 7.3,
+        "unit": "seconds"
+      },
+      "gravity": {
+        "base": 0,
+        "perRank": 20,
+        "max": 100,
+        "unit": "percent"
+      }
+    },
+    "nuke": {
+      "radius": {
+        "base": 360,
+        "perRank": 22,
+        "max": 470,
+        "unit": "range"
+      },
+      "speed": {
+        "base": 0,
+        "perRank": 25,
+        "max": 75,
+        "unit": "percent"
+      }
+    },
+    "shield": {
+      "duration": {
+        "base": 6,
+        "perRank": 1,
+        "max": 11,
+        "unit": "seconds"
+      },
+      "radius": {
+        "base": 20,
+        "perRank": 2,
+        "max": 26,
+        "unit": "range"
+      }
+    },
+    "missiles": {
+      "count": {
+        "base": 8,
+        "perRank": 1,
+        "max": 13,
+        "unit": "count"
+      },
+      "blastRadius": {
+        "base": 40,
+        "perRank": 6,
+        "max": 58,
+        "unit": "range"
+      },
+      "flightSpeed": {
+        "base": 0,
+        "perRank": 20,
+        "max": 60,
+        "unit": "percent"
+      }
+    },
+    "laser": {
+      "length": {
+        "base": 260,
+        "perRank": 20,
+        "max": 360,
+        "unit": "range"
+      },
+      "duration": {
+        "base": 1.8,
+        "perRank": 0.4,
+        "max": 3,
+        "unit": "seconds"
+      }
+    },
+    "lightning": {
+      "maxTargets": {
+        "base": 14,
+        "perRank": 3,
+        "max": 29,
+        "unit": "count"
+      },
+      "chainRange": {
+        "base": 220,
+        "perRank": 22,
+        "max": 286,
+        "unit": "range"
+      }
+    },
+    "freeze": {
+      "duration": {
+        "base": 4.5,
+        "perRank": 0.7,
+        "max": 8.2,
+        "unit": "seconds"
+      }
+    }
+  },
+  "supernova_shockwave": 320,
+  "keystone_costs": {
+    "crossBeam": 3500,
+    "refractorLance": 4500,
+    "falloutZone": 3000,
+    "batteringRam": 3000,
+    "overchargePulse": 4500,
+    "plasmaArc": 3500,
+    "superconductor": 4500,
+    "shatterCascade": 2500,
+    "cryoNova": 4000,
+    "clusterSplit": 2500,
+    "hyperThrusters": 4000,
+    "supernovaCollapse": 5000,
+    "chainReaction": 5000
+  },
+  "tuned_value_samples": [
+    {
+      "weapon": "blackhole",
+      "track": "radius",
+      "rank": 0,
+      "value": 340
+    },
+    {
+      "weapon": "blackhole",
+      "track": "radius",
+      "rank": 1,
+      "value": 358
+    },
+    {
+      "weapon": "blackhole",
+      "track": "radius",
+      "rank": 3,
+      "value": 394
+    },
+    {
+      "weapon": "blackhole",
+      "track": "radius",
+      "rank": 5,
+      "value": 430
+    },
+    {
+      "weapon": "blackhole",
+      "track": "duration",
+      "rank": 0,
+      "value": 4.8
+    },
+    {
+      "weapon": "blackhole",
+      "track": "duration",
+      "rank": 1,
+      "value": 5.3
+    },
+    {
+      "weapon": "blackhole",
+      "track": "duration",
+      "rank": 3,
+      "value": 6.3
+    },
+    {
+      "weapon": "blackhole",
+      "track": "duration",
+      "rank": 5,
+      "value": 7.3
+    },
+    {
+      "weapon": "blackhole",
+      "track": "gravity",
+      "rank": 0,
+      "value": 0
+    },
+    {
+      "weapon": "blackhole",
+      "track": "gravity",
+      "rank": 1,
+      "value": 20
+    },
+    {
+      "weapon": "blackhole",
+      "track": "gravity",
+      "rank": 3,
+      "value": 60
+    },
+    {
+      "weapon": "blackhole",
+      "track": "gravity",
+      "rank": 5,
+      "value": 100
+    },
+    {
+      "weapon": "nuke",
+      "track": "radius",
+      "rank": 0,
+      "value": 360
+    },
+    {
+      "weapon": "nuke",
+      "track": "radius",
+      "rank": 1,
+      "value": 382
+    },
+    {
+      "weapon": "nuke",
+      "track": "radius",
+      "rank": 3,
+      "value": 426
+    },
+    {
+      "weapon": "nuke",
+      "track": "radius",
+      "rank": 5,
+      "value": 470
+    },
+    {
+      "weapon": "nuke",
+      "track": "speed",
+      "rank": 0,
+      "value": 0
+    },
+    {
+      "weapon": "nuke",
+      "track": "speed",
+      "rank": 1,
+      "value": 25
+    },
+    {
+      "weapon": "nuke",
+      "track": "speed",
+      "rank": 3,
+      "value": 75
+    },
+    {
+      "weapon": "nuke",
+      "track": "speed",
+      "rank": 5,
+      "value": 125
+    },
+    {
+      "weapon": "shield",
+      "track": "duration",
+      "rank": 0,
+      "value": 6
+    },
+    {
+      "weapon": "shield",
+      "track": "duration",
+      "rank": 1,
+      "value": 7
+    },
+    {
+      "weapon": "shield",
+      "track": "duration",
+      "rank": 3,
+      "value": 9
+    },
+    {
+      "weapon": "shield",
+      "track": "duration",
+      "rank": 5,
+      "value": 11
+    },
+    {
+      "weapon": "shield",
+      "track": "radius",
+      "rank": 0,
+      "value": 20
+    },
+    {
+      "weapon": "shield",
+      "track": "radius",
+      "rank": 1,
+      "value": 22
+    },
+    {
+      "weapon": "shield",
+      "track": "radius",
+      "rank": 3,
+      "value": 26
+    },
+    {
+      "weapon": "shield",
+      "track": "radius",
+      "rank": 5,
+      "value": 30
+    },
+    {
+      "weapon": "missiles",
+      "track": "count",
+      "rank": 0,
+      "value": 8
+    },
+    {
+      "weapon": "missiles",
+      "track": "count",
+      "rank": 1,
+      "value": 9
+    },
+    {
+      "weapon": "missiles",
+      "track": "count",
+      "rank": 3,
+      "value": 11
+    },
+    {
+      "weapon": "missiles",
+      "track": "count",
+      "rank": 5,
+      "value": 13
+    },
+    {
+      "weapon": "missiles",
+      "track": "blastRadius",
+      "rank": 0,
+      "value": 40
+    },
+    {
+      "weapon": "missiles",
+      "track": "blastRadius",
+      "rank": 1,
+      "value": 46
+    },
+    {
+      "weapon": "missiles",
+      "track": "blastRadius",
+      "rank": 3,
+      "value": 58
+    },
+    {
+      "weapon": "missiles",
+      "track": "blastRadius",
+      "rank": 5,
+      "value": 70
+    },
+    {
+      "weapon": "missiles",
+      "track": "flightSpeed",
+      "rank": 0,
+      "value": 0
+    },
+    {
+      "weapon": "missiles",
+      "track": "flightSpeed",
+      "rank": 1,
+      "value": 20
+    },
+    {
+      "weapon": "missiles",
+      "track": "flightSpeed",
+      "rank": 3,
+      "value": 60
+    },
+    {
+      "weapon": "missiles",
+      "track": "flightSpeed",
+      "rank": 5,
+      "value": 100
+    },
+    {
+      "weapon": "laser",
+      "track": "length",
+      "rank": 0,
+      "value": 260
+    },
+    {
+      "weapon": "laser",
+      "track": "length",
+      "rank": 1,
+      "value": 280
+    },
+    {
+      "weapon": "laser",
+      "track": "length",
+      "rank": 3,
+      "value": 320
+    },
+    {
+      "weapon": "laser",
+      "track": "length",
+      "rank": 5,
+      "value": 360
+    },
+    {
+      "weapon": "laser",
+      "track": "duration",
+      "rank": 0,
+      "value": 1.8
+    },
+    {
+      "weapon": "laser",
+      "track": "duration",
+      "rank": 1,
+      "value": 2.2
+    },
+    {
+      "weapon": "laser",
+      "track": "duration",
+      "rank": 3,
+      "value": 3
+    },
+    {
+      "weapon": "laser",
+      "track": "duration",
+      "rank": 5,
+      "value": 3.8
+    },
+    {
+      "weapon": "lightning",
+      "track": "maxTargets",
+      "rank": 0,
+      "value": 14
+    },
+    {
+      "weapon": "lightning",
+      "track": "maxTargets",
+      "rank": 1,
+      "value": 17
+    },
+    {
+      "weapon": "lightning",
+      "track": "maxTargets",
+      "rank": 3,
+      "value": 23
+    },
+    {
+      "weapon": "lightning",
+      "track": "maxTargets",
+      "rank": 5,
+      "value": 29
+    },
+    {
+      "weapon": "lightning",
+      "track": "chainRange",
+      "rank": 0,
+      "value": 220
+    },
+    {
+      "weapon": "lightning",
+      "track": "chainRange",
+      "rank": 1,
+      "value": 242
+    },
+    {
+      "weapon": "lightning",
+      "track": "chainRange",
+      "rank": 3,
+      "value": 286
+    },
+    {
+      "weapon": "lightning",
+      "track": "chainRange",
+      "rank": 5,
+      "value": 330
+    },
+    {
+      "weapon": "freeze",
+      "track": "duration",
+      "rank": 0,
+      "value": 4.5
+    },
+    {
+      "weapon": "freeze",
+      "track": "duration",
+      "rank": 1,
+      "value": 5.2
+    },
+    {
+      "weapon": "freeze",
+      "track": "duration",
+      "rank": 3,
+      "value": 6.6
+    },
+    {
+      "weapon": "freeze",
+      "track": "duration",
+      "rank": 5,
+      "value": 8
+    },
+    {
+      "weapon": "nosuch",
+      "track": "nosuch",
+      "rank": 2,
+      "value": 0
+    }
+  ]
+}
