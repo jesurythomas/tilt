@@ -102,6 +102,8 @@ func _ready() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	# DIVERGENCE(M2.5 §8.1): the TOUCH scheme drives the floating joystick;
 	# every other scheme keeps TiltGame.ts's steer-toward-pointer behaviour.
+	# NOTE: TOUCH is the control picker's label for Types.ControlScheme.MOUSE
+	# (spec §4.3) — the enum value is a cited port of GameOptions.ts:21.
 	if _router.control_scheme == Types.ControlScheme.MOUSE and OS.has_feature("mobile"):
 		if event is InputEventScreenTouch:
 			var touch: InputEventScreenTouch = event

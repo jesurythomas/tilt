@@ -61,6 +61,11 @@ enum EnemyState { AIMING, CHARGING, COOLING, PATROL }
 # not modules). Each carries its true source line.
 
 ## PORT: web/src/tilt-to-live/PlayerShip.ts:99
+# DIVERGENCE(M2.5 §8.3, D3): GYRO also carries the floating joystick's output.
+# The joystick emits a normalised direction-with-magnitude vector, structurally
+# identical to the gyro's, so it reuses this mode rather than adding a value to
+# an enum that is a cited port. While a thumb is driving the ship the mode reads
+# GYRO. See game_root.gd::_update() for the call site.
 enum ControlMode { MOUSE, KEYBOARD, GYRO }
 
 ## PORT: web/src/tilt-to-live/GameOptions.ts:21

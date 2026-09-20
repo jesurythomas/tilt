@@ -12,7 +12,12 @@ extends Node2D
 # so the stick belongs to the same neon-vector language as the playfield.
 const BASE_COLOR: Color = Color(91.0 / 255.0, 140.0 / 255.0, 255.0 / 255.0, 0.22)
 const BASE_RING_COLOR: Color = Color(91.0 / 255.0, 140.0 / 255.0, 255.0 / 255.0, 0.45)
-const KNOB_COLOR: Color = Color(0.0, 221.0 / 255.0, 1.0, 0.75)
+# DIVERGENCE(M2.5 §8.2): cyan accent matches the existing palette entry at
+# entity_layer.gd:21, so the knob reads as the same accent colour elsewhere in
+# the HUD/entity layers rather than an unrelated one-off value.
+const KNOB_COLOR: Color = Color(0.0, 220.0 / 255.0, 1.0, 0.75)
+# Knob radius in pixels; sized by eye against BASE_RADIUS for a comfortable
+# thumb target. Provisional — to be confirmed in the M2.5 device pass.
 const KNOB_RADIUS: float = 34.0
 
 var _joystick: FloatingJoystick = null
