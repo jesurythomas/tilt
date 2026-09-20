@@ -41,6 +41,19 @@ if [[ "$expected" -eq 0 ]]; then
 	exit 1
 fi
 
+# A newly added `class_name` is invisible to the parser until the project is
+# re-imported. What registers it is .godot/global_script_class_cache.cfg, which
+# is gitignored — so a fresh clone, a CI runner, and any session that adds a
+# class_name all start without it. GUT then drops every script referencing the
+# new class and the check below reports "collected N of M" with a parse error
+# that says only 'Identifier "Foo" not declared', which is a misleading trail.
+# Observed live in M1 Task 2: types.gd parsed clean on its own while
+# test_types.gd would not collect until this ran.
+#
+# This cannot mask a real parse error: --import stays silent and exits 0 on one
+# (CONVENTIONS §1.3), so the collection check below still catches it.
+"$GODOT" --headless --path "$REPO/godot" --import >/dev/null 2>&1
+
 output="$("$GODOT" --headless --path "$REPO/godot" \
 	-s addons/gut/gut_cmdln.gd -gdir=res://tests -gexit 2>&1)"
 gut_exit=$?
