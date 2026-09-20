@@ -1,0 +1,9 @@
+; Engine configuration file.
+; Full settings are added via the editor in Task 2 — do not hand-write keys.
+
+config_version=5
+
+[application]
+
+config/name="Tilt to Live"
+config/features=PackedStringArray("4.7")
