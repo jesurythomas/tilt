@@ -15,11 +15,18 @@ Dependency map and resume instructions:
       ok  `gdlint` and `gdformat` 4.5.0 verified and pinned in CONVENTIONS.md §1.2
       ok  PORT-PROGRESS.md and HANDOFF.md exist
 
-- [ ] **M0b — Android toolchain**  deps: M0   *(user action, ~4GB downloads)*
-      -- export templates installed
-      -- JDK 17 installed, Android SDK installed, ANDROID_HOME correct
-      -- debug keystore generated, Android export preset added
-      -- debug APK installs and launches on a physical device
+- [x] **M0b — Android toolchain**  deps: M0   *(2026-09-20, commit `e32cdea`)*
+      ok  export templates installed (4.7.2.stable, android debug + release)
+      ok  Temurin JDK 17.0.20.1, Android SDK platform-37.0 / build-tools 36.0.0,
+          ANDROID_HOME corrected and verified to exist
+      ok  debug keystore in Editor Settings; `Android` export preset added with
+          **no credentials written to the tracked file**
+      ok  debug APK (29,759,129 bytes) installs and launches on **SM_A556E**
+          (Galaxy A55) — pid confirmed alive, Vulkan **Forward Mobile**,
+          landscape confirmed (`cur=2340x1080`, `ROTATION_90`, orientation
+          source = our own activity)
+      note  app id `com.jtg.perilpoint`, label **Peril Point**
+      note  `scenes/main.tscn` is a placeholder **M1 must replace**
 
 - [ ] **M1 — Core loop and input**  deps: M0b
       -- tilt and touch both steer correctly in landscape on a device
