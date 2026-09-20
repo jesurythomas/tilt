@@ -18,6 +18,7 @@ run/max_fps=60
 [autoload]
 
 Log="*res://src/core/log.gd"
+GameEvents="*res://src/core/game_events.gd"
 
 [debug]
 
