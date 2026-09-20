@@ -190,15 +190,79 @@ architectures are **arm64-v8a only**.
 
 ## Next module
 
-**M1 — Core loop and input.** Nothing blocks it. Per the index it needs
-`core/types.gd` (ports `Types.ts`), `core/tuning.gd` (ports `WeaponTuning.ts`),
-`core/log.gd`, and `tools/parity/`. Its acceptance requires tilt verification on
-the physical device, which is now possible.
+**M1 — Core loop and input.** Nothing blocks it. **The plan is written and
+approved:** `docs/superpowers/plans/2026-09-20-m1-core-loop-and-input.md` —
+14 tasks, read it before touching anything. **Task 1 is complete and committed
+(`55795d7`, verified green 2026-09-20). Tasks 2-14 remain.**
+
+It delivers `core/log.gd`, `core/types.gd` (ports `Types.ts`), `core/tuning.gd`
+(ports `WeaponTuning.ts`), `tools/parity/`, `sim/vector_grid.gd`,
+`sim/particle_engine.gd` (partial — only the surface `PlayerShip` calls),
+`sim/player_ship.gd`, `input/tilt_input.gd` (ports `GyroscopeController.ts`),
+`input/input_router.gd`, `input/touch_input.gd`, `core/game_state_machine.gd`,
+`core/game_root.gd`, and the two render layers.
 
 **M1 must replace `scenes/main.tscn`** — it is a scriptless `Node2D` placeholder
 that exists only so M0b could export and launch something.
 
 iOS is still deferred to M11 (D1, `PREREQUISITES.md` §3); it needs a macOS host.
+
+### Four decisions taken 2026-09-20, before M1 started
+
+Writing the M1 plan meant reading the TypeScript in full, which surfaced four
+Law 5 stops. All four were put to the user and answered. They are binding —
+**do not re-ask them**, and do not quietly implement the other branch.
+
+1. **Physics runs at 120 Hz, not 60.** Spec §4.3 said 60 Hz; the TS substeps at
+   1/120 s (`TiltGame.ts:1844`) and `VectorGrid.update()` **ignores its `dt`**
+   (`VectorGrid.ts:45`), so 60 Hz would halve the grid's spring rate and shift
+   `PlayerShip`'s acceleration smoothing. Now **spec D8**; §4.3 amended.
+   `max_fps = 60` is unchanged — it caps rendering, not physics. The CPU cost
+   is measured on device in M1's frame-rate pass.
+
+2. **The grid is drawn unconditionally in M1, and M1's "grid reacts to motion"
+   criterion is reinterpreted.** Nothing in M1's scope can disturb the grid:
+   `applyExplosion` is only ever called by kills, weapons, death and the
+   cinematic (all M2+), and player motion never touches the grid in the web
+   game. `showGridlines` also defaults to `false` (`GameOptions.ts:88`). M1
+   draws it anyway (`# TODO(M7)` to gate it) and proves the spring in a GUT
+   spec. Spec §8 M1 amended.
+
+3. **Both control schemes are verified in two device builds** — the committed
+   `HYBRID` default for touch, then a one-line temporary flip to `GYRO` for
+   tilt, reverted before the commit. They are mutually exclusive in the source
+   (`GameOptions.ts:80`, `TiltGame.ts:1280`) and the toggle is M11's. No debug
+   UI is invented.
+
+4. **Execution is subagent-driven** (superpowers:subagent-driven-development),
+   one implementer per task with a review between each.
+
+### Two source findings recorded for later modules
+
+- **`TiltRenderer.ts:144` passes a `CursorSkinConfig` where
+  `PlayerShip.render` declares `shipSkin?: ShipSkinConfig`.** Almost certainly a
+  real bug in the web game. Both are absent in M1 so nothing changes there.
+  **Law 2 applies when M7/M8 land: raise it, do not silently fix it.**
+- **There is a fourth `localStorage` key**, `tilt_gyro_calibration`
+  (`GyroscopeController.ts:39`), which spec §2.2 had missed. Spec §2.2 and §4.6
+  are amended. M1 writes `user://tilt_gyro_calibration.json` with the same
+  `{beta, gamma}` shape straight through `FileAccess`, with a `# TODO(M7):`
+  marking the `SaveStore` seam.
+
+### One CONVENTIONS conflict, measured in Task 1
+
+`CONVENTIONS.md` §2 makes `class_name` mandatory on every file. **An autoload
+script cannot have one.** `src/core/log.gd` is autoloaded as `Log`; adding
+`class_name Log` makes the class shadow the singleton, so `Log.min_level`
+resolves against a `Nil` base and the suite fails with *"Invalid access to
+property or key 'min_level' on a base object of type 'Nil'"*. Measured
+2026-09-20 by adding the line, running `tools/run_tests.sh` (2 of 4 tests
+failed) and reverting.
+
+So `log.gd` carries no `class_name`, and a `# PORT-NOTE:` in the file says why.
+**Do not "fix" that omission.** CONVENTIONS §2 should be amended to exempt
+autoload scripts; it is reported here rather than edited unilaterally, per its
+own preamble.
 
 ## Open questions
 
@@ -215,3 +279,16 @@ iOS is still deferred to M11 (D1, `PREREQUISITES.md` §3); it needs a macOS host
   Not fixed here: supplying one is an art decision, not a port decision, and
   Law 4 forbids inventing assets. Harmless for M1-M10 device testing. **Must be
   resolved before M11's release build.**
+- ~~The 60 Hz vs 120 Hz physics tick.~~ **Resolved 2026-09-20: 120 Hz**, spec
+  D8. See *Four decisions* above.
+- ~~M1's "grid reacts to motion" acceptance criterion.~~ **Resolved
+  2026-09-20**, spec §8 M1 amended. See *Four decisions* above.
+- ~~How M1 verifies tilt and touch when the schemes are mutually exclusive.~~
+  **Resolved 2026-09-20: two device builds.** See *Four decisions* above.
+- **Does `Array[Types.Enemy]` compile?** Typed arrays of an *inner* class are
+  unproven in 4.7.2 and every later module depends on the answer. M1 Task 2
+  spikes it first; if it fails, the records split into one file each and Law 3
+  gets an amendment. Unknown until that task runs.
+- **Does Node 24 import `WeaponTuning.ts` directly?** The parity dumper relies
+  on native type stripping. M1 Task 3 carries a `tsc` fallback. Unknown until
+  that task runs.

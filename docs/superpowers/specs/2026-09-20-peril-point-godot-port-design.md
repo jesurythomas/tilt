@@ -88,9 +88,13 @@ Approximately **10,700 lines have zero DOM coupling** and translate close to
   `shield`
 - **8 formations:** arrow, dual pincer, circle encirclement, wall, sequential
   gauntlet wall, rotating gate, turret, snake
-- **3 `localStorage` keys:** `tilt_to_live_settings_v1`,
+- **4 `localStorage` keys:** `tilt_to_live_settings_v1`,
   `tilt_to_live_progression_v3`, `tilt_to_live_completed_goals_v1`
-  (+ `tilt_to_live_cumulative_stats_v1`)
+  (+ `tilt_to_live_cumulative_stats_v1`), and — **found 2026-09-20 while
+  porting `GyroscopeController.ts`** — `tilt_gyro_calibration`
+  (`GyroscopeController.ts:39`), which holds `{beta, gamma}`. It was missed in
+  the original inventory because it is written by the input layer rather than
+  by a manager.
 
 ### 2.3 Resolution model (load-bearing)
 
@@ -118,6 +122,7 @@ codebase.
 | D5 | **Audio: bake SFX, port the sequencer** | SFX rendered offline to `.ogg` by the existing TS synth; the music scheduler's arrangement logic ports to a beat-timed GDScript sequencer firing baked stems. Music stays generative without per-sample GDScript synthesis. |
 | D6 | **Repo: `godot/` subfolder, TS retained** | The TS is a live build dependency for D5, not just a reference. |
 | D7 | **Language: GDScript** | The installed build is standard Godot 4.7.2, not .NET. |
+| D8 | **Physics tick: 120 Hz** (added 2026-09-20) | `TiltGame.loop()` substeps at 1/120 s and `VectorGrid.update()` ignores its `dt`, so a 60 Hz tick would halve the grid's spring rate and shift `PlayerShip`'s acceleration smoothing. Amends §4.3. `max_fps` stays 60 — that caps rendering. Cost measured on device in M1 and M11. |
 
 ---
 
@@ -188,15 +193,37 @@ module is a mechanical diff a reviewer can check side by side.
 
 ### 4.3 Timing
 
-The simulation runs in `_physics_process` at 60 Hz; Godot's fixed step replaces
-the hand-rolled accumulator in `TiltGame.loop()`. `_process` only calls
+The simulation runs in `_physics_process`; Godot's fixed step replaces the
+hand-rolled accumulator in `TiltGame.loop()`. `_process` only calls
 `queue_redraw()`.
 
-`max_fps = 60` on mobile. Many phones present at 120 Hz, and drawing twice per
-simulation step without interpolation would judder and halve battery life for no
-visual gain.
+**Amended 2026-09-20 (D8): the physics tick is 120 Hz, not 60 Hz.** This
+document originally specified 60 Hz. Writing Module 1's plan established that
+the two are not equivalent: `TiltGame.loop()` substeps at **1/120 s**
+(`TiltGame.ts:1844`), and `VectorGrid.update()` **ignores its `dt`**
+(`VectorGrid.ts:45`) — it integrates once per *call*, so at 60 Hz the grid
+springs back at exactly half the web game's rate. `PlayerShip`'s acceleration
+smoothing (`accelRate / 200`, `PlayerShip.ts:180`) also lands differently per
+step. Fidelity is the point of this port, so:
 
-`GAME_SPEED = 0.75` (`TiltGame.ts:35`) carries over verbatim into `tuning.gd`.
+```ini
+[physics]
+common/physics_ticks_per_second=120
+```
+
+`max_fps = 60` on mobile, **unchanged — it caps rendering, not physics.** Many
+phones present at 120 Hz, and drawing twice per simulation step without
+interpolation would judder and halve battery life for no visual gain. Two
+physics steps per drawn frame is the ordinary Godot arrangement and is what the
+TypeScript already did.
+
+The CPU cost of the doubled tick is measured on device in Module 1's frame-rate
+pass and again in Module 11. If a mid-range phone cannot hold it, dropping to
+60 Hz is a one-line change — but it is then a knowing fidelity trade, recorded
+here, not an accident.
+
+`GAME_SPEED = 0.75` (`TiltGame.ts:35`) carries over verbatim into `tuning.gd`,
+and is applied to the per-step delta exactly as `TiltGame.ts:1846` applies it.
 
 ### 4.4 Entity representation
 
@@ -227,10 +254,16 @@ Module 11, with a documented per-draw fallback if it does not hold 60 fps.
 
 ### 4.6 Persistence
 
-The three `localStorage` keys become three JSON files under `user://`, **keeping
-the exact same JSON shapes and version suffixes**. This costs nothing now and
-keeps a future web→mobile save import possible. `SaveStore` is responsible for
+The `localStorage` keys become JSON files under `user://`, **keeping the exact
+same JSON shapes and version suffixes**. This costs nothing now and keeps a
+future web→mobile save import possible. `SaveStore` is responsible for
 corruption handling (§6.3).
+
+**Amended 2026-09-20:** the fourth key, `tilt_gyro_calibration` (§2.2), is
+written by `input/tilt_input.gd` in Module 1 — before `SaveStore` exists in
+Module 7 — straight to `user://tilt_gyro_calibration.json` with the same
+`{beta, gamma}` shape. Module 7 routes it through `SaveStore` with the others;
+`tilt_input.gd` carries a `# TODO(M7):` marking the seam.
 
 ---
 
@@ -487,10 +520,35 @@ axis mapping on real hardware, which an emulator cannot provide.
 - `resizeCanvas()` reproduction including `arenaScale`
 
 **Accept:** on a physical device in landscape, tilt and touch both steer the ship
-with correct axes; the grid reacts to motion; 60 fps; the tuning parity spec
-passes.
+with correct axes; the grid renders and its spring-mass update runs; 60 fps; the
+tuning parity spec passes.
 
-**Risk:** landscape axis mapping cannot be validated on an emulator.
+**Amended 2026-09-20 — the grid criterion.** This read "the grid reacts to
+motion", which nothing in Module 1's scope can satisfy. `applyExplosion` is
+called only by enemy kills, weapons, player death and the cinematic
+(`TiltGame.ts:1780,1983,2063,2080`, `WeaponSystem.ts:127,239,265,343,546`,
+`TiltEntranceCinematic.ts:70`) — all Module 2 and later. **Player motion never
+disturbs the grid in the web game**, and `showGridlines` defaults to `false`
+(`GameOptions.ts:88`), so the web game does not draw the grid at all by default.
+Building a player-driven ripple to satisfy the sentence would be invented
+gameplay (Law 4). Module 1 therefore draws the grid unconditionally — with a
+`# TODO(M7):` to gate it on `GameOptions.showGridlines` — ports
+`apply_explosion` faithfully, proves the spring in a GUT spec, and the device
+criterion is that the grid renders and visibly settles after a resize.
+
+**Amended 2026-09-20 — verifying both control schemes.** `controlScheme`
+defaults to `'hybrid'` (`GameOptions.ts:80`), under which gyro never engages,
+and under `'gyro'` the touch handler is explicitly skipped
+(`TiltGame.ts:1280`). The two are mutually exclusive by design and the toggle
+lives in the options modal (M11, backed by M7). Module 1 therefore verifies
+them in **two device builds**: the committed `HYBRID` default for touch, then a
+one-line temporary flip to `GYRO` for tilt, reverted before the commit. No
+debug UI is invented.
+
+**Risk:** landscape axis mapping cannot be validated on an emulator. Godot's
+accelerometer basis on Android is also undocumented as to screen-orientation
+compensation, so Module 1 **measures** it on the device and records the
+measured vectors in `HANDOFF.md` rather than assuming a mapping.
 
 ### Module 2 — Vertical slice
 **Deps:** M1

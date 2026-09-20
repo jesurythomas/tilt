@@ -30,9 +30,25 @@ Dependency map and resume instructions:
       note  `scenes/main.tscn` is a placeholder **M1 must replace**
 
 - [ ] **M1 — Core loop and input**  deps: M0b
-      -- tilt and touch both steer correctly in landscape on a device
-      -- grid reacts to motion; 60 fps
+      plan  `docs/superpowers/plans/2026-09-20-m1-core-loop-and-input.md`
+      -- tilt and touch both steer correctly in landscape on a device,
+         verified in **two builds**: the committed `HYBRID` default for touch,
+         then a temporary `GYRO` flip for tilt, reverted before the commit.
+         The two schemes are mutually exclusive in the source
+         (`GameOptions.ts:80`, `TiltGame.ts:1280`) and the toggle is M11's.
+      -- grid renders and its spring-mass update runs; 60 fps
+         (**criterion amended 2026-09-20**, spec §8 M1: it read "grid reacts to
+         motion", which nothing in M1's scope can cause — `applyExplosion` is
+         only ever called by kills, weapons, death and the cinematic, all M2+,
+         and player motion never disturbs the grid in the web game. M1 draws
+         the grid unconditionally, `# TODO(M7)` to gate it on
+         `GameOptions.showGridlines`, and proves the spring in a GUT spec.)
       -- tuning constant-parity spec passes
+      note  **physics tick is 120 Hz, not 60** (spec D8, amended 2026-09-20).
+            `max_fps=60` still caps rendering. Verify with
+            `grep -A2 '\[physics\]' godot/project.godot`.
+      note  the Android accelerometer basis is **measured on device**, not
+            assumed; the measured vectors go in HANDOFF.md as BASIS-EVIDENCE.
 
 - [ ] **M2 — Vertical slice**  deps: M1
       -- full playable loop: spawn, fly, dodge, orb, nuke, score, die, restart

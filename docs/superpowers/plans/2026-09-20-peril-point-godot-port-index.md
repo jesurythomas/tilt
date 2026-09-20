@@ -45,7 +45,7 @@ Copied verbatim from the spec and `CONVENTIONS.md`. Every task in every module p
   a macOS host with Xcode and is deferred to M11 (D1, `PREREQUISITES.md` §3).
   Everything through M10 is Android-only and the GDScript is identical for both.
 - **`content_scale_mode = disabled`.** The sim reads `get_viewport_rect().size` directly. All UI must be responsive (anchors/containers), never pinned to a base resolution.
-- **`max_fps = 60`.** Sim in `_physics_process` at 60 Hz; `_process` only calls `queue_redraw()`.
+- **`max_fps = 60`** (rendering) with **`physics_ticks_per_second = 120`** (spec D8, amended 2026-09-20 — the TS substeps at 1/120 s and `VectorGrid.update()` ignores its `dt`). Sim in `_physics_process`; `_process` only calls `queue_redraw()`.
 - **`arenaScale = clamp(min(width, height) / 680, 0.60, 1.15)`** — reproduced verbatim.
 - **`GAME_SPEED = 0.75`** (`web/src/tilt-to-live/TiltGame.ts:35`).
 - **Static typing is mandatory and machine-enforced.** Nine GDScript warnings are set to Error; the engine refuses to run violations.
@@ -63,7 +63,7 @@ Copied verbatim from the spec and `CONVENTIONS.md`. Every task in every module p
 |---|---|---|---|---|
 | 0 | Scaffold | — | `2026-09-20-m0-scaffold.md` | **done** |
 | 0b | **Android toolchain** | M0 | `2026-09-20-m0b-android-toolchain.md` | planned — installs done |
-| 1 | Core loop and input | M0b | not yet written | — |
+| 1 | Core loop and input | M0b | `2026-09-20-m1-core-loop-and-input.md` | planned |
 | 2 | **Vertical slice** — first playable | M1 | not yet written | — |
 | 3 | Enemy roster (12 remaining types, 8 formations) | M2 | not yet written | — |
 | 4 | Weapons (6 remaining) | M2 | not yet written | — |
