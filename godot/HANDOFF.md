@@ -192,8 +192,15 @@ architectures are **arm64-v8a only**.
 
 **M1 — Core loop and input.** Nothing blocks it. **The plan is written and
 approved:** `docs/superpowers/plans/2026-09-20-m1-core-loop-and-input.md` —
-14 tasks, read it before touching anything. **Task 1 is complete and committed
-(`55795d7`, verified green 2026-09-20). Tasks 2-14 remain.**
+14 tasks, read it before touching anything. **Tasks 1 and 2 are complete and
+committed, verified green 2026-09-20. Tasks 3-14 remain.**
+
+Two corrections the plan's own code blocks need, both already applied — expect
+more of the same, so diff the plan against the TypeScript rather than typing it
+in: the plan puts `const ABSENT` *before* the enums in `types.gd`, which
+CONVENTIONS §2 forbids and `gdlint` rejects (`class-definitions-order`); and
+its `types.gd` doc comment claimed every optional field takes `Types.ABSENT`,
+which is not what its own code does (see the M3 blocker under *Open questions*).
 
 It delivers `core/log.gd`, `core/types.gd` (ports `Types.ts`), `core/tuning.gd`
 (ports `WeaponTuning.ts`), `tools/parity/`, `sim/vector_grid.gd`,
@@ -249,6 +256,25 @@ Law 5 stops. All four were put to the user and answered. They are binding —
   `{beta, gamma}` shape straight through `FileAccess`, with a `# TODO(M7):`
   marking the `SaveStore` seam.
 
+### A new `class_name` needs a project re-import — `run_tests.sh` now does it
+
+Found in Task 2, and it will recur in every module that adds a class. Godot
+registers `class_name` in `.godot/global_script_class_cache.cfg`, **which is
+gitignored.** Until the project is re-imported the identifier does not exist:
+`src/core/types.gd` passed `--check-only` on its own while `tests/test_types.gd`
+failed with `Identifier "Types" not declared in the current scope`, and the
+suite reported `collected 2 of 3`.
+
+`tools/run_tests.sh` now runs `--headless --path godot --import` before GUT.
+Verified by deleting the cache to simulate a fresh clone and re-running:
+`OK: 3/3 scripts collected, all tests passed.` This cannot hide a real parse
+error — `--import` is silent and exits 0 on one (CONVENTIONS §1.3), so the
+collection check still catches it.
+
+**If you see `Identifier "<Class>" not declared` anywhere else** — a manual
+`--check-only`, an export, the editor — re-import first; it is almost never a
+real error in the script you are looking at.
+
 ### One CONVENTIONS conflict, measured in Task 1
 
 `CONVENTIONS.md` §2 makes `class_name` mandatory on every file. **An autoload
@@ -285,10 +311,29 @@ own preamble.
   2026-09-20**, spec §8 M1 amended. See *Four decisions* above.
 - ~~How M1 verifies tilt and touch when the schemes are mutually exclusive.~~
   **Resolved 2026-09-20: two device builds.** See *Four decisions* above.
-- **Does `Array[Types.Enemy]` compile?** Typed arrays of an *inner* class are
-  unproven in 4.7.2 and every later module depends on the answer. M1 Task 2
-  spikes it first; if it fails, the records split into one file each and Law 3
-  gets an amendment. Unknown until that task runs.
+- ~~Does `Array[Types.Enemy]` compile?~~ **Resolved 2026-09-20: yes.** The M1
+  Task 2 spike (`test_typed_array_of_inner_record_compiles_and_holds` in
+  `godot/tests/test_types.gd`) declares `Array[Types.Enemy]`, appends an
+  element and reads a typed field back. `OK: 3/3 scripts collected, all tests
+  passed.` **Law 3 needs no amendment** and the records stay in one file.
+- **The float optionals in `Types.Enemy` are not a faithful port yet — M3
+  blocker.** `Types.ts` marks 17 `Enemy` fields optional. `types.gd` gives the
+  id-like and enum-state ones `Types.ABSENT` (-1 can never be a real id or
+  ordinal) but gives the numeric ones their natural zero, because **-1 is a
+  legal angle, timer and scale** so ABSENT cannot serve there. That loses
+  information `EnemySwarm.ts` actually reads:
+  `if (e.targetAngle === undefined) e.targetAngle = targetAngle` (:300),
+  `aimTimer === undefined → 1.1` (:339),
+  `fireCooldown === undefined → 2.6 + rand*0.8` (:394),
+  `orbitRadius === undefined → 38` (:463),
+  `pulseTimer === undefined → 2.2` (:486). With a 0.0 default **none of those
+  branches can ever fire.** Separately, `stealth_opacity` defaults to 1.0 here
+  while the TypeScript fallback is `?? 0.65` (`EnemySwarm.ts:1517`).
+  Nothing in M1 reads any of these fields, so M1 is unaffected and the port was
+  left as the approved plan wrote it (Law 2: raise, do not silently fix).
+  **Decide before M3 ports `EnemySwarm.ts`.** The obvious candidate is `NAN`
+  for the float optionals — `is_nan()` is then the exact `=== undefined` test
+  and NAN is never a legal reading — which would change ~12 initialisers here.
 - **Does Node 24 import `WeaponTuning.ts` directly?** The parity dumper relies
   on native type stripping. M1 Task 3 carries a `tsc` fallback. Unknown until
   that task runs.
