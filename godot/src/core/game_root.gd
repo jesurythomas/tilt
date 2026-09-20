@@ -202,6 +202,16 @@ func set_control_scheme(scheme: Types.ControlScheme) -> void:
 	_joystick.reset()
 
 
+## Toggles the paused phase. Delegates to the ported state machine.
+func toggle_pause() -> void:
+	_state.toggle_pause()
+
+
+## True while the run is paused.
+func is_paused() -> bool:
+	return _state.phase == Types.GamePhase.PAUSED
+
+
 ## Restarts the run cleanly into playing state.
 func restart_run() -> void:
 	_tilt.calibrate_current_position()

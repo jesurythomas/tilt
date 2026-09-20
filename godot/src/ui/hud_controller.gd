@@ -3,7 +3,23 @@
 ##        per spec §5.3
 class_name HudController
 extends Control
-## Controller for the in-game HUD and Game Over overlay.
+## Controller for the in-game HUD, Game Over overlay and pause overlay.
+
+# DIVERGENCE(M2.5 §7.2 / D6): main.tscn hardcoded 32/24/20px font sizes with no
+# viewport response, which the parent spec's global constraints forbid. These
+# are the base sizes; set_ui_scale() multiplies them. This is a bug fix, not a
+# divergence from the TypeScript — the web game's HUD is CSS-scaled.
+const BASE_SCORE_FONT: int = 44
+const BASE_BEST_FONT: int = 22
+const BASE_MULTIPLIER_FONT: int = 26
+## Viewport minimum dimension at which ui_scale is 1.0.
+const UI_SCALE_REFERENCE: float = 720.0
+
+var _ui_scale: float = 1.0
+var _pause_button: Button = null
+var _pause_panel: Control = null
+var _resume_button: Button = null
+var _pickers: Array[ControlPicker] = []
 
 @onready var _score_label: Label = get_node_or_null("%ScoreLabel")
 @onready var _best_label: Label = get_node_or_null("%BestLabel")
@@ -46,6 +62,46 @@ func _ready() -> void:
 	GameEvents.score_changed.connect(_on_score_changed)
 	GameEvents.run_ended.connect(_on_run_ended)
 	GameEvents.phase_changed.connect(_on_phase_changed)
+
+	set_ui_scale(ui_scale_for(get_viewport_rect().size))
+	get_viewport().size_changed.connect(_on_viewport_resized)
+
+	_pause_button = find_child("PauseButton", true, false) as Button
+	if _pause_button != null:
+		_pause_button.pressed.connect(_on_pause_pressed)
+
+	_pause_panel = find_child("PausePanel", true, false) as Control
+	if _pause_panel != null:
+		_pause_panel.visible = false
+
+	_resume_button = find_child("ResumeButton", true, false) as Button
+	if _resume_button != null:
+		_resume_button.pressed.connect(_on_pause_pressed)
+
+	for picker: Node in find_children("*", "ControlPicker", true, false):
+		var typed: ControlPicker = picker as ControlPicker
+		if typed != null:
+			typed.scheme_chosen.connect(_on_scheme_chosen)
+			_pickers.append(typed)
+	_sync_pickers()
+
+
+## Scales HUD text and touch targets to the viewport.
+func set_ui_scale(scale: float) -> void:
+	_ui_scale = scale
+	if _score_label != null:
+		_score_label.add_theme_font_size_override("font_size", int(BASE_SCORE_FONT * scale))
+	if _best_label != null:
+		_best_label.add_theme_font_size_override("font_size", int(BASE_BEST_FONT * scale))
+	if _multiplier_label != null:
+		_multiplier_label.add_theme_font_size_override(
+			"font_size", int(BASE_MULTIPLIER_FONT * scale)
+		)
+
+
+## The ui_scale implied by a viewport size.
+static func ui_scale_for(viewport: Vector2) -> float:
+	return clampf(minf(viewport.x, viewport.y) / UI_SCALE_REFERENCE, 0.75, 2.0)
 
 
 func _on_score_changed(score: int, multiplier: int, best_score: int) -> void:
@@ -98,3 +154,32 @@ func _on_restart_button_gui_input(event: InputEvent) -> void:
 		var st: InputEventScreenTouch = event as InputEventScreenTouch
 		if st.pressed:
 			_on_restart_pressed()
+
+
+func _on_viewport_resized() -> void:
+	set_ui_scale(ui_scale_for(get_viewport_rect().size))
+
+
+func _on_pause_pressed() -> void:
+	var root: GameRoot = get_tree().get_first_node_in_group("game_root") as GameRoot
+	if root == null:
+		return
+	root.toggle_pause()
+	if _pause_panel != null:
+		_pause_panel.visible = root.is_paused()
+
+
+func _on_scheme_chosen(scheme: Types.ControlScheme) -> void:
+	var root: GameRoot = get_tree().get_first_node_in_group("game_root") as GameRoot
+	if root == null:
+		return
+	root.set_control_scheme(scheme)
+	_sync_pickers()
+
+
+func _sync_pickers() -> void:
+	var root: GameRoot = get_tree().get_first_node_in_group("game_root") as GameRoot
+	if root == null or root.settings == null:
+		return
+	for picker: ControlPicker in _pickers:
+		picker.set_active_scheme(root.settings.scheme)

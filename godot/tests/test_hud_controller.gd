@@ -54,3 +54,59 @@ func test_hud_run_ended_shows_game_over() -> void:
 
 	GameEvents.phase_changed.emit(Types.GamePhase.PLAYING)
 	assert_false(panel.visible, "GameOverPanel hidden on return to playing")
+
+
+func test_control_picker_emits_the_chosen_scheme() -> void:
+	var picker: ControlPicker = ControlPicker.new()
+	var tilt_button: Button = Button.new()
+	tilt_button.name = "TiltButton"
+	var touch_button: Button = Button.new()
+	touch_button.name = "TouchButton"
+	var keyboard_button: Button = Button.new()
+	keyboard_button.name = "KeyboardButton"
+	picker.add_child(tilt_button)
+	picker.add_child(touch_button)
+	picker.add_child(keyboard_button)
+	add_child_autofree(picker)
+
+	watch_signals(picker)
+	# GUT's fourth argument is the emission index, not a message — index 0 is
+	# the first emission, index 1 the second.
+	tilt_button.pressed.emit()
+	assert_signal_emitted_with_parameters(picker, "scheme_chosen", [Types.ControlScheme.GYRO], 0)
+
+	touch_button.pressed.emit()
+	assert_signal_emitted_with_parameters(picker, "scheme_chosen", [Types.ControlScheme.MOUSE], 1)
+
+
+func test_control_picker_marks_the_active_scheme() -> void:
+	var picker: ControlPicker = ControlPicker.new()
+	var tilt_button: Button = Button.new()
+	tilt_button.name = "TiltButton"
+	var touch_button: Button = Button.new()
+	touch_button.name = "TouchButton"
+	var keyboard_button: Button = Button.new()
+	keyboard_button.name = "KeyboardButton"
+	picker.add_child(tilt_button)
+	picker.add_child(touch_button)
+	picker.add_child(keyboard_button)
+	add_child_autofree(picker)
+
+	picker.set_active_scheme(Types.ControlScheme.GYRO)
+	assert_true(tilt_button.button_pressed, "the active scheme reads as selected")
+	assert_false(touch_button.button_pressed, "only one scheme is selected at a time")
+
+
+func test_ui_scale_grows_the_score_font_on_a_larger_viewport() -> void:
+	var hud: HudController = HudController.new()
+	var score_lbl: Label = Label.new()
+	score_lbl.name = "ScoreLabel"
+	hud.add_child(score_lbl)
+	add_child_autofree(hud)
+
+	hud.set_ui_scale(1.0)
+	var at_one: int = score_lbl.get_theme_font_size("font_size")
+	hud.set_ui_scale(2.0)
+	var at_two: int = score_lbl.get_theme_font_size("font_size")
+
+	assert_gt(at_two, at_one, "a bigger viewport gets bigger text")
