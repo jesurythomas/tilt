@@ -1,6 +1,6 @@
 ## entity_layer.gd
 ## PORTS: web/src/tilt-to-live/PlayerShip.ts:271-632 (render player)
-##        web/src/tilt-to-live/EnemySwarm.ts:1554-1633 (render seeker dots)
+##        web/src/tilt-to-live/EnemySwarm.ts:1191-1648 (render)
 ##        web/src/tilt-to-live/WeaponSystem.ts:616-638, 793-851 (render weapons)
 ##        per spec §5.5 and D4
 class_name EntityLayer
@@ -151,68 +151,405 @@ func _draw_orb_glyph(pos: Vector2, type: Types.WeaponType) -> void:
 			draw_circle(pos, 3.0, Color.WHITE)
 
 
+## PORT: web/src/tilt-to-live/EnemySwarm.ts:1191-1648 (render)
+## PORT-NOTE: skin (EnemySkinConfig) is M7; every branch below ports only the
+## non-skin arm of its ternaries. TODO(M7): enemy skins (skin.bodyGradient,
+## borderColor, glowColor, pupilColor).
+## PORT-NOTE: charger, artillery and carrier gate the skin on
+## skin.id !== 'classic' (EnemySwarm.ts:1260, :1293, :1406) while pulsar,
+## specter and the default dot gate on skin alone (:1476, :1521, :1561) — M7
+## must preserve the asymmetry.
+## PORT-NOTE: createRadialGradient (EnemySwarm.ts:1370, :1484, :1531, :1589) is
+## not baked as a texture in this module. Per the M2 precedent at :187-199
+## (Open question 3), each two/three-stop gradient is approximated as two flat
+## draw_circle calls: the full radius filled with the middle stop's colour,
+## then a smaller circle at (radius * middle-stop-position) filled with the
+## innermost stop's colour. The outermost stop is dropped by this technique.
+## _gameMode is unused in the TS (EnemySwarm.ts:1196) and gets no port.
 func _draw_enemies() -> void:
 	if _swarm == null:
 		return
 
 	for e: Types.Enemy in _swarm.enemies:
-		var e_pos: Vector2 = Vector2(e.x, e.y)
-		var pulse: float = 0.85 + 0.15 * sin(_elapsed * 9.0 + float(e.id))
+		if e.frozen:
+			_draw_frozen_dot(e)
+			continue
+		if e.type == Types.EnemyType.CHARGER:
+			_draw_charger(e)
+			continue
+		if e.type == Types.EnemyType.ARTILLERY:
+			_draw_artillery(e)
+			continue
+		if e.type == Types.EnemyType.BULLET:
+			_draw_bullet(e)
+			continue
+		if e.type == Types.EnemyType.CARRIER:
+			_draw_carrier(e)
+			continue
+		if e.parent_carrier_id != Types.ABSENT:
+			_draw_satellite(e)
+			continue
+		if e.type == Types.EnemyType.PULSAR:
+			_draw_pulsar(e)
+			continue
+		if e.type == Types.EnemyType.SPECTER:
+			_draw_specter(e)
+			continue
+		_draw_default_dot(e)
 
-		# Outer glow & high contrast halo (PORT: EnemySwarm.ts:1557-1572)
-		if _high_contrast_halo:
-			var halo_col: Color = (
-				Color(140.0 / 255.0, 240.0 / 255.0, 1.0, 0.7)
-				if e.chilled
-				else (
-					Color(1.0, 180.0 / 255.0, 0.0, 0.7)
-					if e.is_hazard
-					else Color(1.0, 30.0 / 255.0, 60.0 / 255.0, 0.7)
-				)
-			)
-			draw_arc(e_pos, (e.radius + 5.0) * pulse, 0.0, TAU, 24, halo_col, 1.2)
 
-		# Outer glow color (PORT: EnemySwarm.ts:1574-1586)
-		var glow_col: Color = (
-			Color(130.0 / 255.0, 230.0 / 255.0, 1.0, 0.55)
+## PORT: web/src/tilt-to-live/EnemySwarm.ts:1204-1222
+func _draw_frozen_dot(e: Types.Enemy) -> void:
+	var pos: Vector2 = Vector2(e.x, e.y)
+	draw_circle(pos, e.radius + 3.0, Color(136.0 / 255.0, 238.0 / 255.0, 1.0, 0.45))
+	draw_arc(pos, e.radius + 1.0, 0.0, TAU, 24, Color.WHITE, 1.5)
+	draw_circle(pos, e.radius - 1.0, Color("#4488aa"))
+
+
+## PORT: web/src/tilt-to-live/EnemySwarm.ts:1225-1286
+func _draw_charger(e: Types.Enemy) -> void:
+	# PORT: EnemySwarm.ts:1226
+	var angle: float = (
+		atan2(e.vy, e.vx)
+		if e.state == Types.EnemyState.CHARGING
+		else (e.aim_angle if not is_nan(e.aim_angle) else 0.0)
+	)
+	draw_set_transform(_arena_origin + Vector2(e.x, e.y), angle, Vector2.ONE)
+
+	# Laser telegraph line while aiming (PORT: EnemySwarm.ts:1229-1243)
+	if e.state == Types.EnemyState.AIMING:
+		var dash_offset: float = fmod(_elapsed * 50.0, 16.0)  # PORT: EnemySwarm.ts:1232
+		var telegraph_col: Color = Color(
+			1.0, 60.0 / 255.0, 30.0 / 255.0, 0.4 + 0.4 * sin(_elapsed * 22.0)
+		)  # PORT: EnemySwarm.ts:1233
+		_draw_dashed_line_offset(
+			Vector2(14.0, 0.0), Vector2(480.0, 0.0), 8.0, 6.0, -dash_offset, telegraph_col, 1.5
+		)  # PORT: EnemySwarm.ts:1235-1240
+
+	# Rocket thruster plume if charging (PORT: EnemySwarm.ts:1247-1257)
+	if e.state == Types.EnemyState.CHARGING:
+		var jet_len: float = 14.0 + randf() * 8.0  # PORT: EnemySwarm.ts:1249
+		var plume: PackedVector2Array = PackedVector2Array(
+			[Vector2(-8.0, -4.0), Vector2(-8.0 - jet_len, 0.0), Vector2(-8.0, 4.0)]
+		)  # PORT: EnemySwarm.ts:1250-1256
+		draw_colored_polygon(plume, Color("#ffaa00"))  # PORT: EnemySwarm.ts:1250
+
+	# Arrowhead delta dart chassis (PORT: EnemySwarm.ts:1259-1272)
+	# PORT-NOTE: the skin.id !== 'classic' branch (:1260-1261) is M7; only the
+	# non-skin fallback is ported.
+	var hull_col: Color = (
+		Color("#ff2a00") if e.state == Types.EnemyState.CHARGING else Color("#dd1c00")
+	)  # PORT: EnemySwarm.ts:1260
+	var hull: PackedVector2Array = PackedVector2Array(
+		[Vector2(14.0, 0.0), Vector2(-10.0, -11.0), Vector2(-6.0, 0.0), Vector2(-10.0, 11.0)]
+	)  # PORT: EnemySwarm.ts:1266-1269
+	draw_colored_polygon(hull, hull_col)
+	draw_polyline(_closed(hull), Color("#ffaa33"), 1.8)  # PORT: EnemySwarm.ts:1261-1264
+
+	# Cockpit / energy crystal core (PORT: EnemySwarm.ts:1274-1282)
+	# PORT-NOTE: the skin.pupilColor branch (:1275) is M7; only the non-skin
+	# fallback (#FFB14D) is ported.
+	# PORT: EnemySwarm.ts:1275
+	var core_col: Color = Color.WHITE if e.state == Types.EnemyState.CHARGING else Color("#FFB14D")
+	var core: PackedVector2Array = PackedVector2Array(
+		[Vector2(6.0, 0.0), Vector2(-2.0, -3.5), Vector2(0.0, 0.0), Vector2(-2.0, 3.5)]
+	)  # PORT: EnemySwarm.ts:1277-1280
+	draw_colored_polygon(core, core_col)
+
+	draw_set_transform(_arena_origin, 0.0, Vector2.ONE)
+
+
+## PORT: web/src/tilt-to-live/EnemySwarm.ts:1289-1350
+## PORT-NOTE: the skin.id !== 'classic' branches (:1293, :1311-1312, :1339)
+## are M7; only the non-skin fallback of each is ported.
+func _draw_artillery(e: Types.Enemy) -> void:
+	var angle: float = e.aim_angle if not is_nan(e.aim_angle) else 0.0  # PORT: EnemySwarm.ts:1290
+	draw_set_transform(_arena_origin + Vector2(e.x, e.y), angle, Vector2.ONE)
+
+	# Cannon barrel (PORT: EnemySwarm.ts:1295-1299)
+	var barrel_rect: Rect2 = Rect2(4.0, -4.0, 18.0, 8.0)
+	draw_rect(barrel_rect, Color("#180e22"))
+	draw_rect(barrel_rect, Color("#ff0066"), false, 1.5)
+
+	# Muzzle charge flash if preparing to fire (PORT: EnemySwarm.ts:1302-1308)
+	if not is_nan(e.fire_cooldown) and e.fire_cooldown < 0.8:
+		var charge_ratio: float = (0.8 - e.fire_cooldown) / 0.8  # PORT: EnemySwarm.ts:1303
+		draw_circle(
+			Vector2(22.0, 0.0),
+			3.0 + charge_ratio * 4.0,
+			Color(1.0, 0.0, 150.0 / 255.0, 0.5 + charge_ratio * 0.5)
+		)  # PORT: EnemySwarm.ts:1304-1306
+
+	# Heavy hexagonal hull (PORT: EnemySwarm.ts:1310-1327)
+	var hex_radius: float = 13.0  # PORT: EnemySwarm.ts:1317
+	var hex: PackedVector2Array = PackedVector2Array()
+	for h: int in range(6):
+		var a: float = float(h) * PI / 3.0  # PORT: EnemySwarm.ts:1319
+		hex.append(Vector2(cos(a) * hex_radius, sin(a) * hex_radius))
+	draw_colored_polygon(hex, Color("#1c0a1a"))
+	draw_polyline(_closed(hex), Color("#ff0077"), 2.2)
+
+	# Armored cross struts (PORT: EnemySwarm.ts:1329-1335)
+	var strut_col: Color = Color(1.0, 1.0, 1.0, 0.25)
+	draw_line(Vector2(-hex_radius, 0.0), Vector2(hex_radius, 0.0), strut_col, 1.0)
+	draw_line(Vector2(0.0, -hex_radius), Vector2(0.0, hex_radius), strut_col, 1.0)
+
+	# Pulsing optic sensor eye (PORT: EnemySwarm.ts:1337-1346)
+	var optic_pulse: float = 0.8 + 0.2 * sin(_elapsed * 14.0)  # PORT: EnemySwarm.ts:1338
+	draw_circle(Vector2.ZERO, 5.0 * optic_pulse, Color("#ff00bb"))
+	draw_circle(Vector2.ZERO, 2.0, Color.WHITE)
+
+	draw_set_transform(_arena_origin, 0.0, Vector2.ONE)
+
+
+## PORT: web/src/tilt-to-live/EnemySwarm.ts:1353-1385
+func _draw_bullet(e: Types.Enemy) -> void:
+	var angle: float = atan2(e.vy, e.vx)  # PORT: EnemySwarm.ts:1354
+	draw_set_transform(_arena_origin + Vector2(e.x, e.y), angle, Vector2.ONE)
+
+	# Plasma comet tail (PORT: EnemySwarm.ts:1358-1367)
+	var tail: PackedVector2Array = PackedVector2Array(
+		[Vector2(-18.0, 0.0), Vector2(0.0, -4.0), Vector2(0.0, 4.0)]
+	)
+	var tail_colors: PackedColorArray = PackedColorArray(
+		[
+			Color(1.0, 0.0, 128.0 / 255.0, 0.0),
+			Color(1.0, 0.0, 180.0 / 255.0, 0.85),
+			Color(1.0, 0.0, 180.0 / 255.0, 0.85)
+		]
+	)  # PORT: EnemySwarm.ts:1359-1360
+	draw_polygon(tail, tail_colors)
+
+	# Core plasma energy ball (PORT: EnemySwarm.ts:1370-1373, two-circle rule)
+	draw_circle(Vector2.ZERO, e.radius, Color("#ff2299"))
+	draw_circle(Vector2.ZERO, e.radius * 0.5, Color.WHITE)
+	draw_arc(Vector2.ZERO, e.radius, 0.0, TAU, 24, Color.WHITE, 1.2)  # PORT: EnemySwarm.ts:1379-1381
+
+	draw_set_transform(_arena_origin, 0.0, Vector2.ONE)
+
+
+## PORT: web/src/tilt-to-live/EnemySwarm.ts:1388-1444
+## PORT-NOTE: the skin.id !== 'classic' branches (:1406, :1417-1418, :1432)
+## are M7; only the non-skin fallback of each is ported.
+func _draw_carrier(e: Types.Enemy) -> void:
+	var carrier_pos: Vector2 = Vector2(e.x, e.y)
+
+	# Tether lines to child satellites, under the standing arena transform
+	# (PORT: EnemySwarm.ts:1390-1401)
+	for sat: Types.Enemy in _swarm.enemies:
+		if sat.parent_carrier_id == e.id:
+			var tether_col: Color = Color(
+				0.0, 229.0 / 255.0, 1.0, 0.4 + 0.3 * sin(_elapsed * 12.0 + float(sat.id))
+			)  # PORT: EnemySwarm.ts:1393
+			draw_line(carrier_pos, Vector2(sat.x, sat.y), tether_col, 1.2)
+
+	# PORT: EnemySwarm.ts:1403
+	draw_set_transform(_arena_origin + carrier_pos, _elapsed * 0.45, Vector2.ONE)
+
+	# Pulsing orbital shield ring (PORT: EnemySwarm.ts:1406-1414)
+	_draw_dashed_arc(
+		Vector2.ZERO,
+		e.radius + 8.0,
+		10.0,
+		8.0,
+		-_elapsed * 30.0,
+		Color(1.0, 30.0 / 255.0, 80.0 / 255.0, 0.45),
+		2.0
+	)
+
+	# Diamond dreadnought mothership hull (PORT: EnemySwarm.ts:1416-1429)
+	var diamond: PackedVector2Array = PackedVector2Array(
+		[
+			Vector2(e.radius + 4.0, 0.0),
+			Vector2(0.0, -e.radius - 4.0),
+			Vector2(-e.radius - 4.0, 0.0),
+			Vector2(0.0, e.radius + 4.0)
+		]
+	)  # PORT: EnemySwarm.ts:1423-1426
+	draw_colored_polygon(diamond, Color("#220816"))
+	draw_polyline(_closed(diamond), Color("#ff2a55"), 2.4)
+
+	# Inner glowing core (PORT: EnemySwarm.ts:1431-1440)
+	draw_circle(Vector2.ZERO, 8.0, Color("#ff1144"))
+	draw_circle(Vector2.ZERO, 3.5, Color.WHITE)
+
+	draw_set_transform(_arena_origin, 0.0, Vector2.ONE)
+
+
+## PORT: web/src/tilt-to-live/EnemySwarm.ts:1447-1466
+func _draw_satellite(e: Types.Enemy) -> void:
+	var pos: Vector2 = Vector2(e.x, e.y)
+	draw_arc(pos, e.radius + 3.0, 0.0, TAU, 24, Color("#00e5ff"), 1.5)
+	draw_circle(pos, e.radius + 2.0, Color(0.0, 229.0 / 255.0, 1.0, 0.35))
+	draw_circle(pos, e.radius * 0.5, Color.WHITE)
+
+
+## PORT: web/src/tilt-to-live/EnemySwarm.ts:1469-1513
+## PORT-NOTE: skin gates the borderColor/bodyGradient/pupilColor branches
+## alone (:1476, :1483, :1490, :1498), unlike charger/artillery/carrier which
+## gate on skin.id !== 'classic' — M7 must preserve this asymmetry.
+func _draw_pulsar(e: Types.Enemy) -> void:
+	var pos: Vector2 = Vector2(e.x, e.y)
+	# PORT: EnemySwarm.ts:1470
+	var pulse_phase: float = (2.2 - e.pulse_timer) / 2.2 if not is_nan(e.pulse_timer) else 0.0
+	var ring_radius: float = e.radius + 5.0 + pulse_phase * 16.0  # PORT: EnemySwarm.ts:1471
+	var ring_alpha: float = maxf(0.0, (1.0 - pulse_phase) * 0.8)  # PORT: EnemySwarm.ts:1472,1475
+	draw_arc(
+		pos, ring_radius, 0.0, TAU, 24, Color(1.0, 71.0 / 255.0, 87.0 / 255.0, ring_alpha), 2.0
+	)  # PORT: EnemySwarm.ts:1476-1480
+
+	# Core vibrant body gradient (PORT: EnemySwarm.ts:1483-1487, two-circle rule)
+	draw_circle(pos, e.radius, Color("#ee1133"))
+	draw_circle(pos, e.radius * 0.6, Color("#ff8899"))
+	draw_arc(pos, e.radius, 0.0, TAU, 24, Color("#ffa502"), 2.2)  # PORT: EnemySwarm.ts:1490-1495
+
+	# Eight-point spinning star core (PORT: EnemySwarm.ts:1499-1509)
+	var star: PackedVector2Array = PackedVector2Array()
+	for p: int in range(8):
+		var a: float = float(p) * PI / 4.0 + _elapsed * 3.0  # PORT: EnemySwarm.ts:1501
+		var r: float = e.radius * 0.55 if p % 2 == 0 else e.radius * 0.22  # PORT: EnemySwarm.ts:1502
+		star.append(Vector2(cos(a) * r, sin(a) * r))
+	draw_colored_polygon(star, Color.WHITE)  # PORT: EnemySwarm.ts:1498
+
+
+## PORT: web/src/tilt-to-live/EnemySwarm.ts:1516-1552
+## PORT-NOTE: skin gates the borderColor/bodyGradient/pupilColor branches
+## alone (:1521, :1530, :1537, :1545), matching pulsar's asymmetry — see
+## _draw_pulsar's PORT-NOTE.
+func _draw_specter(e: Types.Enemy) -> void:
+	var pos: Vector2 = Vector2(e.x, e.y)
+	# PORT: EnemySwarm.ts:1517
+	var alpha: float = e.stealth_opacity if not is_nan(e.stealth_opacity) else 0.65
+
+	# PORT: EnemySwarm.ts:1521-1528
+	_draw_dashed_arc(pos, e.radius + 3.0, 4.0, 4.0, -_elapsed * 25.0, Color("#a78bfa", alpha), 1.6)
+
+	# Core vibrant body gradient (PORT: EnemySwarm.ts:1530-1534, two-circle rule)
+	draw_circle(pos, e.radius, Color("#8b5cf6", alpha))
+	draw_circle(pos, e.radius * 0.65, Color("#c4b5fd", alpha))
+	# PORT: EnemySwarm.ts:1537-1542
+	draw_arc(pos, e.radius, 0.0, TAU, 24, Color("#e0e7ff", alpha), 1.5)
+
+	# PORT: EnemySwarm.ts:1545-1548
+	draw_circle(pos, 2.5, Color(1.0, 1.0, 1.0, alpha))
+
+
+## PORT: web/src/tilt-to-live/EnemySwarm.ts:1554-1643 (default dot + turret indicator)
+func _draw_default_dot(e: Types.Enemy) -> void:
+	var e_pos: Vector2 = Vector2(e.x, e.y)
+	var pulse: float = 0.85 + 0.15 * sin(_elapsed * 9.0 + float(e.id))
+
+	# Outer glow & high contrast halo (PORT: EnemySwarm.ts:1557-1572)
+	if _high_contrast_halo:
+		var halo_col: Color = (
+			Color(140.0 / 255.0, 240.0 / 255.0, 1.0, 0.7)
 			if e.chilled
 			else (
-				Color(1.0, 170.0 / 255.0, 0.0, 0.45)
+				Color(1.0, 180.0 / 255.0, 0.0, 0.7)
 				if e.is_hazard
-				else Color(1.0, 30.0 / 255.0, 60.0 / 255.0, 0.35)
+				else Color(1.0, 30.0 / 255.0, 60.0 / 255.0, 0.7)
 			)
 		)
-		draw_circle(e_pos, (e.radius + 4.0) * pulse, glow_col)
+		draw_arc(e_pos, (e.radius + 5.0) * pulse, 0.0, TAU, 24, halo_col, 1.2)
 
-		# Core vibrant body (PORT: EnemySwarm.ts:1588-1610)
-		var body_col: Color = (
-			Color("#55bbff")
-			if e.chilled
-			else (Color("#ffaa00") if e.is_hazard else Color("#ee1133"))
+	# Outer glow color (PORT: EnemySwarm.ts:1574-1586)
+	var glow_col: Color = (
+		Color(130.0 / 255.0, 230.0 / 255.0, 1.0, 0.55)
+		if e.chilled
+		else (
+			Color(1.0, 170.0 / 255.0, 0.0, 0.45)
+			if e.is_hazard
+			else Color(1.0, 30.0 / 255.0, 60.0 / 255.0, 0.35)
 		)
-		var inner_col: Color = (
-			Color("#e0f8ff")
-			if e.chilled
-			else (Color("#fff066") if e.is_hazard else Color("#ff6677"))
-		)
-		draw_circle(e_pos, e.radius, body_col)
-		draw_circle(e_pos, e.radius * 0.65, inner_col)
+	)
+	draw_circle(e_pos, (e.radius + 4.0) * pulse, glow_col)
 
-		# Border (PORT: EnemySwarm.ts:1612-1620)
-		var border_col: Color = (
-			Color("#aae6ff")
-			if e.chilled
-			else (Color("#ffd555") if e.is_hazard else Color("#ff8899"))
-		)
-		draw_arc(e_pos, e.radius, 0.0, TAU, 24, border_col, 1.2)
+	# Core vibrant body (PORT: EnemySwarm.ts:1588-1610)
+	var body_col: Color = (
+		Color("#55bbff") if e.chilled else (Color("#ffaa00") if e.is_hazard else Color("#ee1133"))
+	)
+	var inner_col: Color = (
+		Color("#e0f8ff") if e.chilled else (Color("#fff066") if e.is_hazard else Color("#ff6677"))
+	)
+	draw_circle(e_pos, e.radius, body_col)
+	draw_circle(e_pos, e.radius * 0.65, inner_col)
 
-		# Pupil / core dot (PORT: EnemySwarm.ts:1622-1632)
-		var pupil_col: Color = (
-			Color("#002244")
-			if e.chilled
-			else (Color("#221100") if e.is_hazard else Color("#110005"))
+	# Border (PORT: EnemySwarm.ts:1612-1620)
+	var border_col: Color = (
+		Color("#aae6ff") if e.chilled else (Color("#ffd555") if e.is_hazard else Color("#ff8899"))
+	)
+	draw_arc(e_pos, e.radius, 0.0, TAU, 24, border_col, 1.2)
+
+	# Pupil / core dot (PORT: EnemySwarm.ts:1622-1632)
+	var pupil_col: Color = (
+		Color("#002244") if e.chilled else (Color("#221100") if e.is_hazard else Color("#110005"))
+	)
+	draw_circle(e_pos, e.radius * 0.38, pupil_col)
+
+	# Turret dot warning indicator (PORT: EnemySwarm.ts:1635-1643)
+	if (
+		e.type == Types.EnemyType.TURRET_DOT
+		and not is_nan(e.target_angle)
+		and e.orbit_center == Vector2.ZERO
+	):
+		draw_set_transform(_arena_origin + e_pos, e.target_angle, Vector2.ONE)
+		draw_line(
+			Vector2(e.radius, 0.0),
+			Vector2(e.radius + 18.0, 0.0),
+			Color(1.0, 50.0 / 255.0, 50.0 / 255.0, 0.5),
+			1.5
 		)
-		draw_circle(e_pos, e.radius * 0.38, pupil_col)
+		draw_set_transform(_arena_origin, 0.0, Vector2.ONE)
+
+
+## PORT-NOTE: Godot has no dash offset or dashed arc; this helper and
+## _draw_dashed_arc below are the setLineDash equivalent, analogous to
+## _closed(). Both walk the dash pattern in arc-length from a phase computed
+## from line_dash_offset, matching Canvas2D's animated dash behaviour.
+func _draw_dashed_line_offset(
+	from: Vector2,
+	to: Vector2,
+	dash: float,
+	gap: float,
+	line_dash_offset: float,
+	color: Color,
+	width: float
+) -> void:
+	var delta: Vector2 = to - from
+	var length: float = delta.length()
+	if length <= 0.0:
+		return
+	var direction: Vector2 = delta / length
+	var period: float = dash + gap
+	var s: float = fposmod(-line_dash_offset, period) - period
+	while s < length:
+		var s0: float = maxf(s, 0.0)
+		var s1: float = minf(s + dash, length)
+		if s1 > s0:
+			draw_line(from + direction * s0, from + direction * s1, color, width)
+		s += period
+
+
+func _draw_dashed_arc(
+	center: Vector2,
+	radius: float,
+	dash: float,
+	gap: float,
+	line_dash_offset: float,
+	color: Color,
+	width: float
+) -> void:
+	var length: float = TAU * radius
+	if length <= 0.0:
+		return
+	var period: float = dash + gap
+	var s: float = fposmod(-line_dash_offset, period) - period
+	while s < length:
+		var s0: float = maxf(s, 0.0)
+		var s1: float = minf(s + dash, length)
+		if s1 > s0:
+			draw_arc(center, radius, s0 / radius, s1 / radius, 6, color, width)
+		s += period
 
 
 func _draw_player() -> void:

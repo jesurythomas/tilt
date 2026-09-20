@@ -107,3 +107,49 @@ func test_effect_layer_accepts_an_arena_origin() -> void:
 	add_child_autofree(layer)
 	layer.queue_redraw()
 	assert_true(true, "EffectLayer accepts the arena origin and redraws")
+
+
+func test_entity_layer_draws_every_enemy_type_without_error() -> void:
+	var layer: EntityLayer = EntityLayer.new()
+	var player: PlayerShip = PlayerShip.new(500.0, 300.0)
+	var swarm: EnemySwarm = EnemySwarm.new()
+	var weapons: WeaponSystem = WeaponSystem.new()
+	layer.bind_entities(player, swarm, weapons)
+	layer.set_elapsed(2.0)
+	layer.set_arena_origin(Vector2(8.0, 12.0))
+	var bounds: Vector2 = Vector2(1000.0, 600.0)
+	var player_pos: Vector2 = Vector2(500.0, 300.0)
+
+	swarm.spawn_seeker(bounds)
+	swarm.spawn_arrow_formation(bounds)
+	swarm.spawn_sequential_gauntlet_wall(bounds)
+	swarm.spawn_circle_encirclement(player_pos, bounds, 0)
+	swarm.spawn_turret(bounds)
+	swarm.spawn_rotating_gate(bounds)
+	swarm.spawn_snake(bounds)
+	swarm.spawn_charger(bounds, player_pos)
+	var charging: Types.Enemy = swarm.spawn_charger(bounds, player_pos)
+	charging.state = Types.EnemyState.CHARGING
+	charging.vx = 100.0
+	var artillery: Types.Enemy = swarm.spawn_artillery(bounds, player_pos)
+	artillery.fire_cooldown = 0.3
+	swarm.spawn_bullet(100.0, 100.0, player_pos)
+	swarm.spawn_carrier(bounds, player_pos)
+	swarm.spawn_pulsar(bounds, player_pos)
+	swarm.spawn_specter(bounds, player_pos)
+	var mine: Types.Enemy = Types.Enemy.new()
+	mine.type = Types.EnemyType.SPIKE_MINE
+	mine.radius = 8.0
+	swarm.enemies.append(mine)
+	var frozen: Types.Enemy = swarm.spawn_seeker(bounds)
+	frozen.frozen = true
+	var turret: Types.Enemy = Types.Enemy.new()
+	turret.type = Types.EnemyType.TURRET_DOT
+	turret.radius = 12.0
+	turret.target_angle = 1.0
+	swarm.enemies.append(turret)
+
+	add_child_autofree(layer)
+	layer.queue_redraw()
+	await wait_frames(2)
+	assert_eq(swarm.enemies.size(), 1 + 7 + 38 + 12 + 1 + 6 + 8 + 2 + 1 + 1 + 5 + 1 + 1 + 1 + 1 + 1)
