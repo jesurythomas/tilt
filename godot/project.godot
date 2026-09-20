@@ -15,6 +15,10 @@ run/main_scene="res://scenes/main.tscn"
 config/features=PackedStringArray("4.7")
 run/max_fps=60
 
+[autoload]
+
+Log="*res://src/core/log.gd"
+
 [debug]
 
 gdscript/warnings/unused_variable=2
