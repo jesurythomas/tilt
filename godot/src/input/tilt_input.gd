@@ -147,13 +147,18 @@ func calibrate_current_position() -> void:
 	# branch is always taken from _ready(), because the sensor has not
 	# delivered a sample yet — and the wrong pose was then persisted. The
 	# calibration now waits for real data instead of guessing.
+	# PORT-NOTE: _raw_beta/_raw_gamma are only ever set by apply_orientation()
+	# (the parity path); on the device path (poll -> apply_gravity) they stay
+	# 0.0 and calibrated_beta/gamma keep whatever _load_calibration() loaded.
 	if _has_received_data:
 		calibrated_beta = _raw_beta
 		calibrated_gamma = _raw_gamma
 		_calibration_pending = true
 	else:
 		_calibration_pending = true
-	save_calibration()
+	# I4: save_calibration() moved to apply_gravity()'s capture points — saving
+	# here persisted _calibration_pending before the gravity vector it pends
+	# on was ever captured, so a reload always found the previous calibration.
 	if _on_calibrated.is_valid():
 		_on_calibrated.call(calibrated_beta, calibrated_gamma)
 	tilt_vector = Vector2.ZERO
@@ -257,11 +262,18 @@ func apply_gravity(g: Vector3, screen_angle: int) -> void:
 	if _calibration_pending:
 		_calibrated_gravity = normalised
 		_calibration_pending = false
+		# I4: this is the actual capture point for a pending calibration; save
+		# here instead of in calibrate_current_position(), which fires before
+		# the gravity vector it is calibrating against has arrived.
+		save_calibration()
 		tilt_vector = Vector2.ZERO
 		return
 
 	if _calibrated_gravity == Vector3.ZERO:
 		_calibrated_gravity = normalised
+		# I4: an M2-era file with no persisted gravity vector reaches here on
+		# the first sample without ever passing through calibrate_current_position().
+		save_calibration()
 		tilt_vector = Vector2.ZERO
 		return
 
