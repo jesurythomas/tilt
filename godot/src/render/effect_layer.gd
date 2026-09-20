@@ -9,6 +9,10 @@ extends Node2D
 var _particles: ParticleEngine = null
 var _scores: ScoreManager = null
 
+# DIVERGENCE(M2.5 §6.1): the playfield is inset from the viewport, so every
+# draw call in playfield-local coordinates is translated by this.
+var _arena_origin: Vector2 = Vector2.ZERO
+
 
 ## Binds particle engine and score manager data sources.
 func bind(particles: ParticleEngine, scores: ScoreManager) -> void:
@@ -16,9 +20,16 @@ func bind(particles: ParticleEngine, scores: ScoreManager) -> void:
 	_scores = scores
 
 
+## Sets the playfield's top-left corner in viewport space. Called by GameRoot.
+func set_arena_origin(origin: Vector2) -> void:
+	_arena_origin = origin
+
+
 func _draw() -> void:
+	draw_set_transform(_arena_origin, 0.0, Vector2.ONE)
 	_draw_particles()
 	_draw_floating_texts()
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 func _draw_particles() -> void:
@@ -41,7 +52,7 @@ func _draw_particles() -> void:
 				# PORT: web/src/tilt-to-live/ParticleEngine.ts:220-225
 				draw_set_transform(Vector2(p.x, p.y), p.life * 10.0, Vector2.ONE)
 				draw_rect(Rect2(-p.size * 0.5, -p.size * 0.5, p.size, p.size), col)
-				draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+				draw_set_transform(_arena_origin, 0.0, Vector2.ONE)
 			_:
 				# ParticleEngine.Shape.CIRCLE and default
 				# PORT: web/src/tilt-to-live/ParticleEngine.ts:227-230

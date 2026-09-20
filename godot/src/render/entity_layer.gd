@@ -33,11 +33,17 @@ var _elapsed: float = 0.0
 ## Outer high contrast halo toggle. PORT: web/src/tilt-to-live/EnemySwarm.ts:1558
 var _high_contrast_halo: bool = true
 
+# DIVERGENCE(M2.5 §6.1): the playfield is inset from the viewport, so every
+# draw call in playfield-local coordinates is translated by this.
+var _arena_origin: Vector2 = Vector2.ZERO
+
 
 func _draw() -> void:
+	draw_set_transform(_arena_origin, 0.0, Vector2.ONE)
 	_draw_weapons()
 	_draw_enemies()
 	_draw_player()
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 ## Gives this layer the ship it draws (M1 backward compatibility).
@@ -62,6 +68,11 @@ func set_elapsed(elapsed: float) -> void:
 ## Sets whether enemy high contrast halo is drawn.
 func set_high_contrast_halo(enabled: bool) -> void:
 	_high_contrast_halo = enabled
+
+
+## Sets the playfield's top-left corner in viewport space. Called by GameRoot.
+func set_arena_origin(origin: Vector2) -> void:
+	_arena_origin = origin
 
 
 func _draw_weapons() -> void:

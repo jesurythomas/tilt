@@ -81,7 +81,7 @@ func test_screen_drag_moves_the_pointer_and_selects_mouse_mode() -> void:
 	var drag: InputEventScreenDrag = InputEventScreenDrag.new()
 	drag.position = Vector2(123.0, 456.0)
 	_router.control_mode = Types.ControlMode.KEYBOARD
-	touch.handle_event(drag, _router)
+	touch.handle_event(drag, _router, Vector2.ZERO)
 	assert_eq(_router.mouse_pos, Vector2(123.0, 456.0), "the drag sets the pointer")
 	assert_eq(_router.control_mode, Types.ControlMode.MOUSE, "TiltGame.ts:1283")
 
@@ -91,7 +91,7 @@ func test_screen_drag_is_ignored_under_the_gyro_scheme() -> void:
 	var drag: InputEventScreenDrag = InputEventScreenDrag.new()
 	drag.position = Vector2(123.0, 456.0)
 	_router.control_scheme = Types.ControlScheme.GYRO
-	touch.handle_event(drag, _router)
+	touch.handle_event(drag, _router, Vector2.ZERO)
 	assert_eq(_router.mouse_pos, Vector2(400.0, 300.0), "TiltGame.ts:1280 skips gyro")
 
 
@@ -101,7 +101,7 @@ func test_mouse_motion_sets_pointer_and_mode_when_no_keys_held_in_hybrid() -> vo
 	motion.position = Vector2(50.0, 60.0)
 	_router.control_scheme = Types.ControlScheme.HYBRID
 	_router.control_mode = Types.ControlMode.KEYBOARD
-	touch.handle_event(motion, _router)
+	touch.handle_event(motion, _router, Vector2.ZERO)
 	assert_eq(
 		_router.mouse_pos, Vector2(50.0, 60.0), "TiltGame.ts:1259-1260 always tracks the pointer"
 	)
@@ -116,7 +116,7 @@ func test_mouse_motion_updates_pointer_but_not_mode_under_keyboard_scheme() -> v
 	motion.position = Vector2(50.0, 60.0)
 	_router.control_scheme = Types.ControlScheme.KEYBOARD
 	_router.control_mode = Types.ControlMode.KEYBOARD
-	touch.handle_event(motion, _router)
+	touch.handle_event(motion, _router, Vector2.ZERO)
 	assert_eq(
 		_router.mouse_pos, Vector2(50.0, 60.0), "TiltGame.ts:1259-1260 always tracks the pointer"
 	)

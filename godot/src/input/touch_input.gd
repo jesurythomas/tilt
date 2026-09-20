@@ -27,19 +27,21 @@ extends RefCounted
 
 ## Applies one input event to the router.
 ## PORT: web/src/tilt-to-live/TiltGame.ts:1253-1285
-func handle_event(event: InputEvent, router: InputRouter) -> void:
+# DIVERGENCE(M2.5 §6.1): arena_origin is subtracted so the pointer position
+# reaches the router in playfield space, which is the space the sim runs in.
+func handle_event(event: InputEvent, router: InputRouter, arena_origin: Vector2) -> void:
 	if event is InputEventScreenDrag:
 		var drag: InputEventScreenDrag = event
 		# PORT: web/src/tilt-to-live/TiltGame.ts:1280
 		if router.control_scheme != Types.ControlScheme.GYRO:
-			router.mouse_pos = drag.position
+			router.mouse_pos = drag.position - arena_origin
 			router.control_mode = Types.ControlMode.MOUSE
 		return
 
 	if event is InputEventMouseMotion:
 		var motion: InputEventMouseMotion = event
 		# PORT: web/src/tilt-to-live/TiltGame.ts:1259-1260
-		router.mouse_pos = motion.position
+		router.mouse_pos = motion.position - arena_origin
 		# PORT: web/src/tilt-to-live/TiltGame.ts:1263-1269
 		if (
 			not router.has_active_movement_keys()

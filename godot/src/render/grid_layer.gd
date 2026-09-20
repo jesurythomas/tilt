@@ -40,6 +40,9 @@ const INSET: float = 6.0  # PORT: web/src/tilt-to-live/TiltRenderer.ts:123
 var _grid: VectorGrid = null
 ## Pre-baked radial gradient standing in for TiltRenderer.ts's canvas gradient.
 var _background: GradientTexture2D = null
+# DIVERGENCE(M2.5 §6.1): the playfield is inset from the viewport, so every
+# draw call in playfield-local coordinates is translated by this.
+var _arena_origin: Vector2 = Vector2.ZERO
 
 
 func _ready() -> void:
@@ -49,23 +52,28 @@ func _ready() -> void:
 func _draw() -> void:
 	if _grid == null:
 		return
-	var size: Vector2 = get_viewport_rect().size
+	var viewport: Vector2 = get_viewport_rect().size
+	# DIVERGENCE(M2.5 §6.1): the background still covers the whole viewport so
+	# the inset reads as a frame rather than black bars; the grid and the
+	# perimeter are drawn in playfield space.
+	var size: Vector2 = viewport - _arena_origin * 2.0
 
-	draw_rect(Rect2(Vector2.ZERO, size), BG_OUTER)
+	draw_rect(Rect2(Vector2.ZERO, viewport), BG_OUTER)
 	if _background != null:
 		# PORT-NOTE: this block expresses the canvas gradient's centre and
 		# radius as a Rect2/UV mapping onto the pre-baked texture built in
 		# _build_background() — size / 2.0 (centre), Vector2(radius, radius)
 		# and radius * 2.0 (destination rect), fill_from/fill_to (0.5,0.5) and
 		# (1.0,0.5) (radial UV axis) are geometry, not tunable game values.
-		var radius: float = size.x * GRADIENT_OUTER_FACTOR
-		var centre: Vector2 = size / 2.0
+		var radius: float = viewport.x * GRADIENT_OUTER_FACTOR
+		var centre: Vector2 = viewport / 2.0
 		draw_texture_rect(
 			_background,
 			Rect2(centre - Vector2(radius, radius), Vector2(radius * 2.0, radius * 2.0)),
 			false
 		)
 
+	draw_set_transform(_arena_origin, 0.0, Vector2.ONE)
 	_draw_grid()
 
 	# PORT: web/src/tilt-to-live/TiltRenderer.ts:120-127
@@ -74,6 +82,7 @@ func _draw() -> void:
 	var halo: Color = BOUNDARY_COLOR
 	halo.a = BOUNDARY_HALO_ALPHA
 	draw_rect(frame, halo, false, 8.0)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 	# TODO(M10): code-red and gauntlet background, grid tint and overlays
 	# (TiltRenderer.ts:64-74, 101-118).
@@ -83,6 +92,11 @@ func _draw() -> void:
 ## Gives this layer the grid it draws. Called by GameRoot.
 func bind(grid: VectorGrid) -> void:
 	_grid = grid
+
+
+## Sets the playfield's top-left corner in viewport space. Called by GameRoot.
+func set_arena_origin(origin: Vector2) -> void:
+	_arena_origin = origin
 
 
 ## PORT: web/src/tilt-to-live/VectorGrid.ts:86-117
