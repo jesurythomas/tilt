@@ -57,6 +57,9 @@ func _init() -> void:
 ## PORT: web/src/tilt-to-live/GyroscopeController.ts:48-55
 func save_calibration() -> void:
 	var file: FileAccess = FileAccess.open(CALIBRATION_PATH, FileAccess.WRITE)
+	# PORT-NOTE: web/src/tilt-to-live/GyroscopeController.ts:49-54 swallows this
+	# failure in a try/catch; a warning is logged here deliberately because a
+	# silently ignored calibration file is undiagnosable on device.
 	if file == null:
 		Log.warn("tilt calibration could not be written to %s" % CALIBRATION_PATH)
 		return
@@ -67,6 +70,9 @@ func save_calibration() -> void:
 ## Grants permission (Android has no runtime prompt) and starts listening.
 ## PORT: web/src/tilt-to-live/GyroscopeController.ts:60-91
 func request_permission_and_start() -> bool:
+	# PORT-NOTE: message text is reworded from `console.warn('DeviceOrientationEvent
+	# not supported on this browser/platform')` (GyroscopeController.ts:62)
+	# because there is no DeviceOrientationEvent on Godot.
 	if not is_supported:
 		Log.warn("motion sensors are not supported on this platform")
 		return false
@@ -186,6 +192,9 @@ func _load_calibration() -> void:
 	file.close()
 	# PORT-NOTE: Variant is unavoidable for unvalidated JSON (CONVENTIONS §4).
 	var parsed: Variant = JSON.parse_string(raw)
+	# PORT-NOTE: web/src/tilt-to-live/GyroscopeController.ts:38-45 swallows this
+	# failure in a try/catch; a warning is logged here deliberately because a
+	# silently ignored calibration file is undiagnosable on device.
 	if not (parsed is Dictionary):
 		Log.warn("tilt calibration is not a JSON object; keeping defaults")
 		return
