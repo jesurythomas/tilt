@@ -10,3 +10,6 @@ scratch/
 .godot/
 godot/android/
 godot/build/
+
+# JetBrains IDEs
+.idea/
