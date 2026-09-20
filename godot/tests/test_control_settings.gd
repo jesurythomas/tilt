@@ -70,6 +70,11 @@ func test_malformed_json_falls_back_to_defaults() -> void:
 
 	var settings: ControlSettings = ControlSettings.new()
 	assert_almost_eq(settings.tilt_sensitivity, 1.0, 0.0001, "defaults survive a corrupt file")
+	# GUT 9.7 fails a test on unhandled engine errors. Parsing deliberately
+	# malformed JSON raises one by design, so it is asserted rather than
+	# suppressed — the production code stays faithful to the
+	# tilt_input.gd:238-244 precedent it mirrors.
+	assert_engine_error_count(1, "malformed JSON raises one engine error")
 
 
 func test_unknown_scheme_value_falls_back_to_a_valid_scheme() -> void:

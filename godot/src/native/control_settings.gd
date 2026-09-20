@@ -69,10 +69,6 @@ func _load_settings() -> void:
 	var raw: String = file.get_as_text()
 	file.close()
 
-	if not raw.begins_with("{"):
-		Log.warn("control settings are not a JSON object; keeping defaults")
-		return
-
 	# PORT-NOTE: Variant is unavoidable for unvalidated JSON (CONVENTIONS §4).
 	var parsed: Variant = JSON.parse_string(raw)
 	if not (parsed is Dictionary):
