@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://src/core/game_root.gd" id="1"]
 [ext_resource type="Script" path="res://src/render/grid_layer.gd" id="2"]
@@ -6,6 +6,23 @@
 [ext_resource type="Script" path="res://src/render/effect_layer.gd" id="4"]
 [ext_resource type="Script" path="res://src/ui/hud_controller.gd" id="5"]
 [ext_resource type="Script" path="res://src/render/joystick_layer.gd" id="6"]
+[ext_resource type="PackedScene" path="res://scenes/control_picker.tscn" id="7"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_gameover"]
+bg_color = Color(0.063, 0.047, 0.118, 0.94)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.357, 0.549, 1.0, 0.45)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+expand_margin_left = 0.0
+expand_margin_top = 0.0
+expand_margin_right = 0.0
+expand_margin_bottom = 0.0
 
 [node name="GameRoot" type="Node2D"]
 script = ExtResource("1")
@@ -38,51 +55,101 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("5")
 
-[node name="TopMargin" type="MarginContainer" parent="CanvasLayer/Hud"]
+[node name="ScoreMargin" type="MarginContainer" parent="CanvasLayer/Hud"]
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
 offset_left = 32.0
-offset_top = 24.0
+offset_top = 12.0
 offset_right = -32.0
-offset_bottom = 80.0
+offset_bottom = 140.0
 grow_horizontal = 2
 mouse_filter = 2
 
-[node name="TopBar" type="HBoxContainer" parent="CanvasLayer/Hud/TopMargin"]
+[node name="ScoreCenter" type="CenterContainer" parent="CanvasLayer/Hud/ScoreMargin"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="ScoreLabel" type="Label" parent="CanvasLayer/Hud/TopMargin/TopBar"]
+[node name="ScoreBlock" type="VBoxContainer" parent="CanvasLayer/Hud/ScoreMargin/ScoreCenter"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="ScoreLabel" type="Label" parent="CanvasLayer/Hud/ScoreMargin/ScoreCenter/ScoreBlock"]
 unique_name_in_owner = true
 layout_mode = 2
+horizontal_alignment = 1
 theme_override_font_sizes/font_size = 32
 text = "0"
 
-[node name="SpacerLeft" type="Control" parent="CanvasLayer/Hud/TopMargin/TopBar"]
-custom_minimum_size = Vector2(16, 0)
+[node name="BestLabel" type="Label" parent="CanvasLayer/Hud/ScoreMargin/ScoreCenter/ScoreBlock"]
+unique_name_in_owner = true
 layout_mode = 2
-mouse_filter = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 20
+horizontal_alignment = 1
+text = "BEST 0"
 
-[node name="MultiplierLabel" type="Label" parent="CanvasLayer/Hud/TopMargin/TopBar"]
+[node name="MultiplierLabel" type="Label" parent="CanvasLayer/Hud/ScoreMargin/ScoreCenter/ScoreBlock"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.8, 0, 1)
 theme_override_font_sizes/font_size = 24
+horizontal_alignment = 1
 text = "1x"
 
-[node name="SpacerCenter" type="Control" parent="CanvasLayer/Hud/TopMargin/TopBar"]
-layout_mode = 2
-size_flags_horizontal = 3
-mouse_filter = 2
+[node name="PauseButton" type="Button" parent="CanvasLayer/Hud"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+grow_horizontal = 0
+offset_left = -56.0
+offset_top = 12.0
+offset_right = -8.0
+offset_bottom = 60.0
+custom_minimum_size = Vector2(48, 48)
+text = "II"
 
-[node name="BestLabel" type="Label" parent="CanvasLayer/Hud/TopMargin/TopBar"]
-unique_name_in_owner = true
+[node name="PausePanel" type="Control" parent="CanvasLayer/Hud"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="CenterContainer" type="CenterContainer" parent="CanvasLayer/Hud/PausePanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="PanelContainer" type="PanelContainer" parent="CanvasLayer/Hud/PausePanel/CenterContainer"]
+custom_minimum_size = Vector2(280, 220)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/Hud/PausePanel/CenterContainer/PanelContainer"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="CanvasLayer/Hud/PausePanel/CenterContainer/PanelContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "PAUSED"
+horizontal_alignment = 1
+
+[node name="ControlPicker" parent="CanvasLayer/Hud/PausePanel/CenterContainer/PanelContainer/VBoxContainer" instance=ExtResource("7")]
+layout_mode = 2
+
+[node name="ResumeButton" type="Button" parent="CanvasLayer/Hud/PausePanel/CenterContainer/PanelContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
 theme_override_font_sizes/font_size = 20
-text = "BEST 0"
+text = "RESUME"
 
 [node name="GameOverPanel" type="CenterContainer" parent="CanvasLayer/Hud"]
 unique_name_in_owner = true
@@ -97,6 +164,7 @@ grow_vertical = 2
 [node name="Panel" type="PanelContainer" parent="CanvasLayer/Hud/GameOverPanel"]
 custom_minimum_size = Vector2(340, 260)
 layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_gameover")
 
 [node name="Margin" type="MarginContainer" parent="CanvasLayer/Hud/GameOverPanel/Panel"]
 layout_mode = 2
@@ -145,6 +213,16 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "TIME: 0:00"
 horizontal_alignment = 1
+
+[node name="ControlsLabel" type="Label" parent="CanvasLayer/Hud/GameOverPanel/Panel/Margin/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+text = "CONTROLS"
+horizontal_alignment = 1
+
+[node name="ControlPicker" parent="CanvasLayer/Hud/GameOverPanel/Panel/Margin/VBox" instance=ExtResource("7")]
+layout_mode = 2
 
 [node name="RestartButton" type="Button" parent="CanvasLayer/Hud/GameOverPanel/Panel/Margin/VBox"]
 unique_name_in_owner = true
