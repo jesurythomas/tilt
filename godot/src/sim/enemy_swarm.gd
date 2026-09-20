@@ -144,9 +144,85 @@ func spawn_charger(bounds: Vector2, player_pos: Vector2) -> Types.Enemy:
 	return enemy
 
 
+## Spawns a pulsar enemy at an arena edge.
+## PORT: web/src/tilt-to-live/EnemySwarm.ts:609-635
+func spawn_pulsar(bounds: Vector2, _player_pos: Vector2) -> Types.Enemy:
+	var edge: int = randi() % 4  # PORT: web/src/tilt-to-live/EnemySwarm.ts:610
+	var margin: float = 26.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:611
+	var x: float = 0.0
+	var y: float = 0.0
+	match edge:
+		0:
+			x = randf() * bounds.x
+			y = -margin
+		1:
+			x = bounds.x + margin
+			y = randf() * bounds.y
+		2:
+			x = randf() * bounds.x
+			y = bounds.y + margin
+		_:
+			x = -margin
+			y = randf() * bounds.y
+
+	var enemy: Types.Enemy = Types.Enemy.new()
+	enemy.id = _next_enemy_id
+	_next_enemy_id += 1
+	enemy.type = Types.EnemyType.PULSAR
+	enemy.x = x
+	enemy.y = y
+	enemy.vx = 0.0
+	enemy.vy = 0.0
+	enemy.radius = 12.5 * scale  # PORT: web/src/tilt-to-live/EnemySwarm.ts:628
+	enemy.frozen = false
+	enemy.freeze_timer = 0.0
+	enemy.age = 0.0
+	enemy.health = 2.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:632
+	enemy.pulse_timer = 2.2  # PORT: web/src/tilt-to-live/EnemySwarm.ts:633
+	enemies.append(enemy)
+	return enemy
+
+
+## Spawns a specter enemy at an arena edge.
+## PORT: web/src/tilt-to-live/EnemySwarm.ts:637-667
+func spawn_specter(bounds: Vector2, _player_pos: Vector2) -> Types.Enemy:
+	var edge: int = randi() % 4  # PORT: web/src/tilt-to-live/EnemySwarm.ts:638
+	var margin: float = 20.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:641
+	var x: float = 0.0
+	var y: float = 0.0
+	match edge:
+		0:
+			x = randf() * bounds.x
+			y = -margin
+		1:
+			x = bounds.x + margin
+			y = randf() * bounds.y
+		2:
+			x = randf() * bounds.x
+			y = bounds.y + margin
+		_:
+			x = -margin
+			y = randf() * bounds.y
+
+	var enemy: Types.Enemy = Types.Enemy.new()
+	enemy.id = _next_enemy_id
+	_next_enemy_id += 1
+	enemy.type = Types.EnemyType.SPECTER
+	enemy.x = x
+	enemy.y = y
+	enemy.vx = 0.0
+	enemy.vy = 0.0
+	enemy.radius = 8.0 * scale  # PORT: web/src/tilt-to-live/EnemySwarm.ts:658
+	enemy.frozen = false
+	enemy.freeze_timer = 0.0
+	enemy.age = 0.0
+	enemy.health = 1.0
+	enemy.stealth_opacity = 0.8  # PORT: web/src/tilt-to-live/EnemySwarm.ts:663
+	enemies.append(enemy)
+	return enemy
+
+
 ## Spawns an artillery enemy at an arena edge, aimed at the player.
-# PORT-NOTE: Task 4 inserts spawn_pulsar and spawn_specter between this
-# function and spawn_charger above, matching their TS order (:609-667).
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:669-699
 func spawn_artillery(bounds: Vector2, player_pos: Vector2) -> Types.Enemy:
 	var edge: int = randi() % 4  # PORT: web/src/tilt-to-live/EnemySwarm.ts:670
@@ -213,6 +289,70 @@ func spawn_bullet(origin_x: float, origin_y: float, target_pos: Vector2) -> Type
 	bullet.health = 1.0
 	enemies.append(bullet)
 	return bullet
+
+
+## Spawns a carrier and its four protective orbiting satellite mini-dots.
+## PORT: web/src/tilt-to-live/EnemySwarm.ts:724-776
+func spawn_carrier(bounds: Vector2, _player_pos: Vector2) -> Types.Enemy:
+	var edge: int = randi() % 4  # PORT: web/src/tilt-to-live/EnemySwarm.ts:725
+	var margin: float = 35.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:726
+	var x: float = 0.0
+	var y: float = 0.0
+	match edge:
+		0:
+			x = randf() * bounds.x
+			y = -margin
+		1:
+			x = bounds.x + margin
+			y = randf() * bounds.y
+		2:
+			x = randf() * bounds.x
+			y = bounds.y + margin
+		_:
+			x = -margin
+			y = randf() * bounds.y
+
+	var carrier: Types.Enemy = Types.Enemy.new()
+	carrier.id = _next_enemy_id
+	_next_enemy_id += 1
+	carrier.type = Types.EnemyType.CARRIER
+	carrier.x = x
+	carrier.y = y
+	carrier.vx = 0.0
+	carrier.vy = 0.0
+	carrier.radius = 18.0 * scale  # PORT: web/src/tilt-to-live/EnemySwarm.ts:743
+	carrier.frozen = false
+	carrier.freeze_timer = 0.0
+	carrier.age = 0.0
+	carrier.health = 4.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:747
+	enemies.append(carrier)
+
+	# PORT: web/src/tilt-to-live/EnemySwarm.ts:751-772
+	var satellite_count: int = 4  # PORT: web/src/tilt-to-live/EnemySwarm.ts:752
+	for k: int in range(satellite_count):
+		# PORT: web/src/tilt-to-live/EnemySwarm.ts:754
+		var angle: float = (float(k) * PI * 2.0) / float(satellite_count)
+		var orbit_radius: float = 38.0 * scale  # PORT: web/src/tilt-to-live/EnemySwarm.ts:755
+
+		var satellite: Types.Enemy = Types.Enemy.new()
+		satellite.id = _next_enemy_id
+		_next_enemy_id += 1
+		satellite.type = Types.EnemyType.SEEKER
+		satellite.x = x + cos(angle) * orbit_radius
+		satellite.y = y + sin(angle) * orbit_radius
+		satellite.vx = 0.0
+		satellite.vy = 0.0
+		satellite.radius = 6.0 * scale  # PORT: web/src/tilt-to-live/EnemySwarm.ts:763
+		satellite.frozen = false
+		satellite.freeze_timer = 0.0
+		satellite.age = 0.0
+		satellite.health = 1.0
+		satellite.parent_carrier_id = carrier.id  # PORT: web/src/tilt-to-live/EnemySwarm.ts:768
+		satellite.orbit_angle = angle  # PORT: web/src/tilt-to-live/EnemySwarm.ts:769
+		satellite.orbit_radius = orbit_radius
+		enemies.append(satellite)
+
+	return carrier
 
 
 ## Spawns a wing of seven arrow drones sweeping from one screen edge, or two
@@ -646,9 +786,12 @@ func update(
 				):
 					enemies.remove_at(i)
 					continue
-			_:
-				# TODO(M3): update behaviours for remaining 10 enemy types.
-				pass
+			Types.EnemyType.CARRIER:
+				update_carrier(e, player_pos, dt)  # PORT: web/src/tilt-to-live/EnemySwarm.ts:189-191
+			Types.EnemyType.PULSAR:
+				update_pulsar(e, player_pos, dt, particles)  # PORT: web/src/tilt-to-live/EnemySwarm.ts:192-194
+			Types.EnemyType.SPECTER:
+				update_specter(e, player_pos, dt)  # PORT: web/src/tilt-to-live/EnemySwarm.ts:195-197
 
 		# Remove out of bounds drones that completed sweeps.
 		# PORT: web/src/tilt-to-live/EnemySwarm.ts:200-207
@@ -944,6 +1087,86 @@ func update_bullet(e: Types.Enemy, dt: float, _bounds: Vector2) -> void:
 	e.y += e.vy * dt * speed_scale
 
 
+## Updates a carrier: steers gently towards the player and carries its
+## orbiting satellites along with it. PORT: web/src/tilt-to-live/EnemySwarm.ts:443-471
+func update_carrier(e: Types.Enemy, player_pos: Vector2, dt: float) -> void:
+	var dx: float = player_pos.x - e.x
+	var dy: float = player_pos.y - e.y
+	var dist: float = sqrt(dx * dx + dy * dy)
+
+	if dist > 1.0:
+		var target_speed: float = 55.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:449
+		var target_vx: float = (dx / dist) * target_speed
+		var target_vy: float = (dy / dist) * target_speed
+		e.vx += (target_vx - e.vx) * 1.5 * dt  # PORT: web/src/tilt-to-live/EnemySwarm.ts:452
+		e.vy += (target_vy - e.vy) * 1.5 * dt  # PORT: web/src/tilt-to-live/EnemySwarm.ts:453
+
+	e.x += e.vx * dt * speed_scale
+	e.y += e.vy * dt * speed_scale
+
+	# PORT-NOTE: update() iterates in reverse (:135), so a satellite runs
+	# update_seeker first and is then overwritten here by its carrier, which
+	# always has the lower index — preserved deliberately.
+	# PORT: web/src/tilt-to-live/EnemySwarm.ts:459-470
+	for i: int in range(enemies.size()):
+		var sat: Types.Enemy = enemies[i]
+		if sat.parent_carrier_id == e.id:
+			if is_nan(sat.orbit_angle):
+				sat.orbit_angle = 0.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:462
+			if is_nan(sat.orbit_radius):
+				sat.orbit_radius = 38.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:463
+			sat.orbit_angle += 2.0 * dt * speed_scale  # PORT: web/src/tilt-to-live/EnemySwarm.ts:464
+			sat.x = e.x + cos(sat.orbit_angle) * sat.orbit_radius
+			sat.y = e.y + sin(sat.orbit_angle) * sat.orbit_radius
+			sat.vx = 0.0
+			sat.vy = 0.0
+
+
+## Updates a pulsar: steers towards the player and pulses sparks on a
+## periodic timer. PORT: web/src/tilt-to-live/EnemySwarm.ts:473-492
+func update_pulsar(
+	e: Types.Enemy, player_pos: Vector2, dt: float, particles: ParticleEngine
+) -> void:
+	var dx: float = player_pos.x - e.x
+	var dy: float = player_pos.y - e.y
+	var dist: float = sqrt(dx * dx + dy * dy)
+
+	if dist > 1.0:
+		var speed: float = 72.0 * maxf(0.72, scale)  # PORT: web/src/tilt-to-live/EnemySwarm.ts:479
+		e.vx += ((dx / dist) * speed - e.vx) * 2.2 * dt  # PORT: web/src/tilt-to-live/EnemySwarm.ts:480
+		e.vy += ((dy / dist) * speed - e.vy) * 2.2 * dt  # PORT: web/src/tilt-to-live/EnemySwarm.ts:481
+
+	e.x += e.vx * dt * speed_scale
+	e.y += e.vy * dt * speed_scale
+
+	if is_nan(e.pulse_timer):
+		e.pulse_timer = 2.2  # PORT: web/src/tilt-to-live/EnemySwarm.ts:486
+	e.pulse_timer -= dt
+	if e.pulse_timer <= 0.0:
+		e.pulse_timer = 2.2  # PORT: web/src/tilt-to-live/EnemySwarm.ts:489
+		# PORT: web/src/tilt-to-live/EnemySwarm.ts:490
+		particles.emit_sparks(e.x, e.y, 14, Color("#ff4757"), 140.0)
+
+
+## Updates a specter: steers towards the player and phases its visibility
+## with age. PORT: web/src/tilt-to-live/EnemySwarm.ts:494-508
+func update_specter(e: Types.Enemy, player_pos: Vector2, dt: float) -> void:
+	var dx: float = player_pos.x - e.x
+	var dy: float = player_pos.y - e.y
+	var dist: float = sqrt(dx * dx + dy * dy)
+
+	if dist > 1.0:
+		var speed: float = 145.0 * maxf(0.72, scale)  # PORT: web/src/tilt-to-live/EnemySwarm.ts:500
+		e.vx += ((dx / dist) * speed - e.vx) * 3.8 * dt
+		e.vy += ((dy / dist) * speed - e.vy) * 3.8 * dt
+
+	e.x += e.vx * dt * speed_scale
+	e.y += e.vy * dt * speed_scale
+
+	# PORT: web/src/tilt-to-live/EnemySwarm.ts:507
+	e.stealth_opacity = 0.25 + 0.75 * pow(sin(e.age * 3.2), 2.0)
+
+
 ## Applies pairwise repulsive separation force to prevent clustering.
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:510-540
 func apply_flocking_separation() -> void:
@@ -990,7 +1213,57 @@ func apply_flocking_separation() -> void:
 
 
 ## Handles enemy-death reactions (child satellite flinging, pulsar split).
-## PORT: web/src/tilt-to-live/EnemySwarm.ts:1141-1189
-func on_enemy_killed(_enemy: Types.Enemy, _particles: ParticleEngine = null) -> void:
-	# TODO(M3): carrier satellite release, pulsar mini-seeker splitting.
-	pass
+# PORT-NOTE: never removes enemy itself — TiltGame.ts:1984 calls this and
+# TiltGame.ts:2021 splices the dead enemy out — preserved deliberately.
+## PORT: web/src/tilt-to-live/EnemySwarm.ts:1141-1182
+func on_enemy_killed(enemy: Types.Enemy, particles: ParticleEngine = null) -> void:
+	if enemy.type == Types.EnemyType.CARRIER:
+		# PORT: web/src/tilt-to-live/EnemySwarm.ts:1143-1155
+		for e: Types.Enemy in enemies:
+			if e.parent_carrier_id == enemy.id:
+				e.parent_carrier_id = Types.ABSENT  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1146
+				var scatter_angle: float = randf() * PI * 2.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1147
+				var speed: float = 160.0 + randf() * 80.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1148
+				e.vx = cos(scatter_angle) * speed
+				e.vy = sin(scatter_angle) * speed
+				if particles != null:
+					# PORT: web/src/tilt-to-live/EnemySwarm.ts:1152
+					particles.emit_sparks(e.x, e.y, 8, Color("#00e5ff"), 200.0)
+		if particles != null:
+			# PORT: web/src/tilt-to-live/EnemySwarm.ts:1157
+			particles.emit_explosion(enemy.x, enemy.y, Color("#ff1155"), 40)
+	elif enemy.type == Types.EnemyType.PULSAR:
+		# PORT: web/src/tilt-to-live/EnemySwarm.ts:1160-1177
+		for i: int in range(2):
+			# PORT: web/src/tilt-to-live/EnemySwarm.ts:1162
+			var angle: float = float(i) * PI + (randf() * 0.8 - 0.4)
+			var speed: float = 135.0 + randf() * 45.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1163
+
+			var mini: Types.Enemy = Types.Enemy.new()
+			mini.id = _next_enemy_id
+			_next_enemy_id += 1
+			mini.type = Types.EnemyType.SEEKER
+			mini.x = enemy.x + cos(angle) * 10.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1167
+			mini.y = enemy.y + sin(angle) * 10.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1168
+			mini.vx = cos(angle) * speed
+			mini.vy = sin(angle) * speed
+			mini.radius = 6.5 * scale  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1171
+			mini.frozen = false
+			mini.freeze_timer = 0.0
+			mini.age = 0.0
+			mini.health = 1.0
+			enemies.append(mini)
+		if particles != null:
+			# PORT: web/src/tilt-to-live/EnemySwarm.ts:1179
+			particles.emit_explosion(enemy.x, enemy.y, Color("#ff4757"), 24)
+
+
+## Freezes every active enemy for a duration.
+# PORT-NOTE: no TypeScript caller exists (WeaponSystem.ts:542-543 freezes
+# inline); ported because spec §8 M3 names it.
+# TODO(M4): the freeze weapon decides whether to route through this.
+## PORT: web/src/tilt-to-live/EnemySwarm.ts:1184-1189
+func freeze_all(duration: float = 7.0) -> void:
+	for e: Types.Enemy in enemies:
+		e.frozen = true
+		e.freeze_timer = duration
