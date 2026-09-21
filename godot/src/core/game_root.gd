@@ -36,11 +36,17 @@ var arena_origin: Vector2 = Vector2.ZERO
 ## Player control settings, persisted across launches.
 var settings: ControlSettings = null
 
+## The player's save. PORT: web/src/tilt-to-live/TiltGame.ts:55
+var progression: ProgressionManager = null
+## Mode and settings. PORT: web/src/tilt-to-live/TiltGame.ts:65
+var options: GameOptionsManager = null
+
 var _grid: VectorGrid = null
 var _particles: ParticleEngine = null
 var _player: PlayerShip = null
 var _swarm: EnemySwarm = null
 var _weapons: WeaponSystem = null
+var _coins: CoinSystem = null
 var _scores: ScoreManager = null
 var _audio: AudioBank = null
 var _run_controller: RunController = null
@@ -67,8 +73,11 @@ func _ready() -> void:
 	_weapons = WeaponSystem.new()
 	_scores = ScoreManager.new()
 	_audio = AudioBank.new()
+	progression = ProgressionManager.new()
+	options = GameOptionsManager.new()
+	_coins = CoinSystem.new()
 	_run_controller = RunController.new(
-		_player, _swarm, _weapons, _particles, _grid, _scores, _audio
+		_player, _swarm, _weapons, _particles, _grid, _scores, _audio, progression, options, _coins
 	)
 	_router = InputRouter.new()
 	_touch = TouchInput.new()
@@ -83,7 +92,9 @@ func _ready() -> void:
 	_state = GameStateMachine.new(_player, _grid, _particles, _router, _tilt)
 
 	_grid_layer.bind(_grid)
-	_entity_layer.bind_entities(_player, _swarm, _weapons)
+	# PORT: web/src/tilt-to-live/TiltGame.ts:2280 (showGridlines into the renderer)
+	_grid_layer.show_gridlines = options.settings.show_gridlines
+	_entity_layer.bind_entities(_player, _swarm, _weapons, _coins)
 	_effect_layer.bind(_particles, _scores, _weapons)
 	_joystick_layer.bind(_joystick)
 

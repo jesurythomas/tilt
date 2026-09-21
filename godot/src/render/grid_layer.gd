@@ -10,7 +10,7 @@ extends Node2D
 ## and GameOptions.ts:88 defaults it to false. M1 has no settings system and
 ## its acceptance criterion requires an observable grid, so it draws
 ## unconditionally.
-## TODO(M7): gate this on GameOptions.showGridlines.
+## GameRoot sets show_gridlines from GameOptionsManager.settings.show_gridlines (M7).
 ##
 ## PORT-NOTE: TiltRenderer.ts:82-92 builds a canvas radial gradient with an
 ## inner radius of width*0.1 and an outer radius of width*0.8, stops at 0,
@@ -90,7 +90,8 @@ func _draw() -> void:
 
 	# TODO(M10): code-red and gauntlet background, grid tint and overlays
 	# (TiltRenderer.ts:64-74, 101-118).
-	# TODO(M7): arena theme override (TiltRenderer.ts:76-80).
+	# TODO(M8): arena theme override (TiltRenderer.ts:76-80) — the catalog is
+	# ProgressionManager.arena_theme_catalog; nothing can equip one before the Armory.
 
 
 ## Gives this layer the grid it draws. Called by GameRoot.

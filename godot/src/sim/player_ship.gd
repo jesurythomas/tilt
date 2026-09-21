@@ -15,9 +15,9 @@ extends RefCounted
 ## `tuning: {sensitivity, deadzone}` (PlayerShip.ts:101) becomes `sensitivity`
 ## and `deadzone`; `shipSkin?: ShipSkinConfig` (PlayerShip.ts:102) becomes the
 ## three fields update() actually reads — `hitbox_scale`, `turn_rate` and
-## `thruster_color` (PlayerShip.ts:109-110, 241). M7 supplies real values from
-## ProgressionManager; until then callers pass the TypeScript defaults
-## (1.0, 4.0, 1.0, 1.0, #00ddff).
+## `thruster_color` (PlayerShip.ts:109-110, 241). RunController passes them
+## from ProgressionManager (data.tuning, get_equipped_ship()); the M1/M2
+## callers passed the TypeScript defaults (1.0, 4.0, 1.0, 1.0, #00ddff).
 ##
 ## PORT-NOTE: `bounds: {width, height}` (PlayerShip.ts:97) becomes
 ## `bounds: Vector2` (x = width, y = height), consistent with the

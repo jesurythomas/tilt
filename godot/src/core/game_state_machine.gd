@@ -118,8 +118,8 @@ func stop() -> void:
 ## PORT: web/src/tilt-to-live/TiltGame.ts:1547-1617
 func reset_run(new_mode: Types.GameMode) -> void:
 	mode = new_mode
-	# TODO(M2): scores.setModeMultiplier(modeConfig.scoreMultiplier).
-	# TODO(M7): scores.setProgressionMultiplier(progression.getScoreMultiplier()).
+	# PORT-NOTE: scores.setModeMultiplier (:1550) and setProgressionMultiplier (:1551)
+	# are ported in run_controller.gd::reset_run, which owns the scores.
 
 	# PORT: web/src/tilt-to-live/TiltGame.ts:1553-1557
 	if _router.control_scheme == Types.ControlScheme.GYRO:
@@ -133,8 +133,8 @@ func reset_run(new_mode: Types.GameMode) -> void:
 	# PORT-NOTE: TiltGame.ts:1565 also zeroes this.accumulator, the manual
 	# rAF-loop accumulator driving fixed updates. Godot's fixed physics step
 	# replaces that accumulator entirely, so there is nothing to port here.
-	# TODO(M7): pointsEarnedThisRun, lives, maxLivesThisRun,
-	# player.setHitboxMultiplier().
+	# PORT-NOTE: lives, maxLivesThisRun and setHitboxMultiplier (:1567-1570) are
+	# ported in run_controller.gd::reset_run. TODO(M9): pointsEarnedThisRun.
 	# TODO(M9): railProgress and the run tracker.
 
 	_player.reset(_bounds.x / 2.0, _bounds.y / 2.0)
@@ -142,8 +142,8 @@ func reset_run(new_mode: Types.GameMode) -> void:
 	_router.clear_movement_keys()
 	_router.control_mode = Types.ControlMode.MOUSE
 
-	# TODO(M7): swarm.setSpeedScale() wiring (progression speed scaling).
-	# TODO(M7): coins.reset().
+	# PORT-NOTE: swarm.setSpeedScale (:1599) and coins.reset() (:1601) are ported
+	# in run_controller.gd::reset_run.
 	_particles.reset()
 	# TODO(M10): gauntletMaze.reset().
 	_grid.resize(_bounds.x, _bounds.y)

@@ -10,7 +10,9 @@ extends RefCounted
 ## as TiltGame.update() reads it (spec §5.3 bans sim→sim signals).
 
 ## Configured scheme. PORT: web/src/tilt-to-live/GameOptions.ts:80
-# TODO(M7): read this from meta/game_options.gd once it exists.
+# PORT-NOTE: GameOptionsManager.settings.control_scheme persists this for save-shape
+# fidelity (M7); the live value is ControlSettings.scheme, assigned by GameRoot
+# (M2.5 spec §4.2, a DIVERGENCE). Nothing reads the persisted copy.
 var control_scheme: Types.ControlScheme = Types.ControlScheme.HYBRID
 
 ## Last-used input device. PORT: web/src/tilt-to-live/TiltGame.ts:79
