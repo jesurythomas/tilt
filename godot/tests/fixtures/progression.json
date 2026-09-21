@@ -1,0 +1,613 @@
+{
+  "source": "web/src/tilt-to-live/ProgressionManager.ts, GameOptions.ts",
+  "generated_by": "tools/parity/dump_progression.mjs",
+  "default_data": {
+    "points": 7331,
+    "lifetimePoints": 7331,
+    "perks": {
+      "blackhole": {
+        "duration": 3,
+        "radius": 2,
+        "gravity": 4,
+        "invulnerableInside": false,
+        "supernovaCollapse": false
+      },
+      "nuke": {
+        "radius": 1,
+        "speed": 0,
+        "falloutZone": false
+      },
+      "shield": {
+        "duration": 0,
+        "radius": 0,
+        "batteringRam": false
+      },
+      "missiles": {
+        "count": 5,
+        "blastRadius": 0,
+        "flightSpeed": 0
+      },
+      "laser": {
+        "length": 2,
+        "duration": 0,
+        "crossBeam": false
+      },
+      "lightning": {
+        "maxTargets": 0,
+        "chainRange": 0
+      },
+      "freeze": {
+        "duration": 0,
+        "shatterCascade": false
+      }
+    },
+    "equippedCursorId": "classic",
+    "unlockedCursors": [
+      "classic",
+      "tactical",
+      "singularity"
+    ],
+    "equippedEnemySkinId": "classic",
+    "unlockedEnemySkins": [
+      "classic"
+    ],
+    "equippedArenaThemeId": "void",
+    "unlockedArenaThemes": [
+      "void"
+    ],
+    "tuning": {
+      "sensitivity": 1,
+      "deadzone": 4
+    },
+    "extraLives": 0,
+    "hullCompact": 0,
+    "enemySlow": 0,
+    "scoreMultiplier": 0,
+    "pointsMultiplier": 0
+  },
+  "ship_catalog": [
+    {
+      "id": "classic",
+      "name": "Arrow",
+      "trait": "Balanced",
+      "price": 0,
+      "description": "The iconic high-agility balanced arrow craft with sharp delta wings.",
+      "hitbox": "50%",
+      "turn": "60%",
+      "hitboxScale": 1,
+      "turnRate": 1,
+      "startingWeapon": "shield",
+      "tint": "#5B8CFF",
+      "svgPath": "M40 24 L14 10 L19 24 L14 38 Z",
+      "hullColor": "#ffffff",
+      "primaryColor": "#5B8CFF",
+      "accentColor": "#8FB0FF",
+      "thrusterColor": "#5B8CFF",
+      "trailColor": "rgba(91, 140, 255, 0.4)",
+      "tetherColor": "rgba(91, 140, 255, 0.25)",
+      "shape": "classic"
+    },
+    {
+      "id": "tactical",
+      "name": "Viper",
+      "trait": "Aggressive",
+      "price": 0,
+      "description": "Aggressive forward-swept fighter jet with high turn speed.",
+      "hitbox": "60%",
+      "turn": "81%",
+      "hitboxScale": 1.2,
+      "turnRate": 1.35,
+      "startingWeapon": "missiles",
+      "tint": "#FF8A94",
+      "svgPath": "M40 24 L12 8 L20 24 L12 40 Z",
+      "hullColor": "#161924",
+      "primaryColor": "#FF8A94",
+      "accentColor": "#ff2a4b",
+      "thrusterColor": "#ff5500",
+      "trailColor": "rgba(255, 138, 148, 0.4)",
+      "tetherColor": "rgba(255, 138, 148, 0.35)",
+      "shape": "viper"
+    },
+    {
+      "id": "singularity",
+      "name": "Phantom",
+      "trait": "Evasive",
+      "price": 0,
+      "description": "Ultra-thin evasive voidcraft with minuscule hitbox to slip past dense swarms.",
+      "hitbox": "20%",
+      "turn": "48%",
+      "hitboxScale": 0.4,
+      "turnRate": 0.8,
+      "startingWeapon": "freeze",
+      "tint": "#A78BFA",
+      "svgPath": "M42 24 L10 12 L22 24 L10 36 Z",
+      "hullColor": "#160826",
+      "primaryColor": "#A78BFA",
+      "accentColor": "#b84dff",
+      "thrusterColor": "#9933ff",
+      "trailColor": "rgba(167, 139, 250, 0.4)",
+      "tetherColor": "rgba(167, 139, 250, 0.35)",
+      "shape": "phantom"
+    },
+    {
+      "id": "solar",
+      "name": "Aegis",
+      "trait": "Heavy",
+      "price": 600,
+      "description": "Heavy reinforced armored chassis with immense presence and slower turn rate.",
+      "hitbox": "95%",
+      "turn": "27%",
+      "hitboxScale": 1.9,
+      "turnRate": 0.45,
+      "startingWeapon": "nuke",
+      "tint": "#FFB14D",
+      "svgPath": "M41 24 L33 9 L17 9 L7 24 L17 39 L33 39 Z",
+      "hullColor": "#ffd700",
+      "primaryColor": "#FFB14D",
+      "accentColor": "#ffffff",
+      "thrusterColor": "#ffaa00",
+      "trailColor": "rgba(255, 177, 77, 0.4)",
+      "tetherColor": "rgba(255, 177, 77, 0.35)",
+      "shape": "solar"
+    },
+    {
+      "id": "cyber",
+      "name": "Matrix",
+      "trait": "Fast cooldown",
+      "price": 800,
+      "description": "Digital diamond vector hull tuned for fast responses and tight maneuvers.",
+      "hitbox": "53%",
+      "turn": "78%",
+      "hitboxScale": 1.05,
+      "turnRate": 1.3,
+      "startingWeapon": "lightning",
+      "tint": "#3DDC97",
+      "svgPath": "M24 6 L40 24 L24 42 L8 24 Z",
+      "hullColor": "#0a1220",
+      "primaryColor": "#3DDC97",
+      "accentColor": "#00ffff",
+      "thrusterColor": "#ff00aa",
+      "trailColor": "rgba(61, 220, 151, 0.4)",
+      "tetherColor": "rgba(61, 220, 151, 0.32)",
+      "shape": "cyber"
+    },
+    {
+      "id": "shuriken",
+      "name": "Shuriken",
+      "trait": "Spin drift",
+      "price": 1000,
+      "description": "Starframe chassis boasting extreme rotational acceleration and spin agility.",
+      "hitbox": "43%",
+      "turn": "96%",
+      "hitboxScale": 0.85,
+      "turnRate": 1.6,
+      "startingWeapon": "laser",
+      "tint": "#8FB0FF",
+      "svgPath": "M24 6 L30 18 L42 24 L30 30 L24 42 L18 30 L6 24 L18 18 Z",
+      "hullColor": "#082014",
+      "primaryColor": "#8FB0FF",
+      "accentColor": "#88ffcc",
+      "thrusterColor": "#5b8cff",
+      "trailColor": "rgba(143, 176, 255, 0.4)",
+      "tetherColor": "rgba(143, 176, 255, 0.35)",
+      "shape": "shuriken"
+    },
+    {
+      "id": "revenant",
+      "name": "Revenant",
+      "trait": "Second wind",
+      "price": 2500,
+      "description": "A ghostly celestial hull reforged from lost light, granting one extra life to rise again.",
+      "hitbox": "68%",
+      "turn": "54%",
+      "hitboxScale": 1.35,
+      "turnRate": 0.9,
+      "startingWeapon": "vortex",
+      "bonusLives": 1,
+      "tint": "#FFB14D",
+      "svgPath": "M40 24 L16 8 L22 24 L16 40 Z",
+      "hullColor": "#f8fafc",
+      "primaryColor": "#FFB14D",
+      "accentColor": "#38bdf8",
+      "thrusterColor": "#38bdf8",
+      "trailColor": "rgba(255, 177, 77, 0.4)",
+      "tetherColor": "rgba(255, 177, 77, 0.35)",
+      "shape": "celestial"
+    }
+  ],
+  "enemy_skin_catalog": [
+    {
+      "id": "classic",
+      "name": "Classic Crimson",
+      "price": 0,
+      "description": "The iconic evil red dots with sinister crimson body and dark pupil.",
+      "glowColor": "rgba(255, 30, 60, 0.35)",
+      "bodyGradient": [
+        "#ff6677",
+        "#ee1133",
+        "#990011"
+      ],
+      "pupilColor": "#110005",
+      "borderColor": "#ff8899"
+    },
+    {
+      "id": "toxic",
+      "name": "Toxic Biohazard",
+      "price": 400,
+      "description": "Radioactive neon-green cellular organisms with bubbling caustic cores.",
+      "glowColor": "rgba(0, 255, 100, 0.35)",
+      "bodyGradient": [
+        "#88ff99",
+        "#11ee44",
+        "#007722"
+      ],
+      "pupilColor": "#021805",
+      "borderColor": "#aaffbb"
+    },
+    {
+      "id": "glitch",
+      "name": "Cyber Glitch",
+      "price": 600,
+      "description": "Polygon wireframe cyber dots flickering between electric cyan and hot magenta.",
+      "glowColor": "rgba(91, 140, 255, 0.4)",
+      "bodyGradient": [
+        "#88ffff",
+        "#00bfff",
+        "#0044aa"
+      ],
+      "pupilColor": "#ff0077",
+      "borderColor": "#5B8CFF"
+    },
+    {
+      "id": "magma",
+      "name": "Molten Magma",
+      "price": 800,
+      "description": "Volcanic burning ember cores encased in cracked obsidian rock.",
+      "glowColor": "rgba(255, 120, 0, 0.4)",
+      "bodyGradient": [
+        "#ffcc00",
+        "#ff5500",
+        "#881100"
+      ],
+      "pupilColor": "#2b0800",
+      "borderColor": "#ffaa33"
+    },
+    {
+      "id": "void",
+      "name": "Abyssal Void",
+      "price": 1000,
+      "description": "Pitch-black shadow orbs surrounded by a pulsating violet event horizon.",
+      "glowColor": "rgba(180, 50, 255, 0.45)",
+      "bodyGradient": [
+        "#9944ff",
+        "#330066",
+        "#080014"
+      ],
+      "pupilColor": "#ffffff",
+      "borderColor": "#cc88ff"
+    },
+    {
+      "id": "gold",
+      "name": "Midas Gold",
+      "price": 1500,
+      "description": "Polished metallic reflective 24K gold spheres with radiant star gleams.",
+      "glowColor": "rgba(255, 215, 0, 0.45)",
+      "bodyGradient": [
+        "#fff6b3",
+        "#FFB14D",
+        "#aa7700"
+      ],
+      "pupilColor": "#442a00",
+      "borderColor": "#fff088"
+    }
+  ],
+  "arena_theme_catalog": [
+    {
+      "id": "void",
+      "name": "Void Vector",
+      "price": 0,
+      "description": "Deep midnight void canvas with classic reactive cyan vector mesh.",
+      "bgGradient": [
+        "#100c1e",
+        "#090712",
+        "#040308"
+      ],
+      "gridColor": "rgba(91, 140, 255, 0.18)",
+      "boundaryColor": "rgba(91, 140, 255, 0.4)",
+      "dustColor": "#5B8CFF"
+    },
+    {
+      "id": "synthwave",
+      "name": "Synthwave Sunset",
+      "price": 400,
+      "description": "Ultraviolet to magenta gradient with electric hot-pink grid lines.",
+      "bgGradient": [
+        "#280838",
+        "#140020",
+        "#08000d"
+      ],
+      "gridColor": "rgba(255, 0, 160, 0.22)",
+      "boundaryColor": "rgba(255, 0, 180, 0.5)",
+      "dustColor": "#ff00aa"
+    },
+    {
+      "id": "nebula",
+      "name": "Cosmic Nebula",
+      "price": 600,
+      "description": "Living deep-space expanse with cobalt-purple stars and drifting violet dust.",
+      "bgGradient": [
+        "#0f1738",
+        "#070b1c",
+        "#02040b"
+      ],
+      "gridColor": "rgba(130, 90, 255, 0.22)",
+      "boundaryColor": "rgba(150, 100, 255, 0.5)",
+      "dustColor": "#aa77ff"
+    },
+    {
+      "id": "matrix",
+      "name": "Matrix Terminal",
+      "price": 800,
+      "description": "Dark circuit-board grid with emerald data pulses and digital matrix ambience.",
+      "bgGradient": [
+        "#041a0d",
+        "#020d06",
+        "#010502"
+      ],
+      "gridColor": "rgba(0, 255, 120, 0.22)",
+      "boundaryColor": "rgba(0, 255, 120, 0.5)",
+      "dustColor": "#00ff88"
+    },
+    {
+      "id": "supernova",
+      "name": "Supernova Furnace",
+      "price": 1000,
+      "description": "Blazing solar core with incandescent amber-orange heatwave grid lines.",
+      "bgGradient": [
+        "#2e0c00",
+        "#140500",
+        "#080200"
+      ],
+      "gridColor": "rgba(255, 130, 0, 0.24)",
+      "boundaryColor": "rgba(255, 140, 0, 0.55)",
+      "dustColor": "#ffaa00"
+    },
+    {
+      "id": "blueprint",
+      "name": "Architectural Blueprint",
+      "price": 1200,
+      "description": "Classic CAD drafting technical navy with crisp white coordinate grid lines.",
+      "bgGradient": [
+        "#0c2848",
+        "#061628",
+        "#020b16"
+      ],
+      "gridColor": "rgba(255, 255, 255, 0.28)",
+      "boundaryColor": "rgba(255, 255, 255, 0.65)",
+      "dustColor": "#ffffff"
+    }
+  ],
+  "perk_cost_curve": [
+    {
+      "rank": 0,
+      "cost": 300
+    },
+    {
+      "rank": 1,
+      "cost": 600
+    },
+    {
+      "rank": 2,
+      "cost": 1100
+    },
+    {
+      "rank": 3,
+      "cost": 1800
+    },
+    {
+      "rank": 4,
+      "cost": 2800
+    },
+    {
+      "rank": 5,
+      "cost": 2800
+    },
+    {
+      "rank": 9,
+      "cost": 2800
+    }
+  ],
+  "keystone_costs": [
+    {
+      "key": "crossBeam",
+      "cost": 3500
+    },
+    {
+      "key": "refractorLance",
+      "cost": 4500
+    },
+    {
+      "key": "falloutZone",
+      "cost": 3000
+    },
+    {
+      "key": "batteringRam",
+      "cost": 3000
+    },
+    {
+      "key": "overchargePulse",
+      "cost": 4500
+    },
+    {
+      "key": "plasmaArc",
+      "cost": 3500
+    },
+    {
+      "key": "superconductor",
+      "cost": 4500
+    },
+    {
+      "key": "shatterCascade",
+      "cost": 2500
+    },
+    {
+      "key": "cryoNova",
+      "cost": 4000
+    },
+    {
+      "key": "clusterSplit",
+      "cost": 2500
+    },
+    {
+      "key": "hyperThrusters",
+      "cost": 4000
+    },
+    {
+      "key": "supernovaCollapse",
+      "cost": 5000
+    },
+    {
+      "key": "chainReaction",
+      "cost": 5000
+    },
+    {
+      "key": "nosuch",
+      "cost": 2500
+    },
+    {
+      "key": "",
+      "cost": 2500
+    }
+  ],
+  "purchasable_ladders": {
+    "extraLives": [
+      4000,
+      9000,
+      null,
+      null,
+      null,
+      null
+    ],
+    "hullCompact": [
+      1500,
+      3000,
+      5500,
+      null,
+      null,
+      null
+    ],
+    "enemySlow": [
+      2000,
+      4200,
+      7500,
+      null,
+      null,
+      null
+    ],
+    "scoreMultiplier": [
+      1800,
+      3600,
+      6500,
+      11000,
+      null,
+      null
+    ],
+    "pointsMultiplier": [
+      2500,
+      5000,
+      9000,
+      15000,
+      null,
+      null
+    ]
+  },
+  "invested_points_at_defaults": {
+    "blackhole": 6700,
+    "nuke": 300,
+    "shield": 0,
+    "missiles": 6600,
+    "laser": 900,
+    "lightning": 0,
+    "freeze": 0
+  },
+  "multipliers_at_defaults": {
+    "startingLives": 1,
+    "hitbox": 1,
+    "enemySpeed": 1,
+    "score": 1,
+    "points": 1
+  },
+  "modes": [
+    {
+      "id": "classic",
+      "name": "Standard",
+      "badge": "1.0×",
+      "tagline": "The full arsenal, ramping swarms.",
+      "description": "The full arsenal, ramping swarms.",
+      "color": "#5B8CFF",
+      "accent": "#8FB0FF",
+      "glow": "rgba(91, 140, 255, 0.35)",
+      "scoreMultiplier": 1
+    },
+    {
+      "id": "gauntlet",
+      "name": "Gauntlet",
+      "badge": "1.25×",
+      "tagline": "Walls close in while you dodge.",
+      "description": "Walls close in while you dodge.",
+      "color": "#FFB14D",
+      "accent": "#FFD277",
+      "glow": "rgba(255, 177, 77, 0.35)",
+      "scoreMultiplier": 1.25
+    },
+    {
+      "id": "code-red",
+      "name": "Code Red",
+      "badge": "1.5×",
+      "tagline": "Double density from the first second.",
+      "description": "Double density from the first second.",
+      "color": "#A78BFA",
+      "accent": "#C4B5FD",
+      "glow": "rgba(167, 139, 250, 0.35)",
+      "scoreMultiplier": 1.5
+    }
+  ],
+  "default_settings": {
+    "mode": "classic",
+    "controlScheme": "hybrid",
+    "sfxEnabled": true,
+    "sfxVolume": 0.8,
+    "musicEnabled": true,
+    "musicVolume": 0.7,
+    "screenShake": "normal",
+    "tetherLine": true,
+    "highContrastHalo": true,
+    "showGridlines": false
+  },
+  "shake_multipliers": [
+    {
+      "screenShake": "off",
+      "multiplier": 0
+    },
+    {
+      "screenShake": "low",
+      "multiplier": 0.5
+    },
+    {
+      "screenShake": "normal",
+      "multiplier": 1
+    },
+    {
+      "screenShake": "extreme",
+      "multiplier": 1.8
+    },
+    {
+      "screenShake": "full",
+      "multiplier": 1
+    },
+    {
+      "screenShake": "bogus",
+      "multiplier": 1
+    }
+  ]
+}
