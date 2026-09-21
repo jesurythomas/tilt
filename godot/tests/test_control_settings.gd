@@ -70,11 +70,12 @@ func test_malformed_json_falls_back_to_defaults() -> void:
 
 	var settings: ControlSettings = ControlSettings.new()
 	assert_almost_eq(settings.tilt_sensitivity, 1.0, 0.0001, "defaults survive a corrupt file")
-	# GUT 9.7 fails a test on unhandled engine errors. Parsing deliberately
-	# malformed JSON raises one by design, so it is asserted rather than
-	# suppressed — the production code stays faithful to the
-	# tilt_input.gd:238-244 precedent it mirrors.
-	assert_engine_error_count(1, "malformed JSON raises one engine error")
+	# M7: _load_settings() now reads through SaveStore.load_dict, which parses
+	# with JSON.new().parse() (no engine error on bad input) and quarantines
+	# the file instead of leaving it in place.
+	var backup: String = SaveStore.corrupt_path_for(ControlSettings.SETTINGS_PATH)
+	assert_true(FileAccess.file_exists(backup), "malformed JSON is quarantined")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(backup))
 
 
 func test_unknown_scheme_value_falls_back_to_a_valid_scheme() -> void:
@@ -91,3 +92,14 @@ func test_unknown_scheme_value_falls_back_to_a_valid_scheme() -> void:
 		),
 		"an out-of-range enum ordinal cannot be stored"
 	)
+
+
+func test_corrupt_settings_file_is_quarantined_and_keeps_defaults() -> void:
+	var file: FileAccess = FileAccess.open(ControlSettings.SETTINGS_PATH, FileAccess.WRITE)
+	file.store_string('"just a string"')
+	file.close()
+	var settings: ControlSettings = ControlSettings.new()
+	assert_almost_eq(settings.tilt_sensitivity, 1.0, 0.0001)
+	var backup: String = SaveStore.corrupt_path_for(ControlSettings.SETTINGS_PATH)
+	assert_true(FileAccess.file_exists(backup))
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(backup))

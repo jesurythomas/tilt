@@ -94,3 +94,14 @@ func test_poll_is_inert_while_not_listening() -> void:
 	var before: Vector2 = _tilt.tilt_vector
 	_tilt.poll()
 	assert_eq(_tilt.tilt_vector, before, "poll() does nothing when not listening")
+
+
+func test_corrupt_calibration_file_is_quarantined_and_keeps_defaults() -> void:
+	var file: FileAccess = FileAccess.open(TiltInput.CALIBRATION_PATH, FileAccess.WRITE)
+	file.store_string("not json at all")
+	file.close()
+	var tilt: TiltInput = TiltInput.new()
+	assert_almost_eq(tilt.calibrated_beta, TiltInput.DEFAULT_CALIBRATED_BETA, 0.0001)
+	var backup: String = SaveStore.corrupt_path_for(TiltInput.CALIBRATION_PATH)
+	assert_true(FileAccess.file_exists(backup))
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(backup))

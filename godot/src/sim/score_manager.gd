@@ -187,39 +187,19 @@ func finalize_game() -> void:
 
 ## Loads best score from persistent storage. PORT: web/src/tilt-to-live/ScoreManager.ts:172-184
 func load_best_score() -> void:
-	# TODO(M7): route through SaveStore (spec §4.6).
 	_load_best_score()
 
 
 func _save_best_score() -> void:
-	var file: FileAccess = FileAccess.open(BEST_SCORE_PATH, FileAccess.WRITE)
-	if file == null:
-		Log.warn("ScoreManager: failed to open %s for write" % BEST_SCORE_PATH)
-		return
-	var data: Dictionary = {"bestScore": stats.best_score}
-	file.store_string(JSON.stringify(data))
-	file.close()
+	# PORT-NOTE: ScoreManager.ts:161 stores the bare integer string under
+	# 'tilt_to_live_best'; M2 chose the {"bestScore": n} object so every
+	# user:// file is a JSON object. Shape unchanged here; the I/O moves to
+	# SaveStore per spec §4.6.
+	SaveStore.save_dict(BEST_SCORE_PATH, {"bestScore": stats.best_score})
 
 
 func _load_best_score() -> void:
-	if not FileAccess.file_exists(BEST_SCORE_PATH):
-		stats.best_score = 0
-		return
-	var file: FileAccess = FileAccess.open(BEST_SCORE_PATH, FileAccess.READ)
-	if file == null:
-		stats.best_score = 0
-		return
-	var text: String = file.get_as_text()
-	file.close()
-	var json: JSON = JSON.new()
-	var err: Error = json.parse(text)
-	if err != OK or not (json.data is Dictionary):
-		stats.best_score = 0
-		return
-	var dict: Dictionary = json.data
-	if dict.has("bestScore") and (dict["bestScore"] is int or dict["bestScore"] is float):
-		# PORT-NOTE: dict["bestScore"] is Variant from JSON parse; int() requires suppression.
-		@warning_ignore("unsafe_call_argument")
-		stats.best_score = int(dict["bestScore"])
-	else:
-		stats.best_score = 0
+	var data: Dictionary = SaveStore.load_dict(BEST_SCORE_PATH)
+	var parsed: int = SaveStore.read_int(data, "bestScore", 0)
+	# PORT: web/src/tilt-to-live/ScoreManager.ts:177 (Number.isFinite && >= 0)
+	stats.best_score = parsed if parsed >= 0 else 0

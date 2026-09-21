@@ -8,8 +8,8 @@ extends RefCounted
 ## control scheme at construction and GyroscopeController.ts exposes no
 ## sensitivity. Both are M2.5 divergences, authorised by spec §4.1 and §5.4.
 ##
-# TODO(M7): fold into meta/save_store.gd alongside tilt_gyro_calibration.json
-# and tilt_to_live_best.json, per M2.5 spec D7.
+# Persisted through SaveStore alongside tilt_gyro_calibration.json and
+# tilt_to_live_best.json, per M2.5 spec D7.
 
 ## Where the settings are persisted.
 const SETTINGS_PATH: String = "user://peril_point_settings.json"
@@ -36,64 +36,37 @@ func _init() -> void:
 
 ## Persists the current settings to SETTINGS_PATH as JSON.
 func save_settings() -> void:
-	var file: FileAccess = FileAccess.open(SETTINGS_PATH, FileAccess.WRITE)
-	if file == null:
-		Log.warn("control settings could not be written to %s" % SETTINGS_PATH)
-		return
 	(
-		file
-		. store_string(
-			(
-				JSON
-				. stringify(
-					{
-						"scheme": int(scheme),
-						"tilt_sensitivity": tilt_sensitivity,
-						"tilt_smoothing": tilt_smoothing,
-					}
-				)
-			)
+		SaveStore
+		. save_dict(
+			SETTINGS_PATH,
+			{
+				"scheme": int(scheme),
+				"tilt_sensitivity": tilt_sensitivity,
+				"tilt_smoothing": tilt_smoothing,
+			}
 		)
 	)
-	file.close()
 
 
-# Mirrors the defensive JSON handling in tilt_input.gd:229-253: an unreadable
-# or wrongly-typed value warns and keeps the default rather than crashing.
+# An unreadable or wrongly-typed value keeps the default rather than crashing;
+# a file that is not a JSON object is quarantined by SaveStore.
 func _load_settings() -> void:
-	if not FileAccess.file_exists(SETTINGS_PATH):
+	var data: Dictionary = SaveStore.load_dict(SETTINGS_PATH)
+	if data.is_empty():
 		return
-	var file: FileAccess = FileAccess.open(SETTINGS_PATH, FileAccess.READ)
-	if file == null:
-		return
-	var raw: String = file.get_as_text()
-	file.close()
 
-	# PORT-NOTE: Variant is unavoidable for unvalidated JSON (CONVENTIONS §4).
-	var parsed: Variant = JSON.parse_string(raw)
-	if not (parsed is Dictionary):
-		Log.warn("control settings are not a JSON object; keeping defaults")
-		return
-	var data: Dictionary = parsed
+	var ordinal: int = SaveStore.read_int(data, "scheme", int(scheme))
+	if ordinal >= Types.ControlScheme.HYBRID and ordinal <= Types.ControlScheme.GYRO:
+		scheme = ordinal
+	else:
+		Log.warn("control settings carry an unknown scheme %d; keeping default" % ordinal)
 
-	var scheme_value: Variant = data.get("scheme")
-	if scheme_value is float:
-		# PORT-NOTE: safe because we checked isinstance(scheme_value, float) above
-		@warning_ignore("unsafe_cast")
-		var ordinal: int = int(scheme_value as float)
-		if ordinal >= Types.ControlScheme.HYBRID and ordinal <= Types.ControlScheme.GYRO:
-			scheme = ordinal
-		else:
-			Log.warn("control settings carry an unknown scheme %d; keeping default" % ordinal)
-
-	var sensitivity_value: Variant = data.get("tilt_sensitivity")
-	if sensitivity_value is float:
-		# PORT-NOTE: safe because we checked isinstance(sensitivity_value, float) above
-		@warning_ignore("unsafe_cast")
-		tilt_sensitivity = clampf(sensitivity_value as float, MIN_SENSITIVITY, MAX_SENSITIVITY)
-
-	var smoothing_value: Variant = data.get("tilt_smoothing")
-	if smoothing_value is float:
-		# PORT-NOTE: safe because we checked isinstance(smoothing_value, float) above
-		@warning_ignore("unsafe_cast")
-		tilt_smoothing = clampf(smoothing_value as float, MIN_SMOOTHING, MAX_SMOOTHING)
+	tilt_sensitivity = clampf(
+		SaveStore.read_float(data, "tilt_sensitivity", tilt_sensitivity),
+		MIN_SENSITIVITY,
+		MAX_SENSITIVITY
+	)
+	tilt_smoothing = clampf(
+		SaveStore.read_float(data, "tilt_smoothing", tilt_smoothing), MIN_SMOOTHING, MAX_SMOOTHING
+	)

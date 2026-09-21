@@ -106,3 +106,14 @@ func test_finalize_game_updates_and_saves_best_score() -> void:
 
 	var sm2: ScoreManager = ScoreManager.new()
 	assert_eq(sm2.stats.best_score, 1200, "best score persisted and reloaded")
+
+
+func test_corrupt_best_score_file_is_quarantined_and_reads_as_zero() -> void:
+	var file: FileAccess = FileAccess.open(ScoreManager.BEST_SCORE_PATH, FileAccess.WRITE)
+	file.store_string("{{{")
+	file.close()
+	var sm: ScoreManager = ScoreManager.new()
+	assert_eq(sm.stats.best_score, 0, "spec §6.4: defaults, never a crash")
+	var backup: String = SaveStore.corrupt_path_for(ScoreManager.BEST_SCORE_PATH)
+	assert_true(FileAccess.file_exists(backup), "the bad file is kept as a backup")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(backup))

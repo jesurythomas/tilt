@@ -16,8 +16,7 @@ enum PermissionState { UNKNOWN, GRANTED, DENIED }
 
 # PORT-NOTE: web/src/tilt-to-live/GyroscopeController.ts:39 uses the
 # localStorage key `tilt_gyro_calibration`, a fourth key spec §2.2 does not
-# list. Same JSON shape, written straight to user:// for now.
-# TODO(M7): route this through meta/save_store.gd once it exists.
+# list. Same JSON shape, persisted through SaveStore (spec §4.6 amendment).
 ## Where the calibrated neutral pose is persisted.
 const CALIBRATION_PATH: String = "user://tilt_gyro_calibration.json"
 
@@ -79,32 +78,22 @@ func _init() -> void:
 ## Persists the calibrated pose to CALIBRATION_PATH as JSON.
 ## PORT: web/src/tilt-to-live/GyroscopeController.ts:48-55
 func save_calibration() -> void:
-	var file: FileAccess = FileAccess.open(CALIBRATION_PATH, FileAccess.WRITE)
 	# PORT-NOTE: web/src/tilt-to-live/GyroscopeController.ts:49-54 swallows this
-	# failure in a try/catch; a warning is logged here deliberately because a
-	# silently ignored calibration file is undiagnosable on device.
-	if file == null:
-		Log.warn("tilt calibration could not be written to %s" % CALIBRATION_PATH)
-		return
+	# failure in a try/catch; SaveStore warns instead, because a silently
+	# ignored calibration file is undiagnosable on device.
 	(
-		file
-		. store_string(
-			(
-				JSON
-				. stringify(
-					{
-						"beta": calibrated_beta,
-						"gamma": calibrated_gamma,
-						# DIVERGENCE(M2.5 §5.2): added key; M2 files without it load
-						# as calibration-pending rather than using a stale pose.
-						"gravity":
-						[_calibrated_gravity.x, _calibrated_gravity.y, _calibrated_gravity.z],
-					}
-				)
-			)
+		SaveStore
+		. save_dict(
+			CALIBRATION_PATH,
+			{
+				"beta": calibrated_beta,
+				"gamma": calibrated_gamma,
+				# DIVERGENCE(M2.5 §5.2): added key; M2 files without it load
+				# as calibration-pending rather than using a stale pose.
+				"gravity": [_calibrated_gravity.x, _calibrated_gravity.y, _calibrated_gravity.z],
+			}
 		)
 	)
-	file.close()
 
 
 ## Grants permission (Android has no runtime prompt) and starts listening.
@@ -359,22 +348,9 @@ func _screen_angle_degrees() -> int:
 ## Loads a previously saved calibration from CALIBRATION_PATH, if present.
 ## PORT: web/src/tilt-to-live/GyroscopeController.ts:37-46
 func _load_calibration() -> void:
-	if not FileAccess.file_exists(CALIBRATION_PATH):
+	var data: Dictionary = SaveStore.load_dict(CALIBRATION_PATH)
+	if data.is_empty():
 		return
-	var file: FileAccess = FileAccess.open(CALIBRATION_PATH, FileAccess.READ)
-	if file == null:
-		return
-	var raw: String = file.get_as_text()
-	file.close()
-	# PORT-NOTE: Variant is unavoidable for unvalidated JSON (CONVENTIONS §4).
-	var parsed: Variant = JSON.parse_string(raw)
-	# PORT-NOTE: web/src/tilt-to-live/GyroscopeController.ts:38-45 swallows this
-	# failure in a try/catch; a warning is logged here deliberately because a
-	# silently ignored calibration file is undiagnosable on device.
-	if not (parsed is Dictionary):
-		Log.warn("tilt calibration is not a JSON object; keeping defaults")
-		return
-	var data: Dictionary = parsed
 	# PORT-NOTE: mirrors `typeof parsed.beta === 'number'`
 	# (web/src/tilt-to-live/GyroscopeController.ts:42-43); `is float` rejects a
 	# string value the way the TS typeof check does, unlike has() + float().
