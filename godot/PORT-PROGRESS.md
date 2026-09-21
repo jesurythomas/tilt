@@ -136,9 +136,42 @@ Dependency map and resume instructions:
       -- music plays and evolves across bars
       -- no dropouts over a 5-minute device run
 
-- [ ] **M7 — Persistence and economy**  deps: M2
-      -- GUT specs pass for perk cost curve, every buy_* method, all multipliers
-      -- saves survive restart; a corrupted file falls back and is backed up
+- [ ] **M7 — Persistence and economy**  deps: M2   *(code complete 2026-09-21, head `dba9126`; DEVICE PASS PENDING)*
+      plan  `docs/superpowers/plans/2026-09-20-m7-persistence-and-economy.md`
+      **tick this box only after `godot/VERIFY-ME.md` §M7 is run on the A55**
+      ok  `meta/save_store.gd` — the shared `user://` read/write/quarantine
+          layer; corrupt-file quarantine proven in four specs (the store
+          itself, best score, gravity calibration, control settings).
+      ok  `meta/progression_manager.gd` — full port of `ProgressionManager.ts`
+          minus its two SVG-string methods (`getCursorSvgDataUri`,
+          `getShipSvgPreview`, open question 1); member table reconciled in
+          Task 6 Step 4: 40 real TS methods = 38 ported + 2 deliberately not;
+          GDScript has 46 funcs = 38 + `_init` + 7 GDScript-only catalog/union
+          helpers.
+      ok  parity fixture `tests/fixtures/progression.json` (~330 literals) green.
+      ok  perk cost curve, all five `buy_*` + `upgrade_perk` + the three
+          catalog `buy_*`, and the four multipliers proven headless (spec
+          acceptance line 1).
+      ok  save round trip through a fresh `ProgressionManager` instance (spec
+          acceptance line 2).
+      ok  corrupt-file fallback with backup (spec acceptance line 3).
+      ok  `meta/game_options.gd` — settings save/load with the web shape.
+      ok  `sim/coin_system.gd` — full port at frame-order step 7; coins draw
+          under the orbs.
+      ok  `RunController` reads lives, hitbox, speed, score/points multipliers
+          and the equipped ship's starting weapon from the save at run reset.
+      ok  40/40 GUT scripts (301 tests, 3876 asserts); gdformat 70 files
+          unchanged; gdlint clean; `--check-only` on the four M7 files is
+          inconclusive (autoloads `Log`/`GameEvents` are not loaded in that
+          mode — `Identifier not found` on both, as the brief warned); the
+          full suite compiling every file under the nine warnings-as-errors
+          is the actual compile evidence, and it is clean.
+      ok  69 `DIVERGENCE` tags (was 67 at Task 1; the two new hits are prose
+          references to the M2.5 control-scheme divergence in
+          `game_options.gd` and `input_router.gd`, not new divergences).
+      --  A55 absent from `adb` on 2026-09-21 — device pass pending. Headless
+          `--quit-after 120` clean at `fc19300`, 0 SCRIPT ERROR; debug APK
+          exports 30,431,782 bytes. See `VERIFY-ME.md` §M7.
 
 - [ ] **M8 — Armory UI**  deps: M7
       -- all 5 tabs render and operate on device within the landscape safe area

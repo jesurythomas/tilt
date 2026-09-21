@@ -70,7 +70,7 @@ Copied verbatim from the spec and `CONVENTIONS.md`. Every task in every module p
 | 4 | Weapons (6 remaining) | M2 | `2026-09-20-m4-weapons.md` | **code complete** — device pass pending (`godot/VERIFY-ME.md`) |
 | 5 | Audio bake + SFX | M2 | not yet written | — |
 | 6 | Generative music sequencer | M5 | not yet written | — |
-| 7 | Persistence and economy | M2 | `2026-09-20-m7-persistence-and-economy.md` | **planned** — not started |
+| 7 | Persistence and economy | M2 | `2026-09-20-m7-persistence-and-economy.md` | **code complete** — device pass pending (`godot/VERIFY-ME.md`) |
 | 8 | Armory UI | M7 | not yet written | — |
 | 9 | Milestones | M7 | not yet written | — |
 | 10 | Modes (code-red, gauntlet) | M3 | not yet written | — |

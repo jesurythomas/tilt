@@ -4,25 +4,29 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-Last completed module: **M2 — Vertical slice** (2026-09-20).
+Last completed module: **M7 — Persistence and economy**, code-complete
+2026-09-21 (head `dba9126`; this exit pass adds `ae4a364`).
 Code-complete, **device pass pending** (none ticked in `PORT-PROGRESS.md`):
 **M2.5 — Mobile feel** (head `37f9fd4` + the user's tuning `c023e09`),
-**M3 — Enemy roster** (head `5bb5cc9`), **M4 — Weapons** (head `0b7fccf`).
+**M3 — Enemy roster** (head `5bb5cc9`), **M4 — Weapons** (head `0b7fccf`),
+**M7 — Persistence and economy** (head `dba9126`).
 Nothing since M2 has run on a phone: the A55 dropped off adb on 2026-09-20 and
 did not return; the user then ran their own pass and committed tuning as
-`c023e09` (gyro feel + FPS under mass explosions).
+`c023e09` (gyro feel + FPS under mass explosions). It was **still absent from
+adb on 2026-09-21** during M7.
 Also landed after M4: **HUD score feedback** (`9cc3e8f..31bf2ce`, spec
 `docs/superpowers/specs/2026-09-21-hud-score-feedback-design.md`) — kill-site
 callouts removed; the score pulses in a multiplier-tier colour instead.
-Next module: **M7 — Persistence and economy** — **planned 2026-09-21, not
-started**; see `## Next` at the end of this file. M5 (audio) is the alternative;
-both may start before the device passes.
+Next module: **M8 (Armory UI)** or **M5 (audio)** — both now open; see
+`## Next` at the end of this file.
 Branch: `feat/godot-port` (no upstream; nothing pushed).
 
 > ### ⚠ Read `godot/VERIFY-ME.md`
 > Every check that needs a hand on the phone or a decision from the user is
 > collected there, per module. M2.5's constants are all provisional until its
-> section is run. M3 appends its own section.
+> section is run. M3, M4 and M7 each append their own section; **M7's four
+> device checks (starting orb, coins, save restart, corrupt-save fallback,
+> calibration/scheme persistence, frame time) are unrun.**
 
 ## How to verify right now
 
@@ -30,15 +34,25 @@ Branch: `feat/godot-port` (no upstream; nothing pushed).
 cd /c/Users/Jesury/Documents/Personal/dread-flock
 GODOT="/c/Users/Jesury/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe"
 
-tools/run_tests.sh                        # expect: OK: 33/33 scripts (225 tests)
-gdformat --check godot/src godot/tests    # expect: 60 files would be left unchanged
+tools/run_tests.sh                        # expect: OK: 40/40 scripts (301 tests, 3876 asserts)
+gdformat --check godot/src godot/tests    # expect: 70 files would be left unchanged
 gdlint godot/src godot/tests              # expect: Success: no problems found
-grep -rn "DIVERGENCE" godot/src/ | wc -l  # expect: 67
+grep -rn "DIVERGENCE" godot/src/ | wc -l  # expect: 69
 "$GODOT" --headless --path godot --quit-after 120   # expect: exit 0, no SCRIPT ERROR
 git checkout godot/project.godot          # headless runs strip one default-valued line; never commit that
 ```
 
-Every command above was run fresh at `31bf2ce` and passed. `grep -rn "TODO(M3)\|TODO(M4)" godot/src/` is empty.
+Every command above was run fresh at `ae4a364` (M7 head `dba9126` + this exit
+pass's one-line citation fix) and passed. `grep -rn "TODO(M3)\|TODO(M4)\|TODO(M7)" godot/src/` is empty.
+
+`--check-only -s` on `src/meta/progression_manager.gd`, `game_options.gd`,
+`save_store.gd`, `sim/coin_system.gd` each fail with `Identifier not found:
+Log` or `GameEvents` — **expected and inconclusive**: `--check-only` does not
+load autoloads, so any file that calls `Log.*` or `GameEvents.*` at class
+scope fails this check regardless of correctness. The real compile evidence
+is `tools/run_tests.sh` passing: it compiles every script under the project's
+nine warnings-as-errors. Don't read a `--check-only` failure on these four
+files as a regression.
 
 ## App identity and toolchain
 
@@ -229,28 +243,166 @@ it. `game_state_machine.gd:121` `TODO(M2): setModeMultiplier` is really M10's;
 `:151` `TODO(M2): updateHUD` is done by `GameEvents` signals — both stale.
 `weapons.update` gets its 10th argument (active mode) in M8/M10 (`TODO(M8)`).
 
-## Next: execute the M7 plan
+## M7 — what landed
 
-**M7 is planned, not started.** The plan is
-`docs/superpowers/plans/2026-09-20-m7-persistence-and-economy.md` (11 tasks,
-written 2026-09-21 at `43db28d` from `ProgressionManager.ts`, `GameOptions.ts`,
-`CoinSystem.ts`, `WeaponTuning.ts` and the `TiltGame.ts` call sites, all read
-in full). Nothing under `godot/` changed for M7 yet.
+Plan `docs/superpowers/plans/2026-09-20-m7-persistence-and-economy.md` (11
+tasks); ledger `.superpowers/sdd/2026-09-20-m7-persistence-and-economy/`
+(rulings summarised below). 14 commits, `66e4ceb..dba9126`, plus this exit
+pass's one-line citation fix `ae4a364`.
 
-Literal first step: `git status --short` must be clean under `godot/` (the
-plan's Precondition — the user may leave device tuning uncommitted; never stash
-or revert it), then create the ledger
-`.superpowers/sdd/2026-09-20-m7-persistence-and-economy/progress.md` in the M4
-ledger's shape and dispatch **Task 1 (`SaveStore`)** per
-superpowers:subagent-driven-development. Every dispatch restates the commit
-rule (one line, `M7:` prefix, no trailers) and requires `git log -1 --format=%B`
-pasted back.
+| Area | Files |
+|---|---|
+| Shared `user://` read/write/quarantine layer, used by everything below | `src/meta/save_store.gd` |
+| Full `ProgressionManager.ts` port minus 2 SVG methods (OQ 1) | `src/meta/progression_manager.gd` (~1,200 lines; `gdlint:disable=max-public-methods,max-file-lines` at line 1; a `max-returns,no-elif-return` disable/enable region around `upgrade_perk` only) |
+| Settings save/load, web shape | `src/meta/game_options.gd` |
+| Full `CoinSystem.ts` port, coins drawn under orbs | `src/sim/coin_system.gd`, `src/render/entity_layer.gd` (spec §5.5) |
+| Run reads lives, hitbox, speed, score/points multipliers, equipped ship's starting weapon from the save at reset | `src/sim/run_controller.gd` |
+| Tests | `tests/test_save_store.gd`, `test_progression_*.gd` (records/catalogs/defaults, economy, catalogs), `test_game_options.gd`, `test_coin_system.gd`, `tests/fixtures/progression.json` (~330-literal parity fixture); additions to `test_control_settings.gd`, `test_run_controller.gd` |
 
-Decisions the plan takes that the user may want to overrule before Task 1
-(its "Open questions" section, nine items) — the three with a visible effect:
-the starting orb becomes the equipped ship's weapon, i.e. a **shield** for the
-default ship instead of M2's nuke (OQ 3); the two SVG-string methods of
-`ProgressionManager.ts` are not ported (OQ 1); the render `TODO(M7)` tags for
-ship shapes, enemy skins and arena themes are retagged `TODO(M8)` (OQ 4).
+**Nine Open questions, each carried verbatim with its ruling taken (all on
+the plan's *recommended* reading):**
 
-M5 (audio) remains open and independent; it can be taken instead.
+1. *`getCursorSvgDataUri`/`getShipSvgPreview` are not ported* — `ProgressionManager.ts:802-939`
+   return SVG markup with no Godot consumer (Android has no pointer; M8's
+   Armory will draw a preview with `_draw` or a texture). **Ruling:** not
+   ported; named with line ranges and `TODO(M8)` in the file header; counted
+   as the two deliberate omissions in the Task 6 member reconciliation.
+2. *`upgradePerk`/`getWeaponInvestedPoints` index perks by string* — CONVENTIONS
+   §6 forbids `get("prop")`/`set("prop")`, but the TS's
+   `(this.data.perks as any)[weapon][perkName]` is exactly the dictionary view
+   the save shape needs. **Ruling:** routed through `WeaponPerks.to_dict()`/
+   `from_dict()`, no reflection; `upgrade_perk` takes the TS key spellings
+   (`"crossBeam"`) — **M8 calls it the same way.**
+3. *Starting orb changes from nuke to shield* — `TiltGame.ts:1965` spawns
+   `getEquippedShip().startingWeapon`; the default ship's is `'shield'`.
+   **Ruling:** ported; the device pass judges the visible effect (VERIFY-ME
+   §M7 item 1) — reverting is a one-line change if the user prefers the nuke.
+4. *Retag the render `TODO(M7)`s to `TODO(M8)`* — `entity_layer.gd:13`/`:174`
+   and `grid_layer.gd:93` were tagged M7 on the old assumption "M7 = skins";
+   spec §8 M7 delivers catalogs only, and nothing can equip alternates until
+   M8's Armory exists. **Ruling:** retagged to `TODO(M8)`, each naming the
+   catalog getter to read.
+5. *`GameOptions.controlScheme` vs. `ControlSettings.scheme`* — two sources of
+   truth would be a defect. **Ruling:** `GameOptionsManager` ports
+   `controlScheme` for save-shape fidelity only; nothing reads it;
+   `ControlSettings` (M2.5) stays the live source; `input_router.gd`'s comment
+   is now a `PORT-NOTE` saying exactly that.
+6. *Where `points_changed` is emitted* — `GameEvents.points_changed` existed
+   with no emitter. **Ruling:** emitted from `add_points_credited` only (the
+   one place the TS notifies anything); **M8's Armory reads `data.points`
+   directly after its own purchases**, as `ArmoryUI.ts` does.
+7. *Saving the mode multiplier on `reset_run`* — `TiltGame.ts:1548` calls
+   `options.setMode(mode)` (which saves) before reading the mode config;
+   `RunController.reset_run` takes no mode (M10 owns modes). **Ruling:**
+   `RunController` reads `options.settings.mode` directly and ports
+   `:1549-1551`; `setMode` stays with `GameStateMachine`'s existing M10
+   marker. Consequence: a boot does not create `tilt_to_live_settings_v1.json`
+   until something calls `set_mode` or `save()`.
+8. *`SteeringTuning.deadzone` as float* — TS types it `number` (default `4`);
+   both sides parse to the same value either way. **Ruling:** kept float (it
+   is compared against a float distance and set from a slider); a
+   `PORT-NOTE` records it.
+9. *Non-object JSON is quarantined, not merged* — the TS would spread a
+   parsed number/array into the defaults and silently produce defaults; spec
+   §6.4 wants corrupt saves moved aside. **Ruling:** `SaveStore` treats
+   "parses but is not an object" as corrupt — **one step stricter than the
+   TS**, on purpose; the evidence is worth more than a silent default.
+
+**Three representation decisions M8 and M9 read directly** (also OQ 2, 6, and
+the mode-config signature): **(a)** perks are edited by TS spelling through
+`upgrade_perk("laser", "crossBeam")`, and the keystone key doubles as the
+`Tuning.KEYSTONE_COSTS` key; **(b)** every `get_*_cost()` returns
+`Types.ABSENT` for the TS `null`; **(c)** `GameOptionsManager.get_mode_config(mode)`
+takes the mode explicitly rather than reading it internally.
+
+**Other facts M8/M9 need:** `RunController.perks` no longer exists — ranks
+live on `progression.data.perks`. The starting orb is the equipped ship's
+weapon (shield for the default/classic ship, OQ 3). `# TODO(M8)` tags:
+`entity_layer.gd` (six ship hull shapes, enemy skin colours),
+`grid_layer.gd` (arena theme override) — retagged per OQ 4. `# TODO(M10)` at
+the two `options.settings.mode` reads in `run_controller.gd` (one now cites
+`TiltGame.ts:1547` for `reset_run`'s own read, `:1931` for `update()`'s) and
+the weapons `update()` call's tenth argument. `# TODO(M11)` for the
+game-over coin summary (`coins.coins_collected`, `coins.points_from_coins`).
+`# TODO(M9)` for `missilesFired` (carried from M4).
+
+**Member reconciliation (Task 6):** `ProgressionManager.ts` has 40 real
+methods — 38 ported, 2 deliberately not (OQ 1). GDScript has 46 funcs = 38 +
+`_init` + 7 GDScript-only helpers (`_unique_union`, `_find_ship`/
+`_find_enemy_skin`/`_find_arena_theme`, `_build_ship_catalog`/
+`_build_enemy_skin_catalog`/`_build_arena_theme_catalog`).
+
+**Rulings taken during execution, beyond the plan's nine (found by
+implementers stopping to ask — three more plan defects, see Process
+lessons):**
+- `SaveStore.load_dict` uses `JSON.new().parse()`, not `JSON.parse_string` —
+  the latter logs an engine error that GUT counts as a test failure even when
+  the caller handles the parse error correctly.
+- `ShipSkinConfig.trait` renamed `trait_text` — `trait` is a Godot 4.7
+  reserved word; the save/fixture JSON key stays `"trait"`.
+- An `is`-narrowed `Variant` does not narrow for call arguments — bind a
+  typed local first.
+- `# gdlint:ignore=` covers only the next line; a body-level exemption
+  (`upgrade_perk`'s `max-returns`/`no-elif-return`) needs a `disable`/`enable`
+  region instead. The final review overturned the controller's original
+  ruling (a file-wide lint disable) by verifying gdtoolkit actually supports
+  region-scoped disables — **reviewers should verify tool claims, not accept
+  them.**
+- The pre-existing `test_malformed_json_falls_back_to_defaults` spec was
+  rewritten to assert quarantine (it previously asserted silent-merge
+  behaviour that OQ 9's ruling supersedes).
+
+**Device evidence:** headless `--quit-after 120` clean (0 SCRIPT ERROR) at
+`fc19300`; debug APK exports 30,431,782 bytes. **A55 absent from `adb` on
+2026-09-21** — no install, launch, or on-device check happened. `VERIFY-ME.md`
+§M7 (appended at `64c6f67`) has five device checks unrun: starting-orb colour,
+coin appearance/fade/pickup/draw-order, save-survives-restart, corrupt-save
+fallback-and-backup, and frame time with six coins + a vortex live.
+`PORT-PROGRESS.md`'s M7 box stays **unticked**, `DEVICE PASS PENDING`, same as
+M2.5/M3/M4.
+
+**Accepted gaps (deferred minors from reviews):** coin-draw spec is
+smoke-only (same class as M2.5's render smoke tests); `gdformat` wraps
+`SaveStore.save_dict` calls into parenthesised dot-chains; two catalog
+description strings under 100 chars got parenthesised by `gdformat`;
+always-free id literals are duplicated between `load_data` and
+`_get_default_data`, as the TS duplicates them; catalog-spec reason strings
+cite bare `:NNN` line numbers; `showGridlines` relies on its `= false`
+default to match the TS's `=== true` check; `update()` re-looks-up
+`get_mode_config` every frame, as the TS does; `player_ship.gd` got a
+comment-only edit even though the plan's file table said "not modified".
+
+## Process lessons carried forward (M7 addition)
+
+- **Implementers stopping to ask found three more plan defects this module**
+  (`JSON.parse_string` logging on parse failure, `trait` being a reserved
+  word, `Variant` not narrowing for call arguments) — **eleven such defects
+  across five modules now.** Treat a failing brief-specified test as evidence
+  the brief may be wrong, and say so rather than working around it silently.
+- The final review overturned a controller ruling (a file-wide gdlint
+  disable) by actually checking whether gdtoolkit supports region-scoped
+  disables instead of accepting the claim. Reviewers verify tool claims.
+
+## Next: M8 (Armory UI) or M5 (audio) — both now open
+
+Spec §8 lists **M5** (deps M2), **M8** and **M9** (deps M7) as open; M8 and M9
+became available with this module. Both M5 and M8 may start before the
+device pass. Recommended: whichever the user prefers; both are ready.
+
+**M5's literal first step:** read spec §8 Module 5 and
+`web/src/tilt-to-live/TiltAudio.ts` in full, then write
+`docs/superpowers/plans/2026-09-20-m5-audio-bake-and-sfx.md`;
+`audio/audio_bank.gd` is the M2 null-object stub every sim system already
+calls.
+
+**M8's literal first step:** read spec §8 Module 8 and
+`web/src/tilt-to-live/ArmoryUI.ts` (1,293 lines) in full, then write
+`docs/superpowers/plans/2026-09-20-m8-armory-ui.md`; every purchase it needs
+is a `ProgressionManager` method proven in `tests/test_progression_economy.gd`
+and `test_progression_catalogs.gd`, and the `WeaponTuning.ts:56`
+`freeze.duration.max = 8.2` vs. `8.0` discrepancy M4 flagged is the Armory's
+to display.
+
+Before either: `git status --short` must be clean under `godot/` (the user
+may leave device tuning uncommitted — never stash or revert it), and read
+`godot/VERIFY-ME.md` for the outstanding M2.5/M3/M4/M7 device checks.
