@@ -217,3 +217,31 @@ func test_layers_draw_every_weapon_fx_and_every_orb_glyph_without_error() -> voi
 	effect.queue_redraw()
 	await wait_frames(2)
 	assert_eq(weapons.orbs.size(), 7, "drawing consumes nothing")
+
+
+func test_entity_layer_draws_coins_without_error() -> void:
+	var layer: EntityLayer = EntityLayer.new()
+	add_child_autofree(layer)
+	var player: PlayerShip = PlayerShip.new(100.0, 100.0)
+	var coins: CoinSystem = CoinSystem.new()
+	var fresh: CoinSystem.CoinPickup = CoinSystem.CoinPickup.new()
+	fresh.id = 1
+	fresh.x = 200.0
+	fresh.y = 150.0
+	fresh.radius = CoinSystem.COIN_RADIUS
+	fresh.lifetime = 10.0
+	fresh.max_lifetime = CoinSystem.COIN_LIFETIME
+	var fading: CoinSystem.CoinPickup = CoinSystem.CoinPickup.new()
+	fading.id = 2
+	fading.x = 300.0
+	fading.y = 150.0
+	fading.radius = CoinSystem.COIN_RADIUS
+	fading.lifetime = 1.0
+	fading.max_lifetime = CoinSystem.COIN_LIFETIME
+	coins.coins.append(fresh)
+	coins.coins.append(fading)
+	layer.bind_entities(player, EnemySwarm.new(), WeaponSystem.new(), coins)
+	layer.set_elapsed(1.5)
+	layer.queue_redraw()
+	await get_tree().process_frame
+	assert_true(true, "two coins, one inside FADE_WARNING_TIME, drew without a script error")

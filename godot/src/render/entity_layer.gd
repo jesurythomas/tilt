@@ -8,9 +8,10 @@ extends Node2D
 ## Middle render layer. Draws weapon orbs, active weapons, enemies, and player ship.
 ##
 ## PORT-NOTE: PlayerShip.ts:359-592 branches over six alternate ship shapes
-## driven by the equipped ShipSkinConfig. Ship skins are M7/M8, so M1/M2 draws the
-## default classic arrow (PlayerShip.ts:594-617) alone.
-## TODO(M7): the viper, phantom, solar, cyber, shuriken and celestial shapes.
+## driven by the equipped ShipSkinConfig. The catalog is
+## ProgressionManager.ship_catalog (M7); nothing can equip another ship until
+## the Armory (M8), so only the classic arrow (PlayerShip.ts:594-617) is drawn.
+## TODO(M8): the viper, phantom, solar, cyber, shuriken and celestial shapes.
 
 ## PORT: web/src/tilt-to-live/PlayerShip.ts:284-292 (the classic skin defaults)
 const HULL_COLOR: Color = Color("#ffffff")
@@ -28,6 +29,8 @@ var _player: PlayerShip = null
 var _swarm: EnemySwarm = null
 ## The weapon system this layer draws. Null until bind_entities() is called.
 var _weapons: WeaponSystem = null
+## The coin system this layer draws. Null until bind_entities() is called.
+var _coins: CoinSystem = null
 ## Run clock in seconds, driving the pulsing shield and thruster flicker.
 var _elapsed: float = 0.0
 ## Outer high contrast halo toggle. PORT: web/src/tilt-to-live/EnemySwarm.ts:1558
@@ -40,6 +43,7 @@ var _arena_origin: Vector2 = Vector2.ZERO
 
 func _draw() -> void:
 	draw_set_transform(_arena_origin, 0.0, Vector2.ONE)
+	_draw_coins()
 	_draw_weapons()
 	_draw_enemies()
 	_draw_player()
@@ -53,11 +57,15 @@ func bind(player: PlayerShip) -> void:
 
 ## Gives this layer all entity systems it draws. Called by GameRoot.
 func bind_entities(
-	player: PlayerShip, swarm: EnemySwarm = null, weapons: WeaponSystem = null
+	player: PlayerShip,
+	swarm: EnemySwarm = null,
+	weapons: WeaponSystem = null,
+	coins: CoinSystem = null
 ) -> void:
 	_player = player
 	_swarm = swarm
 	_weapons = weapons
+	_coins = coins
 
 
 ## Run clock, for the pulsing shield and thruster flicker.
@@ -73,6 +81,74 @@ func set_high_contrast_halo(enabled: bool) -> void:
 ## Sets the playfield's top-left corner in viewport space. Called by GameRoot.
 func set_arena_origin(origin: Vector2) -> void:
 	_arena_origin = origin
+
+
+## Coins, under the orbs (spec §5.5). PORT: web/src/tilt-to-live/CoinSystem.ts:126-175
+# PORT-NOTE: the radial gradient (:146-149, stops #FFE3B0 / COIN_COLOR /
+# #B8792A) is two flat circles per the M3 ruling: the disc in COIN_COLOR and
+# a highlight at the gradient's (-2, -2) centre in #FFE3B0 at the 0.55 stop's
+# radius fraction; the outer #B8792A stop reads as the 1.4 px white stroke's
+# neighbour and is not drawn. The two quadraticCurveTo glyph strokes
+# (:167-169) are sampled polylines.
+func _draw_coins() -> void:
+	if _coins == null or _coins.coins.is_empty():
+		return
+	for coin: CoinSystem.CoinPickup in _coins.coins:
+		var pulse: float = 0.9 + 0.1 * sin(_elapsed * 7.0 + coin.pulse_offset)  # PORT: :131
+		var fade_alpha: float = 1.0
+		if coin.lifetime < CoinSystem.FADE_WARNING_TIME:
+			fade_alpha = maxf(0.15, coin.lifetime / CoinSystem.FADE_WARNING_TIME)  # PORT: :132
+		var pos: Vector2 = Vector2(coin.x, coin.y)
+
+		# Soft amber glow halo. PORT: :139-142 (`${COIN_COLOR}33` = alpha 0x33)
+		var halo: Color = CoinSystem.COIN_COLOR
+		halo.a = (0x33 / 255.0) * fade_alpha
+		draw_circle(pos, (coin.radius + 7.0) * pulse, halo)
+
+		# Solid coin disc. PORT: :146-153
+		var disc: Color = CoinSystem.COIN_COLOR
+		disc.a = fade_alpha
+		var r: float = coin.radius * pulse
+		draw_circle(pos, r, disc)
+		var highlight: Color = Color("#FFE3B0")  # PORT: :147
+		highlight.a = fade_alpha
+		draw_circle(pos + Vector2(-2.0, -2.0), r * 0.55, highlight)  # PORT: :146, :148
+		var rim: Color = Color.WHITE
+		rim.a = fade_alpha
+		draw_arc(pos, r, 0.0, TAU, 32, rim, 1.4)  # PORT: :155-157
+
+		# Currency glyph (dollar-style bar). PORT: :160-170
+		var ink: Color = Color("#4A2E0A")
+		ink.a = fade_alpha
+		draw_line(
+			pos + Vector2(0.0, -coin.radius * 0.55),
+			pos + Vector2(0.0, coin.radius * 0.55),
+			ink,
+			1.8
+		)
+		var upper: PackedVector2Array = _quadratic_points(
+			pos + Vector2(-coin.radius * 0.4, -coin.radius * 0.25),
+			pos + Vector2(coin.radius * 0.45, -coin.radius * 0.25),
+			pos + Vector2(coin.radius * 0.4, 0.0)
+		)
+		var lower: PackedVector2Array = _quadratic_points(
+			pos + Vector2(coin.radius * 0.4, 0.0),
+			pos + Vector2(coin.radius * 0.45, coin.radius * 0.25),
+			pos + Vector2(-coin.radius * 0.4, coin.radius * 0.25)
+		)
+		upper.append_array(lower)
+		draw_polyline(upper, ink, 1.8)
+
+
+# A quadratic Bézier (Canvas quadraticCurveTo) sampled as a polyline.
+func _quadratic_points(p0: Vector2, control: Vector2, p1: Vector2) -> PackedVector2Array:
+	var out: PackedVector2Array = PackedVector2Array()
+	for i: int in range(9):
+		var t: float = float(i) / 8.0
+		var q0: Vector2 = p0.lerp(control, t)
+		var q1: Vector2 = control.lerp(p1, t)
+		out.append(q0.lerp(q1, t))
+	return out
 
 
 func _draw_weapons() -> void:
@@ -170,9 +246,10 @@ func _draw_orb_glyph(pos: Vector2, type: Types.WeaponType) -> void:
 
 
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:1191-1648 (render)
-## PORT-NOTE: skin (EnemySkinConfig) is M7; every branch below ports only the
-## non-skin arm of its ternaries. TODO(M7): enemy skins (skin.bodyGradient,
-## borderColor, glowColor, pupilColor).
+## PORT-NOTE: skin (EnemySkinConfig) is ProgressionManager.enemy_skin_catalog
+## (M7); equipping is M8; every branch below ports only the non-skin arm of
+## its ternaries. TODO(M8): enemy skins (skin.bodyGradient, borderColor,
+## glowColor, pupilColor).
 ## PORT-NOTE: charger, artillery and carrier gate the skin on
 ## skin.id !== 'classic' (EnemySwarm.ts:1260, :1293, :1406) while pulsar,
 ## specter and the default dot gate on skin alone (:1476, :1521, :1561) — M7
