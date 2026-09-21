@@ -17,8 +17,8 @@ adb on 2026-09-21** during M7.
 Also landed after M4: **HUD score feedback** (`9cc3e8f..31bf2ce`, spec
 `docs/superpowers/specs/2026-09-21-hud-score-feedback-design.md`) — kill-site
 callouts removed; the score pulses in a multiplier-tier colour instead.
-Next module: **M8 (Armory UI)** or **M5 (audio)** — both now open; see
-`## Next` at the end of this file.
+Next module: **M8 (Armory UI + cosmetics)** — plan written 2026-09-22, not
+started; see `## Next` at the end of this file.
 Branch: `feat/godot-port` (no upstream; nothing pushed).
 
 > ### ⚠ Read `godot/VERIFY-ME.md`
@@ -383,26 +383,42 @@ comment-only edit even though the plan's file table said "not modified".
   disable) by actually checking whether gdtoolkit supports region-scoped
   disables instead of accepting the claim. Reviewers verify tool claims.
 
-## Next: M8 (Armory UI) or M5 (audio) — both now open
+## Next: execute the M8 plan (written 2026-09-22)
 
-Spec §8 lists **M5** (deps M2), **M8** and **M9** (deps M7) as open; M8 and M9
-became available with this module. Both M5 and M8 may start before the
-device pass. Recommended: whichever the user prefers; both are ready.
+The user chose **M8 (Armory UI)** on 2026-09-22 and ruled that M8 **also
+makes purchased cosmetics visible in the run** (the three `TODO(M8)` render
+sites: six ship hulls, enemy-skin colour arms, arena-theme override).
+The plan is written: `docs/superpowers/plans/2026-09-20-m8-armory-ui.md`
+(11 tasks; `.superpowers/sdd/` ledger not yet created — Task 1 creates
+`.superpowers/sdd/2026-09-20-m8-armory-ui/progress.md`).
 
-**M5's literal first step:** read spec §8 Module 5 and
-`web/src/tilt-to-live/TiltAudio.ts` in full, then write
-`docs/superpowers/plans/2026-09-20-m5-audio-bake-and-sfx.md`;
-`audio/audio_bank.gd` is the M2 null-object stub every sim system already
-calls.
+**Literal first step:** read the plan's header, Global Constraints and File
+Structure, then execute Task 1 with `superpowers:subagent-driven-development`
+(fresh subagent per task, two-stage review, commit per task). Every task
+states its expected `tools/run_tests.sh` count.
 
-**M8's literal first step:** read spec §8 Module 8 and
-`web/src/tilt-to-live/ArmoryUI.ts` (1,293 lines) in full, then write
-`docs/superpowers/plans/2026-09-20-m8-armory-ui.md`; every purchase it needs
-is a `ProgressionManager` method proven in `tests/test_progression_economy.gd`
-and `test_progression_catalogs.gd`, and the `WeaponTuning.ts:56`
-`freeze.duration.max = 8.2` vs. `8.0` discrepancy M4 flagged is the Armory's
-to display.
+Facts the plan established that the executor must not re-derive:
+- `Image.load_svg_from_string` exists in 4.7.2 and rasterises the TS's own
+  SVG strings (verified 2026-09-22: the blackhole icon at 2× → 60×60, centre
+  pixel `#A78BFA`). Icons and ship previews use it; `getShipSvgPreview`
+  (`ProgressionManager.ts:873-939`) is therefore ported (Task 3), reversing
+  half of M7 OQ 1. `getCursorSvgDataUri` stays unported.
+- `ArmoryUI`, `HandlingPreview`, `ArmoryTheme` clash with no engine class.
+- **In the live web run the enemy skin and arena theme are always passed**
+  (`TiltGame.ts:2310-2312`), so M3/M1 ported the menu-backdrop arms: wiring
+  the classic skin/theme changes the run's look (hazard dots lose their
+  orange; pulsar ring/stroke `#ff8899`; perimeter alpha 0.45→0.4, grid
+  0.28→0.18). LAW 2: port exactly; plan Open question 5 + VERIFY-ME §M8.
+- The Armory opens from **pause** and **game over** only; the HUD's own
+  button (`TiltGame.ts:1453`) is deferred to M11 (plan OQ 2).
+- Mobile chrome (edge-to-edge panel inset by `arena_origin`, back button,
+  sticky Play) is gated on `OS.has_feature("mobile")` — the module's one
+  `DIVERGENCE(spec §8 M8)`; expect the count to go 69 → 70.
 
-Before either: `git status --short` must be clean under `godot/` (the user
+M5 (audio) stays open with M2 as its only dependency; its first step is
+unchanged: read spec §8 Module 5 and `web/src/tilt-to-live/TiltAudio.ts`
+in full, then write `docs/superpowers/plans/2026-09-20-m5-audio-bake-and-sfx.md`.
+
+Before Task 1: `git status --short` must be clean under `godot/` (the user
 may leave device tuning uncommitted — never stash or revert it), and read
 `godot/VERIFY-ME.md` for the outstanding M2.5/M3/M4/M7 device checks.
