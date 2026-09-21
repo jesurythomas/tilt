@@ -1373,9 +1373,10 @@ func on_enemy_killed(enemy: Types.Enemy, particles: ParticleEngine = null) -> vo
 
 
 ## Freezes every active enemy for a duration.
-# PORT-NOTE: no TypeScript caller exists (WeaponSystem.ts:542-543 freezes
-# inline); ported because spec §8 M3 names it.
-# TODO(M4): the freeze weapon decides whether to route through this.
+# PORT-NOTE: no TypeScript caller exists (WeaponSystem.ts:541-544 freezes
+# inline); ported because spec §8 M3 names it. M4 ruled (plan Open question 2)
+# that the freeze weapon freezes inline as the TS does — WeaponSystem.update()
+# receives the enemies array, not the swarm — so this stays callerless.
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:1184-1189
 # PORT: web/src/tilt-to-live/EnemySwarm.ts:1184
 func freeze_all(duration: float = 7.0) -> void:

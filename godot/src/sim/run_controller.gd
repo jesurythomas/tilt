@@ -19,6 +19,12 @@ var elapsed: float = 0.0
 var is_run_active: bool = false
 var bounds: Vector2 = Vector2.ZERO
 
+## Perk ranks passed into the weapon system every tick.
+## PORT: web/src/tilt-to-live/TiltGame.ts:1926 (this.progression.data.perks)
+# TODO(M7): assign progression.data.perks here once ProgressionManager loads
+# the save; until then every rank is 0 and every keystone false.
+var perks: ProgressionManager.WeaponPerks = ProgressionManager.WeaponPerks.new()
+
 
 func _init(
 	p_player: PlayerShip,
@@ -36,6 +42,8 @@ func _init(
 	grid = p_grid
 	scores = p_scores
 	audio = p_audio
+	# PORT: web/src/tilt-to-live/TiltGame.ts:212-218
+	weapons.on_weapon_activated = _on_weapon_activated
 
 
 ## Resets all simulation state for a new run.
@@ -47,6 +55,9 @@ func reset_run(arena_bounds: Vector2) -> void:
 	is_run_active = true
 
 	player.reset(bounds.x * 0.5, bounds.y * 0.5)
+	# The shield.radius perk's only consumer is the bubble the ship draws.
+	# PORT: web/src/tilt-to-live/TiltGame.ts:1572-1574
+	player.set_shield_radius(Tuning.get_tuned_value("shield", "radius", perks.shield.radius))
 	swarm.reset()
 	weapons.reset()
 	particles.reset()
@@ -116,7 +127,8 @@ func update(
 		particles,
 		grid,
 		audio,
-		Callable(self, "handle_enemy_killed")
+		Callable(self, "handle_enemy_killed"),
+		perks
 	)
 
 	# 6. Update Scores and Combos
@@ -171,6 +183,7 @@ func check_collisions() -> void:
 
 ## Handles enemy destruction by weapons or shield.
 ## PORT: web/src/tilt-to-live/TiltGame.ts:1981-2004
+# TODO(M9): runTracker weapon-kill counters (TiltGame.ts:1986-2003)
 func handle_enemy_killed(enemy: Types.Enemy, weapon_type: Types.WeaponType) -> void:
 	scores.register_kill(enemy.x, enemy.y, weapon_type, audio)
 	grid.apply_explosion(enemy.x, enemy.y, 4.5, 60.0)
@@ -213,3 +226,13 @@ func trigger_player_death() -> void:
 	scores.finalize_game()
 	GameEvents.run_ended.emit(scores.stats.score, scores.stats)
 	GameEvents.phase_changed.emit(Types.GamePhase.GAME_OVER)
+
+
+## Relays a weapon pickup to the UI bus. PORT: web/src/tilt-to-live/TiltGame.ts:212-218
+# PORT-NOTE: the TS callback only bumps runTracker.nukesDetonated and
+# runTracker.missilesFired (+16 per pickup, TiltGame.ts:216 — a fixed 16, not
+# the launched count; preserved for M9). The HUD/goal side is the
+# weapon_activated signal per spec §5.3.
+# TODO(M9): runTracker counters (nukesDetonated, missilesFired += 16).
+func _on_weapon_activated(type: Types.WeaponType) -> void:
+	GameEvents.weapon_activated.emit(type)

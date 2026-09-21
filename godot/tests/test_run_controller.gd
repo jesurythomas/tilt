@@ -73,3 +73,38 @@ func test_close_call_registers_bonus() -> void:
 	assert_false(_player.is_dead)
 	assert_eq(_scores.stats.close_calls, 1, "close call recorded")
 	assert_almost_eq(_player.close_call_timer, 0.75, 0.01)
+
+
+func test_collecting_an_orb_emits_weapon_activated() -> void:
+	_rc.reset_run(_bounds)
+	_weapons.orbs.clear()
+	_weapons.spawn_orb(_bounds, Types.WeaponType.LASER, _player.x, _player.y)
+	watch_signals(GameEvents)
+	_rc.update(
+		0.016, Types.ControlMode.MOUSE, Vector2(_player.x, _player.y), Vector2.ZERO, Vector2.ZERO
+	)
+	assert_signal_emitted_with_parameters(GameEvents, "weapon_activated", [Types.WeaponType.LASER])
+	assert_eq(_weapons.active_weapons.size(), 1, "the laser is live")
+
+
+func test_shield_radius_follows_the_perk_rank_at_run_start() -> void:
+	_rc.reset_run(_bounds)
+	assert_almost_eq(_player.shield_radius, Tuning.get_tuned_value("shield", "radius", 0), 0.001)
+	assert_almost_eq(_player.shield_radius, 20.0, 0.001, "TiltGame.ts:1572-1574 at rank 0")
+	_rc.perks.shield.radius = 3
+	_rc.reset_run(_bounds)
+	assert_almost_eq(_player.shield_radius, 26.0, 0.001, "20 + 3 * 2")
+
+
+func test_perk_ranks_reach_the_weapon_system_through_update() -> void:
+	_rc.reset_run(_bounds)
+	_rc.perks.nuke.radius = 5
+	_weapons.orbs.clear()
+	_weapons.spawn_orb(_bounds, Types.WeaponType.NUKE, _player.x, _player.y)
+	_rc.update(
+		0.016, Types.ControlMode.MOUSE, Vector2(_player.x, _player.y), Vector2.ZERO, Vector2.ZERO
+	)
+	assert_eq(_weapons.active_weapons.size(), 1)
+	assert_almost_eq(
+		_weapons.active_weapons[0].max_radius, 470.0, 0.001, "rank 5 reached activate_weapon"
+	)
