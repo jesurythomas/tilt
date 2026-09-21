@@ -58,6 +58,8 @@ func _draw_weapon_fx() -> void:
 			var progress: float = 1.0 - w.duration / w.max_duration
 			var alpha: float = maxf(0.0, 1.0 - progress)
 
+			# PORT-NOTE: canvas draws sub-pixel widths; Godot's draw_line does not, so
+			# widths are floored at 1.0 px (WeaponSystem.ts:782).
 			# Outer expanding shockwave ring (PORT: WeaponSystem.ts:622-626)
 			draw_arc(
 				pos,
@@ -200,6 +202,8 @@ func _draw_weapon_fx() -> void:
 			points.append(b)
 		points.append(Vector2(arc.x2, arc.y2))
 		# PORT: web/src/tilt-to-live/WeaponSystem.ts:781-782
+		# PORT-NOTE: canvas draws sub-pixel widths; Godot's draw_line does not, so
+		# widths are floored at 1.0 px (WeaponSystem.ts:782).
 		draw_polyline(
 			points,
 			Color(1.0, 240.0 / 255.0, 100.0 / 255.0, arc.intensity),

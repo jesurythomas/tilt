@@ -134,7 +134,7 @@ func reset_run(new_mode: Types.GameMode) -> void:
 	# rAF-loop accumulator driving fixed updates. Godot's fixed physics step
 	# replaces that accumulator entirely, so there is nothing to port here.
 	# TODO(M7): pointsEarnedThisRun, lives, maxLivesThisRun,
-	# player.setHitboxMultiplier(), player.setShieldRadius().
+	# player.setHitboxMultiplier().
 	# TODO(M9): railProgress and the run tracker.
 
 	_player.reset(_bounds.x / 2.0, _bounds.y / 2.0)
@@ -143,10 +143,8 @@ func reset_run(new_mode: Types.GameMode) -> void:
 	_router.control_mode = Types.ControlMode.MOUSE
 
 	# TODO(M7): swarm.setSpeedScale() wiring (progression speed scaling).
-	# TODO(M4): weapons.reset().
 	# TODO(M7): coins.reset().
 	_particles.reset()
-	# TODO(M2): scores.reset().
 	# TODO(M10): gauntletMaze.reset().
 	_grid.resize(_bounds.x, _bounds.y)
 	# TODO(M5): audio.setMuted/setSfxVolume/setMusicVolume.

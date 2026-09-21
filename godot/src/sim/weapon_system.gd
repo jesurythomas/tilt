@@ -30,6 +30,18 @@ var lightning_arcs: Array[Types.LightningArc] = []
 ## PORT: web/src/tilt-to-live/WeaponSystem.ts:18
 var on_weapon_activated: Callable = Callable()
 
+## The seven superweapon types, in drop-table iteration order. Unread, exactly
+## as in the TS. PORT: web/src/tilt-to-live/WeaponSystem.ts:25-33
+var weapon_types: Array[Types.WeaponType] = [
+	Types.WeaponType.NUKE,
+	Types.WeaponType.MISSILES,
+	Types.WeaponType.LIGHTNING,
+	Types.WeaponType.LASER,
+	Types.WeaponType.VORTEX,
+	Types.WeaponType.FREEZE,
+	Types.WeaponType.SHIELD,
+]
+
 ## Scale factor for orb and blast radius. PORT: web/src/tilt-to-live/WeaponSystem.ts:35
 var scale: float = 1.0
 
@@ -127,9 +139,7 @@ func update(
 
 		# PORT-NOTE: `w.data?.x` (WeaponSystem.ts:160, :188, :198, :260) — data is
 		# Types.ts:64's any-typed bag (types.gd:111-113), held as a Dictionary keyed
-		# by the TS property names. Absent data reads as an empty bag. The Variant
-		# read genuinely requires the cast below (precedent: test_tuning_parity.gd:46-48).
-		@warning_ignore("unsafe_cast")
+		# by the TS property names. Absent data reads as an empty bag.
 		var data: Dictionary = w.data if w.data != null else {}
 
 		match w.type:
@@ -646,6 +656,8 @@ func activate_weapon(
 			particles.emit_ice_shatter(x, y, 40)  # PORT: web/src/tilt-to-live/WeaponSystem.ts:545
 			grid.apply_explosion(x, y, 10.0, 360.0 * scale)  # PORT: web/src/tilt-to-live/WeaponSystem.ts:546
 		Types.WeaponType.SHIELD:
+			# PORT-NOTE: the TS plays no shield sound here (WeaponSystem.ts:550-554) —
+			# only the orb-pickup sound (:95/:117 above) covers it. Preserved deliberately.
 			# PORT: web/src/tilt-to-live/WeaponSystem.ts:551
 			# PORT-NOTE: written `6.0 + rank * 1.0` inline in the TS; WeaponTuning.ts:39 is
 			# the same row (base 6.0, perRank 1.0) and WeaponTuning.ts:5-9 mandates this read.

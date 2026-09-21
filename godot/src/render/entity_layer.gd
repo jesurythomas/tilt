@@ -100,7 +100,7 @@ func _draw_weapons() -> void:
 		# Sharp neon perimeter (PORT: WeaponSystem.ts:820-822)
 		draw_arc(orb_pos, orb.radius, 0.0, TAU, 32, Color.WHITE, 1.8)
 
-		# Glyph symbols (PORT: WeaponSystem.ts:833-851)
+		# Glyph symbols (PORT: WeaponSystem.ts:833-923)
 		_draw_orb_glyph(orb_pos, orb.type)
 
 

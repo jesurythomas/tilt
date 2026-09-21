@@ -119,6 +119,8 @@ func update(
 	swarm.update(dt, Vector2(player.x, player.y), bounds, particles, scores.stats.score)
 
 	# 5. Update Weapons
+	# TODO(M8): pass the active game mode as the tenth argument (TiltGame.ts:1927);
+	# CLASSIC by default until modes land.
 	weapons.update(
 		dt,
 		player,
