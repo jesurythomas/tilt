@@ -1,15 +1,18 @@
 ## weapon_system.gd
-## PORTS: web/src/tilt-to-live/WeaponSystem.ts (924 lines, source commit 7be9614)
+## PORTS: web/src/tilt-to-live/WeaponSystem.ts (923 lines, source commit 7be9614)
 class_name WeaponSystem
 extends RefCounted
-## Weapon orb spawning and superweapon detonation engine.
+## Weapon orb spawning and the seven superweapons.
 ##
-## PORT-NOTE: partial port for Module 2 per spec §8 M2. Implements orb spawning,
-## player-orb collection, and the nuke superweapon. Remaining 6 weapons land in
-## Module 4.
+## PORT-NOTE: WeaponSystem.render() (WeaponSystem.ts:612-831) and
+## renderOrbGlyph() (:833-923) relocate to the render layers (spec §4.2/D4,
+## §5.5): orbs and glyphs to render/entity_layer.gd, weapon FX to
+## render/effect_layer.gd, because CanvasItem 2D drawing belongs to Node2D
+## render layers.
 ##
-## PORT-NOTE: WeaponSystem.render() relocates to render/entity_layer.gd (spec §4.2/D4)
-## because CanvasItem 2D drawing belongs to Node2D render layers.
+## PORT-NOTE: perk ranks arrive as ProgressionManager.WeaponPerks, the port of
+## the `perks?: WeaponPerks` parameter (WeaponSystem.ts:61, :396). A null
+## record reads as all-zero, matching every `perks?.x.y || 0` chain.
 
 ## Live weapon orbs in the arena. PORT: web/src/tilt-to-live/WeaponSystem.ts:14
 var orbs: Array[Types.WeaponOrb] = []
@@ -68,7 +71,7 @@ func update(
 	grid: VectorGrid,
 	audio: AudioBank,
 	on_enemy_killed: Callable,
-	_perks: Variant = null,
+	perks: ProgressionManager.WeaponPerks = null,
 	game_mode: Types.GameMode = Types.GameMode.CLASSIC
 ) -> void:
 	# 1. Weapon Orb Spawning. PORT: web/src/tilt-to-live/WeaponSystem.ts:64-74
@@ -98,7 +101,16 @@ func update(
 		if dist < player.radius + orb.radius:
 			# Collect orb! PORT: web/src/tilt-to-live/WeaponSystem.ts:92-98
 			activate_weapon(
-				orb.type, orb.x, orb.y, player, enemies, particles, grid, audio, on_enemy_killed
+				orb.type,
+				orb.x,
+				orb.y,
+				player,
+				enemies,
+				particles,
+				grid,
+				audio,
+				on_enemy_killed,
+				perks
 			)
 			if on_weapon_activated.is_valid():
 				on_weapon_activated.call(orb.type)
@@ -116,6 +128,8 @@ func update(
 			Types.WeaponType.NUKE:
 				# Expanding blast ring. PORT: web/src/tilt-to-live/WeaponSystem.ts:108-111
 				var progress: float = 1.0 - w.duration / w.max_duration
+				# PORT-NOTE: the fallback is the table base, not the ranked value —
+				# WeaponSystem.ts:110 reads .base directly
 				var base_radius: float = (
 					w.max_radius
 					if not is_nan(w.max_radius)
@@ -150,6 +164,32 @@ func update(
 			active_weapons.remove_at(i)
 
 
+## Activates a weapon directly, without an orb. PORT: web/src/tilt-to-live/WeaponSystem.ts:369-384
+# PORT-NOTE: WeaponSystem.ts:378 overloads its ninth parameter as either the
+# kill callback or the perks record and dispatches on typeof (:381-382).
+# GDScript has no union types; the two parameters are separate and typed, and
+# an invalid Callable stands in for the omitted callback (:381's no-op). No
+# caller exists in web/src (only the built dist) — ported under LAW 3.
+func trigger_weapon(
+	type: Types.WeaponType,
+	x: float,
+	y: float,
+	player: PlayerShip,
+	enemies: Array[Types.Enemy],
+	particles: ParticleEngine,
+	grid: VectorGrid,
+	audio: AudioBank,
+	on_enemy_killed: Callable = Callable(),
+	perks: ProgressionManager.WeaponPerks = null
+) -> void:
+	var on_killed: Callable = (
+		on_enemy_killed
+		if on_enemy_killed.is_valid()
+		else func(_e: Types.Enemy, _w: Types.WeaponType) -> void: pass
+	)
+	activate_weapon(type, x, y, player, enemies, particles, grid, audio, on_killed, perks)
+
+
 ## Activates a superweapon from an orb pickup. PORT: web/src/tilt-to-live/WeaponSystem.ts:386-557
 func activate_weapon(
 	type: Types.WeaponType,
@@ -161,14 +201,22 @@ func activate_weapon(
 	_grid: VectorGrid,
 	audio: AudioBank,
 	_on_enemy_killed: Callable,
-	_perks: Variant = null
+	perks: ProgressionManager.WeaponPerks = null
 ) -> void:
+	# PORT-NOTE: stands in for every `perks?.x.y || 0` / `!!perks?.x.y` chain in
+	# WeaponSystem.ts:401-551 — a fresh WeaponPerks is all-zero and all-false.
+	var p: ProgressionManager.WeaponPerks = (
+		perks if perks != null else ProgressionManager.WeaponPerks.new()
+	)
 	match type:
 		Types.WeaponType.NUKE:
 			audio.play_nuke()  # PORT: web/src/tilt-to-live/WeaponSystem.ts:400
-			# PORT: web/src/tilt-to-live/WeaponSystem.ts:401-402
-			var max_radius: float = Tuning.get_tuned_value("nuke", "radius", 0) * scale
-			var duration: float = 0.65
+			# PORT: web/src/tilt-to-live/WeaponSystem.ts:401
+			var max_radius: float = Tuning.get_tuned_value("nuke", "radius", p.nuke.radius) * scale
+			# PORT: web/src/tilt-to-live/WeaponSystem.ts:402
+			# PORT-NOTE: 0.25 per speed rank is written inline in the TS; WeaponTuning.ts:36
+			# carries the same 25 % per rank but the TS does not read it — preserved as written.
+			var duration: float = 0.65 / (1.0 + float(p.nuke.speed) * 0.25)
 			var w: Types.ActiveWeapon = Types.ActiveWeapon.new()
 			w.id = _next_weapon_id
 			_next_weapon_id += 1
@@ -185,19 +233,40 @@ func activate_weapon(
 			pass
 
 
-## Returns random weapon type based on game mode.
+## Returns a weapon type drawn from the weighted drop table.
 ## PORT: web/src/tilt-to-live/WeaponSystem.ts:559-580
+# PORT-NOTE: `_gameMode` is unused in the TS too (:559) — preserved.
 func get_random_weapon_type(
 	_game_mode: Types.GameMode = Types.GameMode.CLASSIC
 ) -> Types.WeaponType:
-	# In Module 2, returns NUKE so all spawned orbs are operable.
-	# TODO(M4): weighted random selection across all 7 weapons.
-	return Types.WeaponType.NUKE
+	# PORT: web/src/tilt-to-live/WeaponSystem.ts:562-570 — insertion order is the
+	# walk order of Object.entries (:572), so it is load-bearing.
+	var weights: Dictionary[Types.WeaponType, int] = {
+		Types.WeaponType.MISSILES: 20,
+		Types.WeaponType.NUKE: 18,
+		Types.WeaponType.LASER: 18,
+		Types.WeaponType.LIGHTNING: 16,
+		Types.WeaponType.FREEZE: 16,
+		Types.WeaponType.SHIELD: 16,
+		Types.WeaponType.VORTEX: 5,
+	}
+	var total: int = 0
+	for w: int in weights.values():
+		total += w
+	var roll: float = randf() * float(total)  # PORT: web/src/tilt-to-live/WeaponSystem.ts:574
+	for t: Types.WeaponType in weights.keys():
+		var w: int = weights[t]
+		if roll < float(w):
+			return t
+		roll -= float(w)
+	return Types.WeaponType.MISSILES  # PORT: web/src/tilt-to-live/WeaponSystem.ts:579
 
 
 ## Spawns a floating weapon orb. PORT: web/src/tilt-to-live/WeaponSystem.ts:582-598
 func spawn_orb(
 	bounds: Vector2,
+	# PORT-NOTE: WeaponSystem.ts:586 falls back to getRandomWeaponType() when the
+	# type is omitted; no game caller omits it, so the default is a fixed type
 	specific_type: Types.WeaponType = Types.WeaponType.NUKE,
 	custom_x: float = NAN,
 	custom_y: float = NAN

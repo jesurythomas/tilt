@@ -144,3 +144,98 @@ func test_reset_clears_orbs_and_active_weapons() -> void:
 	ws.reset()
 	assert_eq(ws.orbs.size(), 0)
 	assert_eq(ws.active_weapons.size(), 0)
+
+
+func _no_kill() -> Callable:
+	return func(_e: Types.Enemy, _w: Types.WeaponType) -> void: pass
+
+
+func test_nuke_radius_and_speed_come_from_the_tuning_table_per_rank() -> void:
+	var ws: WeaponSystem = WeaponSystem.new()
+	ws.activate_weapon(
+		Types.WeaponType.NUKE, 100.0, 100.0, _player, [], _particles, _grid, _audio, _no_kill()
+	)
+	var base: Types.ActiveWeapon = ws.active_weapons[0]
+	assert_almost_eq(base.max_radius, Tuning.get_tuned_value("nuke", "radius", 0), 0.001)
+	assert_almost_eq(base.max_radius, 360.0, 0.001, "rank 0 is the table base")
+	assert_almost_eq(base.duration, 0.65, 0.001, "WeaponSystem.ts:402 at speed rank 0")
+
+	var perks: ProgressionManager.WeaponPerks = ProgressionManager.WeaponPerks.new()
+	perks.nuke.radius = 5
+	perks.nuke.speed = 3
+	ws.activate_weapon(
+		Types.WeaponType.NUKE,
+		100.0,
+		100.0,
+		_player,
+		[],
+		_particles,
+		_grid,
+		_audio,
+		_no_kill(),
+		perks
+	)
+	var ranked: Types.ActiveWeapon = ws.active_weapons[1]
+	assert_almost_eq(ranked.max_radius, Tuning.get_tuned_value("nuke", "radius", 5), 0.001)
+	assert_almost_eq(ranked.max_radius, 470.0, 0.001, "rank 5 is the table max")
+	assert_almost_eq(ranked.duration, 0.65 / 1.75, 0.0001, "0.65 / (1 + 3 * 0.25)")
+	assert_almost_eq(ranked.max_duration, ranked.duration, 0.0001)
+
+
+func test_nuke_scale_multiplies_the_tuned_radius() -> void:
+	var ws: WeaponSystem = WeaponSystem.new()
+	ws.set_scale(1.5)
+	ws.activate_weapon(
+		Types.WeaponType.NUKE, 100.0, 100.0, _player, [], _particles, _grid, _audio, _no_kill()
+	)
+	assert_almost_eq(ws.active_weapons[0].max_radius, 360.0 * 1.5, 0.001)
+	assert_almost_eq(ws.active_weapons[0].radius, 10.0 * 1.5, 0.001, "WeaponSystem.ts:410")
+
+
+func test_trigger_weapon_activates_without_a_kill_callback() -> void:
+	var ws: WeaponSystem = WeaponSystem.new()
+	ws.trigger_weapon(Types.WeaponType.NUKE, 100.0, 100.0, _player, [], _particles, _grid, _audio)
+	assert_eq(ws.active_weapons.size(), 1)
+	assert_eq(ws.active_weapons[0].type, Types.WeaponType.NUKE)
+	var perks: ProgressionManager.WeaponPerks = ProgressionManager.WeaponPerks.new()
+	perks.nuke.radius = 2
+	ws.trigger_weapon(
+		Types.WeaponType.NUKE,
+		100.0,
+		100.0,
+		_player,
+		[],
+		_particles,
+		_grid,
+		_audio,
+		Callable(),
+		perks
+	)
+	assert_almost_eq(ws.active_weapons[1].max_radius, 404.0, 0.001, "perks reach activate_weapon")
+
+
+func test_random_weapon_type_follows_the_weighted_table() -> void:
+	seed(20260921)
+	var ws: WeaponSystem = WeaponSystem.new()
+	var counts: Dictionary[Types.WeaponType, int] = {}
+	for i: int in range(2000):
+		var t: Types.WeaponType = ws.get_random_weapon_type()
+		counts[t] = counts.get(t, 0) + 1
+	assert_eq(counts.size(), 7, "every weapon is drawn")
+	assert_gt(counts[Types.WeaponType.MISSILES], 280, "20/109 of 2000 is 367")
+	assert_lt(counts[Types.WeaponType.VORTEX], 200, "5/109 of 2000 is 92 — the rare drop")
+	assert_gt(counts[Types.WeaponType.VORTEX], 30)
+
+
+func test_orb_spawning_draws_from_the_drop_table_not_only_nuke() -> void:
+	seed(20260921)
+	var ws: WeaponSystem = WeaponSystem.new()
+	var bounds: Vector2 = Vector2(1000.0, 600.0)
+	var far_player: PlayerShip = PlayerShip.new(-500.0, -500.0)
+	var seen: Dictionary[Types.WeaponType, bool] = {}
+	for i: int in range(40):
+		ws.reset()
+		ws.update(2.0, far_player, [], bounds, _particles, _grid, _audio, _no_kill())
+		for orb: Types.WeaponOrb in ws.orbs:
+			seen[orb.type] = true
+	assert_gt(seen.size(), 1, "M2's stub returned NUKE only")
