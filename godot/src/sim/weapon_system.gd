@@ -163,6 +163,96 @@ func update(
 		if w.duration <= 0.0:
 			active_weapons.remove_at(i)
 
+	# 4. Update Homing Missiles. PORT: web/src/tilt-to-live/WeaponSystem.ts:282-358
+	for i: int in range(missiles.size() - 1, -1, -1):
+		var m: Types.HomingMissile = missiles[i]
+		m.lifetime -= dt
+		m.smoke_timer += dt
+
+		if m.smoke_timer > 0.03:  # PORT: web/src/tilt-to-live/WeaponSystem.ts:289
+			m.smoke_timer = 0.0
+			# PORT: web/src/tilt-to-live/WeaponSystem.ts:291
+			particles.emit_smoke(m.x, m.y, Color(1.0, 140.0 / 255.0, 20.0 / 255.0, 0.45))
+
+		# Retarget the closest enemy if the current target died or is missing.
+		# PORT: web/src/tilt-to-live/WeaponSystem.ts:294-306
+		var target: Types.Enemy = null
+		for e: Types.Enemy in enemies:
+			if e.id == m.target_id:
+				target = e
+				break
+		if target == null and enemies.size() > 0:
+			var best_dist: float = INF
+			for e: Types.Enemy in enemies:
+				var d: float = (e.x - m.x) * (e.x - m.x) + (e.y - m.y) * (e.y - m.y)
+				if d < best_dist:
+					best_dist = d
+					target = e
+			if target != null:
+				m.target_id = target.id
+
+		# Homing guidance. PORT: web/src/tilt-to-live/WeaponSystem.ts:308-319
+		if target != null:
+			var dx: float = target.x - m.x
+			var dy: float = target.y - m.y
+			var dist: float = sqrt(dx * dx + dy * dy)
+			if dist > 1.0:
+				var target_vx: float = (dx / dist) * 440.0  # PORT: web/src/tilt-to-live/WeaponSystem.ts:314
+				var target_vy: float = (dy / dist) * 440.0  # PORT: web/src/tilt-to-live/WeaponSystem.ts:315
+				m.vx += (target_vx - m.vx) * dt * 9.0  # PORT: web/src/tilt-to-live/WeaponSystem.ts:316
+				m.vy += (target_vy - m.vy) * dt * 9.0  # PORT: web/src/tilt-to-live/WeaponSystem.ts:317
+
+		m.x += m.vx * dt
+		m.y += m.vy * dt
+
+		# Contact with any enemy. PORT: web/src/tilt-to-live/WeaponSystem.ts:324-334
+		var hit: bool = false
+		for e_idx: int in range(enemies.size() - 1, -1, -1):
+			var e: Types.Enemy = enemies[e_idx]
+			var edx: float = e.x - m.x
+			var edy: float = e.y - m.y
+			# PORT: web/src/tilt-to-live/WeaponSystem.ts:330
+			# PORT-NOTE: the 8 px missile radius here is a fixed literal, not
+			# multiplied by scale like every other range in this file — preserved
+			# deliberately as written (WeaponSystem.ts:330).
+			if edx * edx + edy * edy <= (e.radius + 8.0) * (e.radius + 8.0):
+				hit = true
+				break
+
+		if hit or m.lifetime <= 0.0:
+			# PORT-NOTE: stands in for `perks?.x.y || 0` (WeaponSystem.ts:338) — a
+			# fresh WeaponPerks is all-zero, matching the fallback.
+			var p: ProgressionManager.WeaponPerks = (
+				perks if perks != null else ProgressionManager.WeaponPerks.new()
+			)
+			# Blast radius kills the cluster; perk-tuned via WeaponTuning.
+			# PORT: web/src/tilt-to-live/WeaponSystem.ts:338
+			# PORT-NOTE: the blast radius is not multiplied by scale, unlike every
+			# other tuned range in this file (:401, :442, :501, :520) — preserved
+			# deliberately as written.
+			var blast_radius: float = Tuning.get_tuned_value(
+				"missiles", "blastRadius", p.missiles.blast_radius
+			)
+			var blast_radius2: float = blast_radius * blast_radius
+
+			audio.play_missile_explode()  # PORT: web/src/tilt-to-live/WeaponSystem.ts:341
+			# PORT: web/src/tilt-to-live/WeaponSystem.ts:342
+			particles.emit_explosion(m.x, m.y, Color("#ff8800"), 18)
+			# PORT: web/src/tilt-to-live/WeaponSystem.ts:343
+			grid.apply_explosion(m.x, m.y, 8.0, blast_radius)
+
+			for e_idx: int in range(enemies.size() - 1, -1, -1):
+				var e: Types.Enemy = enemies[e_idx]
+				var edx: float = e.x - m.x
+				var edy: float = e.y - m.y
+				if edx * edx + edy * edy <= blast_radius2:
+					on_enemy_killed.call(e, Types.WeaponType.MISSILES)
+					# PORT: web/src/tilt-to-live/WeaponSystem.ts:351
+					particles.emit_sparks(e.x, e.y, 10, Color("#ffaa33"), 180.0)
+					enemies.remove_at(e_idx)
+
+			missiles.remove_at(i)
+
 
 ## Activates a weapon directly, without an orb. PORT: web/src/tilt-to-live/WeaponSystem.ts:369-384
 # PORT-NOTE: WeaponSystem.ts:378 overloads its ninth parameter as either the
@@ -228,8 +318,32 @@ func activate_weapon(
 			w.radius = 10.0 * scale  # PORT: web/src/tilt-to-live/WeaponSystem.ts:410
 			w.max_radius = max_radius
 			active_weapons.append(w)
+		Types.WeaponType.MISSILES:
+			audio.play_missile_launch()  # PORT: web/src/tilt-to-live/WeaponSystem.ts:417
+			# PORT: web/src/tilt-to-live/WeaponSystem.ts:418
+			# PORT-NOTE: written `8 + rank` inline in the TS; WeaponTuning.ts:43 is the
+			# same row (base 8, perRank 1) and WeaponTuning.ts:5-9 mandates this read.
+			var count: int = int(Tuning.get_tuned_value("missiles", "count", p.missiles.count))
+			# PORT: web/src/tilt-to-live/WeaponSystem.ts:419
+			var speed_mult: float = 1.0 + float(p.missiles.flight_speed) * 0.2
+			for i: int in range(count):
+				# PORT: web/src/tilt-to-live/WeaponSystem.ts:421
+				var angle: float = (float(i) * PI * 2.0) / float(count) + (randf() * 0.4 - 0.2)
+				# PORT: web/src/tilt-to-live/WeaponSystem.ts:422
+				var speed: float = (260.0 + randf() * 80.0) * speed_mult * maxf(0.72, scale)
+				var m: Types.HomingMissile = Types.HomingMissile.new()
+				m.id = _next_missile_id
+				_next_missile_id += 1
+				m.x = x
+				m.y = y
+				m.vx = cos(angle) * speed
+				m.vy = sin(angle) * speed
+				m.target_id = Types.ABSENT  # PORT: web/src/tilt-to-live/WeaponSystem.ts:429 (null)
+				m.lifetime = 3.5  # PORT: web/src/tilt-to-live/WeaponSystem.ts:430
+				m.smoke_timer = 0.0
+				missiles.append(m)
 		_:
-			# TODO(M4): activation logic for missiles, lightning, laser, vortex, freeze, shield.
+			# TODO(M4): activation logic for lightning, laser, vortex, freeze, shield.
 			pass
 
 
