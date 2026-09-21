@@ -54,7 +54,7 @@ func _init() -> void:
 	cursor_catalog = ship_catalog
 	enemy_skin_catalog = _build_enemy_skin_catalog()
 	arena_theme_catalog = _build_arena_theme_catalog()
-	data = _get_default_data()
+	data = load_data()
 
 
 ## PORT: web/src/tilt-to-live/ProgressionManager.ts:410-419
@@ -113,6 +113,56 @@ func _get_default_data() -> ProgressionData:
 	d.score_multiplier = 0
 	d.points_multiplier = 0
 	return d
+
+
+## PORT: web/src/tilt-to-live/ProgressionManager.ts:480-515
+# PORT-NOTE: the try/catch (:512-514) is SaveStore's quarantine: a file that
+# does not parse is moved aside and load_dict returns {}, which is the `!raw`
+# branch (:483). A key of the wrong type keeps the default where the TS spread
+# would carry the junk value through — the typed records cannot hold it.
+func load_data() -> ProgressionData:
+	var raw: Dictionary = SaveStore.load_dict(SAVE_PATH)
+	var def: ProgressionData = _get_default_data()
+	if raw.is_empty():
+		return def
+
+	# {...def, ...parsed} plus the perks and tuning deep merges (:488-490, :493-510)
+	def.from_dict(raw)
+	# PORT: web/src/tilt-to-live/ProgressionManager.ts:491
+	var parsed_points: int = SaveStore.read_int(raw, "points", 0)
+	def.points = parsed_points if parsed_points >= 500 else 7331
+	# PORT: web/src/tilt-to-live/ProgressionManager.ts:492
+	def.lifetime_points = maxi(SaveStore.read_int(raw, "lifetimePoints", 0), 7331)
+	# PORT: web/src/tilt-to-live/ProgressionManager.ts:504-506
+	def.unlocked_cursors = _unique_union(
+		["classic", "tactical", "singularity"], SaveStore.read_string_array(raw, "unlockedCursors")
+	)
+	def.unlocked_enemy_skins = _unique_union(
+		["classic"], SaveStore.read_string_array(raw, "unlockedEnemySkins")
+	)
+	def.unlocked_arena_themes = _unique_union(
+		["void"], SaveStore.read_string_array(raw, "unlockedArenaThemes")
+	)
+	return def
+
+
+## PORT: web/src/tilt-to-live/ProgressionManager.ts:517-523
+# PORT-NOTE: the console.warn on failure (:521) is SaveStore's Log.warn.
+func save() -> void:
+	SaveStore.save_dict(SAVE_PATH, data.to_dict())
+
+
+# `Array.from(new Set([...base, ...extra]))` (ProgressionManager.ts:504-506):
+# every element once, in first-seen order.
+func _unique_union(base: Array[String], extra: Array[String]) -> Array[String]:
+	var out: Array[String] = []
+	for item: String in base:
+		if not out.has(item):
+			out.append(item)
+	for item: String in extra:
+		if not out.has(item):
+			out.append(item)
+	return out
 
 
 # PORT: web/src/tilt-to-live/ProgressionManager.ts:127-276
