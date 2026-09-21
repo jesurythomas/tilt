@@ -141,7 +141,7 @@ Copied from the index plan and `CONVENTIONS.md`. Every task implicitly includes 
   - `SaveStore.corrupt_path_for(path: String) -> String` — `user://x.json` → `user://x.corrupt.json`.
   - `SaveStore.read_int(d: Dictionary, key: String, fallback: int) -> int`, `read_float(…, fallback: float) -> float`, `read_bool(…, fallback: bool) -> bool`, `read_string(…, fallback: String) -> String`, `read_string_array(d, key) -> Array[String]` (non-strings skipped; `[]` when absent or not an array), `read_dict(d, key) -> Dictionary` (`{}` when absent or not an object). A value of the wrong type yields the fallback.
 
-- [ ] **Step 1: Write the failing spec**
+- [x] **Step 1: Write the failing spec**
 
 Create `godot/tests/test_save_store.gd`:
 
@@ -249,7 +249,7 @@ func test_read_string_array_skips_non_strings() -> void:
 	assert_eq(SaveStore.read_string_array({"l": ["a", 1.0, "b", true]}, "l"), ["a", "b"])
 ```
 
-- [ ] **Step 2: Run the spec to verify it fails**
+- [x] **Step 2: Run the spec to verify it fails**
 
 ```bash
 cd /c/Users/Jesury/Documents/Personal/dread-flock
@@ -259,7 +259,7 @@ GODOT="/c/Users/Jesury/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stab
 
 Expected: exit 1 with a parse error naming `SaveStore` (no such class).
 
-- [ ] **Step 3: Check the class name is free, then create the store**
+- [x] **Step 3: Check the class name is free, then create the store**
 
 Write `godot/build/class_check.gd` (gitignored):
 
@@ -405,7 +405,7 @@ static func _quarantine(path: String) -> void:
 
 If the Tier-1 warnings reject any `return value` after an `is` narrowing (they did not for `tilt_input.gd:387-392`'s `calibrated_beta = beta_value`), add `@warning_ignore("unsafe_cast")` above that line only, with the one-line `# PORT-NOTE: narrowed by the is-check above` — `control_settings.gd:81-83` is the precedent. Do not widen the return type to `Variant`.
 
-- [ ] **Step 4: Run the spec to verify it passes**
+- [x] **Step 4: Run the spec to verify it passes**
 
 ```bash
 cd /c/Users/Jesury/Documents/Personal/dread-flock
@@ -416,7 +416,7 @@ gdlint godot/src godot/tests
 
 Expected: `OK: 34/34 scripts collected, all tests passed.`; `gdformat` reports every file unchanged; `gdlint` prints nothing. If `test_second_quarantine_replaces_the_first` fails on Windows because `rename_absolute` refuses to overwrite, the `remove_absolute` before it is the fix and is already there — check the observed `err` in the warning text before changing anything else.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd /c/Users/Jesury/Documents/Personal/dread-flock
@@ -442,7 +442,7 @@ git log -1 --format=%B
 
 `tilt_input.gd` is the file the user tunes on device between sessions. Confirm `git status --short godot/src/input/tilt_input.gd` is empty before editing it; if not, stop (Precondition).
 
-- [ ] **Step 1: Write the three failing specs**
+- [x] **Step 1: Write the three failing specs**
 
 Append to `godot/tests/test_score_manager.gd`:
 
@@ -486,7 +486,7 @@ func test_corrupt_settings_file_is_quarantined_and_keeps_defaults() -> void:
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(backup))
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 ```bash
 cd /c/Users/Jesury/Documents/Personal/dread-flock
@@ -495,7 +495,7 @@ tools/run_tests.sh 2>&1 | grep -E "test_corrupt|FAILED|OK:"
 
 Expected: the three new specs fail on the `file_exists(backup)` assertion (today each file reads, warns and keeps the bad file in place). If `test_tilt_input.gd` cannot construct `TiltInput` headless, read how `test_tilt_input_device.gd` does it and match.
 
-- [ ] **Step 3: Route `score_manager.gd`**
+- [x] **Step 3: Route `score_manager.gd`**
 
 Replace `score_manager.gd:189-226` (`load_best_score`, `_save_best_score`, `_load_best_score`) with:
 
@@ -522,7 +522,7 @@ func _load_best_score() -> void:
 
 Read the current `_load_best_score` once before deleting it: if it already carries a `PORT-NOTE` about the object shape, keep that wording rather than the one above. The `TODO(M7)` at `:190` is gone with the block.
 
-- [ ] **Step 4: Route `tilt_input.gd` — I/O blocks only**
+- [x] **Step 4: Route `tilt_input.gd` — I/O blocks only**
 
 At `:17-20` replace the four comment lines with:
 
@@ -560,7 +560,7 @@ Replace the head of `_load_calibration()` (`:362-377`, from `if not FileAccess.f
 
 Keep every line from `var beta_value: Variant = data.get("beta")` (`:378`) to the end of the function exactly as it is — the `is float` / `is Array` reads and the `_calibration_pending` branches are the user's verified device behaviour. The `DIVERGENCE` line count must not change: run `grep -c "DIVERGENCE" godot/src/input/tilt_input.gd` before and after and record both numbers in the ledger.
 
-- [ ] **Step 5: Route `control_settings.gd`**
+- [x] **Step 5: Route `control_settings.gd`**
 
 At `:11-12` replace the `TODO(M7)` comment with:
 
@@ -610,7 +610,7 @@ func _load_settings() -> void:
 
 `scheme = ordinal` assigns an `int` to a `Types.ControlScheme` variable; the existing line `:85` does the same and compiles, so keep it. If a `INT_AS_ENUM_WITHOUT_CAST` warning is reported and is among the nine errors (it is not at HEAD), write `scheme = ordinal as Types.ControlScheme` with the `@warning_ignore("unsafe_cast")` line above it and a `# PORT-NOTE` — `control_settings.gd:81-83` at HEAD is the form.
 
-- [ ] **Step 6: Run everything**
+- [x] **Step 6: Run everything**
 
 ```bash
 cd /c/Users/Jesury/Documents/Personal/dread-flock
@@ -623,7 +623,7 @@ grep -rn "TODO(M7)" godot/src/sim/score_manager.gd godot/src/input/tilt_input.gd
 
 Expected: `OK: 34/34 scripts collected, all tests passed.` (three more tests than Task 1); format and lint clean; **the first grep prints nothing** — after this task `SaveStore` is the only file in `godot/src/` that opens a file; the second grep prints nothing.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 cd /c/Users/Jesury/Documents/Personal/dread-flock
@@ -651,7 +651,7 @@ git log -1 --format=%B
   - `_init()` builds the catalogs then sets `data = _get_default_data()` (Task 4 changes this one line to `load_data()`).
   - `_resolve_ship_id(id: String) -> String`, `_get_default_data() -> ProgressionData`.
 
-- [ ] **Step 1: Write the parity dumper and generate the fixture**
+- [x] **Step 1: Write the parity dumper and generate the fixture**
 
 Create `tools/parity/dump_progression.mjs`:
 
@@ -765,7 +765,7 @@ node -e "const f=require('./godot/tests/fixtures/progression.json'); console.log
 
 Expected: `wrote …/godot/tests/fixtures/progression.json`; the `node -e` line prints `7331 300,600,1100,1800,2800,2800,2800 7 4000,9000,,,, 6700` (the empty entries are `null`s past the ladder). If the esbuild step reports a resolution error, `web/node_modules` is missing — run `cd web && npm ci` and retry; do not edit the TS. `godot/build/` is gitignored; the bundle is scratch.
 
-- [ ] **Step 2: Write the failing parity spec**
+- [x] **Step 2: Write the failing parity spec**
 
 Create `godot/tests/test_progression_parity.gd`:
 
@@ -953,7 +953,7 @@ func test_arena_theme_catalog_matches_the_typescript() -> void:
 
 The cost-curve, ladder, invested-points, multiplier and options specs are appended to this file in Tasks 5 and 7, once those members exist. Do not add them now.
 
-- [ ] **Step 3: Run the spec to verify it fails**
+- [x] **Step 3: Run the spec to verify it fails**
 
 ```bash
 cd /c/Users/Jesury/Documents/Personal/dread-flock
@@ -963,7 +963,7 @@ GODOT="/c/Users/Jesury/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stab
 
 Expected: exit 1 — `ProgressionManager.ShipShape`, `SAVE_PATH`, `ShipSkinConfig` do not exist.
 
-- [ ] **Step 4: Restructure and extend `progression_manager.gd`**
+- [x] **Step 4: Restructure and extend `progression_manager.gd`**
 
 Rewrite `godot/src/meta/progression_manager.gd` to the content below. The seven `*Perks` classes and `WeaponPerks` from M4 are **moved verbatim** to the inner-class block at the end and each gains `to_dict`/`from_dict`; nothing else about them changes (their field names are read by `weapon_system.gd` and the M4 specs). `gdlint`'s `class-definitions-order` requires enums, constants and variables before functions and inner classes, which is why the M4 classes move (CONVENTIONS §2 item 12: inner classes last).
 
@@ -1734,7 +1734,7 @@ class ProgressionData:
 
 Two things to check as you write it: (1) `var data: ProgressionData = null` at the top refers to an inner class declared at the bottom — GDScript 4 resolves inner-class names file-wide, and `types.gd` relies on the same; if the parser rejects it, **stop and record it** (LAW 5) rather than move the classes back above the vars, because `gdlint`'s `class-definitions-order` then fails instead. (2) `gdformat` may re-wrap the long description literals; run it and accept its layout.
 
-- [ ] **Step 5: Run everything**
+- [x] **Step 5: Run everything**
 
 ```bash
 cd /c/Users/Jesury/Documents/Personal/dread-flock
@@ -1748,7 +1748,7 @@ git diff --stat
 
 Expected: `--check-only` exits 0; `OK: 35/35 scripts collected, all tests passed.` — the four parity specs among them, **and every M4 weapon spec still green** (they construct `ProgressionManager.WeaponPerks.new()` and read the moved fields); format and lint clean. `gdlint` will not yet report `max-public-methods` (no public methods yet).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 cd /c/Users/Jesury/Documents/Personal/dread-flock
@@ -1773,7 +1773,7 @@ git log -1 --format=%B
   - `ProgressionManager.save() -> void` — `SaveStore.save_dict(SAVE_PATH, data.to_dict())` (`:517-523`).
   - `_unique_union(base: Array[String], extra: Array[String]) -> Array[String]` — the `Array.from(new Set([...base, ...extra]))` idiom (`:504-506`), order-preserving.
 
-- [ ] **Step 1: Write the failing spec**
+- [x] **Step 1: Write the failing spec**
 
 Create `godot/tests/test_progression_manager.gd`:
 
@@ -1937,7 +1937,7 @@ func test_corrupt_file_falls_back_to_defaults_and_is_backed_up() -> void:
 	assert_true(FileAccess.file_exists(backup), "and does not touch the backup")
 ```
 
-- [ ] **Step 2: Run the spec to verify it fails**
+- [x] **Step 2: Run the spec to verify it fails**
 
 ```bash
 cd /c/Users/Jesury/Documents/Personal/dread-flock
@@ -1947,7 +1947,7 @@ GODOT="/c/Users/Jesury/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stab
 
 Expected: exit 1 — `save` is not a member of `ProgressionManager`.
 
-- [ ] **Step 3: Implement `load_data`, `save`, `_unique_union`**
+- [x] **Step 3: Implement `load_data`, `save`, `_unique_union`**
 
 In `progression_manager.gd`, change the last line of `_init()` to `data = load_data()` and add, directly after `_get_default_data()`:
 
@@ -2002,7 +2002,7 @@ func _unique_union(base: Array[String], extra: Array[String]) -> Array[String]:
 	return out
 ```
 
-- [ ] **Step 4: Run everything**
+- [x] **Step 4: Run everything**
 
 ```bash
 cd /c/Users/Jesury/Documents/Personal/dread-flock
@@ -2013,7 +2013,7 @@ gdlint godot/src godot/tests
 
 Expected: `OK: 36/36 scripts collected, all tests passed.`; format and lint clean.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd /c/Users/Jesury/Documents/Personal/dread-flock
@@ -2045,7 +2045,7 @@ git log -1 --format=%B
 
 `get_starting_lives` reads `get_equipped_ship()`, which is Task 6's. To keep each task green on its own, Task 5 implements `get_equipped_ship()` **now**, at its TS position (after `equip_ship`, which Task 6 fills in) — see Step 3.
 
-- [ ] **Step 1: Write the failing spec**
+- [x] **Step 1: Write the failing spec**
 
 Create `godot/tests/test_progression_economy.gd`:
 
@@ -2316,7 +2316,7 @@ func test_invested_points_and_multipliers_at_defaults_match_the_typescript() -> 
 	assert_almost_eq(_pm.get_points_multiplier(), SaveStore.read_float(m, "points", -1.0), 0.0001)
 ```
 
-- [ ] **Step 2: Run the specs to verify they fail**
+- [x] **Step 2: Run the specs to verify they fail**
 
 ```bash
 cd /c/Users/Jesury/Documents/Personal/dread-flock
@@ -2326,7 +2326,7 @@ GODOT="/c/Users/Jesury/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stab
 
 Expected: exit 1 — `add_points_credited` is not a member of `ProgressionManager`.
 
-- [ ] **Step 3: Implement the economy**
+- [x] **Step 3: Implement the economy**
 
 Add as **line 1** of `progression_manager.gd` (above the `## progression_manager.gd` header line), following `enemy_swarm.gd:1-2`:
 
@@ -2579,7 +2579,7 @@ func get_equipped_ship() -> ShipSkinConfig:
 
 `get_equipped_ship` is placed here temporarily; Task 6 inserts `buy_ship` and `equip_ship` above it (TS order `:713-735`) and nothing else about it changes. The `Tuning.KEYSTONE_COSTS.get(keystone_key, 2500)` line returns `Variant` from a typed Dictionary's `get` — if the Tier-1 warnings reject the implicit `int` return, write it as two lines: `if Tuning.KEYSTONE_COSTS.has(keystone_key): return Tuning.KEYSTONE_COSTS[keystone_key]` / `return 2500`, which is the same `??` semantics on a table whose values are all ints. In `upgrade_perk`, `var weapon_perks: Dictionary = all[weapon]` narrows a `Variant` — `to_dict()` only ever puts Dictionaries there; if the warnings object, guard it with `if not (all[weapon] is Dictionary): return false` first.
 
-- [ ] **Step 4: Run everything**
+- [x] **Step 4: Run everything**
 
 ```bash
 cd /c/Users/Jesury/Documents/Personal/dread-flock
@@ -2590,7 +2590,7 @@ gdlint godot/src godot/tests
 
 Expected: `OK: 37/37 scripts collected, all tests passed.`; format clean; **`gdlint` prints nothing** — the line-1 `disable` covers `max-public-methods`. If `gdlint` reports `max-file-lines`, add `,max-file-lines` to the same `disable` line (the form is `# gdlint:disable=max-public-methods,max-file-lines`) and note it in the ledger.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd /c/Users/Jesury/Documents/Personal/dread-flock
@@ -2617,7 +2617,7 @@ git log -1 --format=%B
   - `buy_arena_theme(id) -> bool`, `equip_arena_theme(id) -> bool`, `get_equipped_arena_theme() -> ArenaThemeConfig`
   - `set_sensitivity(value: float) -> void`, `set_deadzone(value: float) -> void`
 
-- [ ] **Step 1: Write the failing spec**
+- [x] **Step 1: Write the failing spec**
 
 Create `godot/tests/test_progression_catalogs.gd`:
 
@@ -2754,7 +2754,7 @@ func test_tuning_setters_clamp_and_save() -> void:
 	assert_almost_eq(again.data.tuning.deadzone, 6.5, 0.0001, "saved (:799)")
 ```
 
-- [ ] **Step 2: Run the spec to verify it fails**
+- [x] **Step 2: Run the spec to verify it fails**
 
 ```bash
 cd /c/Users/Jesury/Documents/Personal/dread-flock
@@ -2764,7 +2764,7 @@ GODOT="/c/Users/Jesury/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stab
 
 Expected: exit 1 — `buy_ship` is not a member of `ProgressionManager`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `progression_manager.gd`, insert **above** `get_equipped_ship()`:
 
@@ -2915,7 +2915,7 @@ func _find_arena_theme(id: String) -> ArenaThemeConfig:
 	return null
 ```
 
-- [ ] **Step 4: Run everything, then confirm the member table against the TS**
+- [x] **Step 4: Run everything, then confirm the member table against the TS**
 
 ```bash
 cd /c/Users/Jesury/Documents/Personal/dread-flock
@@ -2928,7 +2928,7 @@ grep -n "^  public \|^  private " web/src/tilt-to-live/ProgressionManager.ts | w
 
 Expected: `OK: 38/38 scripts collected, all tests passed.`; format and lint clean. The two counts differ by a known amount: the GDScript has `_init`, `_unique_union`, three `_find_*`, three `_build_*` catalog builders and the inner-class `to_dict`/`from_dict` pairs that the TS does not, and lacks `getCursorSvgDataUri`/`getShipSvgPreview`; write both numbers and the reconciliation in the ledger. Walk `ProgressionManager.ts:406-800` once against the file and confirm every public member is present in TS order — that is the LAW 3 check the M4 final review did.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd /c/Users/Jesury/Documents/Personal/dread-flock
@@ -2957,7 +2957,7 @@ git log -1 --format=%B
   - `var settings: GameSettings`, `var modes: Array[ModeConfig]`
   - `load_settings() -> GameSettings`, `save() -> void`, `get_mode_config(mode: Types.GameMode) -> ModeConfig`, `set_mode(mode: Types.GameMode) -> void`, `get_shake_multiplier() -> float`.
 
-- [ ] **Step 1: Write the failing spec**
+- [x] **Step 1: Write the failing spec**
 
 Create `godot/tests/test_game_options.gd`:
 
@@ -3171,7 +3171,7 @@ func test_shake_multipliers_match_the_typescript() -> void:
 		)
 ```
 
-- [ ] **Step 2: Run the spec to verify it fails**
+- [x] **Step 2: Run the spec to verify it fails**
 
 ```bash
 cd /c/Users/Jesury/Documents/Personal/dread-flock
@@ -3181,7 +3181,7 @@ GODOT="/c/Users/Jesury/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stab
 
 Expected: exit 1 — `GameOptionsManager` does not exist. Also run the `class_check.gd` probe from Task 1 Step 3 with `"GameOptionsManager"`; it must print `false`.
 
-- [ ] **Step 3: Create `game_options.gd`**
+- [x] **Step 3: Create `game_options.gd`**
 
 ```gdscript
 ## game_options.gd
@@ -3426,7 +3426,7 @@ class GameSettings:
 
 `Dictionary.find_key` returns `Variant`; assigning it to an enum-typed variable may trip a Tier-1 warning. If so, replace each `find_key` line with an explicit loop over the table's keys (`for key: Types.GameMode in MODE_IDS.keys(): if MODE_IDS[key] == mode_id: mode = key`) — no `@warning_ignore`.
 
-- [ ] **Step 4: Run everything**
+- [x] **Step 4: Run everything**
 
 ```bash
 cd /c/Users/Jesury/Documents/Personal/dread-flock
@@ -3437,7 +3437,7 @@ gdlint godot/src godot/tests
 
 Expected: `OK: 39/39 scripts collected, all tests passed.`; format and lint clean.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd /c/Users/Jesury/Documents/Personal/dread-flock
@@ -3465,7 +3465,7 @@ git log -1 --format=%B
   - `reset() -> void`; `update(dt: float, player: PlayerShip, bounds: Vector2, particles: ParticleEngine, audio: AudioBank, mode_multiplier: float, on_collected: Callable) -> void` — `on_collected` is `func(value: int) -> int`.
   - `EntityLayer.bind_entities(player, swarm = null, weapons = null, coins: CoinSystem = null)`.
 
-- [ ] **Step 1: Write the failing specs**
+- [x] **Step 1: Write the failing specs**
 
 Create `godot/tests/test_coin_system.gd`:
 
@@ -3657,7 +3657,7 @@ func test_entity_layer_draws_coins_without_error() -> void:
 	assert_true(true, "two coins, one inside FADE_WARNING_TIME, drew without a script error")
 ```
 
-- [ ] **Step 2: Run the specs to verify they fail**
+- [x] **Step 2: Run the specs to verify they fail**
 
 ```bash
 cd /c/Users/Jesury/Documents/Personal/dread-flock
@@ -3667,7 +3667,7 @@ GODOT="/c/Users/Jesury/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stab
 
 Expected: exit 1 — `CoinSystem` does not exist. Run the `class_check.gd` probe with `"CoinSystem"`; it must print `false`.
 
-- [ ] **Step 3: Create `coin_system.gd`**
+- [x] **Step 3: Create `coin_system.gd`**
 
 ```gdscript
 ## coin_system.gd
@@ -3813,7 +3813,7 @@ class CoinPickup:
 
 `var credited: int = on_collected.call(value)` assigns a `Variant`; the M4 kill callback never needed the return, so this is the first such site. If a Tier-1 warning fires, use the two-line form `var result: Variant = on_collected.call(value)` / `if result is int: points_from_coins += result` with a `# PORT-NOTE: the Callable's return is untyped by construction`. `for attempt: int in range(10)` will trip `UNUSED_VARIABLE` — name it `_attempt`.
 
-- [ ] **Step 4: Draw the coins in `entity_layer.gd`**
+- [x] **Step 4: Draw the coins in `entity_layer.gd`**
 
 Change `_draw()` (`:41-46`) to:
 
@@ -3915,7 +3915,7 @@ func _quadratic_points(p0: Vector2, control: Vector2, p1: Vector2) -> PackedVect
 
 Retag the header (`:8-13`): replace `Ship skins are M7/M8, so M1/M2 draws the default classic arrow (PlayerShip.ts:594-617) alone.` / `TODO(M7): the viper, phantom, solar, cyber, shuriken and celestial shapes.` with `The catalog is ProgressionManager.ship_catalog (M7); nothing can equip another ship until the Armory (M8), so only the classic arrow (PlayerShip.ts:594-617) is drawn.` / `TODO(M8): the viper, phantom, solar, cyber, shuriken and celestial shapes.` Retag `:174` from `TODO(M7): enemy skins` to `TODO(M8): enemy skins` and change `skin (EnemySkinConfig) is M7` at `:173` to `skin (EnemySkinConfig) is ProgressionManager.enemy_skin_catalog (M7); equipping is M8`. Open question 4 records why.
 
-- [ ] **Step 5: Run everything**
+- [x] **Step 5: Run everything**
 
 ```bash
 cd /c/Users/Jesury/Documents/Personal/dread-flock
@@ -3928,7 +3928,7 @@ grep -rn "TODO(M7)" godot/src/render/entity_layer.gd
 
 Expected: `OK: 40/40 scripts collected, all tests passed.`; format and lint clean; both greps print nothing.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 cd /c/Users/Jesury/Documents/Personal/dread-flock
@@ -3954,7 +3954,7 @@ git log -1 --format=%B
   - `var progression: ProgressionManager`, `var options: GameOptionsManager` on `GameRoot` (public, like `settings`), `var _coins: CoinSystem`.
   - **The `RunController.perks` variable is removed.** Tests set ranks on `progression.data.perks`.
 
-- [ ] **Step 1: Update the run-controller specs and write the failing ones**
+- [x] **Step 1: Update the run-controller specs and write the failing ones**
 
 In `godot/tests/test_run_controller.gd`:
 
@@ -4046,7 +4046,7 @@ func test_player_update_reads_tuning_and_the_equipped_ship() -> void:
 	assert_almost_eq(_player.radius, classic_radius * 1.90, 0.0001, "the Aegis hitboxScale (:199) via :1889")
 ```
 
-- [ ] **Step 2: Run to verify the file no longer compiles**
+- [x] **Step 2: Run to verify the file no longer compiles**
 
 ```bash
 cd /c/Users/Jesury/Documents/Personal/dread-flock
@@ -4056,7 +4056,7 @@ GODOT="/c/Users/Jesury/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stab
 
 Expected: exit 1 — `RunController.new` takes 7 arguments, not 10.
 
-- [ ] **Step 3: Rewire `run_controller.gd`**
+- [x] **Step 3: Rewire `run_controller.gd`**
 
 Replace `:22-26` (the `perks` doc comment, `TODO(M7)` and variable) with:
 
@@ -4194,7 +4194,7 @@ change the ninth argument of `weapons.update` (`:133`) from `perks` to `progress
 
 Also update the `player_ship.gd:18-20` header sentence `M7 supplies real values from ProgressionManager; until then callers pass the TypeScript defaults (1.0, 4.0, 1.0, 1.0, #00ddff).` to `RunController passes them from ProgressionManager (data.tuning, get_equipped_ship()); the M1/M2 callers passed the TypeScript defaults (1.0, 4.0, 1.0, 1.0, #00ddff).` — a comment-only edit to a file listed as "not modified" for code; note it in the ledger.
 
-- [ ] **Step 4: Construct the instances in `game_root.gd`**
+- [x] **Step 4: Construct the instances in `game_root.gd`**
 
 After `var settings: ControlSettings = null` (`:37`) add:
 
@@ -4220,7 +4220,7 @@ change the constructor call to `RunController.new(_player, _swarm, _weapons, _pa
 	_grid_layer.show_gridlines = options.settings.show_gridlines
 ```
 
-- [ ] **Step 5: Comment-only edits in four files**
+- [x] **Step 5: Comment-only edits in four files**
 
 `game_state_machine.gd`: `:121` `# TODO(M2): scores.setModeMultiplier(modeConfig.scoreMultiplier).` → `# PORT-NOTE: scores.setModeMultiplier (:1550) and setProgressionMultiplier (:1551)` / `# are ported in run_controller.gd::reset_run, which owns the scores.`; delete `:122`. `:136-137` → `# PORT-NOTE: lives, maxLivesThisRun and setHitboxMultiplier (:1567-1570) are` / `# ported in run_controller.gd::reset_run. TODO(M9): pointsEarnedThisRun.` `:145-146` → `# PORT-NOTE: swarm.setSpeedScale (:1599) and coins.reset() (:1601) are ported` / `# in run_controller.gd::reset_run.`
 
@@ -4228,7 +4228,7 @@ change the constructor call to `RunController.new(_player, _swarm, _weapons, _pa
 
 `grid_layer.gd:13`: `## TODO(M7): gate this on GameOptions.showGridlines.` → `## GameRoot sets show_gridlines from GameOptionsManager.settings.show_gridlines (M7).` `:93`: `# TODO(M7): arena theme override (TiltRenderer.ts:76-80).` → `# TODO(M8): arena theme override (TiltRenderer.ts:76-80) — the catalog is` / `# ProgressionManager.arena_theme_catalog; nothing can equip one before the Armory.`
 
-- [ ] **Step 6: Run everything, including the headless boot**
+- [x] **Step 6: Run everything, including the headless boot**
 
 ```bash
 cd /c/Users/Jesury/Documents/Personal/dread-flock
@@ -4244,7 +4244,7 @@ ls "$APPDATA/Godot/app_userdata/Peril Point/"
 
 Expected: `OK: 40/40 scripts collected, all tests passed.`; format and lint clean; **the `TODO(M7)` grep prints nothing**; the headless boot prints `0`; the `ls` shows `tilt_to_live_settings_v1.json` is **not** created by a boot (no `setMode` or `save` runs) and `tilt_to_live_progression_v3.json` is created only if a coin was collected — record what you see. `test_main_scene.gd` instantiates `main.tscn` and so now constructs all three; if it fails on a save-file assumption, add the two `_remove` calls to its `before_each`.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 cd /c/Users/Jesury/Documents/Personal/dread-flock
@@ -4268,7 +4268,7 @@ git log -1 --format=%B
 - Consumes: the `Android` export preset from M0b; `VERIFY-ME.md` §0's build/install commands.
 - Produces: evidence lines for `HANDOFF.md`; the hand-held checklist the user runs later.
 
-- [ ] **Step 1: Unattended evidence — headless run and APK export**
+- [x] **Step 1: Unattended evidence — headless run and APK export**
 
 ```bash
 cd /c/Users/Jesury/Documents/Personal/dread-flock
@@ -4282,7 +4282,7 @@ git checkout godot/project.godot
 
 Expected: `0`; the export ends without `ERROR` and the APK exists (M4's was 30,335,810 bytes). Record the size.
 
-- [ ] **Step 2: Conditional evidence — only if the phone is on adb**
+- [x] **Step 2: Conditional evidence — only if the phone is on adb**
 
 ```bash
 cd /c/Users/Jesury/Documents/Personal/dread-flock
@@ -4305,7 +4305,7 @@ sleep 6;  "$ADB" -s RRCXB04L8EJ exec-out screencap -p > godot/build/m7-09s.png
 
 Expected: a pid; no `SCRIPT ERROR`; the 3 s screenshot shows a **green shield orb** (the classic ship's starting weapon — M4's was the red nuke) and, by 9 s, an amber coin. The `run-as … ls` lists the `user://` files the app has written so far. Open each PNG with the Read tool and record what is visible.
 
-- [ ] **Step 3: Append the M7 section to `godot/VERIFY-ME.md`**
+- [x] **Step 3: Append the M7 section to `godot/VERIFY-ME.md`**
 
 Append (do not edit earlier sections), filling the bracketed lines from Steps 1–2:
 
@@ -4354,7 +4354,7 @@ them until the Armory (M8). To see them now, edit the JSON with `run-as` and
 relaunch — e.g. `"extraLives": 2` gives three lives at the next run.
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 cd /c/Users/Jesury/Documents/Personal/dread-flock
@@ -4375,7 +4375,7 @@ git log -1 --format=%B
 - Consumes: every result actually observed in Tasks 1–10.
 - Produces: a handoff a zero-context session can resume from.
 
-- [ ] **Step 1: Verify, fresh**
+- [x] **Step 1: Verify, fresh**
 
 ```bash
 cd /c/Users/Jesury/Documents/Personal/dread-flock
@@ -4396,15 +4396,15 @@ git status --short
 
 Expected, read from the output and not assumed: `OK: 40/40 scripts collected, all tests passed.`; `gdformat` reports every file unchanged; `gdlint` prints nothing; the four `--check-only` exit 0; the `TODO(M7)` grep prints nothing; the `FileAccess.open` grep prints nothing; the `DIVERGENCE` count equals what it was at Task 1 (M7 adds none — record the number); the working tree is clean.
 
-- [ ] **Step 2: Tick `PORT-PROGRESS.md`**
+- [x] **Step 2: Tick `PORT-PROGRESS.md`**
 
 Replace the `- [ ] **M7 — Persistence and economy**` block (`:139-141`) with an entry in the M4 entry's style: date, the Task 10 commit SHA, the plan path, then `ok` lines for: `meta/save_store.gd` (quarantine proven in four specs — store, best score, calibration, control settings); `meta/progression_manager.gd` full port minus the two SVG methods (member table reconciled in Task 6 Step 4, the count written here); the parity fixture `progression.json` (~330 literals) green; the perk cost curve, all five `buy_*` + `upgrade_perk` + the three catalog `buy_*`, and the four multipliers proven headless (spec acceptance line 1); the save round trip through a fresh instance (acceptance line 2); the corrupt fallback with backup (acceptance line 3); `meta/game_options.gd`; `sim/coin_system.gd` at frame-order step 7 with coins drawn under orbs; `RunController` reading lives, hitbox, speed, score/points multipliers and the equipped ship's starting weapon from the save; the collected/passed counts; `gdformat`/`gdlint` clean; `--check-only` on the four files; the unattended device evidence and whether the A55 was present, with a pointer to `VERIFY-ME.md` §M7. If the phone was absent, leave the box **unticked** with `DEVICE PASS PENDING` exactly as M2.5, M3 and M4 did.
 
-- [ ] **Step 3: Rewrite `HANDOFF.md`**
+- [x] **Step 3: Rewrite `HANDOFF.md`**
 
 For a session with zero context, in the M4 handoff's shape. It must carry: what M7 landed (file by file); the exact verification commands from Step 1 with their observed results (update the `## How to verify right now` block: 40/40 scripts, the new test count, the new `DIVERGENCE` count, and the file count `gdformat` reports); the device evidence or its absence and the `VERIFY-ME.md` §M7 pointer; every Open question below, verbatim, with the ruling taken; the three representation decisions later modules read — **(a)** perks are edited by TS spelling through `upgrade_perk("laser", "crossBeam")` and the keystone key doubles as the `KEYSTONE_COSTS` key, **(b)** `get_*_cost()` returns `Types.ABSENT` for the TS `null`, **(c)** `GameOptionsManager.get_mode_config` takes the mode explicitly — M8's Armory and M9's goals both read these; that `RunController.perks` no longer exists (ranks live on `progression.data.perks`); that the starting orb is now the equipped ship's weapon (shield for classic); the `# TODO(M8)` tags M7 left in `entity_layer.gd` (ship shapes, enemy skins) and `grid_layer.gd` (arena theme) and the `# TODO(M11)` for the game-over coin summary; and the next module. Spec §8 lists **M5** (deps M2), **M8** and **M9** (deps M7) as now open. Recommend M5 or M8 and give the literal first step of each: M5 — "read spec §8 Module 5 and `web/src/tilt-to-live/TiltAudio.ts` in full, then write `docs/superpowers/plans/2026-09-20-m5-audio-bake-and-sfx.md`; `audio/audio_bank.gd` is the M2 null-object stub every sim system already calls"; M8 — "read spec §8 Module 8 and `web/src/tilt-to-live/ArmoryUI.ts` (1,293 lines) in full, then write `docs/superpowers/plans/2026-09-20-m8-armory-ui.md`; every purchase it needs is a `ProgressionManager` method proven in `tests/test_progression_economy.gd` and `test_progression_catalogs.gd`, and the `WeaponTuning.ts:56` `freeze.duration.max = 8.2` vs `8.0` discrepancy M4 flagged is the Armory's to display".
 
-- [ ] **Step 4: Update the index's module map**
+- [x] **Step 4: Update the index's module map**
 
 In `docs/superpowers/plans/2026-09-20-peril-point-godot-port-index.md`, change row 7 (`:73`) to:
 
@@ -4414,7 +4414,7 @@ In `docs/superpowers/plans/2026-09-20-peril-point-godot-port-index.md`, change r
 
 (or `**done**` if the A55 was present and every `VERIFY-ME.md` §M7 item was ticked by the user — not by the session).
 
-- [ ] **Step 5: Commit and stop**
+- [x] **Step 5: Commit and stop**
 
 ```bash
 cd /c/Users/Jesury/Documents/Personal/dread-flock
