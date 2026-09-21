@@ -127,9 +127,8 @@ func update(
 
 		# PORT-NOTE: `w.data?.x` (WeaponSystem.ts:160, :188, :198, :260) — data is
 		# Types.ts:64's any-typed bag (types.gd:111-113), held as a Dictionary keyed
-		# by the TS property names. Absent data reads as an empty bag.
-		# PORT-NOTE: data is Types.ts:64's any-typed field (types.gd:111-113); the
-		# Variant read genuinely requires the cast (precedent: test_tuning_parity.gd:46-48).
+		# by the TS property names. Absent data reads as an empty bag. The Variant
+		# read genuinely requires the cast below (precedent: test_tuning_parity.gd:46-48).
 		@warning_ignore("unsafe_cast")
 		var data: Dictionary = w.data if w.data != null else {}
 
@@ -291,10 +290,15 @@ func update(
 				# Collapse shockwave. PORT: web/src/tilt-to-live/WeaponSystem.ts:258-277
 				var supernova_collapse: bool = data.get("supernovaCollapse", false)
 				# PORT: web/src/tilt-to-live/WeaponSystem.ts:260
+				# PORT-NOTE: the collapse radii (260.0, Tuning.SUPERNOVA_SHOCKWAVE) are not
+				# multiplied by scale, unlike the pull radius (:520) — preserved deliberately
+				# as written.
 				var blast_radius: float = (
 					Tuning.SUPERNOVA_SHOCKWAVE if supernova_collapse else 260.0
 				)
 				var blast_radius2: float = blast_radius * blast_radius
+				# PORT-NOTE: the collapse plays playNuke() (:262), not a vortex sound —
+				# preserved deliberately as written.
 				audio.play_nuke()  # PORT: web/src/tilt-to-live/WeaponSystem.ts:262
 				# PORT: web/src/tilt-to-live/WeaponSystem.ts:263-264
 				particles.emit_explosion(
