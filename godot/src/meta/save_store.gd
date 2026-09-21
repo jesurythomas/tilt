@@ -39,11 +39,13 @@ static func load_dict(path: String) -> Dictionary:
 		return {}
 	var raw: String = file.get_as_text()
 	file.close()
-	# PORT-NOTE: Variant is unavoidable for unvalidated JSON (CONVENTIONS §4);
-	# the `is Dictionary` check below narrows it before any read.
-	var parsed: Variant = JSON.parse_string(raw)
-	if parsed is Dictionary:
-		return parsed
+	var json: JSON = JSON.new()
+	var err: Error = json.parse(raw)
+	# PORT-NOTE: JSON.new().parse is used over JSON.parse_string because the
+	# static form logs an engine error on bad input, which GUT counts as a
+	# failure. The `is Dictionary` check narrows json.data before any read.
+	if err == OK and json.data is Dictionary:
+		return json.data
 	_quarantine(path)
 	return {}
 
