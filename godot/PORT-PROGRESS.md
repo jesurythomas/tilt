@@ -104,10 +104,29 @@ Dependency map and resume instructions:
             caller until M4/M10 (`TODO(M4)`/`TODO(M10)` markers).
       --  NOT run on a phone (A55 off adb all session). See VERIFY-ME.md §M3.
 
-- [ ] **M4 — Weapons**  deps: M2
-      -- all 7 weapons activate with radius/duration read from the tuning table
-      -- perk ranks visibly change values
-      -- WEAPON_TUNING parity spec passes
+- [ ] **M4 — Weapons**  deps: M2   *(code complete 2026-09-21, head `0b7fccf`; DEVICE PASS PENDING)*
+      plan  `docs/superpowers/plans/2026-09-20-m4-weapons.md`
+      **tick this box only after `godot/VERIFY-ME.md` §M4 is run on the A55**
+      ok  `sim/weapon_system.gd` is the full port of `WeaponSystem.ts` minus `render()`/
+          `renderOrbGlyph()`: all 7 weapons activate (missiles, lightning, laser, vortex,
+          freeze, shield join M2's nuke), `trigger_weapon`, weighted `get_random_weapon_type`,
+          complete `get_weapon_color`. LAW 3 member table verified complete by the final review.
+      ok  every radius/duration/count the TS tunes is read through `Tuning.get_tuned_value`
+          (16 call sites verified at rank 0 and max rank against `WeaponTuning.ts`); perk
+          ranks change values — proven headless for all 7 weapons; `test_tuning_parity.gd`
+          untouched and green.
+      ok  `meta/progression_manager.gd` holds the `WeaponPerks` record only (M7 extends it);
+          `run_controller.gd` re-emits `GameEvents.weapon_activated`, owns an all-zero `perks`
+          record, applies the shield-radius perk at run start; frame order unchanged.
+      ok  weapon FX (`effect_layer.gd::_draw_weapon_fx`) and all 7 orb glyphs
+          (`entity_layer.gd`) drawn; FX sit ABOVE enemies per spec §5.5 (the web game draws
+          them under — open question 3, a one-line swap if the device pass prefers it).
+      ok  33/33 GUT scripts (220 tests); gdformat/gdlint clean; headless `--quit-after 120`
+          exits 0; APK exports (30,335,810 bytes); 43 `DIVERGENCE` tags.
+      note  `freeze_all` stays callerless — freeze is applied inline as `WeaponSystem.ts:541-544`.
+      note  `chilled` is never written anywhere in the web game either; the freeze spec asserts
+            it stays false.
+      --  NOT run on a phone (A55 off adb all session). See VERIFY-ME.md §M4.
 
 - [ ] **M5 — Audio bake and SFX**  deps: M2
       -- every `play*` method in TiltAudio.ts has a baked .ogg that fires correctly

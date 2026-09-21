@@ -5,12 +5,16 @@ Rewritten at every module stop. Written for a session with zero context.
 ## State
 
 Last completed module: **M2 — Vertical slice** (2026-09-20).
-**M2.5 — Mobile feel** — *code complete 2026-09-21, head `37f9fd4`*.
-**M3 — Enemy roster** — *code complete 2026-09-21, head `5bb5cc9`*.
-Neither is ticked in `PORT-PROGRESS.md`: their device passes have not been
-run. The A55 dropped off adb mid-session on 2026-09-20 and never came back, so
-**nothing from M2.5 onward has run on a phone.**
-**M4 — Weapons** — *plan written and committed (`docs/superpowers/plans/2026-09-20-m4-weapons.md`), execution NOT started.* Blocked on the uncommitted edits described under "⚠ Uncommitted edits in the tree" below.
+Code-complete, **device pass pending** (none ticked in `PORT-PROGRESS.md`):
+**M2.5 — Mobile feel** (head `37f9fd4` + the user's tuning `c023e09`),
+**M3 — Enemy roster** (head `5bb5cc9`), **M4 — Weapons** (head `0b7fccf`).
+Nothing since M2 has run on a phone: the A55 dropped off adb on 2026-09-20 and
+did not return; the user then ran their own pass and committed tuning as
+`c023e09` (gyro feel + FPS under mass explosions).
+Next module: **M5 — Audio bake and SFX** (deps: M2) or **M7 — Persistence and
+economy** (deps: M2) — both may start before the device passes. M7 is the
+better next step: M4 left `ProgressionManager.WeaponPerks` in
+`src/meta/progression_manager.gd` waiting for the rest of the file.
 Branch: `feat/godot-port` (no upstream; nothing pushed).
 
 > ### ⚠ Read `godot/VERIFY-ME.md`
@@ -24,15 +28,15 @@ Branch: `feat/godot-port` (no upstream; nothing pushed).
 cd /c/Users/Jesury/Documents/Personal/dread-flock
 GODOT="/c/Users/Jesury/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe"
 
-tools/run_tests.sh                        # expect: OK: 30/30 scripts (184 tests)
-gdformat --check godot/src godot/tests    # expect: 56 files would be left unchanged
+tools/run_tests.sh                        # expect: OK: 33/33 scripts (220 tests)
+gdformat --check godot/src godot/tests    # expect: 60 files would be left unchanged
 gdlint godot/src godot/tests              # expect: Success: no problems found
-grep -rn "DIVERGENCE" godot/src/ | wc -l  # expect: 35
+grep -rn "DIVERGENCE" godot/src/ | wc -l  # expect: 43
 "$GODOT" --headless --path godot --quit-after 120   # expect: exit 0, no SCRIPT ERROR
 git checkout godot/project.godot          # headless runs strip one default-valued line; never commit that
 ```
 
-Every command above was run fresh at `5bb5cc9` and passed. `grep -rn "TODO(M3)" godot/src/` is empty.
+Every command above was run fresh at `0b7fccf` and passed. `grep -rn "TODO(M3)\|TODO(M4)" godot/src/` is empty.
 
 ## App identity and toolchain
 
@@ -180,34 +184,56 @@ pinned by LAW 1 citations only, not by a spec; `time_reduction` is computed
 for the code-red branch that never reads it (as in the TS); `current_score /
 10000` is int division, equal to `Math.floor` for non-negative scores.
 
-## ⚠ Uncommitted edits in the tree (found 2026-09-21 04:51, mtime 02:56)
+## M4 — what landed
 
-Seven tracked files under `godot/src/` carry uncommitted changes that **no
-agent of the SDD session made** (its last activity was 01:10): `game_root.gd`
-(`TOUCH_JOYSTICK_SPEED_SCALE 0.72`), `tilt_input.gd` (`GRAVITY_SENSITIVITY_BOOST
-2.0` + a rewritten gravity projection), `floating_joystick.gd` (`BASE_RADIUS`
-90→115), `effect_layer.gd` (arc segments 32→16), `grid_layer.gd`
-(`show_gridlines = false`), `particle_engine.gd` (`MAX_PARTICLES` 900→400),
-`weapon_system.gd` (nuke kill FX `emit_explosion` → `emit_sparks(…, 6, …)`).
-All carry `DIVERGENCE(M2.5 …): measured on SM_A556E` comments — a device
-pass done outside the session. With them in place the suite, gdformat and
-gdlint are still green (30/30).
+Plan `docs/superpowers/plans/2026-09-20-m4-weapons.md`; ledger
+`.superpowers/sdd/2026-09-20-m4-weapons/progress.md` (Rulings 0-13). 8 commits,
+`c023e09..0b7fccf`.
 
-They were left exactly as found. A named `git stash` (after saving a patch)
-was attempted so M4 could start on a clean tree and was refused by the
-permission classifier; they were not reverted. **Three things to know before
-committing them yourself:** `particle_engine.gd`, `weapon_system.gd` and
-`grid_layer.gd` are outside M2.5 spec §2.3's allowed set (the sim must not
-learn about the inset/mobile work); "`§10`" is the risk register, not an
-authorising section; and M4 Tasks 1-4 and 6 edit `weapon_system.gd`,
-`effect_layer.gd` and `game_root.gd`, so M4 cannot start until these are
-committed (or stashed) — otherwise the first M4 commit would swallow them.
+| Area | Files |
+|---|---|
+| Full `WeaponSystem.ts` port minus `render()`/`renderOrbGlyph()` | `src/sim/weapon_system.gd` (738 lines) |
+| `WeaponPerks` record only — M7 extends the file in place | `src/meta/progression_manager.gd` |
+| `weapon_activated` re-emit, public `perks`, shield-radius perk at run start | `src/sim/run_controller.gd` (frame order untouched — only `weapons.update`'s 9th argument was added) |
+| Weapon FX (`_draw_weapon_fx`) + `set_elapsed` | `src/render/effect_layer.gd`; `game_root.gd` binds weapons into it |
+| All 7 orb glyphs; nuke rings moved OUT to the effect layer | `src/render/entity_layer.gd` |
+| Tests | `tests/test_weapon_missiles.gd`, `test_weapon_lightning_laser.gd`, `test_weapon_vortex_freeze_shield.gd`; additions to `test_weapon_system.gd`, `test_run_controller.gd`, `test_render_layers.gd` |
 
-## Next: M4 — Weapons
+**Rulings on the plan's eight open questions** (ledger): every `base + rank*k`
+duration/count the TS writes inline is read through `Tuning.get_tuned_value`
+(spec §8 acceptance outranks LAW 2; numerically identical; percent multipliers
+stay inline) · freeze applied inline per `WeaponSystem.ts:541-544`, `freeze_all`
+stays callerless · **weapon FX draw above enemies** (spec §5.5) where the web
+game draws them under — `VERIFY-ME.md` §M4 asks you to judge; the swap is one
+line in `effect_layer.gd::_draw()` · `ActiveWeapon.data` is a Dictionary keyed
+by the TS spellings (`crossBeam`, `invulnerableInside`, `gravity`,
+`supernovaCollapse`) · `spawn_orb` keeps its NUKE default · `chilled` has no
+writer anywhere (asserted to stay false) · `missilesFired += 16` is M9's
+(`TODO(M9)` in `run_controller.gd`) · no pre-emptive gdlint suppression (738 lines).
 
-Plan: `docs/superpowers/plans/2026-09-20-m4-weapons.md` (8 tasks, 8 open
-questions — all ruled on in `.superpowers/sdd/2026-09-20-m4-weapons/progress.md`,
-which also holds the pre-flight scan). First step, **only from a clean tree**:
-`scripts/task-brief <plan> 1` and dispatch Task 1 (perk-rank record,
-`trigger_weapon`, weighted drop table). Stage by explicit path in every M4
-commit — never `git add godot/src`.
+**Perk ranks have no source until M7.** `RunController.perks` is an all-zero
+`WeaponPerks` (`# TODO(M7)` at the assignment). Every rank effect is proven
+headless in the weapon specs; nothing on the phone changes with rank yet.
+
+**Process defect worth knowing:** the plan mandated a `_p` local and
+de-underscored parameters before any arm used them; gdlint rejects both. Ruling
+10: parameters lose their `_` only when an arm starts using them. Eighth plan
+defect found by an implementer stopping to ask, across three modules.
+
+**Deferred minors:** `WeaponTuning.ts:56` declares `freeze.duration.max = 8.2`
+while `base + 5*perRank = 8.0`; `getTunedValue` never reads `max`, and
+`tuning.gd:102` reproduces it — M7's Armory (which displays `max`) should note
+it. `game_state_machine.gd:121` `TODO(M2): setModeMultiplier` is really M10's;
+`:151` `TODO(M2): updateHUD` is done by `GameEvents` signals — both stale.
+`weapons.update` gets its 10th argument (active mode) in M8/M10 (`TODO(M8)`).
+
+## Next: M7 — Persistence and economy (recommended) or M5 — Audio
+
+Both depend only on M2. M7 first: write
+`docs/superpowers/plans/2026-09-20-m7-persistence-and-economy.md` from
+`web/src/tilt-to-live/ProgressionManager.ts` (940 lines, read in full) and
+`WeaponTuning.ts` (`KEYSTONE_COSTS`), extending `src/meta/progression_manager.gd`
+in place (its header says so). `RunController.perks` is the one assignment M7
+changes in the run path. `SaveStore` corrupt-file fallback per spec §6.4.
+Follow the M3/M4 plan form; check `git status` first — the user may have
+uncommitted device tuning in the tree (see the memory note on device passes).

@@ -154,9 +154,53 @@ so every item below needs a thumb.
       — 50th percentile at or under 16 ms. The carrier's tether loop is
       O(carriers × enemies) per frame, as in the TS.
 
-Not observable in any mode yet (no caller until M4/M10): `freeze_all`,
+Not observable in any mode yet: `freeze_all` (callerless by design — M4 froze inline as the TS does),
 `spawn_sequential_gauntlet_wall`, `spawn_rotating_gate`, `spawn_mode_armada`,
 and the gauntlet/code-red director branches. `spike_mine` has no spawner in
 the web game either.
 
 When done: tick M3 in `PORT-PROGRESS.md` with the SHA you tested.
+
+---
+
+## M4 — Weapons (device pass, plan Task 7)
+
+Unattended evidence at `d30d86e`: 33/33 GUT scripts (220 tests) pass; headless
+`--quit-after 120` exits 0; the APK exports (30.3 MB). The A55 was still off
+adb — **no install, launch or screenshot happened.** Run §0 first. Orbs drop
+from a weighted table (missiles 20, nuke/laser 18, lightning/freeze/shield 16,
+vortex 5 of 109), so a vortex orb takes a few runs to see.
+
+- [ ] Each orb type shows its own white glyph on the coloured bubble:
+      nuke trefoil (red), rocket (orange), bolt (yellow), crossed beams
+      (violet), spiral (purple), snowflake (pale blue), shield outline (green).
+- [ ] **Missiles:** eight rockets fan out from the orb with orange smoke,
+      curve onto the nearest dots, and each detonates in a small orange
+      burst that takes out a cluster.
+- [ ] **Lightning:** a jagged yellow chain hops dot to dot from the orb,
+      up to 14 hops, and fades in about a quarter second; every dot it
+      touched is gone.
+- [ ] **Laser:** a white-cored violet beam through the ship, both ends,
+      spinning about 1.75 turns a second for 1.8 s, slicing dots it crosses.
+- [ ] **Vortex:** a spinning six-arm purple/cyan spiral with three faint
+      rings; nearby dots are reeled in and pop at the centre; after 4.8 s it
+      collapses with a purple/cyan burst that clears everything within
+      about 260 px.
+- [ ] **Freeze:** every dot turns pale blue and stops for 4.5 s; flying into
+      a frozen dot shatters it with an ice sound; a shatter burst and grid
+      ripple appear at the orb.
+- [ ] **Shield:** the ship's bubble appears for 6 s (silently — the TS has no
+      shield sound); ramming dots kills them.
+- [ ] Beams, rings, missiles and arcs draw **above** enemies and the ship
+      (spec §5.5) — the web game draws them *under*. If that reads wrong on
+      the phone, say so; it is a one-line swap (M4 plan open question 3).
+- [ ] Frame time with a vortex and eight missiles live, and again when a
+      nuke clears a big cluster (your `MAX_PARTICLES 400` / `emit_sparks 6`
+      tuning is what M4 inherited):
+      `"$ADB" -s RRCXB04L8EJ shell dumpsys gfxinfo com.jtg.perilpoint | grep -A3 50th`
+      — 50th percentile at or under 16 ms.
+
+Not observable yet (no rank source until M7): every perk-rank change. They
+are proven headless in `tests/test_weapon_*.gd` and `test_run_controller.gd`.
+
+When done: tick M4 in `PORT-PROGRESS.md` with the SHA you tested.
