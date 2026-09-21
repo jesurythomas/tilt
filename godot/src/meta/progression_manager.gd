@@ -1,3 +1,7 @@
+# gdlint:disable=max-public-methods,max-file-lines
+# PORT-NOTE: ProgressionManager.ts exposes 36 public methods; LAW 3 keeps them.
+# The file exceeds gdlint's 1000-line cap because it also carries the seven
+# catalogs and every inner record type; splitting it is a Task 6+ concern.
 ## progression_manager.gd
 ## PORTS: web/src/tilt-to-live/ProgressionManager.ts (940 lines, source commit 7be9614)
 class_name ProgressionManager
@@ -30,6 +34,13 @@ enum ShipShape { CLASSIC, VIPER, PHANTOM, SOLAR, CYBER, SHURIKEN, CELESTIAL }
 const STORAGE_KEY: String = "tilt_to_live_progression_v3"
 ## The localStorage key as a user:// file (spec §4.6).
 const SAVE_PATH: String = "user://" + STORAGE_KEY + ".json"
+
+## PORT: web/src/tilt-to-live/ProgressionManager.ts:607-611
+const EXTRA_LIVES_COSTS: Array[int] = [4000, 9000]
+const HULL_COMPACT_COSTS: Array[int] = [1500, 3000, 5500]
+const ENEMY_SLOW_COSTS: Array[int] = [2000, 4200, 7500]
+const SCORE_MULTIPLIER_COSTS: Array[int] = [1800, 3600, 6500, 11000]
+const POINTS_MULTIPLIER_COSTS: Array[int] = [2500, 5000, 9000, 15000]
 
 ## The player's progression. PORT: web/src/tilt-to-live/ProgressionManager.ts:122
 var data: ProgressionData = null
@@ -150,6 +161,250 @@ func load_data() -> ProgressionData:
 # PORT-NOTE: the console.warn on failure (:521) is SaveStore's Log.warn.
 func save() -> void:
 	SaveStore.save_dict(SAVE_PATH, data.to_dict())
+
+
+## Points earned during a run pass through here before landing in the
+## player's spendable/lifetime totals, so the points-purchases multiplier
+## is applied once, at this single chokepoint.
+## PORT: web/src/tilt-to-live/ProgressionManager.ts:525-539
+func add_points(amount: int) -> void:
+	add_points_credited(amount)
+
+
+## Banks `amount` (applying the points multiplier) and returns what was
+## actually credited, so callers can report real earnings rather than the
+## pre-multiplier figure. PORT: web/src/tilt-to-live/ProgressionManager.ts:541-550
+# PORT-NOTE: lifetimePoints IS multiplied the same as points (:529-536) —
+# it is a running total of everything ever credited, not a raw ledger.
+# PORT-NOTE: TiltGame.ts:205-208 re-renders the goals HUD (the points balance
+# in the DOM) after every addPoints; spec §5.3 makes that reach the
+# points_changed signal, emitted here where the balance changes.
+func add_points_credited(amount: int) -> int:
+	if amount <= 0:
+		return 0
+	var credited: int = floori(float(amount) * get_points_multiplier())
+	data.points += credited
+	data.lifetime_points += credited
+	save()
+	GameEvents.points_changed.emit(data.points)
+	return credited
+
+
+## PORT: web/src/tilt-to-live/ProgressionManager.ts:554-560
+func get_perk_cost(current_rank: int, is_keystone: bool = false, keystone_key: String = "") -> int:
+	if is_keystone:
+		if Tuning.KEYSTONE_COSTS.has(keystone_key):  # PORT: :556
+			return Tuning.KEYSTONE_COSTS[keystone_key]
+		return 2500
+	var costs: Array[int] = [300, 600, 1100, 1800, 2800]  # PORT: :558
+	return costs[mini(current_rank, costs.size() - 1)]
+
+
+## PORT: web/src/tilt-to-live/ProgressionManager.ts:562-578
+# PORT-NOTE: `(this.data.perks as any)[weapon]` and `Object.keys(p)` (:564,
+# :567) are the perks record's dictionary view — WeaponPerks.to_dict() — with
+# the TS key spellings, so a keystone key here is also its KEYSTONE_COSTS key.
+func get_weapon_invested_points(weapon: String) -> int:
+	var total: int = 0
+	var p: Dictionary = SaveStore.read_dict(data.perks.to_dict(), weapon)
+	if p.is_empty():
+		return 0
+	var costs: Array[int] = [300, 600, 1100, 1800, 2800]  # PORT: :566
+	for key: String in p.keys():
+		var val: Variant = p[key]
+		if val is int:
+			var rank: int = val
+			for r: int in range(rank):
+				total += costs[r] if r < costs.size() else 2800  # PORT: :571
+		elif val is bool and val:
+			total += get_perk_cost(0, true, key)
+	return total
+
+
+## PORT: web/src/tilt-to-live/ProgressionManager.ts:580-603
+# PORT-NOTE: same dictionary view as get_weapon_invested_points; the edited
+# view is written back through WeaponPerks.from_dict, which is a merge, so
+# only the one key changes.
+# gdlint's max-returns forces this out of a single function; the split is
+# purely mechanical — behaviour and TS line references are unchanged.
+func upgrade_perk(weapon: String, perk_name: String) -> bool:
+	var all: Dictionary = data.perks.to_dict()
+	if not all.has(weapon):
+		return false
+	if not (all[weapon] is Dictionary):
+		return false
+	var weapon_perks: Dictionary = all[weapon]
+	if not weapon_perks.has(perk_name):
+		return false
+	if not _apply_perk_upgrade(weapon_perks, perk_name):
+		return false
+	data.perks.from_dict(all)
+	save()
+	return true
+
+
+func _apply_perk_upgrade(weapon_perks: Dictionary, perk_name: String) -> bool:
+	var val: Variant = weapon_perks[perk_name]
+	if val is bool:
+		var unlocked: bool = val
+		return _unlock_keystone(weapon_perks, perk_name, unlocked)
+	if val is int:
+		var rank: int = val
+		return _increment_perk_rank(weapon_perks, perk_name, rank)
+	return false
+
+
+func _unlock_keystone(weapon_perks: Dictionary, perk_name: String, already_unlocked: bool) -> bool:
+	if already_unlocked:
+		return false  # Already unlocked (:586)
+	var cost: int = get_perk_cost(0, true, perk_name)
+	if data.points < cost:
+		return false
+	data.points -= cost
+	weapon_perks[perk_name] = true
+	return true
+
+
+func _increment_perk_rank(weapon_perks: Dictionary, perk_name: String, rank: int) -> bool:
+	if rank >= 5:
+		return false  # Max rank reached  # PORT: :594
+	var cost: int = get_perk_cost(rank, false)
+	if data.points < cost:
+		return false
+	data.points -= cost
+	weapon_perks[perk_name] = rank + 1
+	return true
+
+
+## PORT: web/src/tilt-to-live/ProgressionManager.ts:613-617
+# PORT-NOTE: `number | null` — Types.ABSENT stands for null (types.gd:12-27).
+func get_extra_lives_cost() -> int:
+	var rank: int = data.extra_lives
+	if rank >= EXTRA_LIVES_COSTS.size():
+		return Types.ABSENT
+	return EXTRA_LIVES_COSTS[rank]
+
+
+## PORT: web/src/tilt-to-live/ProgressionManager.ts:619-626
+func buy_extra_life() -> bool:
+	var cost: int = get_extra_lives_cost()
+	if cost == Types.ABSENT or data.points < cost:
+		return false
+	data.points -= cost
+	data.extra_lives += 1
+	save()
+	return true
+
+
+## PORT: web/src/tilt-to-live/ProgressionManager.ts:628-632
+func get_hull_compact_cost() -> int:
+	var rank: int = data.hull_compact
+	if rank >= HULL_COMPACT_COSTS.size():
+		return Types.ABSENT
+	return HULL_COMPACT_COSTS[rank]
+
+
+## PORT: web/src/tilt-to-live/ProgressionManager.ts:634-641
+func buy_hull_compact() -> bool:
+	var cost: int = get_hull_compact_cost()
+	if cost == Types.ABSENT or data.points < cost:
+		return false
+	data.points -= cost
+	data.hull_compact += 1
+	save()
+	return true
+
+
+## PORT: web/src/tilt-to-live/ProgressionManager.ts:643-647
+func get_enemy_slow_cost() -> int:
+	var rank: int = data.enemy_slow
+	if rank >= ENEMY_SLOW_COSTS.size():
+		return Types.ABSENT
+	return ENEMY_SLOW_COSTS[rank]
+
+
+## PORT: web/src/tilt-to-live/ProgressionManager.ts:649-656
+func buy_enemy_slow() -> bool:
+	var cost: int = get_enemy_slow_cost()
+	if cost == Types.ABSENT or data.points < cost:
+		return false
+	data.points -= cost
+	data.enemy_slow += 1
+	save()
+	return true
+
+
+## PORT: web/src/tilt-to-live/ProgressionManager.ts:658-662
+func get_score_multiplier_cost() -> int:
+	var rank: int = data.score_multiplier
+	if rank >= SCORE_MULTIPLIER_COSTS.size():
+		return Types.ABSENT
+	return SCORE_MULTIPLIER_COSTS[rank]
+
+
+## PORT: web/src/tilt-to-live/ProgressionManager.ts:664-671
+func buy_score_multiplier() -> bool:
+	var cost: int = get_score_multiplier_cost()
+	if cost == Types.ABSENT or data.points < cost:
+		return false
+	data.points -= cost
+	data.score_multiplier += 1
+	save()
+	return true
+
+
+## PORT: web/src/tilt-to-live/ProgressionManager.ts:673-677
+func get_points_multiplier_cost() -> int:
+	var rank: int = data.points_multiplier
+	if rank >= POINTS_MULTIPLIER_COSTS.size():
+		return Types.ABSENT
+	return POINTS_MULTIPLIER_COSTS[rank]
+
+
+## PORT: web/src/tilt-to-live/ProgressionManager.ts:679-686
+func buy_points_multiplier() -> bool:
+	var cost: int = get_points_multiplier_cost()
+	if cost == Types.ABSENT or data.points < cost:
+		return false
+	data.points -= cost
+	data.points_multiplier += 1
+	save()
+	return true
+
+
+## Starting lives = 1 base + extraLives rank + the equipped ship's bonusLives,
+## hard-capped at 3 total. PORT: web/src/tilt-to-live/ProgressionManager.ts:688-693
+func get_starting_lives() -> int:
+	var bonus: int = get_equipped_ship().bonus_lives
+	return mini(3, 1 + data.extra_lives + bonus)  # PORT: :692
+
+
+## PORT: web/src/tilt-to-live/ProgressionManager.ts:695-697
+func get_hitbox_multiplier() -> float:
+	return 1.0 - 0.06 * float(data.hull_compact)  # PORT: :696
+
+
+## PORT: web/src/tilt-to-live/ProgressionManager.ts:699-701
+func get_enemy_speed_multiplier() -> float:
+	return 1.0 - 0.04 * float(data.enemy_slow)  # PORT: :700
+
+
+## PORT: web/src/tilt-to-live/ProgressionManager.ts:703-705
+func get_score_multiplier() -> float:
+	return 1.0 + 0.10 * float(data.score_multiplier)  # PORT: :704
+
+
+## PORT: web/src/tilt-to-live/ProgressionManager.ts:707-709
+func get_points_multiplier() -> float:
+	return 1.0 + 0.10 * float(data.points_multiplier)  # PORT: :708
+
+
+## PORT: web/src/tilt-to-live/ProgressionManager.ts:733-735
+func get_equipped_ship() -> ShipSkinConfig:
+	for ship: ShipSkinConfig in ship_catalog:
+		if ship.id == data.equipped_cursor_id:
+			return ship
+	return ship_catalog[0]
 
 
 # `Array.from(new Set([...base, ...extra]))` (ProgressionManager.ts:504-506):

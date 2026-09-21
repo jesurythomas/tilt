@@ -214,3 +214,73 @@ func test_arena_theme_catalog_matches_the_typescript() -> void:
 			tag + " boundary"
 		)
 		_assert_color(arena.dust_color, SaveStore.read_string(want, "dustColor", ""), tag + " dust")
+
+
+func test_perk_cost_curve_matches_the_typescript() -> void:
+	var curve: Array = _fixture["perk_cost_curve"]
+	for entry: Dictionary in curve:
+		var rank: int = SaveStore.read_int(entry, "rank", -1)
+		assert_eq(_pm.get_perk_cost(rank), SaveStore.read_int(entry, "cost", -1), "rank %d" % rank)
+
+
+func test_keystone_costs_through_get_perk_cost_match_the_typescript() -> void:
+	var costs: Array = _fixture["keystone_costs"]
+	for entry: Dictionary in costs:
+		var key: String = SaveStore.read_string(entry, "key", "")
+		assert_eq(
+			_pm.get_perk_cost(0, true, key),
+			SaveStore.read_int(entry, "cost", -1),
+			"keystone %s" % key
+		)
+
+
+func test_purchasable_ladders_match_the_typescript() -> void:
+	var ladders: Dictionary = _fixture["purchasable_ladders"]
+	var extra: Array = ladders["extraLives"]
+	var hull: Array = ladders["hullCompact"]
+	var slow: Array = ladders["enemySlow"]
+	var score: Array = ladders["scoreMultiplier"]
+	var points: Array = ladders["pointsMultiplier"]
+	for rank: int in range(6):
+		_pm.data.extra_lives = rank
+		_pm.data.hull_compact = rank
+		_pm.data.enemy_slow = rank
+		_pm.data.score_multiplier = rank
+		_pm.data.points_multiplier = rank
+		assert_eq(_pm.get_extra_lives_cost(), _ladder_cost(extra[rank]), "extraLives %d" % rank)
+		assert_eq(_pm.get_hull_compact_cost(), _ladder_cost(hull[rank]), "hullCompact %d" % rank)
+		assert_eq(_pm.get_enemy_slow_cost(), _ladder_cost(slow[rank]), "enemySlow %d" % rank)
+		assert_eq(
+			_pm.get_score_multiplier_cost(), _ladder_cost(score[rank]), "scoreMultiplier %d" % rank
+		)
+		assert_eq(
+			_pm.get_points_multiplier_cost(),
+			_ladder_cost(points[rank]),
+			"pointsMultiplier %d" % rank
+		)
+
+
+# A JSON null (past the ladder) is the port's Types.ABSENT.
+func _ladder_cost(value: Variant) -> int:
+	if value is float:
+		var as_float: float = value
+		return int(as_float)
+	return Types.ABSENT
+
+
+func test_invested_points_and_multipliers_at_defaults_match_the_typescript() -> void:
+	var invested: Dictionary = _fixture["invested_points_at_defaults"]
+	for weapon: String in invested.keys():
+		assert_eq(
+			_pm.get_weapon_invested_points(weapon),
+			SaveStore.read_int(invested, weapon, -1),
+			"invested %s" % weapon
+		)
+	var m: Dictionary = _fixture["multipliers_at_defaults"]
+	assert_eq(_pm.get_starting_lives(), SaveStore.read_int(m, "startingLives", -1))
+	assert_almost_eq(_pm.get_hitbox_multiplier(), SaveStore.read_float(m, "hitbox", -1.0), 0.0001)
+	assert_almost_eq(
+		_pm.get_enemy_speed_multiplier(), SaveStore.read_float(m, "enemySpeed", -1.0), 0.0001
+	)
+	assert_almost_eq(_pm.get_score_multiplier(), SaveStore.read_float(m, "score", -1.0), 0.0001)
+	assert_almost_eq(_pm.get_points_multiplier(), SaveStore.read_float(m, "points", -1.0), 0.0001)
