@@ -1,7 +1,12 @@
-# gdlint:disable=max-public-methods,max-file-lines
+# gdlint:disable=max-public-methods,max-file-lines,max-returns,no-elif-return
 # PORT-NOTE: ProgressionManager.ts exposes 36 public methods; LAW 3 keeps them.
 # The file exceeds gdlint's 1000-line cap because it also carries the seven
 # catalogs and every inner record type; splitting it is a Task 6+ concern.
+# PORT-NOTE: max-returns/no-elif-return are disabled file-wide because
+# upgrade_perk (ProgressionManager.ts:580-603) is kept as the TS's single
+# function under LAW 3, and gdlint's scoped `ignore=` only silences a problem
+# on its own reported line — both checks fire deep inside that function body,
+# past where a function-level ignore comment can reach (see upgrade_perk).
 ## progression_manager.gd
 ## PORTS: web/src/tilt-to-live/ProgressionManager.ts (940 lines, source commit 7be9614)
 class_name ProgressionManager
@@ -225,8 +230,13 @@ func get_weapon_invested_points(weapon: String) -> int:
 # PORT-NOTE: same dictionary view as get_weapon_invested_points; the edited
 # view is written back through WeaponPerks.from_dict, which is a merge, so
 # only the one key changes.
-# gdlint's max-returns forces this out of a single function; the split is
-# purely mechanical — behaviour and TS line references are unchanged.
+# PORT-NOTE: ProgressionManager.ts:580-603 is one function with seven exits;
+# kept as one under LAW 3. A scoped `# gdlint:ignore=` only silences a
+# problem reported on its own line (or the next), per gdtoolkit's
+# _fetch_ignored_problems_per_lines; max-returns reports at the function's
+# last `return` and no-elif-return at the `elif` line, both deep inside this
+# function, so no single-line placement covers both — suppressed via the
+# line-1 `disable=` list instead (see line 1) and noted in the task report.
 func upgrade_perk(weapon: String, perk_name: String) -> bool:
 	var all: Dictionary = data.perks.to_dict()
 	if not all.has(weapon):
@@ -236,44 +246,32 @@ func upgrade_perk(weapon: String, perk_name: String) -> bool:
 	var weapon_perks: Dictionary = all[weapon]
 	if not weapon_perks.has(perk_name):
 		return false
-	if not _apply_perk_upgrade(weapon_perks, perk_name):
-		return false
-	data.perks.from_dict(all)
-	save()
-	return true
 
-
-func _apply_perk_upgrade(weapon_perks: Dictionary, perk_name: String) -> bool:
 	var val: Variant = weapon_perks[perk_name]
 	if val is bool:
-		var unlocked: bool = val
-		return _unlock_keystone(weapon_perks, perk_name, unlocked)
-	if val is int:
+		if val:
+			return false  # Already unlocked
+		var cost: int = get_perk_cost(0, true, perk_name)
+		if data.points < cost:
+			return false
+		data.points -= cost
+		weapon_perks[perk_name] = true
+		data.perks.from_dict(all)
+		save()
+		return true
+	elif val is int:
 		var rank: int = val
-		return _increment_perk_rank(weapon_perks, perk_name, rank)
+		if rank >= 5:
+			return false  # Max rank reached  # PORT: :594
+		var cost: int = get_perk_cost(rank, false)
+		if data.points < cost:
+			return false
+		data.points -= cost
+		weapon_perks[perk_name] = rank + 1
+		data.perks.from_dict(all)
+		save()
+		return true
 	return false
-
-
-func _unlock_keystone(weapon_perks: Dictionary, perk_name: String, already_unlocked: bool) -> bool:
-	if already_unlocked:
-		return false  # Already unlocked (:586)
-	var cost: int = get_perk_cost(0, true, perk_name)
-	if data.points < cost:
-		return false
-	data.points -= cost
-	weapon_perks[perk_name] = true
-	return true
-
-
-func _increment_perk_rank(weapon_perks: Dictionary, perk_name: String, rank: int) -> bool:
-	if rank >= 5:
-		return false  # Max rank reached  # PORT: :594
-	var cost: int = get_perk_cost(rank, false)
-	if data.points < cost:
-		return false
-	data.points -= cost
-	weapon_perks[perk_name] = rank + 1
-	return true
 
 
 ## PORT: web/src/tilt-to-live/ProgressionManager.ts:613-617
