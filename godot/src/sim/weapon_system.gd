@@ -213,11 +213,108 @@ func update(
 								# PORT: web/src/tilt-to-live/WeaponSystem.ts:174
 								particles.emit_sparks(e.x, e.y, 14, Color("#cc22ff"), 200.0)
 								enemies.remove_at(e_idx)
-			_:
-				# TODO(M4): update logic for vortex.
-				pass
+			Types.WeaponType.VORTEX:
+				# PORT: web/src/tilt-to-live/WeaponSystem.ts:184
+				var pull_radius: float = (
+					w.radius
+					if w.radius != 0.0
+					else Tuning.get_tuned_value("blackhole", "radius", 0) * scale
+				)
+				var pull_radius2: float = pull_radius * pull_radius
+				var invulnerable_inside: bool = data.get("invulnerableInside", false)
+				var gravity_rank: int = data.get("gravity", 0)
+
+				# Event Horizon Cloak keystone. PORT: web/src/tilt-to-live/WeaponSystem.ts:187-196
+				if invulnerable_inside:
+					var ship_dist: float = Vector2(player.x - w.x, player.y - w.y).length()
+					if ship_dist <= pull_radius:
+						player.activate_shield(0.3)  # PORT: web/src/tilt-to-live/WeaponSystem.ts:191
+						if randf() < 0.25:  # PORT: web/src/tilt-to-live/WeaponSystem.ts:192
+							# PORT: web/src/tilt-to-live/WeaponSystem.ts:193
+							particles.emit_sparks(player.x, player.y, 1, Color("#b84dff"), 40.0)
+
+				# PORT: web/src/tilt-to-live/WeaponSystem.ts:198
+				var gravity_multiplier: float = 1.0 + float(gravity_rank) * 0.2
+
+				for e_idx: int in range(enemies.size() - 1, -1, -1):
+					var e: Types.Enemy = enemies[e_idx]
+					var edx: float = w.x - e.x
+					var edy: float = w.y - e.y
+					var dist2: float = edx * edx + edy * edy
+
+					if dist2 < pull_radius2 and dist2 > 0.1:  # PORT: web/src/tilt-to-live/WeaponSystem.ts:206
+						var dist: float = sqrt(dist2)
+						if dist <= 30.0:  # PORT: web/src/tilt-to-live/WeaponSystem.ts:208
+							on_enemy_killed.call(e, Types.WeaponType.VORTEX)
+							audio.play_dot_pop(randi() % 5)  # PORT: web/src/tilt-to-live/WeaponSystem.ts:211
+							# PORT: web/src/tilt-to-live/WeaponSystem.ts:212
+							particles.emit_sparks(e.x, e.y, 14, Color("#bb66ff"), 180.0)
+							enemies.remove_at(e_idx)
+						else:
+							var norm_dist: float = dist / pull_radius
+							var t: float = maxf(0.0, 1.0 - norm_dist)
+							# PORT: web/src/tilt-to-live/WeaponSystem.ts:218
+							var gravity_accel: float = (
+								(450.0 + 1350.0 * (t * t)) * gravity_multiplier
+							)
+							e.vx += (edx / dist) * gravity_accel * dt
+							e.vy += (edy / dist) * gravity_accel * dt
+							# PORT: web/src/tilt-to-live/WeaponSystem.ts:225
+							var swirl_accel: float = (300.0 + 750.0 * t) * dt * gravity_multiplier
+							e.vx += (-edy / dist) * swirl_accel
+							e.vy += (edx / dist) * swirl_accel
+							# PORT: web/src/tilt-to-live/WeaponSystem.ts:230
+							var direct_suction: float = (90.0 + 340.0 * t) * dt * gravity_multiplier
+							e.x += (edx / dist) * direct_suction
+							e.y += (edy / dist) * direct_suction
+
+				# Pulsing grid distortion. PORT: web/src/tilt-to-live/WeaponSystem.ts:238-239
+				var pulse: float = 1.0 + 0.35 * sin((w.max_duration - w.duration) * 8.0)
+				grid.apply_implosion(w.x, w.y, 16.0 * pulse, pull_radius * 0.85)
+
+				# Accretion dust motes. PORT: web/src/tilt-to-live/WeaponSystem.ts:242-252
+				if randf() < 0.45:
+					var angle: float = randf() * PI * 2.0
+					# PORT: web/src/tilt-to-live/WeaponSystem.ts:244
+					var spawn_r: float = 50.0 + randf() * (pull_radius * 0.5)
+					# PORT: web/src/tilt-to-live/WeaponSystem.ts:249
+					particles.emit_sparks(
+						w.x + cos(angle) * spawn_r,
+						w.y + sin(angle) * spawn_r,
+						1,
+						Color("#b84dff") if randf() < 0.5 else Color("#00e5ff"),
+						70.0
+					)
 
 		if w.duration <= 0.0:
+			if w.type == Types.WeaponType.VORTEX:
+				# Collapse shockwave. PORT: web/src/tilt-to-live/WeaponSystem.ts:258-277
+				var supernova_collapse: bool = data.get("supernovaCollapse", false)
+				# PORT: web/src/tilt-to-live/WeaponSystem.ts:260
+				var blast_radius: float = (
+					Tuning.SUPERNOVA_SHOCKWAVE if supernova_collapse else 260.0
+				)
+				var blast_radius2: float = blast_radius * blast_radius
+				audio.play_nuke()  # PORT: web/src/tilt-to-live/WeaponSystem.ts:262
+				# PORT: web/src/tilt-to-live/WeaponSystem.ts:263-264
+				particles.emit_explosion(
+					w.x, w.y, Color("#9d4edd"), 65 if supernova_collapse else 45
+				)
+				particles.emit_explosion(w.x, w.y, Color("#00f0ff"), 35)
+				# PORT: web/src/tilt-to-live/WeaponSystem.ts:265
+				grid.apply_explosion(
+					w.x, w.y, 32.0 if supernova_collapse else 22.0, blast_radius + 140.0
+				)
+
+				for e_idx: int in range(enemies.size() - 1, -1, -1):
+					var e: Types.Enemy = enemies[e_idx]
+					var dx: float = e.x - w.x
+					var dy: float = e.y - w.y
+					if dx * dx + dy * dy <= blast_radius2:
+						on_enemy_killed.call(e, Types.WeaponType.VORTEX)
+						# PORT: web/src/tilt-to-live/WeaponSystem.ts:273
+						particles.emit_sparks(e.x, e.y, 12, Color("#c77dff"), 200.0)
+						enemies.remove_at(e_idx)
 			active_weapons.remove_at(i)
 
 	# 4. Update Homing Missiles. PORT: web/src/tilt-to-live/WeaponSystem.ts:282-358
@@ -351,7 +448,7 @@ func activate_weapon(
 	player: PlayerShip,
 	enemies: Array[Types.Enemy],
 	particles: ParticleEngine,
-	_grid: VectorGrid,
+	grid: VectorGrid,
 	audio: AudioBank,
 	on_enemy_killed: Callable,
 	perks: ProgressionManager.WeaponPerks = null
@@ -500,9 +597,60 @@ func activate_weapon(
 			# PORT: web/src/tilt-to-live/WeaponSystem.ts:512 — key spelled as the TS does
 			w.data = {"crossBeam": p.laser.cross_beam}
 			active_weapons.append(w)
-		_:
-			# TODO(M4): activation logic for vortex, freeze, shield.
-			pass
+		Types.WeaponType.VORTEX:
+			audio.play_vortex()  # PORT: web/src/tilt-to-live/WeaponSystem.ts:518
+			# PORT: web/src/tilt-to-live/WeaponSystem.ts:519
+			# PORT-NOTE: written `4.8 + rank * 0.5` inline in the TS; WeaponTuning.ts:31 is
+			# the same row (base 4.8, perRank 0.5) and WeaponTuning.ts:5-9 mandates this read.
+			var duration: float = Tuning.get_tuned_value(
+				"blackhole", "duration", p.blackhole.duration
+			)
+			# PORT: web/src/tilt-to-live/WeaponSystem.ts:520
+			var radius: float = (
+				Tuning.get_tuned_value("blackhole", "radius", p.blackhole.radius) * scale
+			)
+			var w: Types.ActiveWeapon = Types.ActiveWeapon.new()
+			w.id = _next_weapon_id
+			_next_weapon_id += 1
+			w.type = Types.WeaponType.VORTEX
+			w.x = x
+			w.y = y
+			w.duration = duration
+			w.max_duration = duration
+			w.radius = radius
+			# PORT: web/src/tilt-to-live/WeaponSystem.ts:529-533 — keys spelled as the TS does
+			w.data = {
+				"invulnerableInside": p.blackhole.invulnerable_inside,
+				"gravity": p.blackhole.gravity,
+				"supernovaCollapse": p.blackhole.supernova_collapse,
+			}
+			active_weapons.append(w)
+		Types.WeaponType.FREEZE:
+			audio.play_freeze()  # PORT: web/src/tilt-to-live/WeaponSystem.ts:539
+			# PORT: web/src/tilt-to-live/WeaponSystem.ts:540
+			# PORT-NOTE: written `4.5 + rank * 0.7` inline in the TS; WeaponTuning.ts:56 is
+			# the same row (base 4.5, perRank 0.7) and WeaponTuning.ts:5-9 mandates this read.
+			var freeze_duration: float = Tuning.get_tuned_value(
+				"freeze", "duration", p.freeze.duration
+			)
+			# PORT-NOTE: freezes inline exactly as WeaponSystem.ts:541-544 does, rather than
+			# through EnemySwarm.freeze_all — this method receives the enemies array, not
+			# the swarm, and the TS never calls freezeAll. See the M4 plan, Open question 2.
+			for e: Types.Enemy in enemies:
+				e.frozen = true
+				e.freeze_timer = freeze_duration
+			particles.emit_ice_shatter(x, y, 40)  # PORT: web/src/tilt-to-live/WeaponSystem.ts:545
+			grid.apply_explosion(x, y, 10.0, 360.0 * scale)  # PORT: web/src/tilt-to-live/WeaponSystem.ts:546
+		Types.WeaponType.SHIELD:
+			# PORT: web/src/tilt-to-live/WeaponSystem.ts:551
+			# PORT-NOTE: written `6.0 + rank * 1.0` inline in the TS; WeaponTuning.ts:39 is
+			# the same row (base 6.0, perRank 1.0) and WeaponTuning.ts:5-9 mandates this read.
+			var shield_duration: float = Tuning.get_tuned_value(
+				"shield", "duration", p.shield.duration
+			)
+			player.activate_shield(shield_duration)  # PORT: web/src/tilt-to-live/WeaponSystem.ts:552
+			# PORT: web/src/tilt-to-live/WeaponSystem.ts:553
+			particles.emit_sparks(player.x, player.y, 25, Color("#3ddc97"), 160.0)
 
 
 ## Returns a weapon type drawn from the weighted drop table.
