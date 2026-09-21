@@ -14,10 +14,9 @@ did not return; the user then ran their own pass and committed tuning as
 Also landed after M4: **HUD score feedback** (`9cc3e8f..31bf2ce`, spec
 `docs/superpowers/specs/2026-09-21-hud-score-feedback-design.md`) — kill-site
 callouts removed; the score pulses in a multiplier-tier colour instead.
-Next module: **M5 — Audio bake and SFX** (deps: M2) or **M7 — Persistence and
-economy** (deps: M2) — both may start before the device passes. M7 is the
-better next step: M4 left `ProgressionManager.WeaponPerks` in
-`src/meta/progression_manager.gd` waiting for the rest of the file.
+Next module: **M7 — Persistence and economy** — **planned 2026-09-21, not
+started**; see `## Next` at the end of this file. M5 (audio) is the alternative;
+both may start before the device passes.
 Branch: `feat/godot-port` (no upstream; nothing pushed).
 
 > ### ⚠ Read `godot/VERIFY-ME.md`
@@ -230,13 +229,28 @@ it. `game_state_machine.gd:121` `TODO(M2): setModeMultiplier` is really M10's;
 `:151` `TODO(M2): updateHUD` is done by `GameEvents` signals — both stale.
 `weapons.update` gets its 10th argument (active mode) in M8/M10 (`TODO(M8)`).
 
-## Next: M7 — Persistence and economy (recommended) or M5 — Audio
+## Next: execute the M7 plan
 
-Both depend only on M2. M7 first: write
-`docs/superpowers/plans/2026-09-20-m7-persistence-and-economy.md` from
-`web/src/tilt-to-live/ProgressionManager.ts` (940 lines, read in full) and
-`WeaponTuning.ts` (`KEYSTONE_COSTS`), extending `src/meta/progression_manager.gd`
-in place (its header says so). `RunController.perks` is the one assignment M7
-changes in the run path. `SaveStore` corrupt-file fallback per spec §6.4.
-Follow the M3/M4 plan form; check `git status` first — the user may have
-uncommitted device tuning in the tree (see the memory note on device passes).
+**M7 is planned, not started.** The plan is
+`docs/superpowers/plans/2026-09-20-m7-persistence-and-economy.md` (11 tasks,
+written 2026-09-21 at `43db28d` from `ProgressionManager.ts`, `GameOptions.ts`,
+`CoinSystem.ts`, `WeaponTuning.ts` and the `TiltGame.ts` call sites, all read
+in full). Nothing under `godot/` changed for M7 yet.
+
+Literal first step: `git status --short` must be clean under `godot/` (the
+plan's Precondition — the user may leave device tuning uncommitted; never stash
+or revert it), then create the ledger
+`.superpowers/sdd/2026-09-20-m7-persistence-and-economy/progress.md` in the M4
+ledger's shape and dispatch **Task 1 (`SaveStore`)** per
+superpowers:subagent-driven-development. Every dispatch restates the commit
+rule (one line, `M7:` prefix, no trailers) and requires `git log -1 --format=%B`
+pasted back.
+
+Decisions the plan takes that the user may want to overrule before Task 1
+(its "Open questions" section, nine items) — the three with a visible effect:
+the starting orb becomes the equipped ship's weapon, i.e. a **shield** for the
+default ship instead of M2's nuke (OQ 3); the two SVG-string methods of
+`ProgressionManager.ts` are not ported (OQ 1); the render `TODO(M7)` tags for
+ship shapes, enemy skins and arena themes are retagged `TODO(M8)` (OQ 4).
+
+M5 (audio) remains open and independent; it can be taken instead.
