@@ -20,6 +20,23 @@ const UI_SCALE_REFERENCE: float = 720.0
 const MIN_UI_SCALE: float = 0.75
 const MAX_UI_SCALE: float = 2.0
 
+# Multiplier tiers for the score pulse and multiplier label (D3).
+# DIVERGENCE(HUD-FEEDBACK §4): thresholds and colours are spec constants, not
+# ported from the TS, which has no per-tier colour concept.
+const TIER_THRESHOLD_YELLOW: int = 2  # DIVERGENCE(HUD-FEEDBACK §4)
+const TIER_THRESHOLD_ORANGE: int = 5  # DIVERGENCE(HUD-FEEDBACK §4)
+const TIER_THRESHOLD_MAGENTA: int = 10  # DIVERGENCE(HUD-FEEDBACK §4)
+const TIER_THRESHOLD_CYAN: int = 20  # DIVERGENCE(HUD-FEEDBACK §4)
+const TIER_WHITE: Color = Color.WHITE  # DIVERGENCE(HUD-FEEDBACK §4)
+const TIER_YELLOW: Color = Color("#ffe14d")  # DIVERGENCE(HUD-FEEDBACK §4)
+const TIER_ORANGE: Color = Color("#ffb14d")  # DIVERGENCE(HUD-FEEDBACK §4)
+const TIER_MAGENTA: Color = Color("#ff3fd1")  # DIVERGENCE(HUD-FEEDBACK §4)
+const TIER_CYAN: Color = Color("#3dfff0")  # DIVERGENCE(HUD-FEEDBACK §4)
+## Score label scale at the peak of a kill pulse (D2).
+const PULSE_SCALE: float = 1.18  # DIVERGENCE(HUD-FEEDBACK §4)
+## Duration of the kill pulse's scale and colour tween, in seconds (D2).
+const PULSE_SECONDS: float = 0.22  # DIVERGENCE(HUD-FEEDBACK §4)
+
 var _pause_button: Button = null
 var _pause_panel: Control = null
 var _resume_button: Button = null
@@ -30,6 +47,10 @@ var _score_margin: MarginContainer = null
 var _fallback_score_top: float = 0.0
 var _fallback_pause_right: float = 0.0
 var _fallback_pause_top: float = 0.0
+# DIVERGENCE(HUD-FEEDBACK §4): last multiplier seen from score_changed, so the
+# kill pulse's tier agrees with the multiplier label's tier.
+var _current_multiplier: int = 1
+var _score_pulse_tween: Tween = null
 
 @onready var _score_label: Label = get_node_or_null("%ScoreLabel")
 @onready var _best_label: Label = get_node_or_null("%BestLabel")
@@ -70,6 +91,7 @@ func _ready() -> void:
 		_restart_button.gui_input.connect(_on_restart_button_gui_input)
 
 	GameEvents.score_changed.connect(_on_score_changed)
+	GameEvents.enemy_killed.connect(_on_enemy_killed)
 	GameEvents.run_ended.connect(_on_run_ended)
 	GameEvents.phase_changed.connect(_on_phase_changed)
 
@@ -111,6 +133,9 @@ func _ready() -> void:
 func set_ui_scale(scale: float) -> void:
 	if _score_label != null:
 		_score_label.add_theme_font_size_override("font_size", int(BASE_SCORE_FONT * scale))
+		# DIVERGENCE(HUD-FEEDBACK §4): pivot the kill pulse's scale about the
+		# label's centre rather than its top-left corner.
+		_score_label.pivot_offset = _score_label.size / 2.0
 	if _best_label != null:
 		_best_label.add_theme_font_size_override("font_size", int(BASE_BEST_FONT * scale))
 	if _multiplier_label != null:
@@ -130,14 +155,59 @@ static func ui_scale_for(viewport: Vector2) -> float:
 	return clampf(minf(viewport.x, viewport.y) / UI_SCALE_REFERENCE, MIN_UI_SCALE, MAX_UI_SCALE)
 
 
+## Tier colour for a multiplier, per D3's five-tier neon palette.
+static func tier_color_for(multiplier: int) -> Color:
+	if multiplier >= TIER_THRESHOLD_CYAN:
+		return TIER_CYAN
+	if multiplier >= TIER_THRESHOLD_MAGENTA:
+		return TIER_MAGENTA
+	if multiplier >= TIER_THRESHOLD_ORANGE:
+		return TIER_ORANGE
+	if multiplier >= TIER_THRESHOLD_YELLOW:
+		return TIER_YELLOW
+	return TIER_WHITE
+
+
 func _on_score_changed(score: int, multiplier: int, best_score: int) -> void:
 	if _score_label != null:
 		_score_label.text = str(score)
 	if _multiplier_label != null:
 		_multiplier_label.text = "%dx" % multiplier
 		_multiplier_label.visible = multiplier > 1
+		# DIVERGENCE(HUD-FEEDBACK §4): multiplier label sits permanently in its tier colour (D2).
+		_multiplier_label.modulate = tier_color_for(multiplier)
 	if _best_label != null:
 		_best_label.text = "BEST %d" % best_score
+	_current_multiplier = multiplier
+
+
+# DIVERGENCE(HUD-FEEDBACK §4): the score label pulses and flashes the tier
+# colour on every kill, replacing the sim's kill-site floating texts (D1/D2).
+# Tier comes from the last score_changed multiplier so both handlers agree.
+func _on_enemy_killed(_enemy: Types.Enemy, _weapon_type: Types.WeaponType) -> void:
+	if _score_label == null:
+		return
+	if _score_pulse_tween != null:
+		_score_pulse_tween.kill()
+
+	var tier: Color = tier_color_for(_current_multiplier)
+	_score_label.scale = Vector2(PULSE_SCALE, PULSE_SCALE)
+	_score_label.modulate = tier
+
+	_score_pulse_tween = create_tween()
+	_score_pulse_tween.set_parallel(true)
+	(
+		_score_pulse_tween
+		. tween_property(_score_label, "scale", Vector2.ONE, PULSE_SECONDS)
+		. set_trans(Tween.TRANS_QUAD)
+		. set_ease(Tween.EASE_OUT)
+	)
+	(
+		_score_pulse_tween
+		. tween_property(_score_label, "modulate", TIER_WHITE, PULSE_SECONDS)
+		. set_trans(Tween.TRANS_QUAD)
+		. set_ease(Tween.EASE_OUT)
+	)
 
 
 func _on_run_ended(final_score: int, stats: Types.GameStats) -> void:

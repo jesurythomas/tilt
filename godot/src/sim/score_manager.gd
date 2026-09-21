@@ -95,7 +95,9 @@ func update(dt: float, game_mode: Types.GameMode = Types.GameMode.CLASSIC) -> vo
 
 ## Records an enemy kill and awards points and multipliers.
 ## PORT: web/src/tilt-to-live/ScoreManager.ts:92-132
-func register_kill(x: float, y: float, _weapon_type: Types.WeaponType, audio: AudioBank) -> void:
+# DIVERGENCE(HUD-FEEDBACK §3): x/y are unused now that no kill-site floating
+# text spawns here; kept in the signature so callers (and the TS shape) don't change.
+func register_kill(_x: float, _y: float, _weapon_type: Types.WeaponType, audio: AudioBank) -> void:
 	stats.kills += 1
 	combo_count += 1
 	combo_timer = 1.6  # PORT: web/src/tilt-to-live/ScoreManager.ts:95
@@ -109,9 +111,8 @@ func register_kill(x: float, y: float, _weapon_type: Types.WeaponType, audio: Au
 		stats.multiplier += 1.0
 		if stats.multiplier > stats.max_multiplier:
 			stats.max_multiplier = stats.multiplier
-		add_floating_text(
-			"%dx MULTIPLIER!" % int(stats.multiplier), x, y - 20.0, Color("#5b8cff"), 18.0
-		)
+		# PORT: web/src/tilt-to-live/ScoreManager.ts:105-107 (add_floating_text "Nx MULTIPLIER!")
+		# DIVERGENCE(HUD-FEEDBACK §3): callout moved to the HUD
 
 	# Base score per kill = 10 * multiplier * modeMultiplier * progressionMultiplier
 	# PORT: web/src/tilt-to-live/ScoreManager.ts:111
@@ -123,18 +124,25 @@ func register_kill(x: float, y: float, _weapon_type: Types.WeaponType, audio: Au
 
 	# Combo callout milestones. PORT: web/src/tilt-to-live/ScoreManager.ts:118-131
 	if combo_count == 3:
-		add_floating_text("TRIPLE!", x, y - 10.0, Color("#ffb14d"), 18.0)
+		# PORT: web/src/tilt-to-live/ScoreManager.ts:119 (add_floating_text "TRIPLE!")
+		# DIVERGENCE(HUD-FEEDBACK §3): callout moved to the HUD
+		pass
 	elif combo_count == 6:
-		add_floating_text("MULTI KILL!", x, y - 10.0, Color("#ffb14d"), 20.0)
+		# PORT: web/src/tilt-to-live/ScoreManager.ts:121 (add_floating_text "MULTI KILL!")
+		# DIVERGENCE(HUD-FEEDBACK §3): callout moved to the HUD
+		pass
 	elif combo_count == 10:
 		audio.play_milestone()
-		add_floating_text("MEGA KILL!", x, y - 10.0, Color("#a78bfa"), 24.0)
+		# PORT: web/src/tilt-to-live/ScoreManager.ts:124 (add_floating_text "MEGA KILL!")
+		# DIVERGENCE(HUD-FEEDBACK §3): callout moved to the HUD
 	elif combo_count == 16:
 		audio.play_milestone()
-		add_floating_text("UNBELIEVABLE!", x, y - 10.0, Color("#a78bfa"), 26.0)
+		# PORT: web/src/tilt-to-live/ScoreManager.ts:127 (add_floating_text "UNBELIEVABLE!")
+		# DIVERGENCE(HUD-FEEDBACK §3): callout moved to the HUD
 	elif combo_count == 25 or (combo_count > 25 and combo_count % 15 == 0):
 		audio.play_milestone()
-		add_floating_text("HOLY CRAP!", x, y - 10.0, Color("#e6e9f0"), 30.0)
+		# PORT: web/src/tilt-to-live/ScoreManager.ts:130 (add_floating_text "HOLY CRAP!")
+		# DIVERGENCE(HUD-FEEDBACK §3): callout moved to the HUD
 
 
 ## Awards near-miss close call bonus. PORT: web/src/tilt-to-live/ScoreManager.ts:134-140

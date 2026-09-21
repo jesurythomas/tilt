@@ -112,6 +112,54 @@ func test_ui_scale_grows_the_score_font_on_a_larger_viewport() -> void:
 	assert_gt(at_two, at_one, "a bigger viewport gets bigger text")
 
 
+func test_tier_color_for_matches_multiplier_thresholds() -> void:
+	assert_eq(HudController.tier_color_for(1), HudController.TIER_WHITE, "1x is white")
+	assert_eq(HudController.tier_color_for(2), HudController.TIER_YELLOW, "2x is yellow")
+	assert_eq(HudController.tier_color_for(4), HudController.TIER_YELLOW, "4x is yellow")
+	assert_eq(HudController.tier_color_for(5), HudController.TIER_ORANGE, "5x is orange")
+	assert_eq(HudController.tier_color_for(9), HudController.TIER_ORANGE, "9x is orange")
+	assert_eq(HudController.tier_color_for(10), HudController.TIER_MAGENTA, "10x is magenta")
+	assert_eq(HudController.tier_color_for(19), HudController.TIER_MAGENTA, "19x is magenta")
+	assert_eq(HudController.tier_color_for(20), HudController.TIER_CYAN, "20x is cyan")
+	assert_eq(HudController.tier_color_for(50), HudController.TIER_CYAN, "50x is cyan")
+
+
+func test_multiplier_label_sits_in_its_tier_colour() -> void:
+	var hud: HudController = HudController.new()
+	var score_lbl: Label = Label.new()
+	score_lbl.name = "ScoreLabel"
+	var mult_lbl: Label = Label.new()
+	mult_lbl.name = "MultiplierLabel"
+	hud.add_child(score_lbl)
+	hud.add_child(mult_lbl)
+	add_child_autofree(hud)
+
+	GameEvents.score_changed.emit(700, 7, 3000)
+	assert_eq(mult_lbl.modulate, HudController.TIER_ORANGE, "7x multiplier label is orange")
+
+
+func test_enemy_killed_pulses_the_score_label_then_settles() -> void:
+	var hud: HudController = HudController.new()
+	var score_lbl: Label = Label.new()
+	score_lbl.name = "ScoreLabel"
+	var mult_lbl: Label = Label.new()
+	mult_lbl.name = "MultiplierLabel"
+	hud.add_child(score_lbl)
+	hud.add_child(mult_lbl)
+	add_child_autofree(hud)
+
+	GameEvents.score_changed.emit(700, 7, 3000)
+	GameEvents.enemy_killed.emit(Types.Enemy.new(), Types.WeaponType.NUKE)
+
+	assert_gt(score_lbl.scale.x, 1.0, "score label scales up on a kill")
+	assert_eq(score_lbl.modulate, HudController.TIER_ORANGE, "score label flashes the tier colour")
+
+	await get_tree().create_timer(HudController.PULSE_SECONDS + 0.05).timeout
+
+	assert_almost_eq(score_lbl.scale.x, 1.0, 0.001, "score label settles back to scale 1")
+	assert_eq(score_lbl.modulate, HudController.TIER_WHITE, "score label settles back to white")
+
+
 func test_control_picker_ui_scale_grows_the_touch_targets() -> void:
 	var picker: ControlPicker = ControlPicker.new()
 	var tilt_button: Button = Button.new()

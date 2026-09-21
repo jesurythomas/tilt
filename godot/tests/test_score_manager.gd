@@ -49,7 +49,8 @@ func test_multiplier_increases_every_eight_kills_in_combo() -> void:
 
 	sm.register_kill(0.0, 0.0, Types.WeaponType.NUKE, _audio)
 	assert_eq(sm.stats.multiplier, 2.0, "multiplier advances to 2x at 8th kill")
-	assert_true(sm.floating_texts.size() > 0, "multiplier callout spawned")
+	# DIVERGENCE(HUD-FEEDBACK §5): callout moved to the HUD, no floating text spawns
+	assert_eq(sm.floating_texts.size(), 0, "multiplier callout no longer spawns floating text")
 
 
 func test_combo_timer_decays_and_resets_combo() -> void:
@@ -61,6 +62,18 @@ func test_combo_timer_decays_and_resets_combo() -> void:
 	assert_eq(sm.combo_count, 1, "combo survives 1.0s")
 	sm.update(0.7)
 	assert_eq(sm.combo_count, 0, "combo resets to 0 after 1.7s (exceeding 1.6s window)")
+
+
+# DIVERGENCE(HUD-FEEDBACK §5): combo milestones spawn no floating text, but
+# CLOSE CALL! still does — it happens at the ship, not at a kill (D1).
+func test_combo_milestones_spawn_no_text_but_close_call_still_does() -> void:
+	var sm: ScoreManager = ScoreManager.new()
+	for i: int in range(25):
+		sm.register_kill(0.0, 0.0, Types.WeaponType.NUKE, _audio)
+	assert_eq(sm.floating_texts.size(), 0, "no combo callout or multiplier text through 25 kills")
+
+	sm.register_close_call(50.0, 50.0, _audio)
+	assert_eq(sm.floating_texts.size(), 1, "close call still spawns its callout")
 
 
 func test_register_close_call_awards_bonus() -> void:

@@ -204,3 +204,12 @@ Not observable yet (no rank source until M7): every perk-rank change. They
 are proven headless in `tests/test_weapon_*.gd` and `test_run_controller.gd`.
 
 When done: tick M4 in `PORT-PROGRESS.md` with the SHA you tested.
+
+---
+
+## HUD score feedback
+
+- [ ] Kill pulse reads well: score scales 1.18× and flashes the tier colour
+      for 0.22 s; multiplier label sits in the tier colour; no text piles up
+      at kill sites — tune `PULSE_SCALE` / `PULSE_SECONDS` / tier colours in
+      `hud_controller.gd` if not.
