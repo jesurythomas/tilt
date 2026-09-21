@@ -13,8 +13,10 @@ extends RefCounted
 ## All positions are playfield-local: GameRoot subtracts the arena origin
 ## (M2.5 spec §6.1) before calling in.
 
+# DIVERGENCE(M2.5 §8.1): measured on SM_A556E — 90px was too small a travel
+# on 1080p mobile screens; 115px gives comfortable thumb travel range.
 ## Distance from the base at which the knob reaches full deflection.
-const BASE_RADIUS: float = 90.0
+const BASE_RADIUS: float = 115.0
 ## Radius inside which a resting thumb produces no steering.
 const DEAD_RADIUS: float = 8.0
 

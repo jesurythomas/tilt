@@ -15,7 +15,9 @@ extends RefCounted
 ## PORT: web/src/tilt-to-live/ParticleEngine.ts:14
 enum Shape { CIRCLE, STREAK, RING, SHARD }
 
-const MAX_PARTICLES: int = 900  # PORT: web/src/tilt-to-live/ParticleEngine.ts:21
+# DIVERGENCE(M2.5 §10): capped pool to 400 down from 900 to prevent
+# garbage collection and GPU spikes on mobile.
+const MAX_PARTICLES: int = 400
 
 # PORT-NOTE: private in ParticleEngine.ts:20; public here because
 # ParticleEngine.render() relocates to render/effect_layer.gd (spec §4.2/D4).

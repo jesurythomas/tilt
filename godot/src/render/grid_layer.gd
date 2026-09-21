@@ -35,6 +35,9 @@ const BOUNDARY_COLOR: Color = Color(91.0 / 255.0, 140.0 / 255.0, 255.0 / 255.0, 
 const BOUNDARY_HALO_ALPHA: float = 0.12
 const GRADIENT_OUTER_FACTOR: float = 0.8  # PORT: web/src/tilt-to-live/TiltRenderer.ts:88
 const INSET: float = 6.0  # PORT: web/src/tilt-to-live/TiltRenderer.ts:123
+# DIVERGENCE(M2.5 §10): hide gridlines per user request and GameOptions.ts:88 default
+# (showGridlines = false) to eliminate per-frame dynamic polyline allocations on mobile.
+var show_gridlines: bool = false
 
 ## The reactive grid drawn every frame. Null until bind() is called.
 var _grid: VectorGrid = null
@@ -74,7 +77,8 @@ func _draw() -> void:
 		)
 
 	draw_set_transform(_arena_origin, 0.0, Vector2.ONE)
-	_draw_grid()
+	if show_gridlines:
+		_draw_grid()
 
 	# PORT: web/src/tilt-to-live/TiltRenderer.ts:120-127
 	var frame: Rect2 = Rect2(INSET, INSET, size.x - INSET * 2.0, size.y - INSET * 2.0)

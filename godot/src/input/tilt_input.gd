@@ -33,6 +33,11 @@ const DEFAULT_CALIBRATED_BETA: float = 38.0  # PORT: web/src/tilt-to-live/Gyrosc
 # quantity — it exists only so the divisor cannot reach zero.
 const MIN_SENSITIVITY_DIVISOR: float = 0.0001
 
+# DIVERGENCE(M2.5 §5.4): measured on SM_A556E — tightens physical gravity tilt
+# deflection angle so full steering is reached within ~12° of tilt (reduced from
+# ~18° so player does not need large wrist movements to reach full deflection).
+const GRAVITY_SENSITIVITY_BOOST: float = 2.0
+
 ## True when the platform reports motion sensors.
 var is_supported: bool = false
 ## True while the sensor is being polled.
@@ -277,8 +282,6 @@ func apply_gravity(g: Vector3, screen_angle: int) -> void:
 		tilt_vector = Vector2.ZERO
 		return
 
-	var deviation: Vector3 = normalised - _calibrated_gravity
-
 	# The device axes that correspond to screen right and screen up. Godot
 	# reports gravity in the device's own frame, whose relationship to the
 	# screen depends on the applied rotation — so this is where, and the only
@@ -308,11 +311,26 @@ func apply_gravity(g: Vector3, screen_angle: int) -> void:
 			screen_right = Vector3(1.0, 0.0, 0.0)
 			screen_up = Vector3(0.0, -1.0, 0.0)
 
-	# asin of the projection converts the unit-vector deviation to degrees,
-	# which is the unit _apply_angles() and MAX_TILT_ANGLE work in.
-	var roll: float = rad_to_deg(asin(clampf(deviation.dot(screen_right), -1.0, 1.0)))
-	var pitch: float = rad_to_deg(asin(clampf(deviation.dot(screen_up), -1.0, 1.0)))
-	_apply_angles(roll, pitch)
+	var screen_normal: Vector3 = screen_right.cross(screen_up)
+
+	# DIVERGENCE(M2.5 §5.2): measured on SM_A556E — computing pitch as a 1D
+	# deviation.dot(screen_up) projection suffered from severe non-linear compression
+	# when pitching toward the player, because gravity is already near -1.0 on Y in
+	# landscape. Measuring the true rotation angle via atan2 in the pitch and roll
+	# planes preserves uniform responsiveness and linear acceleration across all directions.
+	var cur_pitch_angle: float = atan2(normalised.dot(screen_up), normalised.dot(screen_normal))
+	var cal_pitch_angle: float = atan2(
+		_calibrated_gravity.dot(screen_up), _calibrated_gravity.dot(screen_normal)
+	)
+	var pitch: float = rad_to_deg(wrapf(cur_pitch_angle - cal_pitch_angle, -PI, PI))
+
+	var cur_roll_angle: float = atan2(normalised.dot(screen_right), normalised.dot(screen_normal))
+	var cal_roll_angle: float = atan2(
+		_calibrated_gravity.dot(screen_right), _calibrated_gravity.dot(screen_normal)
+	)
+	var roll: float = rad_to_deg(wrapf(cur_roll_angle - cal_roll_angle, -PI, PI))
+
+	_apply_angles(roll * GRAVITY_SENSITIVITY_BOOST, pitch * GRAVITY_SENSITIVITY_BOOST)
 
 
 # PORT-NOTE: web/src/tilt-to-live/GyroscopeController.ts:31-35 probes for

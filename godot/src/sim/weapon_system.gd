@@ -133,8 +133,11 @@ func update(
 
 					if e_dist <= w.radius + e.radius + 15.0:  # PORT: web/src/tilt-to-live/WeaponSystem.ts:119
 						on_enemy_killed.call(e, Types.WeaponType.NUKE)
-						# PORT: web/src/tilt-to-live/WeaponSystem.ts:121
-						particles.emit_explosion(e.x, e.y, Color("#ff3366"), 16)
+						# DIVERGENCE(M2.5 §10): measured on SM_A556E — emit_explosion
+						# (16 sparks + shockwave ring per enemy) caused frame rate drops when
+						# clearing dozens of dots simultaneously. Emitting 6 sparks preserves
+						# vibrant feedback without starving the mobile GPU.
+						particles.emit_sparks(e.x, e.y, 6, Color("#ff3366"), 160.0)
 						enemies.remove_at(e_idx)
 
 				# Distort grid outward. PORT: web/src/tilt-to-live/WeaponSystem.ts:127

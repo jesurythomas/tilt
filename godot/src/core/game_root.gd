@@ -25,6 +25,10 @@ const MAX_INSET_RATIO: float = 0.04
 # final value is measured on the A55 in the M2.5 device pass.
 const MAX_ARENA_SCALE: float = 1.75
 
+# DIVERGENCE(M2.5 §8.1): measured on SM_A556E — full 540 px/s speed on a touch
+# screen caused overshooting and twitchy dodging. 0.72 caps top speed to 390 px/s.
+const TOUCH_JOYSTICK_SPEED_SCALE: float = 0.72
+
 ## The playfield's top-left corner in viewport space. Render layers translate
 ## by this; the simulation never sees it (M2.5 spec §6.1).
 var arena_origin: Vector2 = Vector2.ZERO
@@ -179,7 +183,7 @@ func _update(dt: float) -> void:
 		# the ship to rest instead. See M2.5 spec §8.3 for why this trade was
 		# taken.
 		effective_mode = Types.ControlMode.GYRO
-		directional = _joystick.vector
+		directional = _joystick.vector * TOUCH_JOYSTICK_SPEED_SCALE
 
 	_run_controller.update(
 		dt, effective_mode, _router.mouse_pos, _router.get_movement_vector(), directional

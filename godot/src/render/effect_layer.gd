@@ -42,8 +42,8 @@ func _draw_particles() -> void:
 
 		match p.shape:
 			ParticleEngine.Shape.RING:
-				# PORT: web/src/tilt-to-live/ParticleEngine.ts:207-211
-				draw_arc(Vector2(p.x, p.y), p.size, 0.0, TAU, 32, col, maxf(1.0, 2.5 * alpha))
+				# DIVERGENCE(M2.5 §10): reduced arc segments from 32 to 16 for mobile GPU throughput.
+				draw_arc(Vector2(p.x, p.y), p.size, 0.0, TAU, 16, col, maxf(1.0, 2.5 * alpha))
 			ParticleEngine.Shape.STREAK:
 				# PORT: web/src/tilt-to-live/ParticleEngine.ts:213-218
 				var p_to: Vector2 = Vector2(p.x - p.vx * 0.04, p.y - p.vy * 0.04)
