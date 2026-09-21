@@ -160,6 +160,24 @@ func test_enemy_killed_pulses_the_score_label_then_settles() -> void:
 	assert_eq(score_lbl.modulate, HudController.TIER_WHITE, "score label settles back to white")
 
 
+func test_score_label_pivot_stays_centred_as_the_label_resizes() -> void:
+	var hud: HudController = HudController.new()
+	var score_lbl: Label = Label.new()
+	score_lbl.name = "ScoreLabel"
+	hud.add_child(score_lbl)
+	add_child_autofree(hud)
+
+	await wait_frames(1)
+
+	GameEvents.score_changed.emit(123456789, 1, 0)
+
+	await wait_frames(1)
+
+	assert_eq(
+		score_lbl.pivot_offset, score_lbl.size / 2.0, "pivot follows the label's resized size"
+	)
+
+
 func test_control_picker_ui_scale_grows_the_touch_targets() -> void:
 	var picker: ControlPicker = ControlPicker.new()
 	var tilt_button: Button = Button.new()

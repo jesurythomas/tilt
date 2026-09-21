@@ -66,6 +66,11 @@ var _score_pulse_tween: Tween = null
 func _ready() -> void:
 	if _score_label == null:
 		_score_label = find_child("ScoreLabel", true, false) as Label
+	if _score_label != null:
+		# DIVERGENCE(HUD-FEEDBACK §4): resized is the source of truth for the
+		# pulse's pivot — size changes with digit count and font size, not
+		# only on viewport resize.
+		_score_label.resized.connect(_on_score_label_resized)
 	if _best_label == null:
 		_best_label = find_child("BestLabel", true, false) as Label
 	if _multiplier_label == null:
@@ -133,9 +138,6 @@ func _ready() -> void:
 func set_ui_scale(scale: float) -> void:
 	if _score_label != null:
 		_score_label.add_theme_font_size_override("font_size", int(BASE_SCORE_FONT * scale))
-		# DIVERGENCE(HUD-FEEDBACK §4): pivot the kill pulse's scale about the
-		# label's centre rather than its top-left corner.
-		_score_label.pivot_offset = _score_label.size / 2.0
 	if _best_label != null:
 		_best_label.add_theme_font_size_override("font_size", int(BASE_BEST_FONT * scale))
 	if _multiplier_label != null:
@@ -208,6 +210,12 @@ func _on_enemy_killed(_enemy: Types.Enemy, _weapon_type: Types.WeaponType) -> vo
 		. set_trans(Tween.TRANS_QUAD)
 		. set_ease(Tween.EASE_OUT)
 	)
+
+
+# DIVERGENCE(HUD-FEEDBACK §4): keeps the pulse's pivot at the label's centre
+# as its size changes with digit count or font size, not only on resize.
+func _on_score_label_resized() -> void:
+	_score_label.pivot_offset = _score_label.size / 2.0
 
 
 func _on_run_ended(final_score: int, stats: Types.GameStats) -> void:
