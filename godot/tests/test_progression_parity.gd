@@ -28,6 +28,25 @@ const SHAPE_NAMES: Dictionary[String, ProgressionManager.ShipShape] = {
 	"celestial": ProgressionManager.ShipShape.CELESTIAL,
 }
 
+const MODE_NAMES: Dictionary[String, Types.GameMode] = {
+	"classic": Types.GameMode.CLASSIC,
+	"code-red": Types.GameMode.CODE_RED,
+	"gauntlet": Types.GameMode.GAUNTLET,
+}
+const SCHEME_NAMES: Dictionary[String, Types.ControlScheme] = {
+	"hybrid": Types.ControlScheme.HYBRID,
+	"mouse": Types.ControlScheme.MOUSE,
+	"keyboard": Types.ControlScheme.KEYBOARD,
+	"gyro": Types.ControlScheme.GYRO,
+}
+const SHAKE_NAMES: Dictionary[String, GameOptionsManager.ScreenShake] = {
+	"off": GameOptionsManager.ScreenShake.OFF,
+	"low": GameOptionsManager.ScreenShake.LOW,
+	"normal": GameOptionsManager.ScreenShake.NORMAL,
+	"extreme": GameOptionsManager.ScreenShake.EXTREME,
+	"full": GameOptionsManager.ScreenShake.FULL,
+}
+
 var _fixture: Dictionary = {}
 var _pm: ProgressionManager = null
 
@@ -284,3 +303,67 @@ func test_invested_points_and_multipliers_at_defaults_match_the_typescript() -> 
 	)
 	assert_almost_eq(_pm.get_score_multiplier(), SaveStore.read_float(m, "score", -1.0), 0.0001)
 	assert_almost_eq(_pm.get_points_multiplier(), SaveStore.read_float(m, "points", -1.0), 0.0001)
+
+
+func _remove_settings() -> void:
+	var absolute: String = ProjectSettings.globalize_path(GameOptionsManager.SAVE_PATH)
+	if FileAccess.file_exists(absolute):
+		DirAccess.remove_absolute(absolute)
+
+
+func test_mode_configs_match_the_typescript() -> void:
+	_remove_settings()
+	var o: GameOptionsManager = GameOptionsManager.new()
+	var expected: Array = _fixture["modes"]
+	assert_eq(o.modes.size(), expected.size())
+	for i: int in range(expected.size()):
+		var want: Dictionary = expected[i]
+		var mode: GameOptionsManager.ModeConfig = o.modes[i]
+		var tag: String = "mode[%d]" % i
+		assert_eq(mode.id, MODE_NAMES[SaveStore.read_string(want, "id", "")], tag)
+		assert_eq(mode.name, SaveStore.read_string(want, "name", ""), tag)
+		assert_eq(mode.badge, SaveStore.read_string(want, "badge", ""), tag)
+		assert_eq(mode.tagline, SaveStore.read_string(want, "tagline", ""), tag)
+		assert_eq(mode.description, SaveStore.read_string(want, "description", ""), tag)
+		_assert_color(mode.color, SaveStore.read_string(want, "color", ""), tag + " color")
+		_assert_color(mode.accent, SaveStore.read_string(want, "accent", ""), tag + " accent")
+		_assert_color(mode.glow, SaveStore.read_string(want, "glow", ""), tag + " glow")
+		assert_almost_eq(
+			mode.score_multiplier, SaveStore.read_float(want, "scoreMultiplier", -1.0), 0.0001, tag
+		)
+
+
+func test_default_settings_match_the_typescript() -> void:
+	_remove_settings()
+	var o: GameOptionsManager = GameOptionsManager.new()
+	var want: Dictionary = _fixture["default_settings"]
+	assert_eq(o.settings.mode, MODE_NAMES[SaveStore.read_string(want, "mode", "")])
+	assert_eq(
+		o.settings.control_scheme, SCHEME_NAMES[SaveStore.read_string(want, "controlScheme", "")]
+	)
+	assert_eq(o.settings.sfx_enabled, SaveStore.read_bool(want, "sfxEnabled", false))
+	assert_almost_eq(o.settings.sfx_volume, SaveStore.read_float(want, "sfxVolume", -1.0), 0.0001)
+	assert_eq(o.settings.music_enabled, SaveStore.read_bool(want, "musicEnabled", false))
+	assert_almost_eq(
+		o.settings.music_volume, SaveStore.read_float(want, "musicVolume", -1.0), 0.0001
+	)
+	assert_eq(o.settings.screen_shake, SHAKE_NAMES[SaveStore.read_string(want, "screenShake", "")])
+	assert_eq(o.settings.tether_line, SaveStore.read_bool(want, "tetherLine", false))
+	assert_eq(o.settings.high_contrast_halo, SaveStore.read_bool(want, "highContrastHalo", false))
+	assert_eq(o.settings.show_gridlines, SaveStore.read_bool(want, "showGridlines", true))
+	# The round trip preserves the TS strings.
+	_assert_dict_numbers_equal(o.settings.to_dict(), want, "default_settings")
+
+
+func test_shake_multipliers_match_the_typescript() -> void:
+	_remove_settings()
+	var o: GameOptionsManager = GameOptionsManager.new()
+	var cases: Array = _fixture["shake_multipliers"]
+	for entry: Dictionary in cases:
+		var key: String = SaveStore.read_string(entry, "screenShake", "")
+		if not SHAKE_NAMES.has(key):
+			continue  # 'bogus' has no enum value; from_dict keeps the default instead
+		o.settings.screen_shake = SHAKE_NAMES[key]
+		assert_almost_eq(
+			o.get_shake_multiplier(), SaveStore.read_float(entry, "multiplier", -1.0), 0.0001, key
+		)
