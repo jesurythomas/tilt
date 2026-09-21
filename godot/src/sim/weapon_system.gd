@@ -61,7 +61,7 @@ func reset() -> void:
 
 
 ## Updates orb spawning, collection collisions, and active weapon expansion.
-## PORT: web/src/tilt-to-live/WeaponSystem.ts:52-280
+## PORT: web/src/tilt-to-live/WeaponSystem.ts:52-367
 func update(
 	dt: float,
 	player: PlayerShip,
@@ -119,10 +119,19 @@ func update(
 			particles.emit_sparks(orb.x, orb.y, 20, get_weapon_color(orb.type), 140.0)
 			orbs.remove_at(i)
 
-	# 3. Update Active Weapons (Nuke). PORT: web/src/tilt-to-live/WeaponSystem.ts:101-280
+	# 3. Update Active Weapons (Nuke, Laser, Vortex).
+	# PORT: web/src/tilt-to-live/WeaponSystem.ts:101-280
 	for i: int in range(active_weapons.size() - 1, -1, -1):
 		var w: Types.ActiveWeapon = active_weapons[i]
 		w.duration -= dt
+
+		# PORT-NOTE: `w.data?.x` (WeaponSystem.ts:160, :188, :198, :260) — data is
+		# Types.ts:64's any-typed bag (types.gd:111-113), held as a Dictionary keyed
+		# by the TS property names. Absent data reads as an empty bag.
+		# PORT-NOTE: data is Types.ts:64's any-typed field (types.gd:111-113); the
+		# Variant read genuinely requires the cast (precedent: test_tuning_parity.gd:46-48).
+		@warning_ignore("unsafe_cast")
+		var data: Dictionary = w.data if w.data != null else {}
 
 		match w.type:
 			Types.WeaponType.NUKE:
@@ -156,8 +165,56 @@ func update(
 
 				# Distort grid outward. PORT: web/src/tilt-to-live/WeaponSystem.ts:127
 				grid.apply_explosion(w.x, w.y, 16.0, w.radius + 30.0)
+			Types.WeaponType.LASER:
+				# Dual-ended beam sweeps around the ship. PORT: web/src/tilt-to-live/WeaponSystem.ts:132-136
+				w.x = player.x
+				w.y = player.y
+				# PORT-NOTE: `(w.angle || 0)` treats an angle of exactly 0 as unset; 0 + x == x,
+				# so the NAN test is the only observable difference — preserved.
+				w.angle = (w.angle if not is_nan(w.angle) else 0.0) + dt * PI * 3.5
+				var beam_length: float = (
+					w.radius
+					if w.radius != 0.0
+					else Tuning.get_tuned_value("laser", "length", 0) * scale
+				)
+				var cos_a: float = cos(w.angle)
+				var sin_a: float = sin(w.angle)
+
+				# PORT: web/src/tilt-to-live/WeaponSystem.ts:142-157
+				for e_idx: int in range(enemies.size() - 1, -1, -1):
+					var e: Types.Enemy = enemies[e_idx]
+					var rel_x: float = e.x - w.x
+					var rel_y: float = e.y - w.y
+					var proj: float = rel_x * cos_a + rel_y * sin_a
+					if absf(proj) <= beam_length:
+						var perp_dist: float = absf(-rel_x * sin_a + rel_y * cos_a)
+						if perp_dist <= e.radius + 14.0:  # PORT: web/src/tilt-to-live/WeaponSystem.ts:151
+							on_enemy_killed.call(e, Types.WeaponType.LASER)
+							# PORT: web/src/tilt-to-live/WeaponSystem.ts:153
+							particles.emit_sparks(e.x, e.y, 14, Color("#cc22ff"), 200.0)
+							enemies.remove_at(e_idx)
+
+				# Laser Cross-Beam keystone. PORT: web/src/tilt-to-live/WeaponSystem.ts:159-179
+				# PORT-NOTE: the beam body is duplicated exactly as WeaponSystem.ts:142-157
+				# and :164-178 duplicate it — LAW 4 forbids a helper the TS does not have.
+				var cross_beam: bool = data.get("crossBeam", false)
+				if cross_beam:
+					var cos_b: float = cos(w.angle + PI / 2.0)
+					var sin_b: float = sin(w.angle + PI / 2.0)
+					for e_idx: int in range(enemies.size() - 1, -1, -1):
+						var e: Types.Enemy = enemies[e_idx]
+						var rel_x: float = e.x - w.x
+						var rel_y: float = e.y - w.y
+						var proj: float = rel_x * cos_b + rel_y * sin_b
+						if absf(proj) <= beam_length:
+							var perp_dist: float = absf(-rel_x * sin_b + rel_y * cos_b)
+							if perp_dist <= e.radius + 14.0:  # PORT: web/src/tilt-to-live/WeaponSystem.ts:172
+								on_enemy_killed.call(e, Types.WeaponType.LASER)
+								# PORT: web/src/tilt-to-live/WeaponSystem.ts:174
+								particles.emit_sparks(e.x, e.y, 14, Color("#cc22ff"), 200.0)
+								enemies.remove_at(e_idx)
 			_:
-				# TODO(M4): update logic for laser, vortex, missiles, etc.
+				# TODO(M4): update logic for vortex.
 				pass
 
 		if w.duration <= 0.0:
@@ -253,6 +310,12 @@ func update(
 
 			missiles.remove_at(i)
 
+	# 5. Fade out Lightning Arcs. PORT: web/src/tilt-to-live/WeaponSystem.ts:360-366
+	for i: int in range(lightning_arcs.size() - 1, -1, -1):
+		lightning_arcs[i].intensity -= dt * 4.0  # PORT: web/src/tilt-to-live/WeaponSystem.ts:362
+		if lightning_arcs[i].intensity <= 0.0:
+			lightning_arcs.remove_at(i)
+
 
 ## Activates a weapon directly, without an orb. PORT: web/src/tilt-to-live/WeaponSystem.ts:369-384
 # PORT-NOTE: WeaponSystem.ts:378 overloads its ninth parameter as either the
@@ -285,12 +348,12 @@ func activate_weapon(
 	type: Types.WeaponType,
 	x: float,
 	y: float,
-	_player: PlayerShip,
-	_enemies: Array[Types.Enemy],
-	_particles: ParticleEngine,
+	player: PlayerShip,
+	enemies: Array[Types.Enemy],
+	particles: ParticleEngine,
 	_grid: VectorGrid,
 	audio: AudioBank,
-	_on_enemy_killed: Callable,
+	on_enemy_killed: Callable,
 	perks: ProgressionManager.WeaponPerks = null
 ) -> void:
 	# PORT-NOTE: stands in for every `perks?.x.y || 0` / `!!perks?.x.y` chain in
@@ -342,8 +405,103 @@ func activate_weapon(
 				m.lifetime = 3.5  # PORT: web/src/tilt-to-live/WeaponSystem.ts:430
 				m.smoke_timer = 0.0
 				missiles.append(m)
+		Types.WeaponType.LIGHTNING:
+			audio.play_lightning()  # PORT: web/src/tilt-to-live/WeaponSystem.ts:438
+			var current_origin: Vector2 = Vector2(x, y)
+			# PORT-NOTE: Set<number> (:440) as a typed Array; membership via has().
+			var visited_ids: Array[int] = []
+			# PORT: web/src/tilt-to-live/WeaponSystem.ts:441
+			# PORT-NOTE: written `14 + rank * 3` inline in the TS; WeaponTuning.ts:52 is
+			# the same row (base 14, perRank 3) and WeaponTuning.ts:5-9 mandates this read.
+			var max_chains: int = int(
+				Tuning.get_tuned_value("lightning", "maxTargets", p.lightning.max_targets)
+			)
+			# PORT: web/src/tilt-to-live/WeaponSystem.ts:442
+			var jump_range: float = (
+				Tuning.get_tuned_value("lightning", "chainRange", p.lightning.chain_range) * scale
+			)
+
+			for chain: int in range(max_chains):
+				var nearest_enemy: Types.Enemy = null
+				var nearest_dist: float = jump_range
+
+				for e: Types.Enemy in enemies:
+					if visited_ids.has(e.id):
+						continue
+					var dx: float = e.x - current_origin.x
+					var dy: float = e.y - current_origin.y
+					var dist: float = sqrt(dx * dx + dy * dy)
+					if dist < nearest_dist:
+						nearest_dist = dist
+						nearest_enemy = e
+
+				if nearest_enemy != null:
+					visited_ids.append(nearest_enemy.id)
+
+					# Arc visual. PORT: web/src/tilt-to-live/WeaponSystem.ts:462-470
+					var branches: Array[Vector2] = []
+					var segments: int = 4  # PORT: web/src/tilt-to-live/WeaponSystem.ts:464
+					for s: int in range(1, segments):
+						var t: float = float(s) / float(segments)
+						# PORT: web/src/tilt-to-live/WeaponSystem.ts:467-468
+						var bx: float = (
+							current_origin.x
+							+ (nearest_enemy.x - current_origin.x) * t
+							+ (randf() - 0.5) * 24.0 * scale
+						)
+						var by: float = (
+							current_origin.y
+							+ (nearest_enemy.y - current_origin.y) * t
+							+ (randf() - 0.5) * 24.0 * scale
+						)
+						branches.append(Vector2(bx, by))
+
+					var arc: Types.LightningArc = Types.LightningArc.new()
+					arc.x1 = current_origin.x
+					arc.y1 = current_origin.y
+					arc.x2 = nearest_enemy.x
+					arc.y2 = nearest_enemy.y
+					arc.intensity = 1.0
+					arc.branches = branches
+					lightning_arcs.append(arc)
+
+					current_origin = Vector2(nearest_enemy.x, nearest_enemy.y)
+				else:
+					break
+
+			# Kill every electrocuted dot. PORT: web/src/tilt-to-live/WeaponSystem.ts:487-495
+			for e_idx: int in range(enemies.size() - 1, -1, -1):
+				var e: Types.Enemy = enemies[e_idx]
+				if visited_ids.has(e.id):
+					on_enemy_killed.call(e, Types.WeaponType.LIGHTNING)
+					# PORT: web/src/tilt-to-live/WeaponSystem.ts:492
+					particles.emit_sparks(e.x, e.y, 12, Color("#ffee33"), 220.0)
+					enemies.remove_at(e_idx)
+		Types.WeaponType.LASER:
+			audio.play_laser_beam()  # PORT: web/src/tilt-to-live/WeaponSystem.ts:500
+			# PORT: web/src/tilt-to-live/WeaponSystem.ts:501
+			var beam_length: float = (
+				Tuning.get_tuned_value("laser", "length", p.laser.length) * scale
+			)
+			# PORT: web/src/tilt-to-live/WeaponSystem.ts:502
+			# PORT-NOTE: written `1.8 + rank * 0.4` inline in the TS; WeaponTuning.ts:49 is
+			# the same row (base 1.8, perRank 0.4) and WeaponTuning.ts:5-9 mandates this read.
+			var duration: float = Tuning.get_tuned_value("laser", "duration", p.laser.duration)
+			var w: Types.ActiveWeapon = Types.ActiveWeapon.new()
+			w.id = _next_weapon_id
+			_next_weapon_id += 1
+			w.type = Types.WeaponType.LASER
+			w.x = player.x  # PORT: web/src/tilt-to-live/WeaponSystem.ts:506
+			w.y = player.y
+			w.duration = duration
+			w.max_duration = duration
+			w.radius = beam_length
+			w.angle = player.angle  # PORT: web/src/tilt-to-live/WeaponSystem.ts:511
+			# PORT: web/src/tilt-to-live/WeaponSystem.ts:512 — key spelled as the TS does
+			w.data = {"crossBeam": p.laser.cross_beam}
+			active_weapons.append(w)
 		_:
-			# TODO(M4): activation logic for lightning, laser, vortex, freeze, shield.
+			# TODO(M4): activation logic for vortex, freeze, shield.
 			pass
 
 
