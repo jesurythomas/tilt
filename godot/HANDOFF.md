@@ -11,6 +11,9 @@ Code-complete, **device pass pending** (none ticked in `PORT-PROGRESS.md`):
 Nothing since M2 has run on a phone: the A55 dropped off adb on 2026-09-20 and
 did not return; the user then ran their own pass and committed tuning as
 `c023e09` (gyro feel + FPS under mass explosions).
+Also landed after M4: **HUD score feedback** (`9cc3e8f..31bf2ce`, spec
+`docs/superpowers/specs/2026-09-21-hud-score-feedback-design.md`) — kill-site
+callouts removed; the score pulses in a multiplier-tier colour instead.
 Next module: **M5 — Audio bake and SFX** (deps: M2) or **M7 — Persistence and
 economy** (deps: M2) — both may start before the device passes. M7 is the
 better next step: M4 left `ProgressionManager.WeaponPerks` in
@@ -28,15 +31,15 @@ Branch: `feat/godot-port` (no upstream; nothing pushed).
 cd /c/Users/Jesury/Documents/Personal/dread-flock
 GODOT="/c/Users/Jesury/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe"
 
-tools/run_tests.sh                        # expect: OK: 33/33 scripts (220 tests)
+tools/run_tests.sh                        # expect: OK: 33/33 scripts (225 tests)
 gdformat --check godot/src godot/tests    # expect: 60 files would be left unchanged
 gdlint godot/src godot/tests              # expect: Success: no problems found
-grep -rn "DIVERGENCE" godot/src/ | wc -l  # expect: 43
+grep -rn "DIVERGENCE" godot/src/ | wc -l  # expect: 67
 "$GODOT" --headless --path godot --quit-after 120   # expect: exit 0, no SCRIPT ERROR
 git checkout godot/project.godot          # headless runs strip one default-valued line; never commit that
 ```
 
-Every command above was run fresh at `0b7fccf` and passed. `grep -rn "TODO(M3)\|TODO(M4)" godot/src/` is empty.
+Every command above was run fresh at `31bf2ce` and passed. `grep -rn "TODO(M3)\|TODO(M4)" godot/src/` is empty.
 
 ## App identity and toolchain
 
