@@ -213,3 +213,47 @@ When done: tick M4 in `PORT-PROGRESS.md` with the SHA you tested.
       for 0.22 s; multiplier label sits in the tier colour; no text piles up
       at kill sites — tune `PULSE_SCALE` / `PULSE_SECONDS` / tier colours in
       `hud_controller.gd` if not.
+
+---
+
+## M7 — Persistence and economy (device pass, plan Task 10)
+
+Unattended evidence at fc19300: 40/40 GUT scripts pass; headless `--quit-after
+120` exits 0 with no script error; the APK exports (30,431,782 bytes).
+The A55 was still off adb, so no install, launch or screenshot happened.
+Run §0 first. There is no Armory yet (M8), so nothing can be bought on the
+phone; every purchase path is proven headless in `tests/test_progression_*.gd`.
+What the phone can show is the save surviving a restart, the corrupt-file
+fallback, coins, and the classic ship's shield orb.
+
+- [ ] **Starting orb is a green shield**, not the red nuke M4 showed — the
+      classic ship's `startingWeapon` (ProgressionManager.ts:138). If you'd
+      rather the first orb stayed a nuke, say so: it is plan Open question 3.
+- [ ] **Coins:** an amber disc with a white rim and a dark "S" bar appears
+      2.5-4 s in, another every few seconds, never more than six; each fades
+      over its last 3 s; flying through one gives a spark burst and a
+      pickup sound (silent until M5 — the AudioBank stub logs it).
+- [ ] **Coins draw under the orbs** (spec §5.5) — an orb and a coin
+      overlapping should show the orb on top.
+- [ ] **Saves survive a restart:** collect a few coins, kill the app from
+      recents, relaunch, then
+      `adb -s RRCXB04L8EJ shell run-as com.jtg.perilpoint cat files/tilt_to_live_progression_v3.json`
+      — `"points"` is above 7331 and grows across launches; `"lifetimePoints"`
+      matches.
+- [ ] **Corrupt save falls back and is backed up:**
+      `adb -s RRCXB04L8EJ shell run-as com.jtg.perilpoint sh -c 'echo "{broken" > files/tilt_to_live_progression_v3.json'`
+      then relaunch: the game boots (no crash, no black screen), and
+      `run-as com.jtg.perilpoint ls files/` shows
+      `tilt_to_live_progression_v3.corrupt.json` beside a fresh
+      `tilt_to_live_progression_v3.json` after the next coin. Points are back
+      to 7331.
+- [ ] **Tilt calibration and control scheme still persist** across a
+      relaunch (they now go through SaveStore — M2.5's checks 1 and 2 again).
+- [ ] Frame time with six coins and a vortex live:
+      `adb -s RRCXB04L8EJ shell dumpsys gfxinfo com.jtg.perilpoint | grep -A3 50th`
+      — 50th percentile at or under 16 ms.
+
+Not observable yet: perk ranks, extra lives, hull compact, enemy slow and the
+two multipliers all read from the save but nothing on the phone can change
+them until the Armory (M8). To see them now, edit the JSON with `run-as` and
+relaunch — e.g. `"extraLives": 2` gives three lives at the next run.
