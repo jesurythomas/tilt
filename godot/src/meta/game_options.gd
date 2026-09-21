@@ -63,6 +63,9 @@ func _init() -> void:
 # PORT-NOTE: the try/catch (:102-104) is SaveStore's quarantine; {} is the
 # `!raw` branch (:95). `showGridlines: parsed.showGridlines === true` (:100)
 # is what read_bool already does — a non-bool never becomes true.
+# PORT-NOTE: the TS spread would keep and re-save a junk string like
+# "screenShake": "bogus"; the typed enum cannot hold it, so the default is
+# kept and re-saved instead — getShakeMultiplier's result (1.0) is the same.
 func load_settings() -> GameSettings:
 	var def: GameSettings = _get_default_settings()
 	var raw: Dictionary = SaveStore.load_dict(SAVE_PATH)

@@ -115,6 +115,9 @@ func _draw_coins() -> void:
 		draw_circle(pos + Vector2(-2.0, -2.0), r * 0.55, highlight)  # PORT: :146, :148
 		var rim: Color = Color.WHITE
 		rim.a = fade_alpha
+		# PORT-NOTE: polyline resolution, a Godot choice with no TS counterpart
+		# (canvas arc/quadraticCurveTo are analytic) — same class as the M3
+		# gradient ruling.
 		draw_arc(pos, r, 0.0, TAU, 32, rim, 1.4)  # PORT: :155-157
 
 		# Currency glyph (dollar-style bar). PORT: :160-170
@@ -141,6 +144,9 @@ func _draw_coins() -> void:
 
 
 # A quadratic Bézier (Canvas quadraticCurveTo) sampled as a polyline.
+# PORT-NOTE: polyline resolution, a Godot choice with no TS counterpart
+# (canvas arc/quadraticCurveTo are analytic) — same class as the M3 gradient
+# ruling.
 func _quadratic_points(p0: Vector2, control: Vector2, p1: Vector2) -> PackedVector2Array:
 	var out: PackedVector2Array = PackedVector2Array()
 	for i: int in range(9):

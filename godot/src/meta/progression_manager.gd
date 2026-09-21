@@ -1,12 +1,7 @@
-# gdlint:disable=max-public-methods,max-file-lines,max-returns,no-elif-return
+# gdlint:disable=max-public-methods,max-file-lines
 # PORT-NOTE: ProgressionManager.ts exposes 36 public methods; LAW 3 keeps them.
 # The file exceeds gdlint's 1000-line cap because it also carries the seven
 # catalogs and every inner record type; splitting it is a Task 6+ concern.
-# PORT-NOTE: max-returns/no-elif-return are disabled file-wide because
-# upgrade_perk (ProgressionManager.ts:580-603) is kept as the TS's single
-# function under LAW 3, and gdlint's scoped `ignore=` only silences a problem
-# on its own reported line — both checks fire deep inside that function body,
-# past where a function-level ignore comment can reach (see upgrade_perk).
 ## progression_manager.gd
 ## PORTS: web/src/tilt-to-live/ProgressionManager.ts (940 lines, source commit 7be9614)
 class_name ProgressionManager
@@ -31,6 +26,10 @@ extends RefCounted
 ## camelCase keys. Every record below carries to_dict()/from_dict() — the only
 ## place the camelCase spellings appear — so the file a web build wrote loads
 ## here unchanged (spec §4.6).
+##
+## Private helpers with no TS member (_unique_union, _find_*, _build_*) sit
+## after the public methods (CONVENTIONS §2); _resolve_ship_id and
+## _get_default_data keep their TS positions.
 
 ## PORT: web/src/tilt-to-live/ProgressionManager.ts:68
 enum ShipShape { CLASSIC, VIPER, PHANTOM, SOLAR, CYBER, SHURIKEN, CELESTIAL }
@@ -230,13 +229,10 @@ func get_weapon_invested_points(weapon: String) -> int:
 # PORT-NOTE: same dictionary view as get_weapon_invested_points; the edited
 # view is written back through WeaponPerks.from_dict, which is a merge, so
 # only the one key changes.
-# PORT-NOTE: ProgressionManager.ts:580-603 is one function with seven exits;
-# kept as one under LAW 3. A scoped `# gdlint:ignore=` only silences a
-# problem reported on its own line (or the next), per gdtoolkit's
-# _fetch_ignored_problems_per_lines; max-returns reports at the function's
-# last `return` and no-elif-return at the `elif` line, both deep inside this
-# function, so no single-line placement covers both — suppressed via the
-# line-1 `disable=` list instead (see line 1) and noted in the task report.
+# PORT-NOTE: ProgressionManager.ts:580-603 is one function with seven exits
+# and an elif chain; kept as one under LAW 3. gdlint's max-returns and
+# no-elif-return are disabled for this function only (disable/enable region).
+# gdlint:disable=max-returns,no-elif-return
 func upgrade_perk(weapon: String, perk_name: String) -> bool:
 	var all: Dictionary = data.perks.to_dict()
 	if not all.has(weapon):
@@ -272,6 +268,9 @@ func upgrade_perk(weapon: String, perk_name: String) -> bool:
 		save()
 		return true
 	return false
+
+
+# gdlint:enable=max-returns,no-elif-return
 
 
 ## PORT: web/src/tilt-to-live/ProgressionManager.ts:613-617

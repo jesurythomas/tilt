@@ -59,6 +59,8 @@ func _init(
 ## PORT: web/src/tilt-to-live/TiltGame.ts:1547-1610
 func reset_run(arena_bounds: Vector2) -> void:
 	bounds = arena_bounds
+	# TODO(M10): read the active mode once M10 owns modes (TiltGame.ts:1931
+	# uses activeMode).
 	# PORT: web/src/tilt-to-live/TiltGame.ts:1548-1551
 	var mode_config: GameOptionsManager.ModeConfig = options.get_mode_config(options.settings.mode)
 	scores.set_mode_multiplier(mode_config.score_multiplier)
@@ -147,7 +149,7 @@ func update(
 	swarm.update(dt, Vector2(player.x, player.y), bounds, particles, scores.stats.score)
 
 	# 5. Update Weapons
-	# TODO(M8): pass the active game mode as the tenth argument (TiltGame.ts:1927);
+	# TODO(M10): pass the active game mode as the tenth argument (TiltGame.ts:1927);
 	# CLASSIC by default until modes land.
 	# PORT: web/src/tilt-to-live/TiltGame.ts:1926
 	weapons.update(
@@ -166,6 +168,8 @@ func update(
 	# PORT: web/src/tilt-to-live/TiltGame.ts:1930-1940 — spec §5.4 step 7
 	# TODO(M11): the game-over summary reads coins.coins_collected and
 	# coins.points_from_coins (TiltGame.ts:2108-2129).
+	# TODO(M10): read the active mode once M10 owns modes (TiltGame.ts:1931
+	# uses activeMode).
 	var mode_config: GameOptionsManager.ModeConfig = options.get_mode_config(options.settings.mode)
 	coins.update(
 		dt,

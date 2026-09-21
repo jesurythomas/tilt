@@ -125,15 +125,18 @@ static func read_dict(d: Dictionary, key: String) -> Dictionary:
 static func _quarantine(path: String) -> void:
 	var from: String = ProjectSettings.globalize_path(path)
 	var to: String = ProjectSettings.globalize_path(corrupt_path_for(path))
-	# PORT-NOTE: on Windows, rename_absolute may fail if the dest exists;
-	# remove it first if present, ignoring errors from the removal itself.
 	if FileAccess.file_exists(to):
-		# Ignore removal errors; destination might not exist yet
 		DirAccess.remove_absolute(to)
 	var err: Error = DirAccess.rename_absolute(from, to)
 	if err != OK:
-		Log.warn(
-			"SaveStore: %s is not a JSON object and could not be moved aside (%d)" % [path, err]
+		var fail_msg: String = (
+			"SaveStore: %s could not be parsed as a JSON object and could not be moved aside (%d)"
+			% [path, err]
 		)
+		Log.warn(fail_msg)
 		return
-	Log.warn("SaveStore: %s was not a JSON object; moved to %s and using defaults" % [path, to])
+	var moved_msg: String = (
+		"SaveStore: %s could not be parsed as a JSON object; moved to %s and using defaults"
+		% [path, to]
+	)
+	Log.warn(moved_msg)

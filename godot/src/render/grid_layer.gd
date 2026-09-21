@@ -7,9 +7,7 @@ extends Node2D
 ## Bottom render layer: arena background, the reactive grid, the perimeter.
 ##
 ## PORT-NOTE: TiltRenderer.ts:97 draws the grid only when showGridlines is on,
-## and GameOptions.ts:88 defaults it to false. M1 has no settings system and
-## its acceptance criterion requires an observable grid, so it draws
-## unconditionally.
+## and GameOptions.ts:88 defaults it to false.
 ## GameRoot sets show_gridlines from GameOptionsManager.settings.show_gridlines (M7).
 ##
 ## PORT-NOTE: TiltRenderer.ts:82-92 builds a canvas radial gradient with an

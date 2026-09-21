@@ -144,7 +144,9 @@ func test_default_data_matches_the_typescript() -> void:
 func test_ship_catalog_matches_the_typescript() -> void:
 	var expected: Array = _fixture["ship_catalog"]
 	assert_eq(_pm.ship_catalog.size(), expected.size(), "ship count")
-	assert_true(_pm.cursor_catalog == _pm.ship_catalog, "cursorCatalog is shipCatalog (:278)")
+	assert_true(
+		is_same(_pm.cursor_catalog, _pm.ship_catalog), "cursorCatalog is shipCatalog (:278)"
+	)
 	for i: int in range(expected.size()):
 		var want: Dictionary = expected[i]
 		var ship: ProgressionManager.ShipSkinConfig = _pm.ship_catalog[i]
