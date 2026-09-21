@@ -1,7 +1,7 @@
 ## entity_layer.gd
 ## PORTS: web/src/tilt-to-live/PlayerShip.ts:271-632 (render player)
 ##        web/src/tilt-to-live/EnemySwarm.ts:1191-1648 (render)
-##        web/src/tilt-to-live/WeaponSystem.ts:616-638, 793-851 (render weapons)
+##        web/src/tilt-to-live/WeaponSystem.ts:793-923 (render orbs, orb glyphs)
 ##        per spec §5.5 and D4
 class_name EntityLayer
 extends Node2D
@@ -79,40 +79,7 @@ func _draw_weapons() -> void:
 	if _weapons == null:
 		return
 
-	# 1. Active weapons (PORT: web/src/tilt-to-live/WeaponSystem.ts:616-638)
-	for w: Types.ActiveWeapon in _weapons.active_weapons:
-		if w.type == Types.WeaponType.NUKE:
-			var progress: float = 1.0 - w.duration / w.max_duration
-			var alpha: float = maxf(0.0, 1.0 - progress)
-
-			# Outer expanding shockwave ring (PORT: WeaponSystem.ts:622-626)
-			draw_arc(
-				Vector2(w.x, w.y),
-				w.radius,
-				0.0,
-				TAU,
-				64,
-				Color(1.0, 0.0, 85.0 / 255.0, alpha * 0.9),
-				maxf(1.0, 6.0 * alpha)
-			)
-
-			# Inner secondary shockwave ring (PORT: WeaponSystem.ts:628-632)
-			draw_arc(
-				Vector2(w.x, w.y),
-				maxf(1.0, w.radius - 8.0),
-				0.0,
-				TAU,
-				64,
-				Color(1.0, 230.0 / 255.0, 120.0 / 255.0, alpha * 0.8),
-				maxf(1.0, 3.0 * alpha)
-			)
-
-			# Inner translucent core (PORT: WeaponSystem.ts:634-638)
-			draw_circle(
-				Vector2(w.x, w.y), w.radius, Color(1.0, 30.0 / 255.0, 80.0 / 255.0, alpha * 0.25)
-			)
-
-	# 2. Floating weapon orbs (PORT: web/src/tilt-to-live/WeaponSystem.ts:793-830)
+	# 1. Floating weapon orbs (PORT: web/src/tilt-to-live/WeaponSystem.ts:793-828)
 	for orb: Types.WeaponOrb in _weapons.orbs:
 		var is_expiring: bool = orb.lifetime < 3.0 and (int(_elapsed * 8.0) % 2 == 0)
 		if is_expiring:
@@ -137,18 +104,69 @@ func _draw_weapons() -> void:
 		_draw_orb_glyph(orb_pos, orb.type)
 
 
+## PORT: web/src/tilt-to-live/WeaponSystem.ts:833-923
 func _draw_orb_glyph(pos: Vector2, type: Types.WeaponType) -> void:
+	var width: float = 1.6  # PORT: web/src/tilt-to-live/WeaponSystem.ts:836
 	match type:
 		Types.WeaponType.NUKE:
-			# Center dot
+			# Radioactive trefoil. PORT: web/src/tilt-to-live/WeaponSystem.ts:841-849
 			draw_circle(pos, 2.5, Color.WHITE)
-			# 3 radioactive trefoil arcs
 			for i: int in range(3):
-				var a: float = (float(i) * TAU) / 3.0
-				draw_arc(pos, 8.0, a - 0.45, a + 0.45, 16, Color.WHITE, 1.6)
-		_:
-			# Default center dot
-			draw_circle(pos, 3.0, Color.WHITE)
+				var a: float = (float(i) * PI * 2.0) / 3.0
+				draw_arc(pos, 8.0, a - 0.45, a + 0.45, 16, Color.WHITE, width)
+		Types.WeaponType.MISSILES:
+			# Rocket. PORT: web/src/tilt-to-live/WeaponSystem.ts:854-860
+			var rocket: PackedVector2Array = PackedVector2Array(
+				[
+					pos + Vector2(0.0, -7.0),
+					pos + Vector2(4.0, 5.0),
+					pos + Vector2(0.0, 2.0),
+					pos + Vector2(-4.0, 5.0)
+				]
+			)
+			draw_colored_polygon(rocket, Color.WHITE)
+		Types.WeaponType.LIGHTNING:
+			# Bolt. PORT: web/src/tilt-to-live/WeaponSystem.ts:865-873
+			# PORT-NOTE: the TS outline (2,-7)(-4,0)(0,0)(-2,7)(4,0)(0,0) touches itself
+			# at (0,0); Godot's triangulator draws nothing for a non-simple polygon, so the
+			# outline is filled as the two triangles the canvas nonzero rule produces.
+			var upper: PackedVector2Array = PackedVector2Array(
+				[pos + Vector2(2.0, -7.0), pos + Vector2(-4.0, 0.0), pos + Vector2(0.0, 0.0)]
+			)
+			var lower: PackedVector2Array = PackedVector2Array(
+				[pos + Vector2(0.0, 0.0), pos + Vector2(-2.0, 7.0), pos + Vector2(4.0, 0.0)]
+			)
+			draw_colored_polygon(upper, Color.WHITE)
+			draw_colored_polygon(lower, Color.WHITE)
+		Types.WeaponType.LASER:
+			# Crossed beams. PORT: web/src/tilt-to-live/WeaponSystem.ts:878-881
+			draw_line(pos + Vector2(-6.0, -6.0), pos + Vector2(6.0, 6.0), Color.WHITE, width)
+			draw_line(pos + Vector2(6.0, -6.0), pos + Vector2(-6.0, 6.0), Color.WHITE, width)
+		Types.WeaponType.VORTEX:
+			# Spiral. PORT: web/src/tilt-to-live/WeaponSystem.ts:886-894
+			var spiral: PackedVector2Array = PackedVector2Array()
+			for r: int in range(2, 8):
+				var a: float = float(r) * 0.9
+				spiral.append(pos + Vector2(cos(a) * float(r), sin(a) * float(r)))
+			draw_polyline(spiral, Color.WHITE, width)
+		Types.WeaponType.FREEZE:
+			# Snowflake. PORT: web/src/tilt-to-live/WeaponSystem.ts:899-905
+			for i: int in range(6):
+				var a: float = (float(i) * PI) / 3.0
+				draw_line(pos, pos + Vector2(cos(a) * 7.0, sin(a) * 7.0), Color.WHITE, width)
+		Types.WeaponType.SHIELD:
+			# Shield outline. PORT: web/src/tilt-to-live/WeaponSystem.ts:910-918
+			var shield: PackedVector2Array = PackedVector2Array(
+				[
+					pos + Vector2(0.0, -6.0),
+					pos + Vector2(5.0, -3.0),
+					pos + Vector2(4.0, 3.0),
+					pos + Vector2(0.0, 7.0),
+					pos + Vector2(-4.0, 3.0),
+					pos + Vector2(-5.0, -3.0),
+				]
+			)
+			draw_polyline(_closed(shield), Color.WHITE, width)
 
 
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:1191-1648 (render)

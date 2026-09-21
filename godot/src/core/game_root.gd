@@ -84,7 +84,7 @@ func _ready() -> void:
 
 	_grid_layer.bind(_grid)
 	_entity_layer.bind_entities(_player, _swarm, _weapons)
-	_effect_layer.bind(_particles, _scores)
+	_effect_layer.bind(_particles, _scores, _weapons)
 	_joystick_layer.bind(_joystick)
 
 	resize_canvas()
@@ -190,6 +190,7 @@ func _update(dt: float) -> void:
 	)
 
 	_entity_layer.set_elapsed(_run_controller.elapsed)
+	_effect_layer.set_elapsed(_run_controller.elapsed)
 
 
 ## Switches the active control scheme and persists the choice.
@@ -276,6 +277,7 @@ func resize_canvas() -> void:
 	_state.set_bounds(_bounds)
 	_run_controller.bounds = _bounds
 	_entity_layer.set_elapsed(_state.elapsed)
+	_effect_layer.set_elapsed(_state.elapsed)
 
 	_grid_layer.set_arena_origin(arena_origin)
 	_entity_layer.set_arena_origin(arena_origin)
