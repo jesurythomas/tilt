@@ -59,8 +59,8 @@ func _init(
 ## PORT: web/src/tilt-to-live/TiltGame.ts:1547-1610
 func reset_run(arena_bounds: Vector2) -> void:
 	bounds = arena_bounds
-	# TODO(M10): read the active mode once M10 owns modes (TiltGame.ts:1931
-	# uses activeMode).
+	# TODO(M10): read the active mode once M10 owns modes (TiltGame.ts:1547
+	# uses this.options.settings.mode).
 	# PORT: web/src/tilt-to-live/TiltGame.ts:1548-1551
 	var mode_config: GameOptionsManager.ModeConfig = options.get_mode_config(options.settings.mode)
 	scores.set_mode_multiplier(mode_config.score_multiplier)
