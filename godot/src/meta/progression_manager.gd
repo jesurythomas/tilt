@@ -397,12 +397,120 @@ func get_points_multiplier() -> float:
 	return 1.0 + 0.10 * float(data.points_multiplier)  # PORT: :708
 
 
+## PORT: web/src/tilt-to-live/ProgressionManager.ts:713-723
+func buy_ship(id: String) -> bool:
+	var canonical: String = _resolve_ship_id(id)
+	if data.unlocked_cursors.has(canonical):
+		return true
+	var item: ShipSkinConfig = _find_ship(canonical)
+	if item == null or data.points < item.price:
+		return false
+	data.points -= item.price
+	data.unlocked_cursors.append(canonical)
+	data.equipped_cursor_id = canonical
+	save()
+	return true
+
+
+## PORT: web/src/tilt-to-live/ProgressionManager.ts:725-731
+func equip_ship(id: String) -> bool:
+	var canonical: String = _resolve_ship_id(id)
+	if not data.unlocked_cursors.has(canonical):
+		return false
+	data.equipped_cursor_id = canonical
+	save()
+	return true
+
+
 ## PORT: web/src/tilt-to-live/ProgressionManager.ts:733-735
 func get_equipped_ship() -> ShipSkinConfig:
-	for ship: ShipSkinConfig in ship_catalog:
-		if ship.id == data.equipped_cursor_id:
-			return ship
-	return ship_catalog[0]
+	var found: ShipSkinConfig = _find_ship(data.equipped_cursor_id)
+	return found if found != null else ship_catalog[0]
+
+
+## Backwards compatibility alias. PORT: web/src/tilt-to-live/ProgressionManager.ts:738
+func buy_cursor(id: String) -> bool:
+	return buy_ship(id)
+
+
+## Backwards compatibility alias. PORT: web/src/tilt-to-live/ProgressionManager.ts:739
+func equip_cursor(id: String) -> bool:
+	return equip_ship(id)
+
+
+## Backwards compatibility alias. PORT: web/src/tilt-to-live/ProgressionManager.ts:740
+func get_equipped_cursor() -> ShipSkinConfig:
+	return get_equipped_ship()
+
+
+## PORT: web/src/tilt-to-live/ProgressionManager.ts:744-753
+func buy_enemy_skin(id: String) -> bool:
+	if data.unlocked_enemy_skins.has(id):
+		return true
+	var item: EnemySkinConfig = _find_enemy_skin(id)
+	if item == null or data.points < item.price:
+		return false
+	data.points -= item.price
+	data.unlocked_enemy_skins.append(id)
+	data.equipped_enemy_skin_id = id
+	save()
+	return true
+
+
+## PORT: web/src/tilt-to-live/ProgressionManager.ts:755-760
+func equip_enemy_skin(id: String) -> bool:
+	if not data.unlocked_enemy_skins.has(id):
+		return false
+	data.equipped_enemy_skin_id = id
+	save()
+	return true
+
+
+## PORT: web/src/tilt-to-live/ProgressionManager.ts:762-764
+func get_equipped_enemy_skin() -> EnemySkinConfig:
+	var found: EnemySkinConfig = _find_enemy_skin(data.equipped_enemy_skin_id)
+	return found if found != null else enemy_skin_catalog[0]
+
+
+## PORT: web/src/tilt-to-live/ProgressionManager.ts:768-777
+func buy_arena_theme(id: String) -> bool:
+	if data.unlocked_arena_themes.has(id):
+		return true
+	var item: ArenaThemeConfig = _find_arena_theme(id)
+	if item == null or data.points < item.price:
+		return false
+	data.points -= item.price
+	data.unlocked_arena_themes.append(id)
+	data.equipped_arena_theme_id = id
+	save()
+	return true
+
+
+## PORT: web/src/tilt-to-live/ProgressionManager.ts:779-784
+func equip_arena_theme(id: String) -> bool:
+	if not data.unlocked_arena_themes.has(id):
+		return false
+	data.equipped_arena_theme_id = id
+	save()
+	return true
+
+
+## PORT: web/src/tilt-to-live/ProgressionManager.ts:786-788
+func get_equipped_arena_theme() -> ArenaThemeConfig:
+	var found: ArenaThemeConfig = _find_arena_theme(data.equipped_arena_theme_id)
+	return found if found != null else arena_theme_catalog[0]
+
+
+## PORT: web/src/tilt-to-live/ProgressionManager.ts:792-795
+func set_sensitivity(value: float) -> void:
+	data.tuning.sensitivity = maxf(0.5, minf(2.0, value))  # PORT: :793
+	save()
+
+
+## PORT: web/src/tilt-to-live/ProgressionManager.ts:797-800
+func set_deadzone(value: float) -> void:
+	data.tuning.deadzone = maxf(0.0, minf(16.0, value))  # PORT: :798
+	save()
 
 
 # `Array.from(new Set([...base, ...extra]))` (ProgressionManager.ts:504-506):
@@ -416,6 +524,29 @@ func _unique_union(base: Array[String], extra: Array[String]) -> Array[String]:
 		if not out.has(item):
 			out.append(item)
 	return out
+
+
+# The `catalog.find(c => c.id === id)` idiom (:716, :734, :746, :763, :770,
+# :787): the first entry with that id, or null.
+func _find_ship(id: String) -> ShipSkinConfig:
+	for ship: ShipSkinConfig in ship_catalog:
+		if ship.id == id:
+			return ship
+	return null
+
+
+func _find_enemy_skin(id: String) -> EnemySkinConfig:
+	for skin: EnemySkinConfig in enemy_skin_catalog:
+		if skin.id == id:
+			return skin
+	return null
+
+
+func _find_arena_theme(id: String) -> ArenaThemeConfig:
+	for arena: ArenaThemeConfig in arena_theme_catalog:
+		if arena.id == id:
+			return arena
+	return null
 
 
 # PORT: web/src/tilt-to-live/ProgressionManager.ts:127-276
