@@ -376,3 +376,57 @@ func test_unaffordable_ship_is_disabled() -> void:
 	_progression.data.points = 100
 	_armory.open("ships")
 	assert_true(_button("BuyShip_solar").disabled)
+
+
+func test_arena_tab_shows_both_catalogs_with_counts() -> void:
+	_armory.open("arena")
+	await get_tree().process_frame
+	# PORT: web/src/tilt-to-live/ArmoryUI.ts:779, :790 — counts use catalog length
+	assert_eq(_label("ThemesPill").text, "Arena Themes · 1 of 6 unlocked")
+	assert_eq(_label("EnemiesPill").text, "Enemy Variations · 1 of 6 unlocked")
+	assert_true(_button("EquippedArena_void").disabled)
+	assert_eq(_button("BuyArena_synthwave").text, "400 pts")
+	assert_eq(_label("ArenaCost_void").text, "FREE", "price 0 reads FREE (:709)")
+	assert_eq(_label("ArenaCost_synthwave").text, "400 pts")
+	assert_true(_button("EquippedEnemy_classic").disabled)
+	assert_eq(_button("BuyEnemy_gold").text, "1,500 pts")
+
+
+func test_buy_then_equip_arena_theme() -> void:
+	_armory.open("arena")
+	_button("BuyArena_synthwave").pressed.emit()
+	assert_true(_progression.data.unlocked_arena_themes.has("synthwave"))
+	assert_eq(_progression.data.points, 7331 - 400)
+	assert_eq(
+		_button("EquippedArena_synthwave").text,
+		"Equipped",
+		"buying equips (ProgressionManager.ts:768-777)"
+	)
+	_button("BuyArena_nebula").pressed.emit()
+	watch_signals(_armory)
+	_button("EquipArena_synthwave").pressed.emit()
+	assert_eq(_progression.data.equipped_arena_theme_id, "synthwave")
+	assert_signal_emit_count(_armory, "state_changed", 1)
+	assert_eq(ProgressionManager.new().data.equipped_arena_theme_id, "synthwave", "persisted")
+
+
+func test_buy_then_equip_enemy_skin() -> void:
+	_armory.open("arena")
+	_button("BuyEnemy_toxic").pressed.emit()
+	assert_true(_progression.data.unlocked_enemy_skins.has("toxic"))
+	assert_eq(
+		_progression.data.equipped_enemy_skin_id,
+		"toxic",
+		"buying equips (ProgressionManager.ts:744-753)"
+	)
+	_button("BuyEnemy_glitch").pressed.emit()
+	_button("EquipEnemy_toxic").pressed.emit()
+	assert_eq(_progression.data.equipped_enemy_skin_id, "toxic")
+	assert_eq(_label("EnemiesPill").text, "Enemy Variations · 3 of 6 unlocked")
+
+
+func test_unaffordable_theme_is_disabled() -> void:
+	_progression.data.points = 0
+	_armory.open("arena")
+	assert_true(_button("BuyArena_blueprint").disabled)
+	assert_true(_button("BuyEnemy_void").disabled)

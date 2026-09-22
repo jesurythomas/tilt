@@ -134,6 +134,26 @@ const LOADOUT_ICON: int = 16
 # lists classic..revenant); preserved deliberately. Open question 4.
 const SHIP_COUNT_LABEL: int = 6
 
+## Arena layout. PORT: web/src/styles/game.css:2474-2477 (3 cols, gap 16, top 14),
+## :2495 (preview h 90), :2521 (enemy preview h 90), :2507 (grid 18px),
+## :2512-2513 (dust dot 4), :2517 (dust opacity 0.8), :2530-2531 (dot 32),
+## :2535 (border 2), :2539-2540 (pupil 7), :2544 (body pad 14/16), :2547 (gap 8);
+## ArmoryUI.ts:788 (section gap 24)
+const ARENA_COLUMNS: int = 3
+const ARENA_GRID_GAP: int = 16
+const ARENA_GRID_TOP: int = 14
+const ARENA_PREVIEW_HEIGHT: int = 90
+const ARENA_GRID_STEP: int = 18
+const DUST_DOT: int = 4
+const DUST_ALPHA: float = 0.8
+const ENEMY_DOT: int = 32
+const ENEMY_DOT_BORDER: int = 2
+const ENEMY_PUPIL: int = 7
+const ARENA_BODY_PAD_Y: int = 14
+const ARENA_BODY_PAD_X: int = 16
+const ARENA_BODY_GAP: int = 8
+const ARENA_SECTION_GAP: int = 24
+
 ## The save every tab reads and every purchase writes. PORT: web/src/tilt-to-live/ArmoryUI.ts:75
 var progression: ProgressionManager = null
 ## PORT: web/src/tilt-to-live/ArmoryUI.ts:80
@@ -636,11 +656,166 @@ func _render_ships_tab() -> Control:
 	return _scroll_body(margin)
 
 
-## Task 4 replaces this. PORT: web/src/tilt-to-live/ArmoryUI.ts:662-799
+## PORT: web/src/tilt-to-live/ArmoryUI.ts:662-799
 func _render_arena_tab() -> Control:
-	var tab: VBoxContainer = VBoxContainer.new()
-	tab.name = "ArenaTab"
-	return tab
+	var points: int = progression.data.points
+
+	var column: VBoxContainer = VBoxContainer.new()
+	column.name = "ArenaTab"
+	column.add_theme_constant_override("separation", int(ARENA_SECTION_GAP * _ui_scale))  # PORT: :788
+
+	# 1. Arena themes. PORT: :666-717, :777-785
+	var equipped_theme_id: String = progression.data.equipped_arena_theme_id
+	var unlocked_themes: Array[String] = progression.data.unlocked_arena_themes
+	var themes: Array[ProgressionManager.ArenaThemeConfig] = progression.arena_theme_catalog
+	var unlocked_theme_count: int = 0
+	for t: ProgressionManager.ArenaThemeConfig in themes:
+		if unlocked_themes.has(t.id):
+			unlocked_theme_count += 1
+	var themes_group: VBoxContainer = VBoxContainer.new()
+	themes_group.add_theme_constant_override("separation", int(ARENA_GRID_TOP * _ui_scale))
+	themes_group.add_child(
+		_sub_header(
+			"ThemesPill",
+			"Arena Themes · %d of %d unlocked" % [unlocked_theme_count, themes.size()],
+			"Changes the backdrop, boundary, and grid colors."
+		)
+	)
+	var themes_grid: GridContainer = _arena_grid()
+	for theme_config: ProgressionManager.ArenaThemeConfig in themes:
+		var is_unlocked: bool = unlocked_themes.has(theme_config.id)
+		var is_equipped: bool = equipped_theme_id == theme_config.id
+		var can_afford: bool = points >= theme_config.price
+		var action: Button = null  # PORT: :677-693
+		if is_equipped:
+			action = _action_button(
+				"EquippedArena_" + theme_config.id, "EquippedButton", "Equipped", true
+			)
+		elif is_unlocked:
+			action = _action_button("EquipArena_" + theme_config.id, "EquipButton", "Equip", false)
+			action.pressed.connect(_on_equip_arena_pressed.bind(theme_config.id))
+		else:
+			action = _action_button(
+				"BuyArena_" + theme_config.id, "", format_points(theme_config.price), not can_afford
+			)
+			action.pressed.connect(_on_buy_arena_pressed.bind(theme_config.id))
+
+		# Preview box: radial gradient → the mid stop as the fill (M3 two-circle
+		# rule; a 90px box has no visible centre disc), boundary as the border,
+		# 18px grid lines, one dust dot. PORT: :695-705
+		var preview: PanelContainer = PanelContainer.new()
+		preview.custom_minimum_size.y = ARENA_PREVIEW_HEIGHT * _ui_scale
+		preview.add_theme_stylebox_override(
+			"panel", ArmoryTheme.flat(theme_config.bg_gradient[1], theme_config.boundary_color, 0)
+		)
+		var lines: Control = _grid_lines(theme_config.grid_color)
+		preview.add_child(lines)
+		var dust_center: CenterContainer = CenterContainer.new()
+		var dust: Panel = _swatch(theme_config.dust_color, DUST_DOT, DUST_DOT)
+		dust.modulate.a = DUST_ALPHA
+		dust_center.add_child(dust)
+		preview.add_child(dust_center)
+
+		themes_grid.add_child(
+			_arena_card(
+				"Arena_" + theme_config.id,
+				"ArenaCost_" + theme_config.id,
+				is_equipped,
+				preview,
+				theme_config.name,
+				theme_config.price,
+				theme_config.description,
+				action
+			)
+		)
+	themes_group.add_child(themes_grid)
+	column.add_child(themes_group)
+
+	# 2. Enemy variations. PORT: :720-772, :788-796
+	var equipped_enemy_id: String = progression.data.equipped_enemy_skin_id
+	var unlocked_enemies: Array[String] = progression.data.unlocked_enemy_skins
+	var enemies: Array[ProgressionManager.EnemySkinConfig] = progression.enemy_skin_catalog
+	var unlocked_enemy_count: int = 0
+	for s: ProgressionManager.EnemySkinConfig in enemies:
+		if unlocked_enemies.has(s.id):
+			unlocked_enemy_count += 1
+	var enemies_group: VBoxContainer = VBoxContainer.new()
+	enemies_group.add_theme_constant_override("separation", int(ARENA_GRID_TOP * _ui_scale))
+	enemies_group.add_child(
+		_sub_header(
+			"EnemiesPill",
+			"Enemy Variations · %d of %d unlocked" % [unlocked_enemy_count, enemies.size()],
+			"Changes red swarm styling and particle effects."
+		)
+	)
+	var enemies_grid: GridContainer = _arena_grid()
+	for skin: ProgressionManager.EnemySkinConfig in enemies:
+		var is_unlocked: bool = unlocked_enemies.has(skin.id)
+		var is_equipped: bool = equipped_enemy_id == skin.id
+		var can_afford: bool = points >= skin.price
+		var action: Button = null  # PORT: :731-747
+		if is_equipped:
+			action = _action_button("EquippedEnemy_" + skin.id, "EquippedButton", "Equipped", true)
+		elif is_unlocked:
+			action = _action_button("EquipEnemy_" + skin.id, "EquipButton", "Equip", false)
+			action.pressed.connect(_on_equip_enemy_pressed.bind(skin.id))
+		else:
+			action = _action_button(
+				"BuyEnemy_" + skin.id, "", format_points(skin.price), not can_afford
+			)
+			action.pressed.connect(_on_buy_enemy_pressed.bind(skin.id))
+
+		# Preview dot: body gradient → mid stop disc + inner disc, border, pupil. PORT: :749-759
+		var preview: PanelContainer = PanelContainer.new()
+		preview.custom_minimum_size.y = ARENA_PREVIEW_HEIGHT * _ui_scale
+		preview.add_theme_stylebox_override(
+			"panel", ArmoryTheme.flat(ArmoryTheme.COLOR_ARENA, Color.TRANSPARENT, 0)
+		)
+		var dot_center: CenterContainer = CenterContainer.new()
+		var dot: Panel = Panel.new()
+		dot.custom_minimum_size = Vector2(ENEMY_DOT * _ui_scale, ENEMY_DOT * _ui_scale)
+		dot.add_theme_stylebox_override(
+			"panel",
+			ArmoryTheme.flat(
+				skin.body_gradient[1],
+				skin.border_color,
+				int(ENEMY_DOT * _ui_scale / 2.0),
+				ENEMY_DOT_BORDER
+			)
+		)
+		var inner_center: CenterContainer = CenterContainer.new()
+		inner_center.set_anchors_preset(Control.PRESET_FULL_RECT)
+		# The gradient's 0.65 stop as the inner disc (M3 two-circle rule). PORT: EnemySwarm.ts:1596
+		var inner: Panel = _swatch(
+			skin.body_gradient[0], int(ENEMY_DOT * 0.65), int(ENEMY_DOT * 0.65 / 2.0)
+		)
+		var pupil_center: CenterContainer = CenterContainer.new()
+		pupil_center.set_anchors_preset(Control.PRESET_FULL_RECT)
+		pupil_center.add_child(_swatch(skin.pupil_color, ENEMY_PUPIL, int(ENEMY_PUPIL / 2.0)))
+		inner.add_child(pupil_center)
+		inner_center.add_child(inner)
+		dot.add_child(inner_center)
+		dot_center.add_child(dot)
+		preview.add_child(dot_center)
+
+		enemies_grid.add_child(
+			_arena_card(
+				"Enemy_" + skin.id,
+				"EnemyCost_" + skin.id,
+				is_equipped,
+				preview,
+				skin.name,
+				skin.price,
+				skin.description,
+				action
+			)
+		)
+	enemies_group.add_child(enemies_grid)
+	column.add_child(enemies_group)
+
+	var margin: MarginContainer = _margin(DETAIL_PAD_Y, DETAIL_PAD_X)
+	margin.add_child(column)
+	return _scroll_body(margin)
 
 
 ## Task 6 replaces this. PORT: web/src/tilt-to-live/ArmoryUI.ts:805-880
@@ -717,6 +892,34 @@ func _on_equip_ship_pressed(id: String) -> void:
 		render()
 
 
+## PORT: web/src/tilt-to-live/ArmoryUI.ts:1220-1228
+func _on_buy_arena_pressed(id: String) -> void:
+	if progression.buy_arena_theme(id):
+		state_changed.emit()
+		render()
+
+
+## PORT: web/src/tilt-to-live/ArmoryUI.ts:1230-1238
+func _on_equip_arena_pressed(id: String) -> void:
+	if progression.equip_arena_theme(id):
+		state_changed.emit()
+		render()
+
+
+## PORT: web/src/tilt-to-live/ArmoryUI.ts:1241-1249
+func _on_buy_enemy_pressed(id: String) -> void:
+	if progression.buy_enemy_skin(id):
+		state_changed.emit()
+		render()
+
+
+## PORT: web/src/tilt-to-live/ArmoryUI.ts:1251-1259
+func _on_equip_enemy_pressed(id: String) -> void:
+	if progression.equip_enemy_skin(id):
+		state_changed.emit()
+		render()
+
+
 ## `${n.toLocaleString()}` without the unit (ArmoryUI.ts:550).
 static func _group_digits(n: int) -> String:
 	var with_unit: String = format_points(n)
@@ -764,6 +967,76 @@ func _action_button(name: String, variation: String, text: String, disabled: boo
 	button.custom_minimum_size.y = ArmoryTheme.ACTION_BUTTON_HEIGHT * _ui_scale
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	return button
+
+
+## .arena-cards-grid. PORT: game.css:2473-2476
+func _arena_grid() -> GridContainer:
+	var grid: GridContainer = GridContainer.new()
+	grid.columns = ARENA_COLUMNS
+	grid.add_theme_constant_override("h_separation", int(ARENA_GRID_GAP * _ui_scale))
+	grid.add_theme_constant_override("v_separation", int(ARENA_GRID_GAP * _ui_scale))
+	return grid
+
+
+## .arena-grid-lines: an 18 px grid in the theme's grid colour. PORT: game.css:2501-2508
+# PORT-NOTE: a repeating linear-gradient background; drawn as lines by a
+# small _draw() Control built inline, sampled at ARENA_GRID_STEP.
+func _grid_lines(color: Color) -> Control:
+	var lines: ArenaGridLines = ArenaGridLines.new()
+	lines.color = color
+	lines.step = ARENA_GRID_STEP * _ui_scale
+	lines.set_anchors_preset(Control.PRESET_FULL_RECT)
+	lines.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return lines
+
+
+## .arena-card. PORT: web/src/tilt-to-live/ArmoryUI.ts:697-715; game.css:2480-2490, :2544-2547
+func _arena_card(
+	card_name: String,
+	cost_name: String,
+	is_equipped: bool,
+	preview: Control,
+	title: String,
+	price: int,
+	description: String,
+	action: Button
+) -> PanelContainer:
+	var card: PanelContainer = PanelContainer.new()
+	card.name = card_name
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card.add_theme_stylebox_override(
+		"panel",
+		ArmoryTheme.flat(
+			ArmoryTheme.COLOR_PANEL,
+			ArmoryTheme.COLOR_SUCCESS if is_equipped else ArmoryTheme.COLOR_BORDER,  # PORT: game.css:2490
+			ArmoryTheme.PANEL_RADIUS
+		)
+	)
+	var card_column: VBoxContainer = VBoxContainer.new()
+	card_column.add_theme_constant_override("separation", 0)
+	card_column.add_child(preview)
+	var body: MarginContainer = _margin(ARENA_BODY_PAD_Y, ARENA_BODY_PAD_X)
+	var body_column: VBoxContainer = VBoxContainer.new()
+	body_column.add_theme_constant_override("separation", int(ARENA_BODY_GAP * _ui_scale))
+	var header: HBoxContainer = HBoxContainer.new()  # PORT: :707-710
+	var title_label: Label = _label_of(title, "HeadingLabel")
+	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(title_label)
+	# PORT: :709
+	var cost: Label = _label_of("FREE" if price == 0 else format_points(price), "FlareLabel")
+	cost.name = cost_name
+	# PORT: game.css:2565
+	cost.add_theme_font_size_override("font_size", int(ArmoryTheme.FAINT_FONT * _ui_scale))
+	header.add_child(cost)
+	body_column.add_child(header)
+	var desc: Label = _label_of(description, "MutedLabel")  # PORT: :711
+	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body_column.add_child(desc)
+	body_column.add_child(action)
+	body.add_child(body_column)
+	card_column.add_child(body)
+	card.add_child(card_column)
+	return card
 
 
 ## A 1 px vertical rule in COLOR_BORDER.
@@ -1171,3 +1444,20 @@ class WeaponConfig:
 	var icon_svg: String = ""
 	var tracks: Array[WeaponTrack] = []
 	var keystones: Array[WeaponKeystone] = []
+
+
+## The .arena-grid-lines overlay. PORT: web/src/styles/game.css:2501-2508
+class ArenaGridLines:
+	extends Control
+	var color: Color = Color.WHITE
+	var step: float = 18.0
+
+	func _draw() -> void:
+		var x: float = 0.0
+		while x < size.x:
+			draw_line(Vector2(x, 0.0), Vector2(x, size.y), color, 1.0)
+			x += step
+		var y: float = 0.0
+		while y < size.y:
+			draw_line(Vector2(0.0, y), Vector2(size.x, y), color, 1.0)
+			y += step
