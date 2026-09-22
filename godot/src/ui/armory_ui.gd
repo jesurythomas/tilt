@@ -84,9 +84,10 @@ const DEFAULT_KEYSTONE_COST: int = 2500  # PORT: web/src/tilt-to-live/ArmoryUI.t
 ## Weapons layout. PORT: web/src/styles/game.css:1782 (sidebar 280), :1784 (pad 20),
 ## :1788 (gap 6), :1848 (detail pad 28/36), :1851 (gap 22), :1860 (header gap 20),
 ## :1864-1865 (icon box 64), :1926 (tracks gap 8), :1933-1934 (card gap 18, pad 16/18),
-## :1940 (info width 150), :1943 (pip gap 3), :1979-1982 (pip h 5, r 2, max 44),
-## :1998 (rank width 40), :2174-2175 (keystone grid 2 cols, gap 10), :2182-2183
-## (keystone gap 14, pad 16/18), :1817-1819 (dot 8, r 2)
+## :1940 (info width 150), :1943 (info gap 3), :1974 (pips bar gap 5),
+## :1979-1982 (pip h 5, r 2, max 44), :1998 (rank width 40), :2174-2175
+## (keystone grid 2 cols, gap 10), :2182-2183 (keystone gap 14, pad 16/18),
+## :1817-1819 (dot 8, r 2)
 const SIDEBAR_WIDTH: int = 280
 const SIDEBAR_PAD: int = 20
 const SIDEBAR_GAP: int = 6
@@ -100,7 +101,8 @@ const CARD_GAP: int = 18
 const CARD_PAD_Y: int = 16
 const CARD_PAD_X: int = 18
 const TRACK_INFO_WIDTH: int = 150
-const PIP_GAP: int = 3
+const TRACK_INFO_GAP: int = 3  # PORT: web/src/styles/game.css:1943
+const PIP_GAP: int = 5  # PORT: web/src/styles/game.css:1974
 const PIP_HEIGHT: int = 5
 const PIP_RADIUS: int = 2
 const PIP_MAX_WIDTH: int = 44
@@ -396,6 +398,7 @@ func _render_weapons_tab() -> Control:
 		row.add_theme_constant_override("separation", int(CARD_GAP * _ui_scale))
 		var info: VBoxContainer = VBoxContainer.new()
 		info.custom_minimum_size.x = TRACK_INFO_WIDTH * _ui_scale
+		info.add_theme_constant_override("separation", int(TRACK_INFO_GAP * _ui_scale))
 		info.add_child(_label_of(track.name, "HeadingLabel"))
 		info.add_child(_label_of(track.effect, "MutedLabel"))
 		# Current (and, unless maxed, next-rank) value straight from WEAPON_TUNING (:459-473)
@@ -544,6 +547,10 @@ func _on_tab_pressed(tab: Tab) -> void:
 
 
 ## PORT: web/src/tilt-to-live/ArmoryUI.ts:1145-1153
+# PORT-NOTE: the TS skips render() when the tapped weapon is already selected
+# (:1148-1150). A toggle Button un-presses itself on a second tap, so render() runs
+# unconditionally here to re-assert button_pressed; the visible result is the
+# same.
 func _on_weapon_item_pressed(id: String) -> void:
 	if id != selected_weapon_id:
 		selected_weapon_id = id
@@ -623,15 +630,20 @@ func _scroll_body(inner: Control) -> ScrollContainer:
 
 
 ## Discrete rank pips. PORT: web/src/tilt-to-live/ArmoryUI.ts:453-457; game.css:1977-1991
+## PORT-NOTE: game.css:1974-1982 lets each pip flex-grow then caps at 44px —
+## on the wide detail card the bar always has far more than 5*44px to give,
+## so every pip resolves to exactly its 44px cap. Container children carry no
+## max-width in Godot, so that flex-grow-then-cap collapses to the cap
+## directly: each pip gets a fixed PIP_MAX_WIDTH and SIZE_FILL; the bar alone
+## keeps SIZE_EXPAND_FILL so the pips sit left rather than centered.
 func _pips(filled: int, total: int) -> HBoxContainer:
 	var bar: HBoxContainer = HBoxContainer.new()
 	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bar.add_theme_constant_override("separation", int(PIP_GAP * _ui_scale))
 	for i: int in range(total):
 		var pip: Panel = Panel.new()
-		pip.custom_minimum_size = Vector2(0.0, PIP_HEIGHT * _ui_scale)
-		pip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		pip.size_flags_stretch_ratio = 1.0
+		pip.custom_minimum_size = Vector2(PIP_MAX_WIDTH * _ui_scale, PIP_HEIGHT * _ui_scale)
+		pip.size_flags_horizontal = Control.SIZE_FILL
 		var style: StyleBoxFlat = (
 			ArmoryTheme.flat(ArmoryTheme.COLOR_ION, Color.TRANSPARENT, PIP_RADIUS)
 			if i < filled
