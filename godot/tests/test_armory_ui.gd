@@ -444,10 +444,12 @@ func test_boosts_catalog_matches_the_ts() -> void:
 	)
 	assert_eq(max_ranks, [2, 3, 3, 4, 4])
 	assert_eq(_armory.boosts_catalog[1].effect, "-6% hitbox / rank")
-	# PORT-NOTE: Callable.call() returns Variant; see armory_ui.gd's note by
-	# _render_boosts_tab's current_rank/cost locals.
-	@warning_ignore("unsafe_cast")
-	var extra_lives_cost: int = _armory.boosts_catalog[0].get_cost.call() as int
+	# PORT-NOTE: Callable.call() returns Variant; narrowed with `is int` rather
+	# than cast, matching armory_ui.gd's current_rank/cost locals.
+	var cost_value: Variant = _armory.boosts_catalog[0].get_cost.call()
+	var extra_lives_cost: int = 0
+	if cost_value is int:
+		extra_lives_cost = cost_value
 	assert_eq(extra_lives_cost, 4000, "EXTRA_LIVES_COSTS[0]")
 
 

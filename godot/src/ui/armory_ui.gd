@@ -852,14 +852,16 @@ func _render_boosts_tab() -> Control:
 	for boost: BoostConfig in boosts_catalog:
 		# PORT-NOTE: Callable.call() always returns Variant in GDScript 4.7.2,
 		# even though get_rank/get_cost are typed `func() -> int` closures —
-		# Callable carries no generic signature. `int()` also rejects a
-		# Variant argument under UNSAFE_CALL_ARGUMENT, so the cast the TS's
-		# dynamic dispatch requires cannot be made statically safe; ignored
-		# per CONVENTIONS §1.1.
-		@warning_ignore("unsafe_cast")
-		var current_rank: int = boost.get_rank.call() as int
-		@warning_ignore("unsafe_cast")
-		var cost: int = boost.get_cost.call() as int
+		# Callable carries no generic signature. Narrowed with `is int` rather
+		# than cast, matching tilt_input.gd:353 and save_store.gd:66-68.
+		var rank_value: Variant = boost.get_rank.call()
+		var current_rank: int = 0
+		if rank_value is int:
+			current_rank = rank_value
+		var cost_value: Variant = boost.get_cost.call()
+		var cost: int = 0
+		if cost_value is int:
+			cost = cost_value
 		var is_maxed: bool = cost == Types.ABSENT  # PORT: :896 (cost === null)
 		var can_afford: bool = not is_maxed and points >= cost
 
