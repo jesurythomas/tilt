@@ -65,6 +65,56 @@ const TAB_ALIASES: Dictionary[String, int] = {
 # rasterises SVG at device DPR); 2.0 keeps the 30 px icons crisp on the A55.
 const SVG_OVERSAMPLE: float = 2.0
 
+## Engine WeaponType → weaponsCatalog id. PORT: web/src/tilt-to-live/ArmoryUI.ts:205-211
+# PORT-NOTE: the TS alias table has one entry (vortex → blackhole) because the
+# other six ids coincide as strings (:218). Godot enums have no string
+# identity, so all seven are listed; only VORTEX is a true alias.
+const STARTING_WEAPON_IDS: Dictionary[int, String] = {
+	Types.WeaponType.VORTEX: "blackhole",
+	Types.WeaponType.NUKE: "nuke",
+	Types.WeaponType.MISSILES: "missiles",
+	Types.WeaponType.LIGHTNING: "lightning",
+	Types.WeaponType.LASER: "laser",
+	Types.WeaponType.FREEZE: "freeze",
+	Types.WeaponType.SHIELD: "shield",
+}
+const TRACK_PIPS: int = 5  # PORT: web/src/tilt-to-live/ArmoryUI.ts:454
+const RANK_DENOMINATOR: int = 5  # PORT: web/src/tilt-to-live/ArmoryUI.ts:431, :485
+const DEFAULT_KEYSTONE_COST: int = 2500  # PORT: web/src/tilt-to-live/ArmoryUI.ts:507
+## Weapons layout. PORT: web/src/styles/game.css:1782 (sidebar 280), :1784 (pad 20),
+## :1788 (gap 6), :1848 (detail pad 28/36), :1851 (gap 22), :1860 (header gap 20),
+## :1864-1865 (icon box 64), :1926 (tracks gap 8), :1933-1934 (card gap 18, pad 16/18),
+## :1940 (info width 150), :1943 (pip gap 3), :1979-1982 (pip h 5, r 2, max 44),
+## :1998 (rank width 40), :2174-2175 (keystone grid 2 cols, gap 10), :2182-2183
+## (keystone gap 14, pad 16/18), :1817-1819 (dot 8, r 2)
+const SIDEBAR_WIDTH: int = 280
+const SIDEBAR_PAD: int = 20
+const SIDEBAR_GAP: int = 6
+const DETAIL_PAD_Y: int = 28
+const DETAIL_PAD_X: int = 36
+const DETAIL_GAP: int = 22
+const HEADER_GAP: int = 20
+const ICON_BOX: int = 64
+const TRACKS_GAP: int = 8
+const CARD_GAP: int = 18
+const CARD_PAD_Y: int = 16
+const CARD_PAD_X: int = 18
+const TRACK_INFO_WIDTH: int = 150
+const PIP_GAP: int = 3
+const PIP_HEIGHT: int = 5
+const PIP_RADIUS: int = 2
+const PIP_MAX_WIDTH: int = 44
+const RANK_WIDTH: int = 40
+const KEYSTONE_COLUMNS: int = 2
+const KEYSTONE_GAP: int = 10
+const KEYSTONE_CARD_GAP: int = 14
+const DOT_SIZE: int = 8
+const DOT_RADIUS: int = 2
+## Icon-box tint alphas. PORT: web/src/tilt-to-live/ArmoryUI.ts:541 (`${dot}18`, `${dot}55`)
+const ICON_BOX_FILL_ALPHA: float = 0x18 / 255.0
+const ICON_BOX_BORDER_ALPHA: float = 0x55 / 255.0
+## Empty pip. PORT: web/src/styles/game.css:1990-1991
+
 ## The save every tab reads and every purchase writes. PORT: web/src/tilt-to-live/ArmoryUI.ts:75
 var progression: ProgressionManager = null
 ## PORT: web/src/tilt-to-live/ArmoryUI.ts:80
@@ -114,12 +164,23 @@ func _ready() -> void:
 		_tabs.add_child(button)
 		_tab_buttons.append(button)
 
+	weapons_catalog = _build_weapons_catalog()
 	set_ui_scale(1.0)
 
 
 ## Constructor half. PORT: web/src/tilt-to-live/ArmoryUI.ts:270-280
 func bind(p: ProgressionManager) -> void:
 	progression = p
+
+
+## Resolves a ship's startingWeapon to its weaponsCatalog entry, or null.
+## PORT: web/src/tilt-to-live/ArmoryUI.ts:213-220
+func get_starting_weapon_config(weapon_type: Types.WeaponType) -> WeaponConfig:
+	var catalog_id: String = STARTING_WEAPON_IDS.get(weapon_type, "")
+	for w: WeaponConfig in weapons_catalog:
+		if w.id == catalog_id:
+			return w
+	return null
 
 
 ## PORT: web/src/tilt-to-live/ArmoryUI.ts:294-315
@@ -250,11 +311,187 @@ func _render_tab_content() -> Control:
 			return _render_weapons_tab()
 
 
-## Task 2 replaces this. PORT: web/src/tilt-to-live/ArmoryUI.ts:416-569
+## PORT: web/src/tilt-to-live/ArmoryUI.ts:416-569
 func _render_weapons_tab() -> Control:
-	var tab: VBoxContainer = VBoxContainer.new()
-	tab.name = "WeaponsTab"
-	return tab
+	var perks: Dictionary = progression.data.perks.to_dict()  # PORT: :417, :429
+	var points: int = progression.data.points
+
+	var selected: WeaponConfig = weapons_catalog[0]
+	for w: WeaponConfig in weapons_catalog:
+		if w.id == selected_weapon_id:
+			selected = w
+	var invested_points: int = progression.get_weapon_invested_points(selected.id)
+
+	var layout: HBoxContainer = HBoxContainer.new()
+	layout.name = "WeaponsTab"
+	layout.add_theme_constant_override("separation", 0)
+
+	# Left column: weapon list (Board 09). PORT: :427-442, :533-535
+	var sidebar_scroll: ScrollContainer = ScrollContainer.new()
+	sidebar_scroll.custom_minimum_size.x = SIDEBAR_WIDTH * _ui_scale
+	sidebar_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	var sidebar_margin: MarginContainer = _margin(SIDEBAR_PAD, SIDEBAR_PAD)
+	sidebar_margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var sidebar: VBoxContainer = VBoxContainer.new()
+	sidebar.add_theme_constant_override("separation", int(SIDEBAR_GAP * _ui_scale))
+	for w: WeaponConfig in weapons_catalog:
+		var p: Dictionary = SaveStore.read_dict(perks, w.id)
+		# PORT: :430 — duration, else count, else radius, else 0
+		var primary_val: int = 0
+		if p.get("duration") is int:
+			primary_val = p["duration"]
+		elif p.get("count") is int:
+			primary_val = p["count"]
+		elif p.get("radius") is int:
+			primary_val = p["radius"]
+		var item: Button = Button.new()
+		item.name = "Weapon_" + w.id
+		item.toggle_mode = true
+		item.button_pressed = w.id == selected.id
+		item.theme_type_variation = "WeaponItem"
+		item.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		item.text = "%s    %d/%d" % [w.name, primary_val, RANK_DENOMINATOR]  # PORT: :431, :437-438
+		item.add_child(_swatch(w.dot, DOT_SIZE, DOT_RADIUS))  # PORT: :436
+		item.pressed.connect(_on_weapon_item_pressed.bind(w.id))
+		sidebar.add_child(item)
+	sidebar_margin.add_child(sidebar)
+	sidebar_scroll.add_child(sidebar_margin)
+	layout.add_child(sidebar_scroll)
+	layout.add_child(_vrule())  # PORT: game.css:1785 (border-right)
+
+	# Right panel: detail, upgrades, keystones. PORT: :538-566
+	var detail: VBoxContainer = VBoxContainer.new()
+	detail.add_theme_constant_override("separation", int(DETAIL_GAP * _ui_scale))
+
+	var header: HBoxContainer = HBoxContainer.new()
+	header.add_theme_constant_override("separation", int(HEADER_GAP * _ui_scale))
+	header.add_child(_icon_box(selected))  # PORT: :541-543
+	var title_group: VBoxContainer = VBoxContainer.new()
+	title_group.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_group.add_child(_label_of(selected.name, "TitleLabel"))  # PORT: :545
+	title_group.add_child(_label_of(selected.description, "MutedLabel"))  # PORT: :546
+	header.add_child(title_group)
+	var badge: VBoxContainer = VBoxContainer.new()  # PORT: :548-551
+	badge.add_child(_label_of("Invested", "FaintLabel"))
+	var invested: Label = _label_of(_group_digits(invested_points), "FlareLabel")
+	invested.name = "InvestedValue"
+	invested.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	badge.add_child(invested)
+	header.add_child(badge)
+	detail.add_child(header)
+
+	# Upgrade tracks with five discrete pips. PORT: :445-498
+	var tracks: VBoxContainer = VBoxContainer.new()
+	tracks.add_theme_constant_override("separation", int(TRACKS_GAP * _ui_scale))
+	var weapon_data: Dictionary = SaveStore.read_dict(perks, selected.id)
+	for track: WeaponTrack in selected.tracks:
+		var current_rank: int = SaveStore.read_int(weapon_data, track.key, 0)  # PORT: :448
+		var is_maxed: bool = current_rank >= track.max_rank
+		var cost: int = progression.get_perk_cost(current_rank, false)  # PORT: :450
+		var can_afford: bool = points >= cost and not is_maxed
+
+		var card: PanelContainer = _card()
+		var card_inner: MarginContainer = card.get_child(0) as MarginContainer
+		var row: HBoxContainer = HBoxContainer.new()
+		row.add_theme_constant_override("separation", int(CARD_GAP * _ui_scale))
+		var info: VBoxContainer = VBoxContainer.new()
+		info.custom_minimum_size.x = TRACK_INFO_WIDTH * _ui_scale
+		info.add_child(_label_of(track.name, "HeadingLabel"))
+		info.add_child(_label_of(track.effect, "MutedLabel"))
+		# Current (and, unless maxed, next-rank) value straight from WEAPON_TUNING (:459-473)
+		var tuning_tracks: Dictionary = Tuning.weapon_tuning.get(selected.id, {})
+		if tuning_tracks.has(track.key):
+			var entry: Tuning.TuningEntry = tuning_tracks[track.key]
+			var current_text: String = format_tuning_value(
+				Tuning.get_tuned_value(selected.id, track.key, current_rank), entry.unit
+			)
+			var value_text: String = current_text
+			if not is_maxed:
+				var next_text: String = format_tuning_value(
+					Tuning.get_tuned_value(selected.id, track.key, current_rank + 1), entry.unit
+				)
+				value_text = "%s → %s" % [current_text, next_text]  # PORT: :469 (&rarr;)
+			var value_label: Label = _label_of(value_text, "FaintLabel")
+			value_label.name = "TrackValue_" + track.key
+			info.add_child(value_label)
+		row.add_child(info)
+		row.add_child(_pips(current_rank, TRACK_PIPS))  # PORT: :453-457
+		var rank: Label = _label_of("%d/%d" % [current_rank, RANK_DENOMINATOR], "MonoLabel")  # PORT: :485
+		rank.custom_minimum_size.x = RANK_WIDTH * _ui_scale
+		rank.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		row.add_child(rank)
+		var buy: Button = Button.new()  # PORT: :486-494
+		buy.name = "Track_" + track.key
+		buy.custom_minimum_size = Vector2(
+			ArmoryTheme.ACTION_BUTTON_WIDTH * _ui_scale,
+			ArmoryTheme.ACTION_BUTTON_HEIGHT * _ui_scale
+		)
+		buy.disabled = is_maxed or not can_afford
+		buy.text = "Maxed ✓" if is_maxed else format_points(cost)
+		buy.pressed.connect(_on_track_pressed.bind(selected.id, track.key))
+		row.add_child(buy)
+		card_inner.add_child(row)
+		tracks.add_child(card)
+	detail.add_child(tracks)
+
+	# One-off unlocks (Aegis, Supernova, ...). PORT: :501-528, :560-565
+	var keystones_section: VBoxContainer = VBoxContainer.new()
+	keystones_section.add_child(_label_of("One-off unlocks", "FaintLabel"))  # PORT: :561
+	var grid: GridContainer = GridContainer.new()
+	grid.columns = KEYSTONE_COLUMNS
+	grid.add_theme_constant_override("h_separation", int(KEYSTONE_GAP * _ui_scale))
+	grid.add_theme_constant_override("v_separation", int(KEYSTONE_GAP * _ui_scale))
+	for k: WeaponKeystone in selected.keystones:
+		var is_unlocked: bool = SaveStore.read_bool(weapon_data, k.key, false)  # PORT: :504
+		# KEYSTONE_COSTS is the same table get_perk_cost() charges from (:505-507)
+		var cost: int = Tuning.KEYSTONE_COSTS.get(k.key, DEFAULT_KEYSTONE_COST)
+		var can_afford: bool = points >= cost and not is_unlocked
+
+		var card: PanelContainer = PanelContainer.new()
+		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		card.add_theme_stylebox_override(
+			"panel",
+			ArmoryTheme.flat(
+				ArmoryTheme.KEYSTONE_UNLOCKED_FILL if is_unlocked else ArmoryTheme.KEYSTONE_FILL,
+				(
+					ArmoryTheme.KEYSTONE_UNLOCKED_BORDER
+					if is_unlocked
+					else ArmoryTheme.KEYSTONE_BORDER
+				),
+				ArmoryTheme.CARD_RADIUS
+			)
+		)
+		var inner: MarginContainer = _margin(CARD_PAD_Y, CARD_PAD_X)
+		var row: HBoxContainer = HBoxContainer.new()
+		row.add_theme_constant_override("separation", int(KEYSTONE_CARD_GAP * _ui_scale))
+		var info: VBoxContainer = VBoxContainer.new()
+		info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		info.add_child(_label_of(k.name, "HeadingLabel"))
+		var desc: Label = _label_of(k.description, "MutedLabel")
+		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		info.add_child(desc)
+		row.add_child(info)
+		var buy: Button = Button.new()  # PORT: :516-524
+		buy.name = "Keystone_" + k.key
+		buy.theme_type_variation = "EquippedButton" if is_unlocked else "KeystoneButton"
+		buy.custom_minimum_size.y = ArmoryTheme.ACTION_BUTTON_HEIGHT * _ui_scale
+		buy.disabled = is_unlocked or not can_afford
+		buy.text = "Unlocked ✓" if is_unlocked else format_points(cost)
+		buy.pressed.connect(_on_keystone_pressed.bind(selected.id, k.key))
+		row.add_child(buy)
+		inner.add_child(row)
+		card.add_child(inner)
+		grid.add_child(card)
+	keystones_section.add_child(grid)
+	detail.add_child(keystones_section)
+
+	var detail_margin: MarginContainer = _margin(DETAIL_PAD_Y, DETAIL_PAD_X)
+	detail_margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	detail_margin.add_child(detail)
+	var detail_scroll: ScrollContainer = _scroll_body(detail_margin)
+	detail_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	layout.add_child(detail_scroll)
+	return layout
 
 
 ## Task 3 replaces this. PORT: web/src/tilt-to-live/ArmoryUI.ts:575-656
@@ -304,6 +541,405 @@ func _on_tab_pressed(tab: Tab) -> void:
 	if tab != active_tab:
 		active_tab = tab
 	render()
+
+
+## PORT: web/src/tilt-to-live/ArmoryUI.ts:1145-1153
+func _on_weapon_item_pressed(id: String) -> void:
+	if id != selected_weapon_id:
+		selected_weapon_id = id
+	render()
+
+
+## PORT: web/src/tilt-to-live/ArmoryUI.ts:1156-1168
+func _on_track_pressed(weapon: String, track: String) -> void:
+	if progression.upgrade_perk(weapon, track):
+		state_changed.emit()
+		render()
+
+
+## PORT: web/src/tilt-to-live/ArmoryUI.ts:1171-1183
+func _on_keystone_pressed(weapon: String, keystone: String) -> void:
+	if progression.upgrade_perk(weapon, keystone):
+		state_changed.emit()
+		render()
+
+
+## `${n.toLocaleString()}` without the unit (ArmoryUI.ts:550).
+static func _group_digits(n: int) -> String:
+	var with_unit: String = format_points(n)
+	return with_unit.substr(0, with_unit.find(" "))
+
+
+func _label_of(text: String, variation: String) -> Label:
+	var label: Label = Label.new()
+	label.text = text
+	label.theme_type_variation = variation
+	return label
+
+
+func _margin(pad_y: int, pad_x: int) -> MarginContainer:
+	var m: MarginContainer = MarginContainer.new()
+	m.add_theme_constant_override("margin_left", int(pad_x * _ui_scale))
+	m.add_theme_constant_override("margin_top", int(pad_y * _ui_scale))
+	m.add_theme_constant_override("margin_right", int(pad_x * _ui_scale))
+	m.add_theme_constant_override("margin_bottom", int(pad_y * _ui_scale))
+	return m
+
+
+## A 1 px vertical rule in COLOR_BORDER.
+func _vrule() -> ColorRect:
+	var rule: ColorRect = ColorRect.new()
+	rule.color = ArmoryTheme.COLOR_BORDER
+	rule.custom_minimum_size.x = 1.0
+	return rule
+
+
+## A rounded colour swatch (.weapon-color-dot, pips, dust dot).
+func _swatch(color: Color, size: int, radius: int) -> Panel:
+	var swatch: Panel = Panel.new()
+	swatch.custom_minimum_size = Vector2(size * _ui_scale, size * _ui_scale)
+	swatch.add_theme_stylebox_override("panel", ArmoryTheme.flat(color, Color.TRANSPARENT, radius))
+	return swatch
+
+
+## .upgrade-track-card / .boost-card: CardPanel with 16/18 padding. PORT: game.css:1934
+func _card() -> PanelContainer:
+	var card: PanelContainer = PanelContainer.new()
+	card.theme_type_variation = "CardPanel"
+	var inner: MarginContainer = _margin(CARD_PAD_Y, CARD_PAD_X)
+	card.add_child(inner)
+	return card
+
+
+## Wraps a Control in the tab's scrolling body (.armory-scroll-body, game.css:1768).
+func _scroll_body(inner: Control) -> ScrollContainer:
+	var scroll: ScrollContainer = ScrollContainer.new()
+	scroll.name = "ScrollBody"
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	inner.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(inner)
+	return scroll
+
+
+## Discrete rank pips. PORT: web/src/tilt-to-live/ArmoryUI.ts:453-457; game.css:1977-1991
+func _pips(filled: int, total: int) -> HBoxContainer:
+	var bar: HBoxContainer = HBoxContainer.new()
+	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bar.add_theme_constant_override("separation", int(PIP_GAP * _ui_scale))
+	for i: int in range(total):
+		var pip: Panel = Panel.new()
+		pip.custom_minimum_size = Vector2(0.0, PIP_HEIGHT * _ui_scale)
+		pip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		pip.size_flags_stretch_ratio = 1.0
+		var style: StyleBoxFlat = (
+			ArmoryTheme.flat(ArmoryTheme.COLOR_ION, Color.TRANSPARENT, PIP_RADIUS)
+			if i < filled
+			else ArmoryTheme.flat(
+				ArmoryTheme.COLOR_RAISED, ArmoryTheme.COLOR_BORDER_ACTIVE, PIP_RADIUS
+			)
+		)
+		pip.add_theme_stylebox_override("panel", style)
+		bar.add_child(pip)
+	return bar
+
+
+## .weapon-icon-box tinted by the weapon's dot. PORT: web/src/tilt-to-live/ArmoryUI.ts:541-543
+func _icon_box(config: WeaponConfig) -> PanelContainer:
+	var box: PanelContainer = PanelContainer.new()
+	var fill: Color = config.dot
+	fill.a = ICON_BOX_FILL_ALPHA
+	var border: Color = config.dot
+	border.a = ICON_BOX_BORDER_ALPHA
+	box.add_theme_stylebox_override(
+		"panel", ArmoryTheme.flat(fill, border, ArmoryTheme.CARD_RADIUS)
+	)
+	box.custom_minimum_size = Vector2(ICON_BOX * _ui_scale, ICON_BOX * _ui_scale)
+	var icon: TextureRect = TextureRect.new()
+	icon.texture = svg_texture(config.icon_svg, SVG_OVERSAMPLE * _ui_scale)
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.custom_minimum_size = Vector2(30.0 * _ui_scale, 30.0 * _ui_scale)  # PORT: :102 (svg 30x30)
+	box.add_child(icon)
+	return box
+
+
+## PORT-NOTE: the TS's inline-SVG-in-HTML strings carry `aria-hidden` and no
+## `xmlns` (the host document supplies the SVG namespace). Godot's rasteriser
+## has no host document, so `xmlns="http://www.w3.org/2000/svg"` is added and
+## `aria-hidden` (meaningless off the DOM) is dropped from every icon below.
+## PORT: web/src/tilt-to-live/ArmoryUI.ts:96-203
+func _build_weapons_catalog() -> Array[WeaponConfig]:
+	var out: Array[WeaponConfig] = []
+	# PORT: :97-112
+	(
+		out
+		. append(
+			_weapon(
+				"blackhole",
+				"Blackhole",
+				Color("#A78BFA"),
+				"Drags dots in, then collapses.",
+				(
+					'<svg width="30" height="30" viewBox="0 0 30 30" fill="none" '
+					+ 'xmlns="http://www.w3.org/2000/svg">'
+					+ '<circle cx="15" cy="15" r="11" stroke="#A78BFA" stroke-width="1.4"></circle>'
+					+ '<circle cx="15" cy="15" r="5" fill="#A78BFA"></circle></svg>'
+				),
+				[
+					_track("duration", "Duration", "+0.5s / rank"),
+					_track("radius", "Radius", "+18 range / rank"),
+					_track("gravity", "Pull", "+20% / rank"),
+				],
+				[
+					_keystone("invulnerableInside", "Aegis", "You are safe inside the well."),
+					_keystone(
+						"supernovaCollapse", "Supernova", "Collapse fires a 320 range shockwave."
+					),
+				]
+			)
+		)
+	)
+	# PORT: :113-128
+	(
+		out
+		. append(
+			_weapon(
+				"missiles",
+				"Missiles",
+				Color("#5B8CFF"),
+				"Swarm homing warheads track and annihilate dots.",
+				(
+					'<svg width="30" height="30" viewBox="0 0 30 30" fill="none" '
+					+ 'xmlns="http://www.w3.org/2000/svg">'
+					+ '<path d="M15 4 L20 12 L19 22 L15 20 L11 22 L10 12 Z" stroke="#5B8CFF" '
+					+ 'stroke-width="1.4" fill="rgba(91,140,255,0.2)"></path>'
+					+ '<circle cx="15" cy="11" r="2.5" fill="#5B8CFF"></circle></svg>'
+				),
+				[
+					_track("count", "Salvo Count", "+1 missile / rank"),
+					_track("blastRadius", "Detonation Radius", "+6 range / rank"),
+					_track("flightSpeed", "Propulsion", "+20% / rank"),
+				],
+				[
+					_keystone(
+						"clusterSplit", "Cluster Split", "Warheads divide into twins on intercept."
+					),
+					_keystone(
+						"hyperThrusters",
+						"Hyper Thrusters",
+						"Instant target lock and hypersonic velocity."
+					),
+				]
+			)
+		)
+	)
+	# PORT: :129-143
+	(
+		out
+		. append(
+			_weapon(
+				"laser",
+				"Laser",
+				Color("#5B8CFF"),
+				"Continuous piercing beam sweeps through swarms.",
+				(
+					'<svg width="30" height="30" viewBox="0 0 30 30" fill="none" '
+					+ 'xmlns="http://www.w3.org/2000/svg">'
+					+ '<line x1="4" y1="15" x2="26" y2="15" stroke="#5B8CFF" stroke-width="2.5" '
+					+ 'stroke-linecap="round"></line>'
+					+ '<line x1="8" y1="9" x2="22" y2="21" stroke="#5B8CFF" stroke-width="1.2" '
+					+ 'stroke-dasharray="2,3"></line></svg>'
+				),
+				[
+					_track("length", "Beam Reach", "+20 range / rank"),
+					_track("duration", "Emission Time", "+0.4s / rank"),
+				],
+				[
+					_keystone(
+						"crossBeam", "Cross Beam", "Splits beam into 4-way perpendicular cross."
+					),
+					_keystone(
+						"refractorLance",
+						"Refractor Lance",
+						"Beams bounce off arena perimeter walls."
+					),
+				]
+			)
+		)
+	)
+	# PORT: :144-158
+	(
+		out
+		. append(
+			_weapon(
+				"nuke",
+				"Nuke",
+				Color("#FFB14D"),
+				"Instantaneous arena-clearing shockwave explosion.",
+				(
+					'<svg width="30" height="30" viewBox="0 0 30 30" fill="none" '
+					+ 'xmlns="http://www.w3.org/2000/svg">'
+					+ '<circle cx="15" cy="15" r="11" stroke="#FFB14D" stroke-width="1.4"></circle>'
+					+ '<path d="M15 7 L15 11 M9 20 L12 17 M21 20 L18 17" stroke="#FFB14D" '
+					+ 'stroke-width="2" stroke-linecap="round"></path>'
+					+ '<circle cx="15" cy="15" r="3" fill="#FFB14D"></circle></svg>'
+				),
+				[
+					_track("radius", "Blast Radius", "+22 range / rank"),
+					_track("speed", "Shockwave Velocity", "+25% / rank"),
+				],
+				[
+					_keystone(
+						"falloutZone",
+						"Fallout Zone",
+						"Detonation leaves a 3.0s radioactive burn zone."
+					),
+					_keystone(
+						"chainReaction",
+						"Chain Reaction",
+						"Vaporized dots trigger miniature secondary bombs."
+					),
+				]
+			)
+		)
+	)
+	# PORT: :159-172
+	(
+		out
+		. append(
+			_weapon(
+				"freeze",
+				"Shockwave",
+				Color("#8FB0FF"),
+				"Flash-freezes all dots into shatterable crystals.",
+				(
+					'<svg width="30" height="30" viewBox="0 0 30 30" fill="none" '
+					+ 'xmlns="http://www.w3.org/2000/svg">'
+					+ '<circle cx="15" cy="15" r="11" stroke="#8FB0FF" stroke-width="1.4" '
+					+ 'stroke-dasharray="4,3"></circle>'
+					+ '<path d="M15 5 L15 25 M5 15 L25 15 M8 8 L22 22 M8 22 L22 8" stroke="#8FB0FF" '
+					+ 'stroke-width="1.3"></path></svg>'
+				),
+				[_track("duration", "Freeze Duration", "+0.7s / rank")],
+				[
+					_keystone(
+						"shatterCascade",
+						"Shatter Cascade",
+						"Shattering one enemy destroys nearby frozen dots."
+					),
+					_keystone(
+						"cryoNova", "Cryo Nova", "Emits an expansive 360° cryogenic pulse ring."
+					),
+				]
+			)
+		)
+	)
+	# PORT: :173-187
+	(
+		out
+		. append(
+			_weapon(
+				"shield",
+				"Shield",
+				Color("#3DDC97"),
+				"Kinetic barrier allowing safe ramming through enemies.",
+				(
+					'<svg width="30" height="30" viewBox="0 0 30 30" fill="none" '
+					+ 'xmlns="http://www.w3.org/2000/svg">'
+					+ '<path d="M15 5 L23 8 V15 C23 20 15 25 15 25 C15 25 7 20 7 15 V8 Z" '
+					+ 'stroke="#3DDC97" stroke-width="1.4" fill="rgba(61,220,151,0.15)"></path></svg>'
+				),
+				[
+					_track("duration", "Shield Duration", "+1.0s / rank"),
+					_track("radius", "Bubble Radius", "+2 range / rank"),
+				],
+				[
+					_keystone(
+						"batteringRam",
+						"Battering Ram",
+						"Ramming enemies triggers kinetic shockwaves."
+					),
+					_keystone(
+						"overchargePulse",
+						"Overcharge",
+						"Releases a blast pulse when barrier expires."
+					),
+				]
+			)
+		)
+	)
+	# PORT: :188-202
+	(
+		out
+		. append(
+			_weapon(
+				"lightning",
+				"Lightning",
+				Color("#FFB14D"),
+				"Arcs jump between dots in high-voltage cascade.",
+				(
+					'<svg width="30" height="30" viewBox="0 0 30 30" fill="none" '
+					+ 'xmlns="http://www.w3.org/2000/svg">'
+					+ '<path d="M17 4 L9 16 H16 L13 26 L23 13 H15 Z" stroke="#FFB14D" '
+					+ 'stroke-width="1.4" fill="rgba(255,177,77,0.2)"></path></svg>'
+				),
+				[
+					_track("maxTargets", "Arc Targets", "+3 targets / rank"),
+					_track("chainRange", "Chain Distance", "+22 range / rank"),
+				],
+				[
+					_keystone(
+						"plasmaArc", "Arc Detonation", "Chained enemies explode upon electrocution."
+					),
+					_keystone(
+						"superconductor",
+						"Superconductor",
+						"Electric arcs bridge across screen instantly."
+					),
+				]
+			)
+		)
+	)
+	return out
+
+
+## Every track in the TS catalog has maxRank 5 (:104-196).
+func _track(key: String, name: String, effect: String) -> WeaponTrack:
+	var t: WeaponTrack = WeaponTrack.new()
+	t.key = key
+	t.name = name
+	t.effect = effect
+	t.max_rank = 5  # PORT: web/src/tilt-to-live/ArmoryUI.ts:104
+	return t
+
+
+func _keystone(key: String, name: String, description: String) -> WeaponKeystone:
+	var k: WeaponKeystone = WeaponKeystone.new()
+	k.key = key
+	k.name = name
+	k.description = description
+	return k
+
+
+func _weapon(
+	id: String,
+	name: String,
+	dot: Color,
+	description: String,
+	icon_svg: String,
+	tracks: Array[WeaponTrack],
+	keystones: Array[WeaponKeystone]
+) -> WeaponConfig:
+	var w: WeaponConfig = WeaponConfig.new()
+	w.id = id
+	w.name = name
+	w.dot = dot
+	w.description = description
+	w.icon_svg = icon_svg
+	w.tracks = tracks
+	w.keystones = keystones
+	return w
 
 
 ## PORT: web/src/tilt-to-live/ArmoryUI.ts:22-27

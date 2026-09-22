@@ -1,3 +1,4 @@
+# gdlint:disable=max-public-methods
 ## test_armory_ui.gd
 ## PORTS: nothing — new file, covers src/ui/armory_ui.gd, armory_theme.gd and
 ## scenes/armory.tscn
@@ -183,3 +184,143 @@ func test_ui_scale_resizes_touch_targets() -> void:
 	await get_tree().process_frame
 	assert_eq(_button("Tab_weapons").custom_minimum_size.y, ControlPicker.BASE_TOUCH_TARGET * 2.0)
 	assert_eq(_button("PlayButton").custom_minimum_size.y, ArmoryTheme.PLAY_BUTTON_HEIGHT * 2.0)
+
+
+func _open_weapons(weapon: String = "") -> void:
+	if not weapon.is_empty():
+		_armory.selected_weapon_id = weapon
+	_armory.open("weapons")
+
+
+func test_weapons_catalog_matches_the_ts() -> void:
+	# PORT: web/src/tilt-to-live/ArmoryUI.ts:96-203
+	var ids: Array[String] = []
+	for w: ArmoryUI.WeaponConfig in _armory.weapons_catalog:
+		ids.append(w.id)
+	assert_eq(ids, ["blackhole", "missiles", "laser", "nuke", "freeze", "shield", "lightning"])
+	var blackhole: ArmoryUI.WeaponConfig = _armory.weapons_catalog[0]
+	assert_eq(blackhole.name, "Blackhole")
+	assert_eq(blackhole.dot, Color("#A78BFA"))
+	assert_eq(blackhole.tracks.size(), 3)
+	assert_eq(blackhole.tracks[2].key, "gravity")
+	assert_eq(blackhole.tracks[2].effect, "+20% / rank")
+	assert_eq(blackhole.keystones[1].key, "supernovaCollapse")
+	var freeze: ArmoryUI.WeaponConfig = _armory.weapons_catalog[4]
+	assert_eq(freeze.name, "Shockwave", "the freeze weapon is presented as Shockwave (:161)")
+	assert_eq(freeze.tracks.size(), 1)
+	for w: ArmoryUI.WeaponConfig in _armory.weapons_catalog:
+		for t: ArmoryUI.WeaponTrack in w.tracks:
+			assert_true(
+				Tuning.weapon_tuning[w.id].has(t.key),
+				"%s.%s is a WEAPON_TUNING track" % [w.id, t.key]
+			)
+			assert_eq(t.max_rank, 5)
+		for k: ArmoryUI.WeaponKeystone in w.keystones:
+			# PORT-NOTE: blackhole's invulnerableInside is absent from KEYSTONE_COSTS
+			# (WeaponTuning.ts:73-87) and priced by the fallback at ProgressionManager.ts:556.
+			if k.key == "invulnerableInside":
+				assert_eq(
+					_progression.get_perk_cost(0, true, k.key),
+					2500,
+					"invulnerableInside uses the 2500 fallback (ProgressionManager.ts:556)"
+				)  # PORT: web/src/tilt-to-live/ProgressionManager.ts:556
+			else:
+				assert_true(Tuning.KEYSTONE_COSTS.has(k.key), "%s is a KEYSTONE_COSTS key" % k.key)
+
+
+func test_weapons_tab_lists_seven_weapons_with_primary_rank() -> void:
+	_open_weapons()
+	await get_tree().process_frame
+	# PORT: web/src/tilt-to-live/ArmoryUI.ts:429-431 — duration, else count, else radius, else 0
+	assert_eq(
+		_button("Weapon_blackhole").text.ends_with("3/5"),
+		true,
+		"blackhole.duration = 3 at defaults"
+	)
+	assert_eq(_button("Weapon_missiles").text.ends_with("5/5"), true, "missiles.count = 5")
+	assert_eq(
+		_button("Weapon_nuke").text.ends_with("1/5"),
+		true,
+		"nuke has no duration/count → radius = 1"
+	)
+	assert_eq(
+		_button("Weapon_lightning").text.ends_with("0/5"),
+		true,
+		"lightning has none of the three → 0"
+	)
+	assert_true(_button("Weapon_blackhole").button_pressed, "selected item is active")
+
+
+func test_selecting_a_weapon_rerenders_its_detail() -> void:
+	_open_weapons()
+	_button("Weapon_laser").pressed.emit()
+	assert_eq(_armory.selected_weapon_id, "laser")
+	assert_not_null(_armory.find_child("Track_length", true, false))
+	assert_not_null(_armory.find_child("Keystone_crossBeam", true, false))
+	assert_eq(
+		_label("InvestedValue").text,
+		"900",
+		"laser.length = 2 → 300 + 600 (ProgressionManager.ts:566-571)"
+	)
+
+
+func test_track_readout_shows_current_and_next_value() -> void:
+	_open_weapons("blackhole")
+	# PORT: web/src/tilt-to-live/ArmoryUI.ts:459-472 — duration rank 3: 4.8 + 0.5*3 → 6.3s → 6.8s
+	assert_eq(_label("TrackValue_duration").text, "6.3s → 6.8s")
+	assert_eq(_button("Track_duration").text, "1,800 pts", "rank 3 costs costs[3] (:450, :558)")
+	assert_false(_button("Track_duration").disabled)
+
+
+func test_buying_a_track_rank_charges_saves_and_emits() -> void:
+	_open_weapons("blackhole")
+	watch_signals(_armory)
+	_button("Track_duration").pressed.emit()
+	assert_eq(_progression.data.perks.blackhole.duration, 4)
+	assert_eq(_progression.data.points, 7331 - 1800)
+	assert_signal_emitted(_armory, "state_changed")
+	assert_eq(
+		_label("BalanceLabel").text, ArmoryUI.format_points(7331 - 1800), "re-rendered (:1164)"
+	)
+	var reloaded: ProgressionManager = ProgressionManager.new()
+	assert_eq(
+		reloaded.data.perks.blackhole.duration, 4, "upgrade_perk saved (spec §8 M8 acceptance)"
+	)
+
+
+func test_maxed_track_is_disabled_and_labelled() -> void:
+	_progression.data.perks.missiles.count = 5
+	_open_weapons("missiles")
+	var btn: Button = _button("Track_count")
+	assert_true(btn.disabled)
+	assert_eq(btn.text, "Maxed ✓")
+	assert_eq(_label("TrackValue_count").text, "13", "no arrow when maxed (:470-471)")
+
+
+func test_unaffordable_track_is_disabled() -> void:
+	_progression.data.points = 10
+	_open_weapons("blackhole")
+	assert_true(_button("Track_radius").disabled)
+	watch_signals(_armory)
+	_button("Track_radius").pressed.emit()
+	assert_signal_not_emitted(_armory, "state_changed", "upgrade_perk refused (:1162)")
+
+
+func test_keystone_shows_its_keystone_cost_and_unlocks() -> void:
+	_open_weapons("laser")
+	var btn: Button = _button("Keystone_crossBeam")
+	assert_eq(btn.text, "3,500 pts", "KEYSTONE_COSTS.crossBeam (:507)")
+	watch_signals(_armory)
+	btn.pressed.emit()
+	assert_true(_progression.data.perks.laser.cross_beam)
+	assert_eq(_progression.data.points, 7331 - 3500)
+	assert_signal_emitted(_armory, "state_changed")
+	assert_true(_button("Keystone_crossBeam").disabled)
+	assert_eq(_button("Keystone_crossBeam").text, "Unlocked ✓")
+
+
+func test_starting_weapon_config_resolves_aliases() -> void:
+	# PORT: web/src/tilt-to-live/ArmoryUI.ts:209-220
+	assert_eq(_armory.get_starting_weapon_config(Types.WeaponType.VORTEX).id, "blackhole")
+	assert_eq(_armory.get_starting_weapon_config(Types.WeaponType.SHIELD).id, "shield")
+	assert_eq(_armory.get_starting_weapon_config(Types.WeaponType.FREEZE).name, "Shockwave")
