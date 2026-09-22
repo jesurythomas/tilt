@@ -61,7 +61,7 @@ func _draw() -> void:
 	# perimeter are drawn in playfield space.
 	var size: Vector2 = viewport - _arena_origin * 2.0
 
-	draw_rect(Rect2(Vector2.ZERO, viewport), BG_OUTER)
+	draw_rect(Rect2(Vector2.ZERO, viewport), background_colors()[2])
 	if _background != null:
 		# PORT-NOTE: this block expresses the canvas gradient's centre and
 		# radius as a Rect2/UV mapping onto the pre-baked texture built in
@@ -82,16 +82,15 @@ func _draw() -> void:
 
 	# PORT: web/src/tilt-to-live/TiltRenderer.ts:120-127
 	var frame: Rect2 = Rect2(INSET, INSET, size.x - INSET * 2.0, size.y - INSET * 2.0)
-	draw_rect(frame, BOUNDARY_COLOR, false, 2.5)
-	var halo: Color = BOUNDARY_COLOR
+	var boundary: Color = boundary_color()
+	draw_rect(frame, boundary, false, 2.5)
+	var halo: Color = boundary
 	halo.a = BOUNDARY_HALO_ALPHA
 	draw_rect(frame, halo, false, 8.0)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 	# TODO(M10): code-red and gauntlet background, grid tint and overlays
 	# (TiltRenderer.ts:64-74, 101-118).
-	# TODO(M8): arena theme override (TiltRenderer.ts:76-80) — the catalog is
-	# ProgressionManager.arena_theme_catalog; nothing can equip one before the Armory.
 
 
 ## Gives this layer the grid it draws. Called by GameRoot.
@@ -104,13 +103,38 @@ func set_arena_origin(origin: Vector2) -> void:
 	_arena_origin = origin
 
 
-## Sets the arena theme. PORT: web/src/tilt-to-live/TiltGame.ts:2312
+## Sets the arena theme and rebakes the background. PORT: web/src/tilt-to-live/TiltGame.ts:2312
 func set_arena_theme(theme_config: ProgressionManager.ArenaThemeConfig) -> void:
 	_arena_theme = theme_config
+	_background = _build_background()
 
 
 func get_arena_theme() -> ProgressionManager.ArenaThemeConfig:
 	return _arena_theme
+
+
+# TODO(M10): code-red/gauntlet (TiltRenderer.ts:64-74) come before the theme
+# override (:76-80) — the theme wins when equipped, as in the TS.
+## The three background stops. PORT: web/src/tilt-to-live/TiltRenderer.ts:60, :76-77
+func background_colors() -> Array[Color]:
+	if _arena_theme != null:
+		return _arena_theme.bg_gradient
+	return [BG_INNER, BG_MID, BG_OUTER]
+
+
+## PORT: web/src/tilt-to-live/TiltRenderer.ts:61, :78
+func grid_color() -> Color:
+	return _arena_theme.grid_color if _arena_theme != null else GRID_COLOR
+
+
+## PORT: web/src/tilt-to-live/TiltRenderer.ts:62, :79
+func boundary_color() -> Color:
+	return _arena_theme.boundary_color if _arena_theme != null else BOUNDARY_COLOR
+
+
+## The baked radial gradient (test-visible).
+func background_texture() -> GradientTexture2D:
+	return _background
 
 
 ## PORT: web/src/tilt-to-live/VectorGrid.ts:86-117
@@ -122,7 +146,7 @@ func _draw_grid() -> void:
 			var p: VectorGrid.GridPoint = _grid.points[row_offset + c]
 			row.append(Vector2(p.x, p.y))
 		if row.size() > 1:
-			draw_polyline(row, GRID_COLOR, 1.0)
+			draw_polyline(row, grid_color(), 1.0)
 
 	for c: int in range(_grid.cols):
 		var col: PackedVector2Array = PackedVector2Array()
@@ -130,13 +154,14 @@ func _draw_grid() -> void:
 			var p: VectorGrid.GridPoint = _grid.points[r * _grid.cols + c]
 			col.append(Vector2(p.x, p.y))
 		if col.size() > 1:
-			draw_polyline(col, GRID_COLOR, 1.0)
+			draw_polyline(col, grid_color(), 1.0)
 
 
 func _build_background() -> GradientTexture2D:
 	var gradient: Gradient = Gradient.new()
 	gradient.offsets = PackedFloat32Array([0.0, 0.125, 0.69375, 1.0])
-	gradient.colors = PackedColorArray([BG_INNER, BG_INNER, BG_MID, BG_OUTER])
+	var stops: Array[Color] = background_colors()
+	gradient.colors = PackedColorArray([stops[0], stops[0], stops[1], stops[2]])
 
 	var texture: GradientTexture2D = GradientTexture2D.new()
 	texture.gradient = gradient

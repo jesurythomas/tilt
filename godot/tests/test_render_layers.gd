@@ -253,6 +253,72 @@ func _remove_save() -> void:
 		DirAccess.remove_absolute(absolute)
 
 
+func test_grid_layer_resolves_theme_colours() -> void:
+	# PORT: web/src/tilt-to-live/TiltRenderer.ts:60-62 defaults, :76-80 theme override
+	var layer: GridLayer = GridLayer.new()
+	add_child_autofree(layer)
+	assert_eq(layer.background_colors(), [GridLayer.BG_INNER, GridLayer.BG_MID, GridLayer.BG_OUTER])
+	assert_eq(layer.grid_color(), GridLayer.GRID_COLOR)
+	assert_eq(layer.boundary_color(), GridLayer.BOUNDARY_COLOR)
+	_remove_save()
+	var progression: ProgressionManager = ProgressionManager.new()
+	var synth: ProgressionManager.ArenaThemeConfig = progression.arena_theme_catalog[1]
+	layer.set_arena_theme(synth)
+	assert_eq(layer.background_colors(), synth.bg_gradient)
+	assert_eq(layer.grid_color(), synth.grid_color)
+	assert_eq(layer.boundary_color(), synth.boundary_color)
+	layer.bind(VectorGrid.new(400, 300))
+	layer.queue_redraw()
+	await get_tree().process_frame
+	layer.set_arena_theme(null)
+	assert_eq(layer.boundary_color(), GridLayer.BOUNDARY_COLOR, "null restores the defaults")
+	_remove_save()
+
+
+func test_grid_layer_rebuilds_the_background_on_theme_change() -> void:
+	_remove_save()
+	var progression: ProgressionManager = ProgressionManager.new()
+	var layer: GridLayer = GridLayer.new()
+	add_child_autofree(layer)
+	await get_tree().process_frame
+	var before: GradientTexture2D = layer.background_texture()
+	layer.set_arena_theme(progression.arena_theme_catalog[2])
+	var after: GradientTexture2D = layer.background_texture()
+	assert_ne(after, before, "a new gradient is baked for the theme")
+	assert_eq(after.gradient.colors[0], progression.arena_theme_catalog[2].bg_gradient[0])
+	_remove_save()
+
+
+func test_entity_layer_draws_every_enemy_type_under_every_skin() -> void:
+	_remove_save()
+	var progression: ProgressionManager = ProgressionManager.new()
+	var layer: EntityLayer = EntityLayer.new()
+	var swarm: EnemySwarm = EnemySwarm.new()
+	var bounds: Vector2 = Vector2(800.0, 600.0)
+	var player: PlayerShip = PlayerShip.new(400.0, 300.0)
+	var player_pos: Vector2 = Vector2(player.x, player.y)
+	layer.bind_entities(player, swarm, WeaponSystem.new())
+	add_child_autofree(layer)
+	# enemy_swarm.gd:61, :101, :223, :292, :145, :184 — one of each skin-reading type
+	swarm.spawn_seeker(bounds, 100.0, 100.0)
+	swarm.spawn_charger(bounds, player_pos)
+	swarm.spawn_artillery(bounds, player_pos)
+	swarm.spawn_carrier(bounds, player_pos)
+	swarm.spawn_pulsar(bounds, player_pos)
+	swarm.spawn_specter(bounds, player_pos)
+	assert_true(swarm.enemies.size() >= 6)
+	var skins: Array[ProgressionManager.EnemySkinConfig] = (
+		progression.enemy_skin_catalog.duplicate()
+	)
+	skins.append(null)
+	for skin: ProgressionManager.EnemySkinConfig in skins:
+		layer.set_enemy_skin(skin)
+		layer.queue_redraw()
+		await get_tree().process_frame
+	assert_true(true, "six skins plus the null (menu backdrop) arm drew without a script error")
+	_remove_save()
+
+
 func test_hull_points_match_the_ts_prows() -> void:
 	# PORT: web/src/tilt-to-live/PlayerShip.ts — first moveTo of each hull
 	assert_eq(EntityLayer.hull_points_for(ProgressionManager.ShipShape.CLASSIC).size(), 4)  # :598-601

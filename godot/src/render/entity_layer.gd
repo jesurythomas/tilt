@@ -277,14 +277,14 @@ func _draw_orb_glyph(pos: Vector2, type: Types.WeaponType) -> void:
 
 
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:1191-1648 (render)
-## PORT-NOTE: skin (EnemySkinConfig) is ProgressionManager.enemy_skin_catalog
-## (M7); equipping is M8; every branch below ports only the non-skin arm of
-## its ternaries. TODO(M8): enemy skins (skin.bodyGradient, borderColor,
-## glowColor, pupilColor).
-## PORT-NOTE: charger, artillery and carrier gate the skin on
+## PORT-NOTE: skin is the equipped EnemySkinConfig GameRoot pushes in through
+## set_enemy_skin() (TiltGame.ts:2311); null is the menu backdrop's case
+## (:2275). Charger, artillery and carrier gate their skin arms on
 ## skin.id !== 'classic' (EnemySwarm.ts:1260, :1293, :1406) while pulsar,
-## specter and the default dot gate on skin alone (:1476, :1521, :1561) — M7
-## must preserve the asymmetry.
+## specter and the default dot gate on skin alone (:1476, :1521, :1561) —
+## the asymmetry is the TS's and is preserved (LAW 2). In a live run skin is
+## never null, so the hazard-orange arms (:1563-1566, :1579-1580, :1598-1601,
+## :1616-1617, :1627-1628) are reachable only from the backdrop.
 ## PORT-NOTE: createRadialGradient (EnemySwarm.ts:1370, :1484, :1531, :1589) is
 ## not baked as a texture in this module. Per the M2 precedent at :187-199
 ## (Open question 3), each two/three-stop gradient is approximated as two flat
@@ -332,6 +332,11 @@ func _draw_frozen_dot(e: Types.Enemy) -> void:
 	draw_circle(pos, e.radius - 1.0, Color("#4488aa"))
 
 
+## `skin && skin.id !== 'classic'`. PORT: web/src/tilt-to-live/EnemySwarm.ts:1260
+func _has_alt_skin() -> bool:
+	return _enemy_skin != null and _enemy_skin.id != "classic"
+
+
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:1225-1286
 func _draw_charger(e: Types.Enemy) -> void:
 	# PORT: EnemySwarm.ts:1226
@@ -361,22 +366,26 @@ func _draw_charger(e: Types.Enemy) -> void:
 		draw_colored_polygon(plume, Color("#ffaa00"))  # PORT: EnemySwarm.ts:1250
 
 	# Arrowhead delta dart chassis (PORT: EnemySwarm.ts:1259-1272)
-	# PORT-NOTE: the skin.id !== 'classic' branch (:1260-1261) is M7; only the
-	# non-skin fallback is ported.
+	# PORT: EnemySwarm.ts:1260-1261
 	var hull_col: Color = (
-		Color("#ff2a00") if e.state == Types.EnemyState.CHARGING else Color("#dd1c00")
-	)  # PORT: EnemySwarm.ts:1260
+		_enemy_skin.body_gradient[1]
+		if _has_alt_skin()
+		else (Color("#ff2a00") if e.state == Types.EnemyState.CHARGING else Color("#dd1c00"))
+	)
+	var edge_col: Color = _enemy_skin.border_color if _has_alt_skin() else Color("#ffaa33")
 	var hull: PackedVector2Array = PackedVector2Array(
 		[Vector2(14.0, 0.0), Vector2(-10.0, -11.0), Vector2(-6.0, 0.0), Vector2(-10.0, 11.0)]
 	)  # PORT: EnemySwarm.ts:1266-1269
 	draw_colored_polygon(hull, hull_col)
-	draw_polyline(_closed(hull), Color("#ffaa33"), 1.8)  # PORT: EnemySwarm.ts:1261-1264
+	draw_polyline(_closed(hull), edge_col, 1.8)  # PORT: EnemySwarm.ts:1261-1264
 
 	# Cockpit / energy crystal core (PORT: EnemySwarm.ts:1274-1282)
-	# PORT-NOTE: the skin.pupilColor branch (:1275) is M7; only the non-skin
-	# fallback (#FFB14D) is ported.
 	# PORT: EnemySwarm.ts:1275
-	var core_col: Color = Color.WHITE if e.state == Types.EnemyState.CHARGING else Color("#FFB14D")
+	var core_col: Color = (
+		Color.WHITE
+		if e.state == Types.EnemyState.CHARGING
+		else (_enemy_skin.pupil_color if _has_alt_skin() else Color("#FFB14D"))
+	)
 	var core: PackedVector2Array = PackedVector2Array(
 		[Vector2(6.0, 0.0), Vector2(-2.0, -3.5), Vector2(0.0, 0.0), Vector2(-2.0, 3.5)]
 	)  # PORT: EnemySwarm.ts:1277-1280
@@ -386,16 +395,16 @@ func _draw_charger(e: Types.Enemy) -> void:
 
 
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:1289-1350
-## PORT-NOTE: the skin.id !== 'classic' branches (:1293, :1311-1312, :1339)
-## are M7; only the non-skin fallback of each is ported.
 func _draw_artillery(e: Types.Enemy) -> void:
 	var angle: float = e.aim_angle if not is_nan(e.aim_angle) else 0.0  # PORT: EnemySwarm.ts:1290
 	draw_set_transform(_arena_origin + Vector2(e.x, e.y), angle, Vector2.ONE)
 
 	# Cannon barrel (PORT: EnemySwarm.ts:1295-1299)
+	# PORT: EnemySwarm.ts:1293
+	var barrel_stroke: Color = _enemy_skin.border_color if _has_alt_skin() else Color("#ff0066")
 	var barrel_rect: Rect2 = Rect2(4.0, -4.0, 18.0, 8.0)
 	draw_rect(barrel_rect, Color("#180e22"))
-	draw_rect(barrel_rect, Color("#ff0066"), false, 1.5)
+	draw_rect(barrel_rect, barrel_stroke, false, 1.5)
 
 	# Muzzle charge flash if preparing to fire (PORT: EnemySwarm.ts:1302-1308)
 	if not is_nan(e.fire_cooldown) and e.fire_cooldown < 0.8:
@@ -412,8 +421,12 @@ func _draw_artillery(e: Types.Enemy) -> void:
 	for h: int in range(6):
 		var a: float = float(h) * PI / 3.0  # PORT: EnemySwarm.ts:1319
 		hex.append(Vector2(cos(a) * hex_radius, sin(a) * hex_radius))
-	draw_colored_polygon(hex, Color("#1c0a1a"))
-	draw_polyline(_closed(hex), Color("#ff0077"), 2.2)
+	# PORT: EnemySwarm.ts:1311
+	var hex_fill: Color = _enemy_skin.body_gradient[2] if _has_alt_skin() else Color("#1c0a1a")
+	# PORT: EnemySwarm.ts:1312
+	var hex_stroke: Color = _enemy_skin.border_color if _has_alt_skin() else Color("#ff0077")
+	draw_colored_polygon(hex, hex_fill)
+	draw_polyline(_closed(hex), hex_stroke, 2.2)
 
 	# Armored cross struts (PORT: EnemySwarm.ts:1329-1335)
 	var strut_col: Color = Color(1.0, 1.0, 1.0, 0.25)
@@ -422,7 +435,9 @@ func _draw_artillery(e: Types.Enemy) -> void:
 
 	# Pulsing optic sensor eye (PORT: EnemySwarm.ts:1337-1346)
 	var optic_pulse: float = 0.8 + 0.2 * sin(_elapsed * 14.0)  # PORT: EnemySwarm.ts:1338
-	draw_circle(Vector2.ZERO, 5.0 * optic_pulse, Color("#ff00bb"))
+	# PORT: EnemySwarm.ts:1339
+	var optic_col: Color = _enemy_skin.body_gradient[0] if _has_alt_skin() else Color("#ff00bb")
+	draw_circle(Vector2.ZERO, 5.0 * optic_pulse, optic_col)
 	draw_circle(Vector2.ZERO, 2.0, Color.WHITE)
 
 	draw_set_transform(_arena_origin, 0.0, Vector2.ONE)
@@ -455,8 +470,6 @@ func _draw_bullet(e: Types.Enemy) -> void:
 
 
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:1388-1444
-## PORT-NOTE: the skin.id !== 'classic' branches (:1406, :1417-1418, :1432)
-## are M7; only the non-skin fallback of each is ported.
 func _draw_carrier(e: Types.Enemy) -> void:
 	var carrier_pos: Vector2 = Vector2(e.x, e.y)
 
@@ -473,17 +486,16 @@ func _draw_carrier(e: Types.Enemy) -> void:
 	draw_set_transform(_arena_origin + carrier_pos, _elapsed * 0.45, Vector2.ONE)
 
 	# Pulsing orbital shield ring (PORT: EnemySwarm.ts:1406-1414)
-	_draw_dashed_arc(
-		Vector2.ZERO,
-		e.radius + 8.0,
-		10.0,
-		8.0,
-		-_elapsed * 30.0,
-		Color(1.0, 30.0 / 255.0, 80.0 / 255.0, 0.45),
-		2.0
-	)
+	var ring_col: Color = (
+		_enemy_skin.glow_color if _has_alt_skin() else Color(1.0, 30.0 / 255.0, 80.0 / 255.0, 0.45)
+	)  # PORT: EnemySwarm.ts:1406
+	_draw_dashed_arc(Vector2.ZERO, e.radius + 8.0, 10.0, 8.0, -_elapsed * 30.0, ring_col, 2.0)
 
 	# Diamond dreadnought mothership hull (PORT: EnemySwarm.ts:1416-1429)
+	# PORT: EnemySwarm.ts:1417
+	var diamond_fill: Color = _enemy_skin.body_gradient[2] if _has_alt_skin() else Color("#220816")
+	# PORT: EnemySwarm.ts:1418
+	var diamond_stroke: Color = _enemy_skin.border_color if _has_alt_skin() else Color("#ff2a55")
 	var diamond: PackedVector2Array = PackedVector2Array(
 		[
 			Vector2(e.radius + 4.0, 0.0),
@@ -492,11 +504,13 @@ func _draw_carrier(e: Types.Enemy) -> void:
 			Vector2(0.0, e.radius + 4.0)
 		]
 	)  # PORT: EnemySwarm.ts:1423-1426
-	draw_colored_polygon(diamond, Color("#220816"))
-	draw_polyline(_closed(diamond), Color("#ff2a55"), 2.4)
+	draw_colored_polygon(diamond, diamond_fill)
+	draw_polyline(_closed(diamond), diamond_stroke, 2.4)
 
 	# Inner glowing core (PORT: EnemySwarm.ts:1431-1440)
-	draw_circle(Vector2.ZERO, 8.0, Color("#ff1144"))
+	# PORT: EnemySwarm.ts:1432
+	var core_col: Color = _enemy_skin.body_gradient[0] if _has_alt_skin() else Color("#ff1144")
+	draw_circle(Vector2.ZERO, 8.0, core_col)
 	draw_circle(Vector2.ZERO, 3.5, Color.WHITE)
 
 	draw_set_transform(_arena_origin, 0.0, Vector2.ONE)
@@ -513,29 +527,37 @@ func _draw_satellite(e: Types.Enemy) -> void:
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:1469-1513
 ## PORT-NOTE: skin gates the borderColor/bodyGradient/pupilColor branches
 ## alone (:1476, :1483, :1490, :1498), unlike charger/artillery/carrier which
-## gate on skin.id !== 'classic' — M7 must preserve this asymmetry.
+## gate on skin.id !== 'classic' — the asymmetry is the TS's and is preserved.
 func _draw_pulsar(e: Types.Enemy) -> void:
 	var pos: Vector2 = Vector2(e.x, e.y)
 	# PORT: EnemySwarm.ts:1470
 	var pulse_phase: float = (2.2 - e.pulse_timer) / 2.2 if not is_nan(e.pulse_timer) else 0.0
 	var ring_radius: float = e.radius + 5.0 + pulse_phase * 16.0  # PORT: EnemySwarm.ts:1471
 	var ring_alpha: float = maxf(0.0, (1.0 - pulse_phase) * 0.8)  # PORT: EnemySwarm.ts:1472,1475
-	draw_arc(
-		pos, ring_radius, 0.0, TAU, 24, Color(1.0, 71.0 / 255.0, 87.0 / 255.0, ring_alpha), 2.0
-	)  # PORT: EnemySwarm.ts:1476-1480
-
+	# PORT: EnemySwarm.ts:1476-1480
+	var ring_col: Color = (
+		_enemy_skin.border_color if _enemy_skin != null else Color(1.0, 71.0 / 255.0, 87.0 / 255.0)
+	)
+	ring_col.a = ring_alpha
+	draw_arc(pos, ring_radius, 0.0, TAU, 24, ring_col, 2.0)
 	# Core vibrant body gradient (PORT: EnemySwarm.ts:1483-1487, two-circle rule)
-	draw_circle(pos, e.radius, Color("#ee1133"))
-	draw_circle(pos, e.radius * 0.6, Color("#ff8899"))
-	draw_arc(pos, e.radius, 0.0, TAU, 24, Color("#ffa502"), 2.2)  # PORT: EnemySwarm.ts:1490-1495
+	var inner: Color = _enemy_skin.body_gradient[0] if _enemy_skin != null else Color("#ff8899")
+	var mid: Color = _enemy_skin.body_gradient[1] if _enemy_skin != null else Color("#ee1133")
+	draw_circle(pos, e.radius, mid)
+	draw_circle(pos, e.radius * 0.6, inner)
+	# PORT: EnemySwarm.ts:1490-1495
+	var stroke: Color = _enemy_skin.border_color if _enemy_skin != null else Color("#ffa502")
+	draw_arc(pos, e.radius, 0.0, TAU, 24, stroke, 2.2)
 
 	# Eight-point spinning star core (PORT: EnemySwarm.ts:1499-1509)
+	# PORT: EnemySwarm.ts:1498
+	var star_col: Color = _enemy_skin.pupil_color if _enemy_skin != null else Color.WHITE
 	var star: PackedVector2Array = PackedVector2Array()
 	for p: int in range(8):
 		var a: float = float(p) * PI / 4.0 + _elapsed * 3.0  # PORT: EnemySwarm.ts:1501
 		var r: float = e.radius * 0.55 if p % 2 == 0 else e.radius * 0.22  # PORT: EnemySwarm.ts:1502
 		star.append(pos + Vector2(cos(a) * r, sin(a) * r))
-	draw_colored_polygon(star, Color.WHITE)  # PORT: EnemySwarm.ts:1498
+	draw_colored_polygon(star, star_col)
 
 
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:1516-1552
@@ -548,16 +570,26 @@ func _draw_specter(e: Types.Enemy) -> void:
 	var alpha: float = e.stealth_opacity if not is_nan(e.stealth_opacity) else 0.65
 
 	# PORT: EnemySwarm.ts:1521-1528
-	_draw_dashed_arc(pos, e.radius + 3.0, 4.0, 4.0, -_elapsed * 25.0, Color("#a78bfa", alpha), 1.6)
+	var dash_col: Color = _enemy_skin.border_color if _enemy_skin != null else Color("#a78bfa")
+	dash_col.a = alpha
+	_draw_dashed_arc(pos, e.radius + 3.0, 4.0, 4.0, -_elapsed * 25.0, dash_col, 1.6)
 
 	# Core vibrant body gradient (PORT: EnemySwarm.ts:1530-1534, two-circle rule)
-	draw_circle(pos, e.radius, Color("#8b5cf6", alpha))
-	draw_circle(pos, e.radius * 0.65, Color("#c4b5fd", alpha))
+	var mid: Color = _enemy_skin.body_gradient[1] if _enemy_skin != null else Color("#8b5cf6")
+	mid.a = alpha
+	var inner: Color = _enemy_skin.body_gradient[0] if _enemy_skin != null else Color("#c4b5fd")
+	inner.a = alpha
+	draw_circle(pos, e.radius, mid)
+	draw_circle(pos, e.radius * 0.65, inner)
 	# PORT: EnemySwarm.ts:1537-1542
-	draw_arc(pos, e.radius, 0.0, TAU, 24, Color("#e0e7ff", alpha), 1.5)
+	var stroke: Color = _enemy_skin.border_color if _enemy_skin != null else Color("#e0e7ff")
+	stroke.a = alpha
+	draw_arc(pos, e.radius, 0.0, TAU, 24, stroke, 1.5)
 
 	# PORT: EnemySwarm.ts:1545-1548
-	draw_circle(pos, 2.5, Color(1.0, 1.0, 1.0, alpha))
+	var pupil_col: Color = _enemy_skin.pupil_color if _enemy_skin != null else Color.WHITE
+	pupil_col.a = alpha
+	draw_circle(pos, 2.5, pupil_col)
 
 
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:1554-1643 (default dot + turret indicator)
@@ -567,49 +599,69 @@ func _draw_default_dot(e: Types.Enemy) -> void:
 
 	# Outer glow & high contrast halo (PORT: EnemySwarm.ts:1557-1572)
 	if _high_contrast_halo:
-		var halo_col: Color = (
-			Color(140.0 / 255.0, 240.0 / 255.0, 1.0, 0.7)
-			if e.chilled
-			else (
-				Color(1.0, 180.0 / 255.0, 0.0, 0.7)
-				if e.is_hazard
-				else Color(1.0, 30.0 / 255.0, 60.0 / 255.0, 0.7)
-			)
-		)
+		var halo_col: Color
+		if e.chilled:
+			halo_col = Color(140.0 / 255.0, 240.0 / 255.0, 1.0, 0.7)
+		elif _enemy_skin != null:
+			halo_col = _enemy_skin.glow_color  # PORT: :1561-1562
+		elif e.is_hazard:
+			halo_col = Color(1.0, 180.0 / 255.0, 0.0, 0.7)
+		else:
+			halo_col = Color(1.0, 30.0 / 255.0, 60.0 / 255.0, 0.7)
 		draw_arc(e_pos, (e.radius + 5.0) * pulse, 0.0, TAU, 24, halo_col, 1.2)
 
 	# Outer glow color (PORT: EnemySwarm.ts:1574-1586)
-	var glow_col: Color = (
-		Color(130.0 / 255.0, 230.0 / 255.0, 1.0, 0.55)
-		if e.chilled
-		else (
-			Color(1.0, 170.0 / 255.0, 0.0, 0.45)
-			if e.is_hazard
-			else Color(1.0, 30.0 / 255.0, 60.0 / 255.0, 0.35)
-		)
-	)
+	var glow_col: Color
+	if e.chilled:
+		glow_col = Color(130.0 / 255.0, 230.0 / 255.0, 1.0, 0.55)
+	elif _enemy_skin != null:
+		glow_col = _enemy_skin.glow_color  # PORT: :1577-1578
+	elif e.is_hazard:
+		glow_col = Color(1.0, 170.0 / 255.0, 0.0, 0.45)
+	else:
+		glow_col = Color(1.0, 30.0 / 255.0, 60.0 / 255.0, 0.35)
 	draw_circle(e_pos, (e.radius + 4.0) * pulse, glow_col)
 
 	# Core vibrant body (PORT: EnemySwarm.ts:1588-1610)
-	var body_col: Color = (
-		Color("#55bbff") if e.chilled else (Color("#ffaa00") if e.is_hazard else Color("#ee1133"))
-	)
-	var inner_col: Color = (
-		Color("#e0f8ff") if e.chilled else (Color("#fff066") if e.is_hazard else Color("#ff6677"))
-	)
+	var body_col: Color
+	var inner_col: Color
+	if e.chilled:
+		body_col = Color("#55bbff")
+		inner_col = Color("#e0f8ff")
+	elif _enemy_skin != null:
+		body_col = _enemy_skin.body_gradient[1]  # PORT: :1594-1597
+		inner_col = _enemy_skin.body_gradient[0]
+	elif e.is_hazard:
+		body_col = Color("#ffaa00")
+		inner_col = Color("#fff066")
+	else:
+		body_col = Color("#ee1133")
+		inner_col = Color("#ff6677")
 	draw_circle(e_pos, e.radius, body_col)
 	draw_circle(e_pos, e.radius * 0.65, inner_col)
 
 	# Border (PORT: EnemySwarm.ts:1612-1620)
-	var border_col: Color = (
-		Color("#aae6ff") if e.chilled else (Color("#ffd555") if e.is_hazard else Color("#ff8899"))
-	)
+	var border_col: Color
+	if e.chilled:
+		border_col = Color("#aae6ff")
+	elif _enemy_skin != null:
+		border_col = _enemy_skin.border_color  # PORT: :1614-1615
+	elif e.is_hazard:
+		border_col = Color("#ffd555")
+	else:
+		border_col = Color("#ff8899")
 	draw_arc(e_pos, e.radius, 0.0, TAU, 24, border_col, 1.2)
 
 	# Pupil / core dot (PORT: EnemySwarm.ts:1622-1632)
-	var pupil_col: Color = (
-		Color("#002244") if e.chilled else (Color("#221100") if e.is_hazard else Color("#110005"))
-	)
+	var pupil_col: Color
+	if e.chilled:
+		pupil_col = Color("#002244")
+	elif _enemy_skin != null:
+		pupil_col = _enemy_skin.pupil_color  # PORT: :1625-1626
+	elif e.is_hazard:
+		pupil_col = Color("#221100")
+	else:
+		pupil_col = Color("#110005")
 	draw_circle(e_pos, e.radius * 0.38, pupil_col)
 
 	# Turret dot warning indicator (PORT: EnemySwarm.ts:1635-1643)
