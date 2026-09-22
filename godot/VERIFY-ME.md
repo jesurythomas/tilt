@@ -355,3 +355,33 @@ Facts from execution (not in the brief):
 Not observable yet: the HUD's own Armory button (`btn-tilt-armory-hud`,
 TiltGame.ts:1453) is not ported — plan Open question 2; the menu's entry to
 the Armory is M11's.
+
+## Mobile scale split (2026-09-22, after M8)
+
+The user reported on the A55: models too small, weapon orbs and their glyphs
+too small, the "map" too large. `game_root.gd` now caps the arena scale on
+mobile at `MOBILE_ARENA_SCALE_CEILING = 1.25` (was the raw 1.588 — ranges,
+formation spacing and speeds shrink ~21 %) and `entity_layer.gd` draws every
+entity `MOBILE_MODEL_SCALE = 1.5` times its sim radius (render-only; hitboxes
+stay at sim size, so visuals are slightly larger than collision). The orb
+glyph now scales with its bubble on every platform. Desktop is unchanged.
+Both constants are guesses until you look at them.
+
+- [ ] **Ship / enemies read at a comfortable size** (net 1.25 × 1.5 = 1.875×
+      base vs 1.588 before). Too big or too small → change
+      `GameRoot.MOBILE_MODEL_SCALE` only.
+- [ ] **The map feels less cramped**: nuke/laser/vortex ranges, wall and
+      circle formation spacing, seeker speed. Still cramped → lower
+      `GameRoot.MOBILE_ARENA_SCALE_CEILING`; too sparse/slow → raise it (the
+      old feel is 1.75, i.e. uncapped).
+- [ ] **Orb glyph is legible** inside its bubble (nuke trefoil, missile,
+      bolt, crossed beams, spiral, snowflake, shield outline).
+- [ ] **Hitbox leniency is acceptable**: an enemy visually overlapping the
+      ship's hull by ~⅓ of its radius does not kill. If that feels wrong, the
+      alternative is to apply the multiplier to sim radii instead (a
+      different change — say so).
+- [ ] **Charger telegraph line** (the dashed 480 px aiming line) is now
+      drawn 1.5× longer on mobile because it lives under the entity
+      transform. Fine or distracting?
+- [ ] Frame time under a mass explosion is unchanged:
+      `adb -s RRCXB04L8EJ shell dumpsys gfxinfo com.jtg.perilpoint | grep -A3 50th`.

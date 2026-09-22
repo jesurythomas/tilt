@@ -57,3 +57,41 @@ func test_the_clamp_bounds_are_the_ported_ones() -> void:
 		0.0001,
 		"ceiling raised per M2.5 §7.3 — TiltGame.ts:2431's 1.15 letterboxed the phone"
 	)
+
+
+# DIVERGENCE(mobile-scale): no TypeScript counterpart. On a phone the raw
+# formula (1.588 on a 1080 px short side) inflates weapon ranges, formation
+# spacing and speeds until the playfield feels cramped; the ceiling below
+# holds the "map" down while EntityLayer's model scale grows the models.
+func test_effective_scale_is_the_raw_scale_on_desktop() -> void:
+	assert_almost_eq(
+		GameRoot.effective_arena_scale(1267.0, 717.0, false),
+		GameRoot.arena_scale(1267.0, 717.0),
+		0.0001,
+		"desktop is untouched"
+	)
+
+
+func test_effective_scale_is_capped_on_mobile() -> void:
+	assert_almost_eq(
+		GameRoot.effective_arena_scale(1080.0, 2340.0, true),
+		GameRoot.MOBILE_ARENA_SCALE_CEILING,
+		0.0001,
+		"the A55's 1.588 is clamped to the mobile ceiling"
+	)
+	assert_lt(GameRoot.MOBILE_ARENA_SCALE_CEILING, GameRoot.MAX_ARENA_SCALE)
+
+
+func test_effective_scale_keeps_small_phones_below_the_mobile_ceiling() -> void:
+	assert_almost_eq(
+		GameRoot.effective_arena_scale(640.0, 1136.0, true),
+		GameRoot.arena_scale(640.0, 1136.0),
+		0.0001,
+		"a value under the ceiling passes through untouched"
+	)
+
+
+func test_model_scale_only_grows_on_mobile() -> void:
+	assert_almost_eq(GameRoot.model_scale_for(false), 1.0, 0.0001, "desktop draws at sim size")
+	assert_almost_eq(GameRoot.model_scale_for(true), GameRoot.MOBILE_MODEL_SCALE, 0.0001)
+	assert_gt(GameRoot.MOBILE_MODEL_SCALE, 1.0)

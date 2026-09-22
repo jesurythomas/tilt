@@ -25,6 +25,17 @@ const MAX_INSET_RATIO: float = 0.04
 # final value is measured on the A55 in the M2.5 device pass.
 const MAX_ARENA_SCALE: float = 1.75
 
+# DIVERGENCE(mobile-scale): no TypeScript counterpart. The single arena scale
+# drives ranges, formation spacing and speeds as well as entity size, and on
+# the A55 (raw 1.588) the user reported the map felt cramped while the models
+# still read small. The two are split on mobile only: the arena scale is capped
+# at this ceiling (shrinking the "map") and EntityLayer draws each entity
+# MOBILE_MODEL_SCALE times larger than its sim radius (growing the models;
+# hitboxes stay at sim size). Desktop keeps the raw formula and draws at 1.0.
+# Both provisional until eyeballed on the A55 — VERIFY-ME.md.
+const MOBILE_ARENA_SCALE_CEILING: float = 1.25
+const MOBILE_MODEL_SCALE: float = 1.5
+
 # DIVERGENCE(M2.5 §8.1): measured on SM_A556E — full 540 px/s speed on a touch
 # screen caused overshooting and twitchy dodging. 0.72 caps top speed to 390 px/s.
 const TOUCH_JOYSTICK_SPEED_SCALE: float = 0.72
@@ -120,7 +131,12 @@ func _ready() -> void:
 	_tilt.calibrate_current_position()
 	_state.launch_run(Types.GameMode.CLASSIC)
 	_run_controller.reset_run(_bounds)
-	Log.info("M2 boot: bounds=%s arena_scale=%f" % [_bounds, arena_scale(_bounds.x, _bounds.y)])
+	Log.info(
+		(
+			"M2 boot: bounds=%s arena_scale=%f"
+			% [_bounds, effective_arena_scale(_bounds.x, _bounds.y, OS.has_feature("mobile"))]
+		)
+	)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -295,6 +311,17 @@ static func arena_scale(width: float, height: float) -> float:
 	return maxf(0.60, minf(MAX_ARENA_SCALE, min_dim / 680.0))
 
 
+## arena_scale() with the mobile ceiling applied. See MOBILE_ARENA_SCALE_CEILING.
+static func effective_arena_scale(width: float, height: float, is_mobile: bool) -> float:
+	var scale: float = arena_scale(width, height)
+	return minf(scale, MOBILE_ARENA_SCALE_CEILING) if is_mobile else scale
+
+
+## The render-only entity multiplier for the platform. See MOBILE_MODEL_SCALE.
+static func model_scale_for(is_mobile: bool) -> float:
+	return MOBILE_MODEL_SCALE if is_mobile else 1.0
+
+
 ## The per-axis inset between the viewport edge and the playfield.
 # DIVERGENCE(M2.5 §6.2): no TypeScript counterpart.
 static func arena_inset(viewport: Vector2, safe: Rect2) -> Vector2:
@@ -323,7 +350,8 @@ func resize_canvas() -> void:
 	arena_origin = inset
 	_bounds = viewport - inset * 2.0
 
-	var scale: float = arena_scale(_bounds.x, _bounds.y)
+	var is_mobile: bool = OS.has_feature("mobile")
+	var scale: float = effective_arena_scale(_bounds.x, _bounds.y, is_mobile)
 	_player.set_scale(scale)
 	_swarm.set_scale(scale)
 	_weapons.set_scale(scale)
@@ -335,6 +363,7 @@ func resize_canvas() -> void:
 
 	_grid_layer.set_arena_origin(arena_origin)
 	_entity_layer.set_arena_origin(arena_origin)
+	_entity_layer.set_model_scale(model_scale_for(is_mobile))
 	_effect_layer.set_arena_origin(arena_origin)
 	_joystick_layer.set_arena_origin(arena_origin)
 

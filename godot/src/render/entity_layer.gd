@@ -25,6 +25,8 @@ const THRUSTER_COLOR: Color = Color("#00ddff")
 const TRAIL_COLOR: Color = Color(0.0, 220.0 / 255.0, 1.0, 0.4)
 ## PORT: web/src/tilt-to-live/PlayerShip.ts:356-357 (shielded stroke and core)
 const SHIELD_STROKE: Color = Color("#00ffff")
+## The orb radius the glyphs were drawn for. PORT: web/src/tilt-to-live/WeaponSystem.ts:593
+const BASE_ORB_RADIUS: float = 16.0
 
 ## The ship this layer draws. Null until bind() or bind_entities() is called.
 var _player: PlayerShip = null
@@ -46,6 +48,12 @@ var _enemy_skin: ProgressionManager.EnemySkinConfig = null
 # DIVERGENCE(M2.5 §6.1): the playfield is inset from the viewport, so every
 # draw call in playfield-local coordinates is translated by this.
 var _arena_origin: Vector2 = Vector2.ZERO
+
+# DIVERGENCE(mobile-scale): render-only entity multiplier, see
+# GameRoot.MOBILE_MODEL_SCALE. Every entity is drawn under a transform whose
+# scale is this, so its whole geometry — body, arms, rings, glyph — grows
+# together; sim radii and hitboxes are untouched.
+var _model_scale: float = 1.0
 
 
 func _draw() -> void:
@@ -108,6 +116,26 @@ func set_arena_origin(origin: Vector2) -> void:
 	_arena_origin = origin
 
 
+## Sets the render-only entity multiplier. Called by GameRoot.
+func set_model_scale(model_scale: float) -> void:
+	_model_scale = model_scale
+
+
+func get_model_scale() -> float:
+	return _model_scale
+
+
+## Puts one entity's playfield position at the origin, rotated and scaled by
+## the model scale, so its drawer works in entity-local pixels.
+func _begin_entity(pos: Vector2, angle: float = 0.0) -> void:
+	draw_set_transform(_arena_origin + pos, angle, Vector2.ONE * _model_scale)
+
+
+## Restores the standing arena transform _draw() set.
+func _end_entity() -> void:
+	draw_set_transform(_arena_origin, 0.0, Vector2.ONE)
+
+
 ## Coins, under the orbs (spec §5.5). PORT: web/src/tilt-to-live/CoinSystem.ts:126-175
 # PORT-NOTE: the radial gradient (:146-149, stops #FFE3B0 / COIN_COLOR /
 # #B8792A) is two flat circles per the M3 ruling: the disc in COIN_COLOR and
@@ -123,7 +151,8 @@ func _draw_coins() -> void:
 		var fade_alpha: float = 1.0
 		if coin.lifetime < CoinSystem.FADE_WARNING_TIME:
 			fade_alpha = maxf(0.15, coin.lifetime / CoinSystem.FADE_WARNING_TIME)  # PORT: :132
-		var pos: Vector2 = Vector2(coin.x, coin.y)
+		_begin_entity(Vector2(coin.x, coin.y))
+		var pos: Vector2 = Vector2.ZERO
 
 		# Soft amber glow halo. PORT: :139-142 (`${COIN_COLOR}33` = alpha 0x33)
 		var halo: Color = CoinSystem.COIN_COLOR
@@ -166,6 +195,7 @@ func _draw_coins() -> void:
 		)
 		upper.append_array(lower)
 		draw_polyline(upper, ink, 1.8)
+		_end_entity()
 
 
 # A quadratic Bézier (Canvas quadraticCurveTo) sampled as a polyline.
@@ -194,7 +224,8 @@ func _draw_weapons() -> void:
 
 		var pulse: float = 0.88 + 0.12 * sin(_elapsed * 6.0 + orb.pulse_offset)
 		var orb_col: Color = _weapons.get_weapon_color(orb.type)
-		var orb_pos: Vector2 = Vector2(orb.x, orb.y)
+		_begin_entity(Vector2(orb.x, orb.y))
+		var orb_pos: Vector2 = Vector2.ZERO
 
 		# Outer pulsing glow (PORT: WeaponSystem.ts:804-807)
 		var glow_col: Color = Color(orb_col.r, orb_col.g, orb_col.b, 0.2)
@@ -208,7 +239,18 @@ func _draw_weapons() -> void:
 		draw_arc(orb_pos, orb.radius, 0.0, TAU, 32, Color.WHITE, 1.8)
 
 		# Glyph symbols (PORT: WeaponSystem.ts:833-923)
+		# DIVERGENCE(mobile-scale): the TS draws the glyph at fixed pixels
+		# inside a bubble that scales with the arena (WeaponSystem.ts:593 sets
+		# radius = 16 * scale), so on a phone the symbol shrinks to a speck.
+		# The glyph is scaled to its bubble here; at desktop scale (~1.05)
+		# this is visually the TS.
+		draw_set_transform(
+			_arena_origin + Vector2(orb.x, orb.y),
+			0.0,
+			Vector2.ONE * _model_scale * (orb.radius / BASE_ORB_RADIUS)
+		)
 		_draw_orb_glyph(orb_pos, orb.type)
+		_end_entity()
 
 
 ## PORT: web/src/tilt-to-live/WeaponSystem.ts:833-923
@@ -326,10 +368,12 @@ func _draw_enemies() -> void:
 
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:1204-1222
 func _draw_frozen_dot(e: Types.Enemy) -> void:
-	var pos: Vector2 = Vector2(e.x, e.y)
+	_begin_entity(Vector2(e.x, e.y))
+	var pos: Vector2 = Vector2.ZERO
 	draw_circle(pos, e.radius + 3.0, Color(136.0 / 255.0, 238.0 / 255.0, 1.0, 0.45))
 	draw_arc(pos, e.radius + 1.0, 0.0, TAU, 24, Color.WHITE, 1.5)
 	draw_circle(pos, e.radius - 1.0, Color("#4488aa"))
+	_end_entity()
 
 
 ## `skin && skin.id !== 'classic'`. PORT: web/src/tilt-to-live/EnemySwarm.ts:1260
@@ -345,7 +389,7 @@ func _draw_charger(e: Types.Enemy) -> void:
 		if e.state == Types.EnemyState.CHARGING
 		else (e.aim_angle if not is_nan(e.aim_angle) else 0.0)
 	)
-	draw_set_transform(_arena_origin + Vector2(e.x, e.y), angle, Vector2.ONE)
+	_begin_entity(Vector2(e.x, e.y), angle)
 
 	# Laser telegraph line while aiming (PORT: EnemySwarm.ts:1229-1243)
 	if e.state == Types.EnemyState.AIMING:
@@ -391,13 +435,13 @@ func _draw_charger(e: Types.Enemy) -> void:
 	)  # PORT: EnemySwarm.ts:1277-1280
 	draw_colored_polygon(core, core_col)
 
-	draw_set_transform(_arena_origin, 0.0, Vector2.ONE)
+	_end_entity()
 
 
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:1289-1350
 func _draw_artillery(e: Types.Enemy) -> void:
 	var angle: float = e.aim_angle if not is_nan(e.aim_angle) else 0.0  # PORT: EnemySwarm.ts:1290
-	draw_set_transform(_arena_origin + Vector2(e.x, e.y), angle, Vector2.ONE)
+	_begin_entity(Vector2(e.x, e.y), angle)
 
 	# Cannon barrel (PORT: EnemySwarm.ts:1295-1299)
 	# PORT: EnemySwarm.ts:1293
@@ -440,13 +484,13 @@ func _draw_artillery(e: Types.Enemy) -> void:
 	draw_circle(Vector2.ZERO, 5.0 * optic_pulse, optic_col)
 	draw_circle(Vector2.ZERO, 2.0, Color.WHITE)
 
-	draw_set_transform(_arena_origin, 0.0, Vector2.ONE)
+	_end_entity()
 
 
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:1353-1385
 func _draw_bullet(e: Types.Enemy) -> void:
 	var angle: float = atan2(e.vy, e.vx)  # PORT: EnemySwarm.ts:1354
-	draw_set_transform(_arena_origin + Vector2(e.x, e.y), angle, Vector2.ONE)
+	_begin_entity(Vector2(e.x, e.y), angle)
 
 	# Plasma comet tail (PORT: EnemySwarm.ts:1358-1367)
 	var tail: PackedVector2Array = PackedVector2Array(
@@ -466,7 +510,7 @@ func _draw_bullet(e: Types.Enemy) -> void:
 	draw_circle(Vector2.ZERO, e.radius * 0.5, Color.WHITE)
 	draw_arc(Vector2.ZERO, e.radius, 0.0, TAU, 24, Color.WHITE, 1.2)  # PORT: EnemySwarm.ts:1379-1381
 
-	draw_set_transform(_arena_origin, 0.0, Vector2.ONE)
+	_end_entity()
 
 
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:1388-1444
@@ -483,7 +527,7 @@ func _draw_carrier(e: Types.Enemy) -> void:
 			draw_line(carrier_pos, Vector2(sat.x, sat.y), tether_col, 1.2)
 
 	# PORT: EnemySwarm.ts:1403
-	draw_set_transform(_arena_origin + carrier_pos, _elapsed * 0.45, Vector2.ONE)
+	_begin_entity(carrier_pos, _elapsed * 0.45)
 
 	# Pulsing orbital shield ring (PORT: EnemySwarm.ts:1406-1414)
 	var ring_col: Color = (
@@ -513,15 +557,17 @@ func _draw_carrier(e: Types.Enemy) -> void:
 	draw_circle(Vector2.ZERO, 8.0, core_col)
 	draw_circle(Vector2.ZERO, 3.5, Color.WHITE)
 
-	draw_set_transform(_arena_origin, 0.0, Vector2.ONE)
+	_end_entity()
 
 
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:1447-1466
 func _draw_satellite(e: Types.Enemy) -> void:
-	var pos: Vector2 = Vector2(e.x, e.y)
+	_begin_entity(Vector2(e.x, e.y))
+	var pos: Vector2 = Vector2.ZERO
 	draw_arc(pos, e.radius + 3.0, 0.0, TAU, 24, Color("#00e5ff"), 1.5)
 	draw_circle(pos, e.radius + 2.0, Color(0.0, 229.0 / 255.0, 1.0, 0.35))
 	draw_circle(pos, e.radius * 0.5, Color.WHITE)
+	_end_entity()
 
 
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:1469-1513
@@ -529,7 +575,8 @@ func _draw_satellite(e: Types.Enemy) -> void:
 ## alone (:1476, :1483, :1490, :1498), unlike charger/artillery/carrier which
 ## gate on skin.id !== 'classic' — the asymmetry is the TS's and is preserved.
 func _draw_pulsar(e: Types.Enemy) -> void:
-	var pos: Vector2 = Vector2(e.x, e.y)
+	_begin_entity(Vector2(e.x, e.y))
+	var pos: Vector2 = Vector2.ZERO
 	# PORT: EnemySwarm.ts:1470
 	var pulse_phase: float = (2.2 - e.pulse_timer) / 2.2 if not is_nan(e.pulse_timer) else 0.0
 	var ring_radius: float = e.radius + 5.0 + pulse_phase * 16.0  # PORT: EnemySwarm.ts:1471
@@ -558,6 +605,7 @@ func _draw_pulsar(e: Types.Enemy) -> void:
 		var r: float = e.radius * 0.55 if p % 2 == 0 else e.radius * 0.22  # PORT: EnemySwarm.ts:1502
 		star.append(pos + Vector2(cos(a) * r, sin(a) * r))
 	draw_colored_polygon(star, star_col)
+	_end_entity()
 
 
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:1516-1552
@@ -565,7 +613,8 @@ func _draw_pulsar(e: Types.Enemy) -> void:
 ## alone (:1521, :1530, :1537, :1545), matching pulsar's asymmetry — see
 ## _draw_pulsar's PORT-NOTE.
 func _draw_specter(e: Types.Enemy) -> void:
-	var pos: Vector2 = Vector2(e.x, e.y)
+	_begin_entity(Vector2(e.x, e.y))
+	var pos: Vector2 = Vector2.ZERO
 	# PORT: EnemySwarm.ts:1517
 	var alpha: float = e.stealth_opacity if not is_nan(e.stealth_opacity) else 0.65
 
@@ -590,11 +639,13 @@ func _draw_specter(e: Types.Enemy) -> void:
 	var pupil_col: Color = _enemy_skin.pupil_color if _enemy_skin != null else Color.WHITE
 	pupil_col.a = alpha
 	draw_circle(pos, 2.5, pupil_col)
+	_end_entity()
 
 
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:1554-1643 (default dot + turret indicator)
 func _draw_default_dot(e: Types.Enemy) -> void:
 	var e_pos: Vector2 = Vector2(e.x, e.y)
+	_begin_entity(e_pos)
 	var pulse: float = 0.85 + 0.15 * sin(_elapsed * 9.0 + float(e.id))
 
 	# Outer glow & high contrast halo (PORT: EnemySwarm.ts:1557-1572)
@@ -608,7 +659,7 @@ func _draw_default_dot(e: Types.Enemy) -> void:
 			halo_col = Color(1.0, 180.0 / 255.0, 0.0, 0.7)
 		else:
 			halo_col = Color(1.0, 30.0 / 255.0, 60.0 / 255.0, 0.7)
-		draw_arc(e_pos, (e.radius + 5.0) * pulse, 0.0, TAU, 24, halo_col, 1.2)
+		draw_arc(Vector2.ZERO, (e.radius + 5.0) * pulse, 0.0, TAU, 24, halo_col, 1.2)
 
 	# Outer glow color (PORT: EnemySwarm.ts:1574-1586)
 	var glow_col: Color
@@ -620,7 +671,7 @@ func _draw_default_dot(e: Types.Enemy) -> void:
 		glow_col = Color(1.0, 170.0 / 255.0, 0.0, 0.45)
 	else:
 		glow_col = Color(1.0, 30.0 / 255.0, 60.0 / 255.0, 0.35)
-	draw_circle(e_pos, (e.radius + 4.0) * pulse, glow_col)
+	draw_circle(Vector2.ZERO, (e.radius + 4.0) * pulse, glow_col)
 
 	# Core vibrant body (PORT: EnemySwarm.ts:1588-1610)
 	var body_col: Color
@@ -637,8 +688,8 @@ func _draw_default_dot(e: Types.Enemy) -> void:
 	else:
 		body_col = Color("#ee1133")
 		inner_col = Color("#ff6677")
-	draw_circle(e_pos, e.radius, body_col)
-	draw_circle(e_pos, e.radius * 0.65, inner_col)
+	draw_circle(Vector2.ZERO, e.radius, body_col)
+	draw_circle(Vector2.ZERO, e.radius * 0.65, inner_col)
 
 	# Border (PORT: EnemySwarm.ts:1612-1620)
 	var border_col: Color
@@ -650,7 +701,7 @@ func _draw_default_dot(e: Types.Enemy) -> void:
 		border_col = Color("#ffd555")
 	else:
 		border_col = Color("#ff8899")
-	draw_arc(e_pos, e.radius, 0.0, TAU, 24, border_col, 1.2)
+	draw_arc(Vector2.ZERO, e.radius, 0.0, TAU, 24, border_col, 1.2)
 
 	# Pupil / core dot (PORT: EnemySwarm.ts:1622-1632)
 	var pupil_col: Color
@@ -662,7 +713,7 @@ func _draw_default_dot(e: Types.Enemy) -> void:
 		pupil_col = Color("#221100")
 	else:
 		pupil_col = Color("#110005")
-	draw_circle(e_pos, e.radius * 0.38, pupil_col)
+	draw_circle(Vector2.ZERO, e.radius * 0.38, pupil_col)
 
 	# Turret dot warning indicator (PORT: EnemySwarm.ts:1635-1643)
 	if (
@@ -670,14 +721,14 @@ func _draw_default_dot(e: Types.Enemy) -> void:
 		and not is_nan(e.target_angle)
 		and e.orbit_center == Vector2.ZERO
 	):
-		draw_set_transform(_arena_origin + e_pos, e.target_angle, Vector2.ONE)
+		_begin_entity(e_pos, e.target_angle)
 		draw_line(
 			Vector2(e.radius, 0.0),
 			Vector2(e.radius + 18.0, 0.0),
 			Color(1.0, 50.0 / 255.0, 50.0 / 255.0, 0.5),
 			1.5
 		)
-		draw_set_transform(_arena_origin, 0.0, Vector2.ONE)
+	_end_entity()
 
 
 ## PORT-NOTE: Godot has no dash offset or dashed arc; this helper and
@@ -749,7 +800,9 @@ func _draw_player() -> void:
 	# DIVERGENCE(M2.5 §6.1): draw_set_transform replaces rather than composes, so the
 	# playfield origin must be re-applied here or the ship draws off its collision position.
 	draw_set_transform(
-		_arena_origin + Vector2(_player.x, _player.y), _player.angle, Vector2.ONE * _player.scale
+		_arena_origin + Vector2(_player.x, _player.y),
+		_player.angle,
+		Vector2.ONE * _player.scale * _model_scale
 	)
 
 	if _player.has_shield():

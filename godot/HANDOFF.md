@@ -12,6 +12,12 @@ Code-complete, **device pass pending** (none ticked in `PORT-PROGRESS.md`):
 **M3 — Enemy roster** (head `5bb5cc9`), **M4 — Weapons** (head `0b7fccf`),
 **M7 — Persistence and economy** (head `dba9126`),
 **M8 — Armory UI** (head is this commit, see above).
+Landed after M8 (2026-09-22): **mobile scale split** — on mobile only, the
+arena scale is capped (`GameRoot.MOBILE_ARENA_SCALE_CEILING`) and entities
+are drawn larger (`GameRoot.MOBILE_MODEL_SCALE`, applied by
+`EntityLayer.set_model_scale()`); the orb glyph scales with its bubble
+everywhere. Desktop unchanged; device checks in `VERIFY-ME.md` under
+"Mobile scale split".
 Nothing since M2 has run on a phone: the A55 dropped off adb on 2026-09-20 and
 did not return; the user then ran their own pass and committed tuning as
 `c023e09` (gyro feel + FPS under mass explosions). It was still absent from
@@ -36,25 +42,26 @@ Branch: `feat/godot-port` (no upstream; nothing pushed).
 cd /c/Users/Jesury/Documents/Personal/dread-flock
 GODOT="/c/Users/Jesury/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe"
 
-tools/run_tests.sh                        # expect: OK: 42/42 scripts (362 tests, 4289 asserts)
+tools/run_tests.sh                        # expect: OK: 42/42 scripts (367 tests, 4299 asserts)
 gdformat --check godot/src godot/tests    # expect: 75 files would be left unchanged
 gdlint godot/src godot/tests              # expect: Success: no problems found
-grep -rn "DIVERGENCE" godot/src/ | wc -l  # expect: 71
+grep -rn "DIVERGENCE" godot/src/ | wc -l  # expect: 74
 "$GODOT" --headless --path godot --quit-after 120   # expect: exit 0, no SCRIPT ERROR
 git checkout godot/project.godot          # headless runs strip one default-valued line; never commit that
 ```
 
-Every command above was run fresh at this commit (2026-09-22, the
-final-review fix wave) and passed: `OK: 42/42 scripts collected, all tests
-passed` (Tests 362, Passing Tests 362, Asserts 4289 — one test grew by the
-final-review fix wave's new spec, `test_armory_root_and_overlay_cover_the_
-whole_viewport`); `gdformat --check` reported `75 files would be left
-unchanged`; `gdlint` reported `Success: no problems found`; `grep -rn
-"DIVERGENCE" godot/src/ | wc -l` printed `71` (one divergence — the
-mobile-chrome gate on `OS.has_feature("mobile")` — cited twice in
-`armory_ui.gd`, so 70 divergences show as 71 grep hits); the headless run's
-`grep -c "SCRIPT ERROR"` printed `0`; `git status --short` was empty before
-and after. `grep -rn "TODO(M8)" godot/src/ godot/tests/` is empty; `grep -n
+Every command above was run fresh at this commit (2026-09-22, the mobile
+scale split) and passed: `OK: 42/42 scripts collected, all tests passed`
+(Tests 367, Passing Tests 367, Asserts 4299 — five specs added by the scale
+split, four in `test_arena_scale.gd` and one in `test_render_layers.gd`);
+`gdformat --check` reported `75 files would be left unchanged`; `gdlint`
+reported `Success: no problems found`; `grep -rn "DIVERGENCE" godot/src/ |
+wc -l` printed `74` (71 before: the scale split adds three
+`DIVERGENCE(mobile-scale)` hits — `game_root.gd` and two in
+`entity_layer.gd`; the earlier count already includes the mobile-chrome gate
+cited twice in `armory_ui.gd`); the headless run's `grep -c "SCRIPT ERROR"`
+printed `0`; `git status --short` was empty before and after. `grep -rn
+"TODO(M8)" godot/src/ godot/tests/` is empty; `grep -n
 "draw_set_transform(Vector2(" godot/src/render/` is empty. `adb devices`
 returns no attached devices.
 
@@ -618,6 +625,27 @@ kept running after death must re-read this.
 - `GameRoot` now sets `phase = GAME_OVER` on `run_ended`
   (`TiltGame.ts:2073`); the sim stops ticking after death, as in the web
   game — was a pre-existing M2 divergence, closed here.
+
+## Mobile scale split — what landed (2026-09-22)
+
+One commit after M8. The user's A55 report: models and weapon orbs too small,
+the map too large. Previously the single `arena_scale()` (1.588 on the A55)
+drove entity size *and* ranges/spacing/speeds, so there was no knob to move
+one without the other, and the orb glyph was a fixed-pixel speck (a faithful
+port of the same TS bug).
+
+| Change | Where |
+|---|---|
+| `MOBILE_ARENA_SCALE_CEILING = 1.25`, `effective_arena_scale(w, h, is_mobile)` | `src/core/game_root.gd` — `resize_canvas()` feeds it to the sim; `arena_scale()` and its TS fixture are untouched |
+| `MOBILE_MODEL_SCALE = 1.5`, `model_scale_for(is_mobile)` | `src/core/game_root.gd` → `EntityLayer.set_model_scale()` |
+| Every entity drawn under `_begin_entity(pos, angle)` / `_end_entity()` (transform scale = model scale) | `src/render/entity_layer.gd` — coins, orbs, all nine enemy drawers, player |
+| Orb glyph scaled by `orb.radius / BASE_ORB_RADIUS` (16, `WeaponSystem.ts:593`) | `src/render/entity_layer.gd` `_draw_weapons()` |
+| Specs | `tests/test_arena_scale.gd` (4 new), `tests/test_render_layers.gd` (1 new: every drawer at scale 1.5, no SCRIPT ERROR) |
+
+Render-only by design: sim files are untouched (M2.5 §2.3 stays true) and
+hitboxes stay at sim size. The `effect_layer.gd` (particles, blasts, shards)
+is deliberately not model-scaled — it draws map-scale things.
+Both constants are provisional; the VERIFY-ME section says which to move.
 
 ## Next
 

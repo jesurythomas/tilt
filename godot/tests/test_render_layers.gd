@@ -362,3 +362,42 @@ func test_entity_layer_draws_every_ship_shape() -> void:
 	await get_tree().process_frame
 	assert_true(true, "seven hulls and the null fallback drew without a script error")
 	_remove_save()
+
+
+# DIVERGENCE(mobile-scale): the model scale is a render-only multiplier with
+# no TypeScript counterpart; this exercises every enemy drawer under it.
+func test_entity_layer_draws_every_entity_kind_at_a_model_scale() -> void:
+	var layer: EntityLayer = EntityLayer.new()
+	assert_almost_eq(layer.get_model_scale(), 1.0, 0.0001, "sim size by default")
+	layer.set_model_scale(1.5)
+	assert_almost_eq(layer.get_model_scale(), 1.5, 0.0001)
+
+	var bounds: Vector2 = Vector2(1000.0, 600.0)
+	var player: PlayerShip = PlayerShip.new(500.0, 300.0)
+	var swarm: EnemySwarm = EnemySwarm.new()
+	var weapons: WeaponSystem = WeaponSystem.new()
+	var coins: CoinSystem = CoinSystem.new()
+	layer.bind_entities(player, swarm, weapons, coins)
+
+	for type: Types.WeaponType in Types.WeaponType.values():
+		weapons.spawn_orb(Vector2(100.0, 100.0), type)
+	swarm.spawn_seeker(bounds).frozen = true
+	swarm.spawn_seeker(bounds)
+	swarm.spawn_charger(bounds, Vector2(player.x, player.y))
+	swarm.spawn_pulsar(bounds, Vector2(player.x, player.y))
+	swarm.spawn_specter(bounds, Vector2(player.x, player.y))
+	swarm.spawn_artillery(bounds, Vector2(player.x, player.y))
+	swarm.spawn_bullet(10.0, 10.0, Vector2(player.x, player.y))
+	swarm.spawn_carrier(bounds, Vector2(player.x, player.y))
+	swarm.spawn_turret(bounds)
+	var coin: CoinSystem.CoinPickup = CoinSystem.CoinPickup.new()
+	coin.x = 300.0
+	coin.y = 300.0
+	coin.radius = CoinSystem.COIN_RADIUS
+	coin.lifetime = 1.0
+	coins.coins.append(coin)
+
+	add_child_autofree(layer)
+	layer.queue_redraw()
+	await wait_frames(2)
+	assert_true(true, "every drawer ran under a non-unit model scale")
