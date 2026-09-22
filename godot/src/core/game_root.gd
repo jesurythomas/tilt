@@ -61,6 +61,8 @@ var _bounds: Vector2 = Vector2.ZERO
 @onready var _entity_layer: EntityLayer = %EntityLayer
 @onready var _effect_layer: EffectLayer = %EffectLayer
 @onready var _joystick_layer: JoystickLayer = %JoystickLayer
+@onready var _hud: HudController = find_child("Hud", true, false) as HudController
+@onready var _armory: ArmoryUI = %Armory
 
 
 func _ready() -> void:
@@ -98,6 +100,13 @@ func _ready() -> void:
 	_effect_layer.bind(_particles, _scores, _weapons)
 	_joystick_layer.bind(_joystick)
 
+	# PORT: web/src/tilt-to-live/TiltGame.ts:180-184
+	_armory.bind(progression)
+	_armory.state_changed.connect(_on_armory_state_changed)
+	_armory.closed.connect(_on_armory_closed)
+	_apply_equipped_cosmetics()
+	GameEvents.run_ended.connect(_on_run_ended)
+
 	resize_canvas()
 	get_viewport().size_changed.connect(resize_canvas)
 
@@ -133,6 +142,21 @@ func _unhandled_input(event: InputEvent) -> void:
 			return
 	else:
 		_touch.handle_event(event, _router, arena_origin)
+
+	# PORT: web/src/tilt-to-live/TiltGame.ts:1319-1328 — b/u toggle, Escape closes.
+	# TODO(M11): 'p'/Escape pause toggle (:1329-1330) lands with the menu's key map.
+	if event is InputEventKey:
+		var armory_key: InputEventKey = event
+		if armory_key.pressed and not armory_key.echo:
+			if armory_key.keycode == KEY_B or armory_key.keycode == KEY_U:
+				if _armory.is_open():
+					close_armory()
+				else:
+					open_armory()
+				return
+			if armory_key.keycode == KEY_ESCAPE and _armory.is_open():
+				close_armory()
+				return
 
 	if event is InputEventKey:
 		var key_event: InputEventKey = event
@@ -243,6 +267,25 @@ func restart_run() -> void:
 	GameEvents.phase_changed.emit(Types.GamePhase.PLAYING)
 
 
+## PORT: web/src/tilt-to-live/TiltGame.ts:2343-2350
+func open_armory(tab: String = "") -> void:
+	if _state.phase == Types.GamePhase.PLAYING:
+		_state.phase = Types.GamePhase.PAUSED
+		_hud.set_pause_panel_visible(false)
+		# TODO(M5): audio.stopMusic() (:2347).
+	_armory.open(tab)
+
+
+## PORT: web/src/tilt-to-live/TiltGame.ts:2352-2354
+func close_armory() -> void:
+	_armory.close()
+
+
+## True while the Armory overlay is up.
+func is_armory_open() -> bool:
+	return _armory.is_open()
+
+
 ## Calculates the arena scale factor for a viewport dimension.
 ## PORT: web/src/tilt-to-live/TiltGame.ts:2422-2431
 static func arena_scale(width: float, height: float) -> float:
@@ -294,3 +337,50 @@ func resize_canvas() -> void:
 	_entity_layer.set_arena_origin(arena_origin)
 	_effect_layer.set_arena_origin(arena_origin)
 	_joystick_layer.set_arena_origin(arena_origin)
+
+	# The Armory shares the HUD's ui_scale; on mobile its edge-to-edge panel is
+	# inset by arena_origin so it stays inside the safe area (spec §8 M8).
+	_armory.set_ui_scale(HudController.ui_scale_for(viewport))
+	_armory.offset_left = arena_origin.x
+	_armory.offset_top = arena_origin.y
+	_armory.offset_right = -arena_origin.x
+	_armory.offset_bottom = -arena_origin.y
+
+
+## PORT: web/src/tilt-to-live/TiltGame.ts:2073 (triggerPlayerDeath's phase flip)
+# PORT-NOTE: the TS sets this.phase = 'gameOver' inside triggerPlayerDeath, but
+# the port put that method in the sim (run_controller.gd:266-278), which only
+# emits GameEvents.run_ended and GameEvents.phase_changed(GAME_OVER) — a sim
+# system may not hold GamePhase (spec §5.3, sim→game only via signals). The
+# shell mirrors the sim's run_ended signal here instead.
+func _on_run_ended(_final_score: int, _stats: Types.GameStats) -> void:
+	_state.phase = Types.GamePhase.GAME_OVER
+
+
+## handleProgressionChanged. PORT: web/src/tilt-to-live/TiltGame.ts:2356-2361
+# PORT-NOTE: updateHUD (:2357) is signal-driven here and has nothing to
+# refresh; goalsHUD.render (:2358) is M9's; menu.render (:2359) is M11's;
+# updateCursor (:2360) has no pointer on Android. What a purchase does change
+# on this platform is the equipped cosmetics the layers draw.
+func _on_armory_state_changed() -> void:
+	_apply_equipped_cosmetics()
+
+
+## handleArmoryClosed. PORT: web/src/tilt-to-live/TiltGame.ts:2379-2385
+func _on_armory_closed() -> void:
+	if _state.phase == Types.GamePhase.PAUSED:
+		_hud.set_pause_panel_visible(true)
+	# TODO(M9): goalsHUD.render (:2383). TODO(M11): menu.render (:2384).
+	_apply_equipped_cosmetics()
+
+
+## PORT: web/src/tilt-to-live/TiltGame.ts:2310-2312 — the render call reads the
+## equipped cursor/ship, enemy skin and arena theme every frame.
+# PORT-NOTE: pushed into the layers on boot and after each Armory change
+# instead of read per frame: equipping happens nowhere else, and the layers
+# never hold a ProgressionManager (spec §5.2 keeps them dumb). The menu
+# backdrop (M11) passes null for all three (:2274-2276).
+func _apply_equipped_cosmetics() -> void:
+	_entity_layer.set_ship_skin(progression.get_equipped_ship())
+	_entity_layer.set_enemy_skin(progression.get_equipped_enemy_skin())
+	_grid_layer.set_arena_theme(progression.get_equipped_arena_theme())

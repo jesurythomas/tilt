@@ -40,6 +40,8 @@ const PULSE_SECONDS: float = 0.22  # DIVERGENCE(HUD-FEEDBACK §4)
 var _pause_button: Button = null
 var _pause_panel: Control = null
 var _resume_button: Button = null
+var _pause_armory_button: Button = null
+var _game_over_armory_button: Button = null
 var _pickers: Array[ControlPicker] = []
 var _score_margin: MarginContainer = null
 # I3: the scene-authored offsets, captured before _apply_arena_origin() ever
@@ -118,6 +120,14 @@ func _ready() -> void:
 	if _resume_button != null:
 		_resume_button.pressed.connect(_on_pause_pressed)
 
+	# PORT: web/src/tilt-to-live/TiltGame.ts:1436-1438, :1457-1459
+	_pause_armory_button = find_child("PauseArmoryButton", true, false) as Button
+	if _pause_armory_button != null:
+		_pause_armory_button.pressed.connect(_on_armory_pressed)
+	_game_over_armory_button = find_child("GameOverArmoryButton", true, false) as Button
+	if _game_over_armory_button != null:
+		_game_over_armory_button.pressed.connect(_on_armory_pressed)
+
 	for picker: Node in find_children("*", "ControlPicker", true, false):
 		var typed: ControlPicker = picker as ControlPicker
 		if typed != null:
@@ -150,6 +160,18 @@ func set_ui_scale(scale: float) -> void:
 		)
 	for picker: ControlPicker in _pickers:
 		picker.set_ui_scale(scale)
+	for button: Button in [_pause_armory_button, _game_over_armory_button]:
+		if button != null:
+			button.custom_minimum_size.y = ControlPicker.BASE_TOUCH_TARGET * scale
+
+
+## Shows or hides the pause overlay without changing the phase.
+## PORT: web/src/tilt-to-live/TiltGame.ts:2346 (hidden under the Armory), :2381 (restored)
+func set_pause_panel_visible(is_visible: bool) -> void:
+	if _pause_panel != null:
+		_pause_panel.visible = is_visible
+		if is_visible:
+			_sync_pickers()
 
 
 ## The ui_scale implied by a viewport size.
@@ -300,6 +322,14 @@ func _on_pause_pressed() -> void:
 		# gap leaves the pause overlay's picker unmarked until this surface
 		# opens.
 		_sync_pickers()
+
+
+## PORT: web/src/tilt-to-live/TiltGame.ts:1436-1438, :1457-1459
+func _on_armory_pressed() -> void:
+	var root: GameRoot = get_tree().get_first_node_in_group("game_root") as GameRoot
+	if root == null:
+		return
+	root.open_armory()
 
 
 func _on_scheme_chosen(scheme: Types.ControlScheme) -> void:

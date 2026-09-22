@@ -44,6 +44,8 @@ var _background: GradientTexture2D = null
 # DIVERGENCE(M2.5 §6.1): the playfield is inset from the viewport, so every
 # draw call in playfield-local coordinates is translated by this.
 var _arena_origin: Vector2 = Vector2.ZERO
+## The equipped arena theme; null keeps TiltRenderer.ts:60-62's defaults.
+var _arena_theme: ProgressionManager.ArenaThemeConfig = null
 
 
 func _ready() -> void:
@@ -100,6 +102,15 @@ func bind(grid: VectorGrid) -> void:
 ## Sets the playfield's top-left corner in viewport space. Called by GameRoot.
 func set_arena_origin(origin: Vector2) -> void:
 	_arena_origin = origin
+
+
+## Sets the arena theme. PORT: web/src/tilt-to-live/TiltGame.ts:2312
+func set_arena_theme(theme_config: ProgressionManager.ArenaThemeConfig) -> void:
+	_arena_theme = theme_config
+
+
+func get_arena_theme() -> ProgressionManager.ArenaThemeConfig:
+	return _arena_theme
 
 
 ## PORT: web/src/tilt-to-live/VectorGrid.ts:86-117

@@ -7,6 +7,22 @@ extends GutTest
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
 
 
+func _remove(path: String) -> void:
+	var absolute: String = ProjectSettings.globalize_path(path)
+	if FileAccess.file_exists(absolute):
+		DirAccess.remove_absolute(absolute)
+
+
+func before_each() -> void:
+	_remove(ProgressionManager.SAVE_PATH)
+	_remove(SaveStore.corrupt_path_for(ProgressionManager.SAVE_PATH))
+
+
+func after_each() -> void:
+	_remove(ProgressionManager.SAVE_PATH)
+	_remove(SaveStore.corrupt_path_for(ProgressionManager.SAVE_PATH))
+
+
 func test_main_scene_exposes_required_hud_nodes() -> void:
 	var root: Node = MAIN_SCENE.instantiate()
 	add_child_autofree(root)
@@ -29,7 +45,9 @@ func test_main_scene_exposes_required_hud_nodes() -> void:
 		var node: Node = root.find_child(control_name, true, false)
 		assert_true(node is Control, "%s must exist and be a Control" % control_name)
 
-	var buttons: Array[String] = ["RestartButton", "PauseButton", "ResumeButton"]
+	var buttons: Array[String] = [
+		"RestartButton", "PauseButton", "ResumeButton", "PauseArmoryButton", "GameOverArmoryButton"
+	]
 	for button_name: String in buttons:
 		var node: Node = root.find_child(button_name, true, false)
 		assert_true(node is Button, "%s must exist and be a Button" % button_name)
@@ -95,3 +113,123 @@ func test_control_pickers_report_a_nonzero_minimum_height() -> void:
 			0.0,
 			"a zero minimum height overflows the HBox onto RESUME / PLAY AGAIN"
 		)
+
+
+func test_main_scene_carries_the_armory_and_its_buttons() -> void:
+	var root: Node = MAIN_SCENE.instantiate()
+	add_child_autofree(root)
+	var armory: Node = root.find_child("Armory", true, false)
+	assert_true(armory is ArmoryUI, "Armory must be instanced under CanvasLayer")
+	assert_false((armory as ArmoryUI).visible, "closed at boot")
+	var canvas: Node = root.find_child("CanvasLayer", true, false)
+	assert_eq(armory.get_parent(), canvas, "same CanvasLayer as the HUD, after it")
+	assert_gt(
+		armory.get_index(), root.find_child("Hud", true, false).get_index(), "draws above the HUD"
+	)
+	assert_true(root.find_child("PauseArmoryButton", true, false) is Button)
+	assert_true(root.find_child("GameOverArmoryButton", true, false) is Button)
+
+
+func test_pause_armory_button_leaves_the_pause_panel_under_the_overlay() -> void:
+	# PORT: web/src/tilt-to-live/TiltGame.ts:2343-2347 (branch not taken from
+	# an already-paused phase), :2379-2385
+	# PORT-NOTE: the phase is already PAUSED here, so the playing→paused
+	# branch at :2344 is skipped and the pause modal is never hidden; on the
+	# web the Armory's z-100 overlay (game.css:1603) simply draws over it, and
+	# handleArmoryClosed's classList.remove('hidden') (:2380) is then a no-op.
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	var pause_button: Button = root.find_child("PauseButton", true, false) as Button
+	pause_button.pressed.emit()
+	assert_true(root.is_paused())
+	var pause_panel: Control = root.find_child("PausePanel", true, false) as Control
+	assert_true(pause_panel.visible)
+
+	var armory_button: Button = root.find_child("PauseArmoryButton", true, false) as Button
+	armory_button.pressed.emit()
+	assert_true(root.is_armory_open())
+	assert_true(root.is_paused(), "still paused underneath")
+	assert_true(
+		pause_panel.visible, "already paused; the playing→paused branch isn't taken (:2344)"
+	)
+
+	root.close_armory()
+	assert_false(root.is_armory_open())
+	assert_true(
+		pause_panel.visible, "handleArmoryClosed's remove('hidden') is a no-op here (:2380)"
+	)
+	assert_true(root.is_paused())
+
+
+func test_opening_the_armory_while_playing_pauses() -> void:
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	assert_false(root.is_paused())
+	root.open_armory("boosts")
+	assert_true(root.is_paused(), "openArmory pauses a live run (:2344-2345)")
+	var armory: ArmoryUI = root.find_child("Armory", true, false) as ArmoryUI
+	assert_eq(armory.active_tab, ArmoryUI.Tab.BOOSTS)
+	var pause_panel: Control = root.find_child("PausePanel", true, false) as Control
+	assert_false(pause_panel.visible)
+	root.close_armory()
+	assert_true(pause_panel.visible, "the player resumes from the pause overlay")
+
+
+func test_game_over_armory_button_opens_without_touching_phase() -> void:
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	var stats: Types.GameStats = Types.GameStats.new()
+	GameEvents.run_ended.emit(0, stats)
+	var button: Button = root.find_child("GameOverArmoryButton", true, false) as Button
+	button.pressed.emit()
+	assert_true(root.is_armory_open())
+	assert_false(root.is_paused(), "game-over is not the playing phase; nothing to pause (:2344)")
+	root.close_armory()
+	var pause_panel: Control = root.find_child("PausePanel", true, false) as Control
+	assert_false(
+		pause_panel.visible, "handleArmoryClosed only restores the modal when paused (:2380)"
+	)
+
+
+func test_b_key_toggles_and_escape_closes_the_armory() -> void:
+	# PORT: web/src/tilt-to-live/TiltGame.ts:1319-1328
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	var pause_panel: Control = root.find_child("PausePanel", true, false) as Control
+	var key: InputEventKey = InputEventKey.new()
+	key.keycode = KEY_B
+	key.pressed = true
+	root._unhandled_input(key)
+	assert_true(root.is_armory_open())
+	assert_true(root.is_paused(), "b from PLAYING pauses the run (:2344-2345)")
+	assert_false(pause_panel.visible, "pauseModal hidden on the playing→paused transition (:2346)")
+	root._unhandled_input(key)
+	assert_false(root.is_armory_open(), "b toggles")
+	assert_true(pause_panel.visible, "pauseModal restored on close (:2380-2381)")
+	key.keycode = KEY_U
+	root._unhandled_input(key)
+	assert_true(root.is_armory_open(), "u toggles too")
+	key.keycode = KEY_ESCAPE
+	root._unhandled_input(key)
+	assert_false(root.is_armory_open(), "Escape closes")
+
+
+func test_armory_state_change_pushes_cosmetics_to_the_layers() -> void:
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	root.progression.equip_ship("tactical")
+	var armory: ArmoryUI = root.find_child("Armory", true, false) as ArmoryUI
+	armory.state_changed.emit()
+	var entity_layer: EntityLayer = root.find_child("EntityLayer", true, false) as EntityLayer
+	assert_eq(
+		entity_layer.get_ship_skin().id,
+		"tactical",
+		"handleProgressionChanged → layers (:2356-2361)"
+	)
+	var grid_layer: GridLayer = root.find_child("GridLayer", true, false) as GridLayer
+	assert_eq(grid_layer.get_arena_theme().id, "void")

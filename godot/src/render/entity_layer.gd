@@ -35,6 +35,10 @@ var _coins: CoinSystem = null
 var _elapsed: float = 0.0
 ## Outer high contrast halo toggle. PORT: web/src/tilt-to-live/EnemySwarm.ts:1558
 var _high_contrast_halo: bool = true
+## The equipped ship; null draws PlayerShip.ts:274-293's classic fallback.
+var _ship_skin: ProgressionManager.ShipSkinConfig = null
+## The equipped enemy skin; null is the no-skin arm (the menu backdrop's case).
+var _enemy_skin: ProgressionManager.EnemySkinConfig = null
 
 # DIVERGENCE(M2.5 §6.1): the playfield is inset from the viewport, so every
 # draw call in playfield-local coordinates is translated by this.
@@ -76,6 +80,24 @@ func set_elapsed(elapsed: float) -> void:
 ## Sets whether enemy high contrast halo is drawn.
 func set_high_contrast_halo(enabled: bool) -> void:
 	_high_contrast_halo = enabled
+
+
+## Sets the ship skin the player is drawn with. PORT: web/src/tilt-to-live/TiltGame.ts:2310
+func set_ship_skin(skin: ProgressionManager.ShipSkinConfig) -> void:
+	_ship_skin = skin
+
+
+func get_ship_skin() -> ProgressionManager.ShipSkinConfig:
+	return _ship_skin
+
+
+## Sets the enemy skin every dot is drawn with. PORT: web/src/tilt-to-live/TiltGame.ts:2311
+func set_enemy_skin(skin: ProgressionManager.EnemySkinConfig) -> void:
+	_enemy_skin = skin
+
+
+func get_enemy_skin() -> ProgressionManager.EnemySkinConfig:
+	return _enemy_skin
 
 
 ## Sets the playfield's top-left corner in viewport space. Called by GameRoot.
