@@ -154,6 +154,11 @@ const ARENA_BODY_PAD_X: int = 16
 const ARENA_BODY_GAP: int = 8
 const ARENA_SECTION_GAP: int = 24
 
+## Boosts layout. PORT: web/src/styles/game.css:2043-2045 (2 cols, gap 10), :2051 (card gap 10)
+const BOOST_COLUMNS: int = 2
+const BOOST_GRID_GAP: int = 10
+const BOOST_CARD_GAP: int = 10
+
 ## The save every tab reads and every purchase writes. PORT: web/src/tilt-to-live/ArmoryUI.ts:75
 var progression: ProgressionManager = null
 ## PORT: web/src/tilt-to-live/ArmoryUI.ts:80
@@ -204,6 +209,7 @@ func _ready() -> void:
 		_tab_buttons.append(button)
 
 	weapons_catalog = _build_weapons_catalog()
+	boosts_catalog = _build_boosts_catalog()
 	set_ui_scale(1.0)
 
 
@@ -826,11 +832,65 @@ func _render_handling_tab() -> Control:
 	return tab
 
 
-## Task 5 replaces this. PORT: web/src/tilt-to-live/ArmoryUI.ts:889-937
+## PORT: web/src/tilt-to-live/ArmoryUI.ts:889-937
 func _render_boosts_tab() -> Control:
-	var tab: VBoxContainer = VBoxContainer.new()
-	tab.name = "BoostsTab"
-	return tab
+	var points: int = progression.data.points
+
+	var column: VBoxContainer = VBoxContainer.new()
+	column.name = "BoostsTab"
+	column.add_theme_constant_override("separation", int(SUB_HEADER_GAP * _ui_scale))
+	column.add_child(
+		_sub_header(
+			"BoostsPill", "Boosts", "Permanent, stacking upgrades that carry into every run."
+		)
+	)  # PORT: :928-931
+
+	var grid: GridContainer = GridContainer.new()  # PORT: :932-934
+	grid.columns = BOOST_COLUMNS
+	grid.add_theme_constant_override("h_separation", int(BOOST_GRID_GAP * _ui_scale))
+	grid.add_theme_constant_override("v_separation", int(BOOST_GRID_GAP * _ui_scale))
+	for boost: BoostConfig in boosts_catalog:
+		# PORT-NOTE: Callable.call() always returns Variant in GDScript 4.7.2,
+		# even though get_rank/get_cost are typed `func() -> int` closures —
+		# Callable carries no generic signature. `int()` also rejects a
+		# Variant argument under UNSAFE_CALL_ARGUMENT, so the cast the TS's
+		# dynamic dispatch requires cannot be made statically safe; ignored
+		# per CONVENTIONS §1.1.
+		@warning_ignore("unsafe_cast")
+		var current_rank: int = boost.get_rank.call() as int
+		@warning_ignore("unsafe_cast")
+		var cost: int = boost.get_cost.call() as int
+		var is_maxed: bool = cost == Types.ABSENT  # PORT: :896 (cost === null)
+		var can_afford: bool = not is_maxed and points >= cost
+
+		var card: PanelContainer = _card()  # PORT: :906-921
+		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var inner: MarginContainer = card.get_child(0) as MarginContainer
+		var body: VBoxContainer = VBoxContainer.new()
+		body.add_theme_constant_override("separation", int(BOOST_CARD_GAP * _ui_scale))
+		body.add_child(_label_of(boost.name, "HeadingLabel"))
+		body.add_child(_label_of(boost.effect, "MutedLabel"))
+		body.add_child(_pips(current_rank, boost.max_rank))  # PORT: :899-903
+		var rank: Label = _label_of("%d/%d" % [current_rank, boost.max_rank], "MonoLabel")  # PORT: :912
+		rank.name = "BoostRank_" + boost.id
+		body.add_child(rank)
+		var buy: Button = Button.new()  # PORT: :913-920
+		buy.name = "Boost_" + boost.id
+		buy.custom_minimum_size = Vector2(
+			ArmoryTheme.ACTION_BUTTON_WIDTH * _ui_scale,
+			ArmoryTheme.ACTION_BUTTON_HEIGHT * _ui_scale
+		)
+		buy.disabled = is_maxed or not can_afford
+		buy.text = "Maxed ✓" if is_maxed else format_points(cost)
+		buy.pressed.connect(_on_boost_pressed.bind(boost.id))
+		body.add_child(buy)
+		inner.add_child(body)
+		grid.add_child(card)
+	column.add_child(grid)
+
+	var margin: MarginContainer = _margin(DETAIL_PAD_Y, DETAIL_PAD_X)
+	margin.add_child(column)
+	return _scroll_body(margin)
 
 
 ## Task 6 replaces this. PORT: web/src/tilt-to-live/ArmoryUI.ts:943-1106
@@ -877,6 +937,16 @@ func _on_keystone_pressed(weapon: String, keystone: String) -> void:
 	if progression.upgrade_perk(weapon, keystone):
 		state_changed.emit()
 		render()
+
+
+## PORT: web/src/tilt-to-live/ArmoryUI.ts:1186-1196
+func _on_boost_pressed(boost_id: String) -> void:
+	for boost: BoostConfig in boosts_catalog:
+		if boost.id == boost_id:
+			if boost.buy.call():
+				state_changed.emit()
+				render()
+			return
 
 
 ## PORT: web/src/tilt-to-live/ArmoryUI.ts:1199-1207
@@ -1361,6 +1431,92 @@ func _build_weapons_catalog() -> Array[WeaponConfig]:
 		)
 	)
 	return out
+
+
+## PORT: web/src/tilt-to-live/ArmoryUI.ts:222-268
+func _build_boosts_catalog() -> Array[BoostConfig]:
+	var out: Array[BoostConfig] = []
+	# PORT: :223-231
+	out.append(
+		_boost(
+			"extraLives",
+			"Extra Life",
+			"+1 starting life / rank",
+			2,
+			func() -> int: return progression.data.extra_lives,
+			func() -> int: return progression.get_extra_lives_cost(),
+			func() -> bool: return progression.buy_extra_life()
+		)
+	)
+	# PORT: :232-240
+	out.append(
+		_boost(
+			"hullCompact",
+			"Hull Compact",
+			"-6% hitbox / rank",
+			3,
+			func() -> int: return progression.data.hull_compact,
+			func() -> int: return progression.get_hull_compact_cost(),
+			func() -> bool: return progression.buy_hull_compact()
+		)
+	)
+	# PORT: :241-249
+	out.append(
+		_boost(
+			"enemySlow",
+			"Enemy Slow",
+			"-4% enemy speed / rank",
+			3,
+			func() -> int: return progression.data.enemy_slow,
+			func() -> int: return progression.get_enemy_slow_cost(),
+			func() -> bool: return progression.buy_enemy_slow()
+		)
+	)
+	# PORT: :250-258
+	out.append(
+		_boost(
+			"scoreMultiplier",
+			"Score Multiplier",
+			"+10% in-run score / rank",
+			4,
+			func() -> int: return progression.data.score_multiplier,
+			func() -> int: return progression.get_score_multiplier_cost(),
+			func() -> bool: return progression.buy_score_multiplier()
+		)
+	)
+	# PORT: :259-267
+	out.append(
+		_boost(
+			"pointsMultiplier",
+			"Points Multiplier",
+			"+10% points earned / rank",
+			4,
+			func() -> int: return progression.data.points_multiplier,
+			func() -> int: return progression.get_points_multiplier_cost(),
+			func() -> bool: return progression.buy_points_multiplier()
+		)
+	)
+	return out
+
+
+func _boost(
+	id: String,
+	name: String,
+	effect: String,
+	max_rank: int,
+	get_rank: Callable,
+	get_cost: Callable,
+	buy: Callable
+) -> BoostConfig:
+	var b: BoostConfig = BoostConfig.new()
+	b.id = id
+	b.name = name
+	b.effect = effect
+	b.max_rank = max_rank
+	b.get_rank = get_rank
+	b.get_cost = get_cost
+	b.buy = buy
+	return b
 
 
 ## Every track in the TS catalog has maxRank 5 (:104-196).

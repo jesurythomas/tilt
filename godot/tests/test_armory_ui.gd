@@ -430,3 +430,60 @@ func test_unaffordable_theme_is_disabled() -> void:
 	_armory.open("arena")
 	assert_true(_button("BuyArena_blueprint").disabled)
 	assert_true(_button("BuyEnemy_void").disabled)
+
+
+func test_boosts_catalog_matches_the_ts() -> void:
+	# PORT: web/src/tilt-to-live/ArmoryUI.ts:222-268
+	var ids: Array[String] = []
+	var max_ranks: Array[int] = []
+	for b: ArmoryUI.BoostConfig in _armory.boosts_catalog:
+		ids.append(b.id)
+		max_ranks.append(b.max_rank)
+	assert_eq(
+		ids, ["extraLives", "hullCompact", "enemySlow", "scoreMultiplier", "pointsMultiplier"]
+	)
+	assert_eq(max_ranks, [2, 3, 3, 4, 4])
+	assert_eq(_armory.boosts_catalog[1].effect, "-6% hitbox / rank")
+	# PORT-NOTE: Callable.call() returns Variant; see armory_ui.gd's note by
+	# _render_boosts_tab's current_rank/cost locals.
+	@warning_ignore("unsafe_cast")
+	var extra_lives_cost: int = _armory.boosts_catalog[0].get_cost.call() as int
+	assert_eq(extra_lives_cost, 4000, "EXTRA_LIVES_COSTS[0]")
+
+
+func test_boosts_tab_shows_rank_and_cost() -> void:
+	_armory.open("boosts")
+	await get_tree().process_frame
+	assert_eq(_label("BoostRank_extraLives").text, "0/2")
+	assert_eq(_button("Boost_extraLives").text, "4,000 pts")
+	assert_eq(_button("Boost_pointsMultiplier").text, "2,500 pts")
+	assert_false(_button("Boost_hullCompact").disabled)
+
+
+func test_buying_a_boost_charges_saves_and_emits() -> void:
+	_armory.open("boosts")
+	watch_signals(_armory)
+	_button("Boost_hullCompact").pressed.emit()
+	assert_eq(_progression.data.hull_compact, 1)
+	assert_eq(_progression.data.points, 7331 - 1500)
+	assert_signal_emitted(_armory, "state_changed")
+	assert_eq(_label("BoostRank_hullCompact").text, "1/3")
+	assert_eq(_button("Boost_hullCompact").text, "3,000 pts", "next rung of HULL_COMPACT_COSTS")
+	assert_eq(ProgressionManager.new().data.hull_compact, 1, "persisted")
+
+
+func test_maxed_boost_reads_maxed() -> void:
+	_progression.data.extra_lives = 2
+	_armory.open("boosts")
+	# PORT: web/src/tilt-to-live/ArmoryUI.ts:896 — cost === null ⇔ Types.ABSENT
+	var btn: Button = _button("Boost_extraLives")
+	assert_true(btn.disabled)
+	assert_eq(btn.text, "Maxed ✓")
+	assert_eq(_label("BoostRank_extraLives").text, "2/2")
+
+
+func test_unaffordable_boost_is_disabled() -> void:
+	_progression.data.points = 3999
+	_armory.open("boosts")
+	assert_true(_button("Boost_extraLives").disabled)
+	assert_false(_button("Boost_hullCompact").disabled, "1,500 is affordable")
