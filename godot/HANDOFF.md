@@ -4,29 +4,30 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-Last completed module: **M7 — Persistence and economy**, code-complete
-2026-09-21 (head `dba9126`; this exit pass adds `ae4a364`).
+Last completed module: **M8 — Armory UI (+ cosmetics in the renderer)**,
+code-complete 2026-09-22 (head `f0cac03`).
 Code-complete, **device pass pending** (none ticked in `PORT-PROGRESS.md`):
 **M2.5 — Mobile feel** (head `37f9fd4` + the user's tuning `c023e09`),
 **M3 — Enemy roster** (head `5bb5cc9`), **M4 — Weapons** (head `0b7fccf`),
-**M7 — Persistence and economy** (head `dba9126`).
+**M7 — Persistence and economy** (head `dba9126`),
+**M8 — Armory UI** (head `f0cac03`).
 Nothing since M2 has run on a phone: the A55 dropped off adb on 2026-09-20 and
 did not return; the user then ran their own pass and committed tuning as
-`c023e09` (gyro feel + FPS under mass explosions). It was **still absent from
-adb on 2026-09-21** during M7.
+`c023e09` (gyro feel + FPS under mass explosions). It was still absent from
+adb on 2026-09-21 during M7 and **remains absent on 2026-09-22** during M8
+(`adb devices` returns an empty list).
 Also landed after M4: **HUD score feedback** (`9cc3e8f..31bf2ce`, spec
 `docs/superpowers/specs/2026-09-21-hud-score-feedback-design.md`) — kill-site
 callouts removed; the score pulses in a multiplier-tier colour instead.
-Next module: **M8 (Armory UI + cosmetics)** — plan written 2026-09-22, not
-started; see `## Next` at the end of this file.
+Next module: **M5 (Audio bake + SFX) or M9 (Milestones)** — both open, see
+`## Next` at the end of this file.
 Branch: `feat/godot-port` (no upstream; nothing pushed).
 
 > ### ⚠ Read `godot/VERIFY-ME.md`
 > Every check that needs a hand on the phone or a decision from the user is
 > collected there, per module. M2.5's constants are all provisional until its
-> section is run. M3, M4 and M7 each append their own section; **M7's four
-> device checks (starting orb, coins, save restart, corrupt-save fallback,
-> calibration/scheme persistence, frame time) are unrun.**
+> section is run. M3, M4, M7 and M8 each append their own section; **M7's
+> device checks and M8's eleven device checks (below) are unrun.**
 
 ## How to verify right now
 
@@ -34,16 +35,24 @@ Branch: `feat/godot-port` (no upstream; nothing pushed).
 cd /c/Users/Jesury/Documents/Personal/dread-flock
 GODOT="/c/Users/Jesury/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe"
 
-tools/run_tests.sh                        # expect: OK: 40/40 scripts (301 tests, 3876 asserts)
-gdformat --check godot/src godot/tests    # expect: 70 files would be left unchanged
+tools/run_tests.sh                        # expect: OK: 42/42 scripts (361 tests, 4279 asserts)
+gdformat --check godot/src godot/tests    # expect: 75 files would be left unchanged
 gdlint godot/src godot/tests              # expect: Success: no problems found
-grep -rn "DIVERGENCE" godot/src/ | wc -l  # expect: 69
+grep -rn "DIVERGENCE" godot/src/ | wc -l  # expect: 71
 "$GODOT" --headless --path godot --quit-after 120   # expect: exit 0, no SCRIPT ERROR
 git checkout godot/project.godot          # headless runs strip one default-valued line; never commit that
 ```
 
-Every command above was run fresh at `ae4a364` (M7 head `dba9126` + this exit
-pass's one-line citation fix) and passed. `grep -rn "TODO(M3)\|TODO(M4)\|TODO(M7)" godot/src/` is empty.
+Every command above was run fresh at `f0cac03` (2026-09-22) and passed:
+`OK: 42/42 scripts collected, all tests passed` (Tests 361, Passing Tests 361,
+Asserts 4279); `gdformat --check` reported `75 files would be left unchanged`;
+`gdlint` reported `Success: no problems found`; `grep -rn "DIVERGENCE"
+godot/src/ | wc -l` printed `71` (one divergence — the mobile-chrome gate on
+`OS.has_feature("mobile")` — cited twice in `armory_ui.gd`, so 70 divergences
+show as 71 grep hits); the headless run's `grep -c "SCRIPT ERROR"` printed
+`0`; `git status --short` was empty before and after. `grep -rn "TODO(M8)"
+godot/src/ godot/tests/` is empty; `grep -n "draw_set_transform(Vector2("
+godot/src/render/` is empty. `adb devices` returns no attached devices.
 
 `--check-only -s` on `src/meta/progression_manager.gd`, `game_options.gd`,
 `save_store.gd`, `sim/coin_system.gd` each fail with `Identifier not found:
@@ -372,6 +381,174 @@ default to match the TS's `=== true` check; `update()` re-looks-up
 `get_mode_config` every frame, as the TS does; `player_ship.gd` got a
 comment-only edit even though the plan's file table said "not modified".
 
+## M8 — what landed
+
+Plan `docs/superpowers/plans/2026-09-20-m8-armory-ui.md` (11 tasks); ledger
+`.superpowers/sdd/2026-09-20-m8-armory-ui/` (rulings summarised below). 13
+commits, `b8567e2..f0cac03`.
+
+| Area | Files |
+|---|---|
+| Theme tokens from `game.css`, built at runtime, no `.tres` (OQ 7) | `src/ui/armory_theme.gd` (241 lines) |
+| Shell scene: overlay, panel, header, tab row, balance, close, sticky Play footer | `scenes/armory.tscn` |
+| Full port of `ArmoryUI.ts` (20 methods/handlers) — five tabs (Weapons, Ships, Arena, Handling, Boosts) | `src/ui/armory_ui.gd` (1833 lines) |
+| `getShipSvgPreview` (`ProgressionManager.ts:873-939`) ported for the ship-card hull previews | `src/meta/progression_manager.gd` (Task 3) |
+| The handling tab's live steering preview, `initHandlingPreview`/`stopHandlingPreview` as `start`/`stop` | `src/ui/handling_preview.gd` (257 lines) |
+| Armory instanced under `CanvasLayer`; `PauseArmoryButton`, `GameOverArmoryButton`; `set_pause_panel_visible` | `scenes/main.tscn`, `src/ui/hud_controller.gd` |
+| `open_armory`/`close_armory`/state-changed/closed hooks, `_apply_equipped_cosmetics`, `b`/`u`/Escape keys (`TiltGame.ts:1319-1328`, `:2343-2385`) | `src/core/game_root.gd` |
+| `set_ship_skin` + six hull arms (`PlayerShip.ts:359-592`); `set_enemy_skin` + every skin arm (`EnemySwarm.ts:1191-1648`) | `src/render/entity_layer.gd` |
+| `set_arena_theme` (`TiltRenderer.ts:76-80`) | `src/render/grid_layer.gd` |
+| Tests | `tests/test_armory_ui.gd` (560 lines), `tests/test_handling_preview.gd` (109 lines); additions to `test_progression_catalogs.gd`, `test_main_scene.gd`, `test_render_layers.gd` |
+| Device evidence + hand-held checks | `godot/VERIFY-ME.md` §M8 |
+
+**Nine Open questions, each carried verbatim with its ruling taken (eight on
+the plan's *recommended* reading; OQ 5 is the port-exactly case the plan
+itself calls out — the "recommended" reading and the only correct one, since
+LAW 2 forbids silent improvement):**
+
+1. **The mobile layout of the weapons tab.** `game.css:2817-2911` (≤820 CSS
+   px) stacks the sidebar above the detail and switches to back-button +
+   sticky Play; this plan gates the *chrome* on `OS.has_feature("mobile")`
+   but keeps the two-column weapons *layout* even on the 2340 px-wide A55.
+   **Ruling:** two columns everywhere; the device pass (VERIFY-ME §M8 item 2)
+   judges it. A stacked layout is a layout change, not a port change, if the
+   user wants it.
+2. **The HUD's own Armory button is not ported.** `TiltGame.ts:1453-1455`
+   binds `btn-tilt-armory-hud`, a second in-run open button. **Ruling:**
+   pause and game-over entries only; the HUD button goes to M11 with the
+   menu's entry (`TODO(M11)` in `game_root.gd`'s key handler comment).
+3. **`getShipSvgPreview`'s dead `'celestial'` arm.**
+   `ProgressionManager.ts:924-930` switches on ship id `'celestial'`, but the
+   celestial-shaped ship's id is `revenant` (`:255-276`) — the arm is
+   unreachable in the web game too. **Ruling:** ported as written with a
+   `PORT-NOTE` (LAW 2); the Revenant card shows the classic arrow preview,
+   same as the web game.
+4. **"Hull · N of 6 unlocked" over a seven-ship catalog.** `ArmoryUI.ts:646`
+   hard-codes 6; `shipCatalog` has 7 entries. **Ruling:** ported the literal
+   (`SHIP_COUNT_LABEL`) with a `PORT-NOTE`; the arena tab's pills use
+   `themes.length`/`enemies.length` and are correct as-is.
+5. **The classic enemy skin changes what a live run draws.** With the skin
+   always passed in a live run (`TiltGame.ts:2311`), porting the gates
+   exactly changes the run's look under the default skin: hazard dots lose
+   their orange, the pulsar's ring/stroke go `#ff4757`/`#ffa502` →
+   `#ff8899`, and the arena perimeter/grid alphas go 0.45/0.28 → 0.4/0.18.
+   **Ruling:** port exactly — this **is** what the web game shows in a
+   run — both facts are in VERIFY-ME §M8 for the user to accept or override
+   on device; a reversion would be a `DIVERGENCE`, not a port fix. This
+   stayed the plan's stated position throughout; no ruling changed it.
+6. **Where the equipped cosmetics are read.** The TS reads
+   `getEquippedShip/EnemySkin/ArenaTheme` on every render call. **Ruling:**
+   pushed into the layers on boot and on `ArmoryUI.state_changed`/`closed`
+   (`_apply_equipped_cosmetics`), since equipping happens nowhere else and
+   the layers must stay dumb (spec §5.2, M11's backdrop needs `null`).
+7. **The `Theme` lives in code, not a `.tres`.** A `.tres` cannot carry
+   `# PORT:` citations and would duplicate every colour already needed as a
+   typed constant. **Ruling:** `ArmoryTheme.build(scale)` returns a `Theme`
+   at runtime; the tokens are cited constants; nothing is saved to disk.
+8. **Fonts.** `game.css:53-55` specifies Archivo / IBM Plex Sans / IBM Plex
+   Mono; no font asset exists in the project. **Ruling:** Godot's default
+   font at the cited sizes with a `PORT-NOTE`; M11's export pass (which owns
+   icons and splash screens) owns fonts too.
+9. **Glow on the handling preview's ship.** `ArmoryUI.ts:1085-1086` sets
+   `shadowColor`/`shadowBlur = 14` on the preview silhouette; spec §4.5
+   defers every glow to M11's on-device cost measurement. **Ruling:** skipped
+   with a `TODO(M11)`, the same ruling M2/M3/M4 applied to in-arena glow.
+
+**Representation decisions later modules read directly:** **(a)**
+`GameRoot.open_armory(tab)` takes the TS tab strings (`"perks"`,
+`"cursors"`, …), so M9's milestones modal and M11's menu call it the way
+`TiltGame.ts:2343` is called. **(b)** `ArmoryUI.state_changed` is the
+`handleProgressionChanged` hook — M9's `goalsHUD.render()` and M11's
+`menu.render()` connect there (`game_root.gd:373` names both TODOs and the
+TS line numbers). **(c)** the layers take cosmetics through
+`set_ship_skin`/`set_enemy_skin`/`set_arena_theme` with `null` meaning the
+menu-backdrop arm — M11's `MenuBackdrop` passes `null` for all three
+(`TiltGame.ts:2274-2276`). **(d)** `HudController.set_pause_panel_visible`
+exists for anything else that overlays the pause modal.
+
+**`TODO` tags M8 left** (grepped fresh, see `## How to verify right now`):
+`TODO(M5)` — `game_root.gd:275` `audio.stopMusic()` on Armory open
+(`TiltGame.ts:2347`); `TODO(M9)` — `game_root.gd:373` `goalsHUD.render()`
+(`:2383`); `TODO(M10)` — `grid_layer.gd:92,116` mode colours (code-red/
+gauntlet) precede the theme override (`TiltRenderer.ts:64-74`); `TODO(M11)`
+— `game_root.gd:147` `p`/Escape pause toggle, `game_root.gd:373`
+`menu.render()` (`:2384`), `handling_preview.gd:16` the preview ship's tint
+glow (OQ 9), and font assets (OQ 8, no literal tag — noted in
+`armory_theme.gd:16`).
+
+**Member reconciliation:** `ArmoryUI.ts` has 20 methods/handlers → all
+ported (`initHandlingPreview`/`stopHandlingPreview` as
+`HandlingPreview.start`/`stop`). `ProgressionManager.ts` is now **39 of 40**
+ported — `getShipSvgPreview` reversed half of M7 OQ 1; `getCursorSvgDataUri`
+(`:802-871`, no Android pointer to draw for) is the one remaining omission.
+
+**Rulings taken during execution, beyond the plan's nine Open questions**
+(plan defects #12-#22, twenty-two across six modules now; each found by an
+implementer stopping to ask or a reviewer checking a claim):
+- **#12** (Task 1, implementer): `Theme.has_type_variation` does not exist in
+  4.7.2 — both calls became `theme.is_type_variation("TabButton"/"PlayButton",
+  "Button")`.
+- **#13** (Task 2, implementer): blackhole's `invulnerableInside` keystone is
+  absent from `KEYSTONE_COSTS` and priced by the `?? 2500` fallback — the
+  test asserts the fallback equals `get_perk_cost`'s result instead of
+  requiring dictionary membership.
+- **#14** (Task 2, reviewer, while ruling on a separate finding): `PIP_GAP`
+  cited `game.css:1943` (`.track-info`'s gap, 3px) instead of
+  `.track-pips-bar`'s own `gap: 5px` at `:1974` — fixed to `PIP_GAP = 5`.
+- **#15** (Task 3, implementer): `buy_ship` equips on purchase
+  (`ProgressionManager.ts:720`, M7 ported it) — the buy-then-equip test was
+  wrong to expect a separate "Equip" step.
+- **#16** (Task 4, implementer): `buyArenaTheme`/`buyEnemySkin` also equip on
+  buy (`:744-753`, `:768-777`) — same class as #15, fixed under the Task 3
+  ruling.
+- **#17** (Task 4, implementer): `assert_eq(get_signal_emit_count(...))` does
+  not compile under Tier-1 strict typing — replaced with GUT's
+  `assert_signal_emit_count`.
+- **#18** (Task 4, reviewer): the arena border-2 citation `game.css:2535` is
+  wrong (that line is `justify-content`) — the 2px border is inline at
+  `ArmoryUI.ts:756`.
+- **#19** (Task 5, implementer): `cost_getter.call() as int` trips
+  `UNSAFE_CAST` under Tier-1 — three sites used scoped
+  `@warning_ignore("unsafe_cast")`, which the reviewer then overturned (#see
+  process lessons: `is`-narrowing compiles clean).
+- **#20** (Task 6, implementer stopped to ask): the brief's legend-as-
+  sibling-row diverges from `game.css:2755-2761` (absolute overlay, bottom-
+  left inside the preview box) — ported the overlay instead.
+- **#21** (Task 7, implementer stopped to ask): the brief's pause→Armory spec
+  assumed the pause panel hides; `TiltGame.ts:2343-2347` hides it only on a
+  playing→paused transition, and from the pause button the phase is already
+  paused — the panel stays visible under the Armory's z-100 overlay, which is
+  what the port does (LAW 2).
+- **#22** (Task 7, implementer stopped to ask): the brief assumed
+  `_state.phase == GAME_OVER` after death; `TiltGame.ts:2073` sets it inside
+  `triggerPlayerDeath`, which the port put in the sim
+  (`run_controller.gd:266-278`) with nothing on the game side mirroring it —
+  a pre-existing M2 gap. `GameRoot` now connects `GameEvents.run_ended` and
+  sets `_state.phase = GAME_OVER`, `# PORT: TiltGame.ts:2073`. Consequence:
+  the sim stops ticking after death (the death explosion freezes in place),
+  matching the web game's own loop, which has no game-over branch.
+
+**Accepted gaps (deferred minors from the ledger):** several `ArmoryTheme`
+tokens sat unused between Tasks 1-6, confirmed all used by Task 6's close;
+`_open_weapons` test helper has no PORT tag (test scaffolding); locked ship
+cards keep `COLOR_PANEL` where `game.css:2306/2315` darkens further
+(brief-level simplification); `_draw_dashed_circle`'s segment loop is
+unbounded by ring size (safe at the preview's constant radius); slider
+handlers do `find_child` per change (TS `querySelector` idiom, file-
+consistent); `_on_run_ended` has no re-entry guard (the sim's
+`is_run_active` guards upstream); static `_quad` duplicates
+`_quadratic_points`'s lerp (forced by `hull_points_for` being static, brief-
+mandated, lacks its own PORT-NOTE tag); `test_entity_layer_draws_every_
+enemy_type_under_every_skin` is smoke-only (OQ 5's gate asymmetry is not
+individually asserted); `background_colors()` reallocates per `_draw()`.
+
+**The `_on_run_ended`/GAME_OVER behaviour change (plan defect #22, above):**
+before M8, nothing set `phase = GAME_OVER` on death, so the sim kept ticking
+under the death screen. `GameRoot` now mirrors `run_ended`/`phase_changed`
+from the sim (spec §5.3's sim→game direction) and the run freezes at the
+moment of death, as in the web game. Any later module that assumed the sim
+kept running after death must re-read this.
+
 ## Process lessons carried forward (M7 addition)
 
 - **Implementers stopping to ask found three more plan defects this module**
@@ -383,42 +560,53 @@ comment-only edit even though the plan's file table said "not modified".
   disable) by actually checking whether gdtoolkit supports region-scoped
   disables instead of accepting the claim. Reviewers verify tool claims.
 
-## Next: execute the M8 plan (written 2026-09-22)
+## Process lessons carried forward (M8 addition)
 
-The user chose **M8 (Armory UI)** on 2026-09-22 and ruled that M8 **also
-makes purchased cosmetics visible in the run** (the three `TODO(M8)` render
-sites: six ship hulls, enemy-skin colour arms, arena-theme override).
-The plan is written: `docs/superpowers/plans/2026-09-20-m8-armory-ui.md`
-(11 tasks; `.superpowers/sdd/` ledger not yet created — Task 1 creates
-`.superpowers/sdd/2026-09-20-m8-armory-ui/progress.md`).
+- **Implementers stopping to ask found five more plan defects this module**
+  (#12, #13, #15, #21, #22); **reviewers found five more** (#14, #16, #17,
+  #18, #19 — #19 overturned by the reviewer, see below) — **twenty-two such
+  defects across six modules now.**
+- gdtoolkit 4.5.0: a second `gdlint:disable`/`enable` region for the same
+  rule in one file silently breaks — every `enable` clamps every `disable`
+  range for that rule project-wide in that file. Restructure the code (e.g.
+  single-return) instead of adding a second region.
+- `Theme.has_type_variation` does not exist in Godot 4.7.2; use
+  `is_type_variation(name, base)`.
+- `assert_eq(get_signal_emit_count(...))` does not compile under Tier-1; use
+  GUT's `assert_signal_emit_count`.
+- `Callable.call() as T` trips `UNSAFE_CAST`; narrow with `var v: Variant =
+  cb.call(); if v is T: local = v` (the `tilt_input.gd:353` / `save_store.gd:66`
+  pattern) — a reviewer verified this compiles clean under Tier-1, overturning
+  an implementer's "no alternative" claim (defect #19). Reviewers verify tool
+  and language claims, not just accept them — second module running this
+  lesson (M7 did the same for gdlint region scoping).
+- `buy_ship`/`buy_arena_theme`/`buy_enemy_skin` all **equip on purchase**
+  (`ProgressionManager.ts:720`/`:750`/`:774`) — three brief specs across two
+  tasks assumed a separate equip step; check this pattern before writing any
+  future buy-flow test.
+- `GameRoot` now sets `phase = GAME_OVER` on `run_ended`
+  (`TiltGame.ts:2073`); the sim stops ticking after death, as in the web
+  game — was a pre-existing M2 divergence, closed here.
 
-**Literal first step:** read the plan's header, Global Constraints and File
-Structure, then execute Task 1 with `superpowers:subagent-driven-development`
-(fresh subagent per task, two-stage review, commit per task). Every task
-states its expected `tools/run_tests.sh` count.
+## Next
 
-Facts the plan established that the executor must not re-derive:
-- `Image.load_svg_from_string` exists in 4.7.2 and rasterises the TS's own
-  SVG strings (verified 2026-09-22: the blackhole icon at 2× → 60×60, centre
-  pixel `#A78BFA`). Icons and ship previews use it; `getShipSvgPreview`
-  (`ProgressionManager.ts:873-939`) is therefore ported (Task 3), reversing
-  half of M7 OQ 1. `getCursorSvgDataUri` stays unported.
-- `ArmoryUI`, `HandlingPreview`, `ArmoryTheme` clash with no engine class.
-- **In the live web run the enemy skin and arena theme are always passed**
-  (`TiltGame.ts:2310-2312`), so M3/M1 ported the menu-backdrop arms: wiring
-  the classic skin/theme changes the run's look (hazard dots lose their
-  orange; pulsar ring/stroke `#ff8899`; perimeter alpha 0.45→0.4, grid
-  0.28→0.18). LAW 2: port exactly; plan Open question 5 + VERIFY-ME §M8.
-- The Armory opens from **pause** and **game over** only; the HUD's own
-  button (`TiltGame.ts:1453`) is deferred to M11 (plan OQ 2).
-- Mobile chrome (edge-to-edge panel inset by `arena_origin`, back button,
-  sticky Play) is gated on `OS.has_feature("mobile")` — the module's one
-  `DIVERGENCE(spec §8 M8)`; expect the count to go 69 → 70.
+Both **M5** (deps M2) and **M9** (deps M7) are open; spec §8 lists no
+priority between them — pick either.
 
-M5 (audio) stays open with M2 as its only dependency; its first step is
-unchanged: read spec §8 Module 5 and `web/src/tilt-to-live/TiltAudio.ts`
-in full, then write `docs/superpowers/plans/2026-09-20-m5-audio-bake-and-sfx.md`.
+**M5 — literal first step:** read spec §8 Module 5 and
+`web/src/tilt-to-live/TiltAudio.ts` in full, then write
+`docs/superpowers/plans/2026-09-20-m5-audio-bake-and-sfx.md`;
+`audio/audio_bank.gd` is the M2 null-object stub every sim system already
+calls; `game_root.gd`'s `TODO(M5)` marks `stopMusic` on Armory open.
 
-Before Task 1: `git status --short` must be clean under `godot/` (the user
-may leave device tuning uncommitted — never stash or revert it), and read
-`godot/VERIFY-ME.md` for the outstanding M2.5/M3/M4/M7 device checks.
+**M9 — literal first step:** read spec §8 Module 9 and
+`web/src/tilt-to-live/GoalManager.ts` + `GoalsHUD.ts` in full, then write
+`docs/superpowers/plans/2026-09-20-m9-milestones.md`;
+`GameEvents.goal_completed` exists with no emitter; `ArmoryUI.state_changed`
+is where `goalsHUD.render()` hooks (`game_root.gd` `TODO(M9)`);
+`GameRoot.open_armory("perks")` is how a goal row deep-links into the shop.
+
+Before starting either: `git status --short` must be clean under `godot/`
+(the user may leave device tuning uncommitted — never stash or revert it),
+and read `godot/VERIFY-ME.md` for the outstanding M2.5/M3/M4/M7/M8 device
+checks.

@@ -71,7 +71,7 @@ Copied verbatim from the spec and `CONVENTIONS.md`. Every task in every module p
 | 5 | Audio bake + SFX | M2 | not yet written | — |
 | 6 | Generative music sequencer | M5 | not yet written | — |
 | 7 | Persistence and economy | M2 | `2026-09-20-m7-persistence-and-economy.md` | **code complete** — device pass pending (`godot/VERIFY-ME.md`) |
-| 8 | Armory UI (+ cosmetics in the renderer, user ruling 2026-09-22) | M7 | `2026-09-20-m8-armory-ui.md` | **planned** — not started |
+| 8 | Armory UI (+ cosmetics in the renderer, user ruling 2026-09-22) | M7 | `2026-09-20-m8-armory-ui.md` | **code complete** — device pass pending (`godot/VERIFY-ME.md`) |
 | 9 | Milestones | M7 | not yet written | — |
 | 10 | Modes (code-red, gauntlet) | M3 | not yet written | — |
 | 11 | Menu, cinematic, export, device pass | all | not yet written | — |

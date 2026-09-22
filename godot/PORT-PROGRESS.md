@@ -173,9 +173,38 @@ Dependency map and resume instructions:
           `--quit-after 120` clean at `fc19300`, 0 SCRIPT ERROR; debug APK
           exports 30,431,782 bytes. See `VERIFY-ME.md` §M7.
 
-- [ ] **M8 — Armory UI**  deps: M7
-      -- all 5 tabs render and operate on device within the landscape safe area
-      -- purchases persist across a restart
+- [ ] **M8 — Armory UI**  deps: M7   *(code complete 2026-09-22, head `f0cac03`; DEVICE PASS PENDING)*
+      plan  `docs/superpowers/plans/2026-09-20-m8-armory-ui.md`
+      **tick this box only after `godot/VERIFY-ME.md` §M8 is run on the A55**
+      ok  `ui/armory_ui.gd` (1833 lines) — five `Control` tabs (Weapons,
+          Ships, Arena, Handling, Boosts) built over `scenes/armory.tscn`,
+          full port of `ArmoryUI.ts`'s 20 methods/handlers, each purchase
+          path driven from a tapped button and re-read from a fresh
+          `ProgressionManager` (spec acceptance line 2, headless half).
+      ok  `ui/armory_theme.gd` (241 lines) — `Theme` resource built at
+          runtime from `game.css` design tokens, cited constants, no `.tres`
+          (Open question 7).
+      ok  `ui/handling_preview.gd` (257 lines) — the live steering preview,
+          `initHandlingPreview`/`stopHandlingPreview` as `start`/`stop`.
+      ok  `meta/progression_manager.gd` — `get_ship_svg_preview` ported
+          (`ProgressionManager.ts:873-939`); member table now 39 of 40 TS
+          methods ported, `getCursorSvgDataUri` the one omission (M7 OQ 1
+          half-reversed).
+      ok  Armory reachable from the pause overlay and the death screen,
+          pausing a live run (`TiltGame.ts:2343-2385`); `b`/`u`/Escape keys.
+      ok  cosmetics visible in a live run (user ruling 2026-09-22): six ship
+          hulls (`PlayerShip.ts:359-592`), enemy-skin colour arms
+          (`EnemySwarm.ts:1191-1648`), arena-theme override
+          (`TiltRenderer.ts:76-80`) — `entity_layer.gd`, `grid_layer.gd`.
+      ok  42/42 GUT scripts (361 tests, 4279 asserts); gdformat 75 files
+          unchanged; gdlint clean; `grep TODO(M8)` empty;
+          `grep draw_set_transform(Vector2(` empty.
+      ok  71 `DIVERGENCE` tags (was 69 at M7 close; the mobile-chrome gate on
+          `OS.has_feature("mobile")` is the module's one new divergence,
+          cited twice in `armory_ui.gd` — 70 divergences, 71 grep hits).
+      --  A55 absent from `adb` since 2026-09-20 — device pass pending.
+          Headless `--quit-after 120` clean, 0 SCRIPT ERROR; debug APK
+          exports 30,531,097 bytes. See `VERIFY-ME.md` §M8.
 
 - [ ] **M9 — Milestones**  deps: M7
       -- GUT specs cover goal evaluation for every category
