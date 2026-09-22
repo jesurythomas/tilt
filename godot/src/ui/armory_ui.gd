@@ -117,6 +117,23 @@ const ICON_BOX_FILL_ALPHA: float = 0x18 / 255.0
 const ICON_BOX_BORDER_ALPHA: float = 0x55 / 255.0
 ## Empty pip. PORT: web/src/styles/game.css:1990-1991
 
+## Ships layout. PORT: web/src/styles/game.css:2291-2293 (3 cols, gap 16), :2316
+## (preview h 130), :2320 (preview bg #0D1016), :2324 (locked opacity 0.45), :2333
+## (body pad 16/18), :2336 (gap 10), :2272 (sub-header gap 14), :2385-2386
+## (loadout icon 16)
+const SHIP_COLUMNS: int = 3
+const SHIP_GRID_GAP: int = 16
+const SHIP_PREVIEW_HEIGHT: int = 130
+const SHIP_PREVIEW_SIZE: int = 64  # PORT: web/src/tilt-to-live/ProgressionManager.ts:876
+const LOCKED_PREVIEW_ALPHA: float = 0.45
+const CARD_BODY_GAP: int = 10
+const SUB_HEADER_GAP: int = 14
+const LOADOUT_ICON: int = 16
+## "Hull · N of 6 unlocked". PORT: web/src/tilt-to-live/ArmoryUI.ts:646
+# PORT-NOTE: the TS hard-codes 6 while the catalog has 7 ships (the fixture
+# lists classic..revenant); preserved deliberately. Open question 4.
+const SHIP_COUNT_LABEL: int = 6
+
 ## The save every tab reads and every purchase writes. PORT: web/src/tilt-to-live/ArmoryUI.ts:75
 var progression: ProgressionManager = null
 ## PORT: web/src/tilt-to-live/ArmoryUI.ts:80
@@ -497,11 +514,126 @@ func _render_weapons_tab() -> Control:
 	return layout
 
 
-## Task 3 replaces this. PORT: web/src/tilt-to-live/ArmoryUI.ts:575-656
+## PORT: web/src/tilt-to-live/ArmoryUI.ts:575-656
 func _render_ships_tab() -> Control:
-	var tab: VBoxContainer = VBoxContainer.new()
-	tab.name = "ShipsTab"
-	return tab
+	var points: int = progression.data.points
+	var equipped_id: String = progression.data.equipped_cursor_id
+	var unlocked_ids: Array[String] = progression.data.unlocked_cursors
+	var ships: Array[ProgressionManager.ShipSkinConfig] = progression.ship_catalog
+
+	var unlocked_count: int = 0
+	for s: ProgressionManager.ShipSkinConfig in ships:
+		if unlocked_ids.has(s.id):
+			unlocked_count += 1
+
+	var column: VBoxContainer = VBoxContainer.new()
+	column.name = "ShipsTab"
+	column.add_theme_constant_override("separation", int(SUB_HEADER_GAP * _ui_scale))
+	# Subheader (Board 10). PORT: :645-648
+	column.add_child(
+		_sub_header(
+			"ShipsPill",
+			"Hull · %d of %d unlocked" % [unlocked_count, SHIP_COUNT_LABEL],
+			"Hull changes hitbox size, turn rate, and your starting power-up."
+		)
+	)
+
+	var grid: GridContainer = GridContainer.new()  # PORT: :651-653
+	grid.columns = SHIP_COLUMNS
+	grid.add_theme_constant_override("h_separation", int(SHIP_GRID_GAP * _ui_scale))
+	grid.add_theme_constant_override("v_separation", int(SHIP_GRID_GAP * _ui_scale))
+	for ship: ProgressionManager.ShipSkinConfig in ships:
+		var is_unlocked: bool = unlocked_ids.has(ship.id)
+		var is_equipped: bool = equipped_id == ship.id
+		var can_afford: bool = points >= ship.price
+
+		# PORT: :589-605
+		var action: Button = null
+		if is_equipped:
+			action = _action_button("EquippedShip_" + ship.id, "EquippedButton", "Equipped", true)
+		elif is_unlocked:
+			action = _action_button("EquipShip_" + ship.id, "EquipButton", "Equip", false)
+			action.pressed.connect(_on_equip_ship_pressed.bind(ship.id))
+		else:
+			action = _action_button(
+				"BuyShip_" + ship.id, "", format_points(ship.price), not can_afford
+			)
+			action.pressed.connect(_on_buy_ship_pressed.bind(ship.id))
+
+		var card: PanelContainer = PanelContainer.new()  # PORT: :623
+		card.name = "Ship_" + ship.id
+		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		card.add_theme_stylebox_override(
+			"panel",
+			ArmoryTheme.flat(
+				ArmoryTheme.COLOR_PANEL,
+				ArmoryTheme.COLOR_SUCCESS if is_equipped else ArmoryTheme.COLOR_BORDER,  # PORT: game.css:2307
+				ArmoryTheme.PANEL_RADIUS
+			)
+		)
+		var card_column: VBoxContainer = VBoxContainer.new()
+		card_column.add_theme_constant_override("separation", 0)
+
+		# Preview. PORT: :624-626; game.css:2315-2325
+		var preview: PanelContainer = PanelContainer.new()
+		preview.custom_minimum_size.y = SHIP_PREVIEW_HEIGHT * _ui_scale
+		preview.add_theme_stylebox_override(
+			"panel", ArmoryTheme.flat(ArmoryTheme.COLOR_ARENA, Color.TRANSPARENT, 0)
+		)
+		var hull: TextureRect = TextureRect.new()
+		hull.texture = svg_texture(
+			progression.get_ship_svg_preview(ship.id), SVG_OVERSAMPLE * _ui_scale
+		)
+		hull.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		hull.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		hull.custom_minimum_size = Vector2(
+			SHIP_PREVIEW_SIZE * _ui_scale, SHIP_PREVIEW_SIZE * _ui_scale
+		)
+		if not is_unlocked:
+			hull.modulate.a = LOCKED_PREVIEW_ALPHA
+		var preview_center: CenterContainer = CenterContainer.new()
+		preview_center.add_child(hull)
+		preview.add_child(preview_center)
+		card_column.add_child(preview)
+
+		# Body. PORT: :627-636
+		var body: MarginContainer = _margin(CARD_PAD_Y, CARD_PAD_X)
+		var body_column: VBoxContainer = VBoxContainer.new()
+		body_column.add_theme_constant_override("separation", int(CARD_BODY_GAP * _ui_scale))
+		var header_row: HBoxContainer = HBoxContainer.new()  # PORT: :628-631
+		var name_label: Label = _label_of(ship.name, "HeadingLabel")
+		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		header_row.add_child(name_label)
+		header_row.add_child(_label_of(ship.trait_text, "MonoLabel"))
+		body_column.add_child(header_row)
+
+		var starting: WeaponConfig = get_starting_weapon_config(ship.starting_weapon)  # PORT: :609
+		if starting != null:  # PORT: :610-620
+			var loadout: HBoxContainer = HBoxContainer.new()
+			var starts_with: Label = _label_of("Starts with", "FaintLabel")
+			starts_with.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			loadout.add_child(starts_with)
+			var icon: TextureRect = TextureRect.new()
+			icon.texture = svg_texture(starting.icon_svg, SVG_OVERSAMPLE * _ui_scale)
+			icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			icon.custom_minimum_size = Vector2(LOADOUT_ICON * _ui_scale, LOADOUT_ICON * _ui_scale)
+			loadout.add_child(icon)
+			var loadout_name: Label = _label_of(starting.name, "MutedLabel")
+			loadout_name.name = "LoadoutName"
+			loadout.add_child(loadout_name)
+			body_column.add_child(loadout)
+
+		body_column.add_child(action)
+		body.add_child(body_column)
+		card_column.add_child(body)
+		card.add_child(card_column)
+		grid.add_child(card)
+	column.add_child(grid)
+
+	var margin: MarginContainer = _margin(DETAIL_PAD_Y, DETAIL_PAD_X)
+	margin.add_child(column)
+	return _scroll_body(margin)
 
 
 ## Task 4 replaces this. PORT: web/src/tilt-to-live/ArmoryUI.ts:662-799
@@ -571,6 +703,20 @@ func _on_keystone_pressed(weapon: String, keystone: String) -> void:
 		render()
 
 
+## PORT: web/src/tilt-to-live/ArmoryUI.ts:1199-1207
+func _on_buy_ship_pressed(id: String) -> void:
+	if progression.buy_ship(id):
+		state_changed.emit()
+		render()
+
+
+## PORT: web/src/tilt-to-live/ArmoryUI.ts:1209-1217
+func _on_equip_ship_pressed(id: String) -> void:
+	if progression.equip_ship(id):
+		state_changed.emit()
+		render()
+
+
 ## `${n.toLocaleString()}` without the unit (ArmoryUI.ts:550).
 static func _group_digits(n: int) -> String:
 	var with_unit: String = format_points(n)
@@ -591,6 +737,33 @@ func _margin(pad_y: int, pad_x: int) -> MarginContainer:
 	m.add_theme_constant_override("margin_right", int(pad_x * _ui_scale))
 	m.add_theme_constant_override("margin_bottom", int(pad_y * _ui_scale))
 	return m
+
+
+## .armory-sub-header: pill + explanation. PORT: game.css:2269-2287
+func _sub_header(pill_name: String, pill: String, explain: String) -> HBoxContainer:
+	var row: HBoxContainer = HBoxContainer.new()
+	row.add_theme_constant_override("separation", int(SUB_HEADER_GAP * _ui_scale))
+	var pill_label: Label = _label_of(pill, "PillLabel")
+	pill_label.name = pill_name
+	row.add_child(pill_label)
+	var explain_label: Label = _label_of(explain, "SubtleLabel")
+	explain_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	explain_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(explain_label)
+	return row
+
+
+## A full-width 40 px card action button. PORT: game.css:2411-2414
+func _action_button(name: String, variation: String, text: String, disabled: bool) -> Button:
+	var button: Button = Button.new()
+	button.name = name
+	if not variation.is_empty():
+		button.theme_type_variation = variation
+	button.text = text
+	button.disabled = disabled
+	button.custom_minimum_size.y = ArmoryTheme.ACTION_BUTTON_HEIGHT * _ui_scale
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	return button
 
 
 ## A 1 px vertical rule in COLOR_BORDER.

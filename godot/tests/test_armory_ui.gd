@@ -324,3 +324,55 @@ func test_starting_weapon_config_resolves_aliases() -> void:
 	assert_eq(_armory.get_starting_weapon_config(Types.WeaponType.VORTEX).id, "blackhole")
 	assert_eq(_armory.get_starting_weapon_config(Types.WeaponType.SHIELD).id, "shield")
 	assert_eq(_armory.get_starting_weapon_config(Types.WeaponType.FREEZE).name, "Shockwave")
+
+
+func test_ships_tab_lists_every_ship_with_the_right_action() -> void:
+	# Defaults: classic/tactical/singularity unlocked, classic equipped (ProgressionManager.ts:455-457)
+	_armory.open("ships")
+	await get_tree().process_frame
+	assert_eq(_label("ShipsPill").text, "Hull · 3 of 6 unlocked")
+	assert_true(_button("EquippedShip_classic").disabled)
+	assert_eq(_button("EquippedShip_classic").text, "Equipped")
+	assert_eq(_button("EquipShip_tactical").text, "Equip")
+	assert_eq(_button("BuyShip_solar").text, "600 pts")
+	assert_false(_button("BuyShip_solar").disabled)
+	assert_eq(_button("BuyShip_revenant").text, "2,500 pts")
+	for id: String in [
+		"classic", "tactical", "singularity", "solar", "cyber", "shuriken", "revenant"
+	]:
+		assert_not_null(_armory.find_child("Ship_" + id, true, false), id)
+
+
+func test_ship_card_shows_its_starting_weapon_by_catalog_name() -> void:
+	_armory.open("ships")
+	var card: Control = _armory.find_child("Ship_revenant", true, false) as Control
+	var loadout: Label = card.find_child("LoadoutName", true, false) as Label
+	assert_eq(loadout.text, "Blackhole", "vortex is presented as Blackhole (:205-211)")
+
+
+func test_equip_ship_saves_and_emits() -> void:
+	_armory.open("ships")
+	watch_signals(_armory)
+	_button("EquipShip_tactical").pressed.emit()
+	assert_eq(_progression.data.equipped_cursor_id, "tactical")
+	assert_signal_emitted(_armory, "state_changed")
+	assert_true(_button("EquippedShip_tactical").disabled, "re-rendered as equipped")
+	assert_eq(ProgressionManager.new().data.equipped_cursor_id, "tactical", "persisted")
+
+
+func test_buy_ship_charges_and_unlocks() -> void:
+	_armory.open("ships")
+	_button("BuyShip_solar").pressed.emit()
+	assert_true(_progression.data.unlocked_cursors.has("solar"))
+	assert_eq(_progression.data.points, 7331 - 600)
+	assert_eq(
+		_button("EquippedShip_solar").text, "Equipped", "buying equips (ProgressionManager.ts:720)"
+	)
+	assert_true(_button("EquippedShip_solar").disabled)
+	assert_eq(_label("ShipsPill").text, "Hull · 4 of 6 unlocked")
+
+
+func test_unaffordable_ship_is_disabled() -> void:
+	_progression.data.points = 100
+	_armory.open("ships")
+	assert_true(_button("BuyShip_solar").disabled)

@@ -128,3 +128,28 @@ func test_tuning_setters_clamp_and_save() -> void:
 	var again: ProgressionManager = ProgressionManager.new()
 	assert_almost_eq(again.data.tuning.sensitivity, 1.25, 0.0001, "saved (:794)")
 	assert_almost_eq(again.data.tuning.deadzone, 6.5, 0.0001, "saved (:799)")
+
+
+func test_ship_svg_preview_returns_the_ts_markup() -> void:
+	# PORT: web/src/tilt-to-live/ProgressionManager.ts:873-939
+	var classic: String = _pm.get_ship_svg_preview("classic")
+	assert_true(classic.begins_with("<svg"), "default arm (:932-937)")
+	assert_true(
+		classic.contains("points='32,3.5 14.9,54.8 32,45.3 49.1,54.8'"), "classic hull (:935)"
+	)
+	assert_true(
+		_pm.get_ship_svg_preview("tactical").contains("fill='#161924'"), "viper hull (:881)"
+	)
+	assert_true(
+		_pm.get_ship_svg_preview("shuriken").contains("M 32,3.1 Q 40.5,18.4"),
+		"shuriken path (:919)"
+	)
+	assert_eq(_pm.get_ship_svg_preview("nonsense"), classic, "unknown ids draw the classic arrow")
+	assert_eq(_pm.get_ship_svg_preview(), classic, "no argument = equippedCursorId (:873)")
+	_pm.equip_ship("tactical")
+	assert_eq(_pm.get_ship_svg_preview(), _pm.get_ship_svg_preview("tactical"))
+	var image: Image = Image.new()
+	assert_eq(
+		image.load_svg_from_string(_pm.get_ship_svg_preview("revenant"), 1.0), OK, "rasterises"
+	)
+	assert_eq(image.get_size(), Vector2i(64, 64))

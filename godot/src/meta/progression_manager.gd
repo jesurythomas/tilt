@@ -9,12 +9,11 @@ extends RefCounted
 ## Perk ranks, ships, cursors, enemy skins, arenas, steering tuning and the
 ## points economy, persisted as user://tilt_to_live_progression_v3.json.
 ##
-## PORT-NOTE: getCursorSvgDataUri() (ProgressionManager.ts:802-871) and
-## getShipSvgPreview() (:873-939) build SVG markup for the browser's CSS
-## cursor and the Armory's <img> preview. Neither has a consumer in Godot —
-## Android has no pointer cursor and the Armory is a Control scene — so
-## neither is ported, the same relocation-out M3/M4 made for render().
-## TODO(M8): the Armory decides how a ship preview is drawn.
+## PORT-NOTE: getCursorSvgDataUri() (ProgressionManager.ts:802-871) builds the
+## browser's CSS cursor image. Android has no pointer cursor and nothing in
+## Godot consumes it, so it is not ported — the relocation-out M3/M4 made for
+## render(). getShipSvgPreview() (:873-939) IS ported below: the Armory (M8)
+## rasterises its markup with Image.load_svg_from_string.
 ##
 ## PORT-NOTE: ProgressionManager.ts:9-43 types each weapon's perks as an
 ## anonymous nested object. GDScript needs named types, so each nesting is an
@@ -510,6 +509,110 @@ func set_sensitivity(value: float) -> void:
 func set_deadzone(value: float) -> void:
 	data.tuning.deadzone = maxf(0.0, minf(16.0, value))  # PORT: :798
 	save()
+
+
+## The 64x64 SVG hull preview the Armory shows on each ship card.
+## PORT: web/src/tilt-to-live/ProgressionManager.ts:873-939
+# PORT-NOTE: the `class='...'` attributes are dropped — they addressed CSS
+# rules (game.css:2324) that have no meaning in a rasterised image; every
+# geometry and colour attribute is verbatim.
+# PORT-NOTE: the TS switches on the *ship* id 'celestial', but no ship has
+# that id — the celestial-*shaped* ship is `revenant`
+# (ProgressionManager.ts:255-276), so the 'celestial' arm is dead in the web
+# game and every revenant card shows the classic preview. Preserved
+# deliberately (LAW 2).
+# PORT-NOTE: ProgressionManager.ts:873-939 is one switch with seven exits.
+# GDScript's `match` needs no early-return to stay one arm per case (unlike
+# the TS `switch`/`return`), so the seven exits become a single `body` built
+# per-branch and one `return head + body` — same seven outcomes, LAW 3 intact.
+func get_ship_svg_preview(ship_id: String = "") -> String:
+	var id: String = ship_id if not ship_id.is_empty() else data.equipped_cursor_id
+	var head: String = (
+		"<svg xmlns='http://www.w3.org/2000/svg' " + "width='64' height='64' viewBox='0 0 64 64'>"
+	)
+	var body: String = ""
+	match id:
+		"tactical":  # PORT: :875-885
+			body = (
+				"<polygon points='25,50 28,60 31,50' fill='#ff5500' opacity='0.85'/>"
+				+ "<polygon points='33,50 36,60 39,50' fill='#ff5500' opacity='0.85'/>"
+				+ "<polygon points='25.6,25.6 17.6,30.4 25.6,33.6' fill='#ff2a4b'/>"
+				+ "<polygon points='38.4,25.6 46.4,30.4 38.4,33.6' fill='#ff2a4b'/>"
+				+ "<polygon points='32,3.2 24,28.8 9.6,48 14.4,52.8 25.6,44.8 "
+				+ "22.4,54.4 41.6,54.4 38.4,44.8 49.6,52.8 54.4,48 40,28.8' "
+				+ "fill='#161924' stroke='#ff2a4b' stroke-width='2.2' stroke-linejoin='round'/>"
+				+ "<circle cx='9.6' cy='48' r='3.2' fill='#ff2a4b'/>"
+				+ "<circle cx='54.4' cy='48' r='3.2' fill='#ff2a4b'/>"
+				+ "<polygon points='32,19.2 28,35.2 32,40 36,35.2' fill='#ff6680'/>"
+				+ "</svg>"
+			)
+		"singularity":  # PORT: :887-893
+			body = (
+				"<polygon points='28,48 32,58 36,48' fill='#9933ff' opacity='0.9'/>"
+				+ "<polygon points='32,3.1 11.6,28.6 16.7,55.8 32,42.2 47.3,55.8 52.4,28.6' "
+				+ "fill='#160826' stroke='#b84dff' stroke-width='2.2' stroke-linejoin='round'/>"
+				+ "<line x1='32' y1='3.1' x2='32' y2='42.2' stroke='#d88dff' stroke-width='1.2'/>"
+				+ "<polygon points='32,25.2 25.9,35.4 32,42.2 38.1,35.4' fill='#e099ff'/>"
+				+ "</svg>"
+			)
+		"solar":  # PORT: :895-904
+			body = (
+				"<polygon points='22,50 25,58 28,50' fill='#ffaa00' opacity='0.85'/>"
+				+ "<polygon points='30,48 32,58 34,48' fill='#ffffff' opacity='0.95'/>"
+				+ "<polygon points='36,50 39,58 42,50' fill='#ffaa00' opacity='0.85'/>"
+				+ "<polygon points='26.6,3.2 37.4,3.2 48.2,24.8 48.2,39.2 57.2,53.6 53.6,57.2 41,50 "
+				+ "32,55.4 23,50 10.4,57.2 6.8,53.6 15.8,39.2 15.8,24.8' "
+				+ "fill='#ffd700' stroke='#ff8800' stroke-width='2.2' stroke-linejoin='round'/>"
+				+ "<rect x='19.4' y='28.4' width='5.4' height='7.2' fill='#aa7700'/>"
+				+ "<rect x='39.2' y='28.4' width='5.4' height='7.2' fill='#aa7700'/>"
+				+ "<polygon points='32,21.2 27.5,35.6 32,39.2 36.5,35.6' fill='#ffffff'/>"
+				+ "</svg>"
+			)
+		"cyber":  # PORT: :906-915
+			body = (
+				"<polygon points='22,50 25,59 28,50' fill='#ff00aa' opacity='0.9'/>"
+				+ "<polygon points='36,50 39,59 42,50' fill='#00ffff' opacity='0.9'/>"
+				+ "<polyline points='9.25,35.5 5.75,46 12.75,53' "
+				+ "fill='none' stroke='#00ffff' stroke-width='1.8'/>"
+				+ "<polyline points='54.75,35.5 58.25,46 51.25,53' "
+				+ "fill='none' stroke='#ff00aa' stroke-width='1.8'/>"
+				+ "<polygon points='32,4 21.5,18 16.25,46 23.25,54.75 32,46 40.75,54.75 47.75,46 42.5,18' "
+				+ "fill='#0a1220' stroke='#00ffff' stroke-width='2' stroke-linejoin='round'/>"
+				+ "<rect x='26.75' y='25' width='10.5' height='10.5' "
+				+ "fill='none' stroke='#ff00aa' stroke-width='1.5'/>"
+				+ "<circle cx='32' cy='30.25' r='3.85' fill='#00ffcc'/>"
+				+ "</svg>"
+			)
+		"shuriken":  # PORT: :917-922
+			body = (
+				"<path d='M 32,3.1 Q 40.5,18.4 35.4,28.6 L 59.2,32 Q 45.6,40.5 35.4,35.4 "
+				+ "L 32,57.5 Q 23.5,45.6 28.6,35.4 L 4.8,32 Q 18.4,23.5 28.6,28.6 Z' "
+				+ "fill='#082014' stroke='#00ff99' stroke-width='1.8' stroke-linejoin='round'/>"
+				+ "<rect x='26.9' y='26.9' width='10.2' height='10.2' "
+				+ "fill='none' stroke='#88ffcc' stroke-width='1.4'/>"
+				+ "<circle cx='32' cy='32' r='4.25' fill='#00ffaa'/>"
+				+ "</svg>"
+			)
+		"celestial":  # PORT: :924-930
+			body = (
+				"<ellipse cx='32' cy='43.2' rx='22.4' ry='8' "
+				+ "fill='none' stroke='#ffd700' stroke-width='1.6' stroke-dasharray='6,3'/>"
+				+ "<polygon points='30,48 32,60 34,48' fill='#ffffff' opacity='0.95'/>"
+				+ "<path d='M 32,3.2 Q 19.2,25.6 12.8,51.2 Q 32,44.8 32,41.6 "
+				+ "Q 32,44.8 51.2,51.2 Q 44.8,25.6 32,3.2 Z' "
+				+ "fill='#f8fafc' stroke='#ffd700' stroke-width='1.8' stroke-linejoin='round'/>"
+				+ "<polygon points='32,22.4 27.2,33.6 32,36.8 36.8,33.6' fill='#38bdf8'/>"
+				+ "</svg>"
+			)
+		_:  # PORT: :932-937
+			body = (
+				"<polygon points='26,50 32,59 38,50' fill='#00ddff' opacity='0.85'/>"
+				+ "<polygon points='32,3.5 14.9,54.8 32,45.3 49.1,54.8' "
+				+ "fill='#ffffff' stroke='#00ddff' stroke-width='2.2' stroke-linejoin='round'/>"
+				+ "<polygon points='32,22.5 26.3,39.6 32,35.8 37.7,39.6' fill='#00ffee'/>"
+				+ "</svg>"
+			)
+	return head + body
 
 
 # `Array.from(new Set([...base, ...extra]))` (ProgressionManager.ts:504-506):
