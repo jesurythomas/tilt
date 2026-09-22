@@ -1,3 +1,6 @@
+# gdlint:disable=max-file-lines
+# PORT-NOTE: EntityLayer carries PlayerShip.ts, EnemySwarm.ts, WeaponSystem.ts and
+# CoinSystem.ts render() bodies (spec §4.2/D4); precedent progression_manager.gd:1-4.
 ## entity_layer.gd
 ## PORTS: web/src/tilt-to-live/PlayerShip.ts:271-632 (render player)
 ##        web/src/tilt-to-live/EnemySwarm.ts:1191-1648 (render)
@@ -8,10 +11,10 @@ extends Node2D
 ## Middle render layer. Draws weapon orbs, active weapons, enemies, and player ship.
 ##
 ## PORT-NOTE: PlayerShip.ts:359-592 branches over six alternate ship shapes
-## driven by the equipped ShipSkinConfig. The catalog is
-## ProgressionManager.ship_catalog (M7); nothing can equip another ship until
-## the Armory (M8), so only the classic arrow (PlayerShip.ts:594-617) is drawn.
-## TODO(M8): the viper, phantom, solar, cyber, shuriken and celestial shapes.
+## driven by the equipped ShipSkinConfig, which GameRoot pushes in through
+## set_ship_skin() (TiltGame.ts:2310). A null skin draws PlayerShip.ts:274-293's
+## classic fallback — the constants below — which is also what the menu
+## backdrop (M11) gets.
 
 ## PORT: web/src/tilt-to-live/PlayerShip.ts:284-292 (the classic skin defaults)
 const HULL_COLOR: Color = Color("#ffffff")
@@ -675,9 +678,19 @@ func _draw_dashed_arc(
 		s += period
 
 
+## PORT: web/src/tilt-to-live/PlayerShip.ts:271-632
 func _draw_player() -> void:
 	if _player == null or _player.is_dead:
 		return
+
+	# PORT: :274-293 — the classic fallback when no skin is supplied.
+	var hull_color: Color = _ship_skin.hull_color if _ship_skin != null else HULL_COLOR
+	var primary_color: Color = _ship_skin.primary_color if _ship_skin != null else PRIMARY_COLOR
+	var accent_color: Color = _ship_skin.accent_color if _ship_skin != null else ACCENT_COLOR
+	var thruster_color: Color = _ship_skin.thruster_color if _ship_skin != null else THRUSTER_COLOR
+	var shape: ProgressionManager.ShipShape = (
+		_ship_skin.shape if _ship_skin != null else ProgressionManager.ShipShape.CLASSIC
+	)
 
 	_draw_trail()
 
@@ -690,24 +703,30 @@ func _draw_player() -> void:
 	if _player.has_shield():
 		_draw_shield()
 
-	var stroke_col: Color = SHIELD_STROKE if _player.has_shield() else PRIMARY_COLOR
-	var core_col: Color = SHIELD_STROKE if _player.has_shield() else ACCENT_COLOR
+	# PORT: :356-357
+	var stroke_col: Color = SHIELD_STROKE if _player.has_shield() else primary_color
+	var core_col: Color = SHIELD_STROKE if _player.has_shield() else accent_color
 
-	# PORT: web/src/tilt-to-live/PlayerShip.ts:596-607 (classic white arrow)
-	var hull: PackedVector2Array = PackedVector2Array(
-		[Vector2(15.0, 0.0), Vector2(-12.0, -9.0), Vector2(-7.0, 0.0), Vector2(-12.0, 9.0)]
-	)
-	draw_colored_polygon(hull, HULL_COLOR)
-	draw_polyline(_closed(hull), stroke_col, 1.8)
+	# PORT: :359-618
+	match shape:
+		ProgressionManager.ShipShape.VIPER:
+			_draw_hull_viper(hull_color, primary_color, stroke_col, core_col)
+		ProgressionManager.ShipShape.PHANTOM:
+			_draw_hull_phantom(hull_color, accent_color, stroke_col, core_col)
+		ProgressionManager.ShipShape.SOLAR:
+			_draw_hull_solar(hull_color, primary_color, stroke_col, core_col)
+		ProgressionManager.ShipShape.CYBER:
+			_draw_hull_cyber(hull_color, primary_color, accent_color, stroke_col, core_col)
+		ProgressionManager.ShipShape.SHURIKEN:
+			_draw_hull_shuriken(hull_color, accent_color, stroke_col, core_col)
+		ProgressionManager.ShipShape.CELESTIAL:
+			_draw_hull_celestial(hull_color, primary_color, stroke_col, core_col)
+		_:
+			_draw_hull_classic(hull_color, stroke_col, core_col)
 
-	# PORT: web/src/tilt-to-live/PlayerShip.ts:609-616
-	var cockpit: PackedVector2Array = PackedVector2Array(
-		[Vector2(5.0, 0.0), Vector2(-4.0, -3.0), Vector2(-2.0, 0.0), Vector2(-4.0, 3.0)]
-	)
-	draw_colored_polygon(cockpit, core_col)
-
-	# PORT: web/src/tilt-to-live/PlayerShip.ts:620-629
-	var flame_col: Color = ACCENT_COLOR if _player.has_shield() else THRUSTER_COLOR
+	# 3. Thruster flame plume. PORT: :620-629 (`skin.thrusterColor || skin.tint` —
+	# every catalog entry sets thrusterColor, so tint is never read)
+	var flame_col: Color = ACCENT_COLOR if _player.has_shield() else thruster_color
 	var flame_len: float = 6.0 + randf() * 6.0
 	var flame: PackedVector2Array = PackedVector2Array(
 		[Vector2(-13.0, -3.5), Vector2(-13.0 - flame_len, 0.0), Vector2(-13.0, 3.5)]
@@ -721,16 +740,267 @@ func _draw_player() -> void:
 func _draw_trail() -> void:
 	if _player.trail_history.size() <= 1:
 		return
+	var trail: Color = _ship_skin.trail_color if _ship_skin != null else TRAIL_COLOR
 	for i: int in range(_player.trail_history.size() - 1):
 		var pt1: Vector2 = _player.trail_history[i]
 		var pt2: Vector2 = _player.trail_history[i + 1]
 		var progress: float = 1.0 - float(i) / float(_player.trail_history.size())
+		# :302-304 — the skin's trail colour with its alpha replaced by progress * 0.42
 		var col: Color = (
 			Color(0.0, 1.0, 220.0 / 255.0, progress * 0.45)
 			if _player.has_shield()
-			else Color(TRAIL_COLOR.r, TRAIL_COLOR.g, TRAIL_COLOR.b, progress * 0.42)
+			else Color(trail.r, trail.g, trail.b, progress * 0.42)
 		)
 		draw_line(pt1, pt2, col, progress * 5.5 * _player.scale)
+
+
+## The main hull polygon of each shape, in ship space (prow at +x).
+## PORT: web/src/tilt-to-live/PlayerShip.ts:371-381 (viper), :411-416 (phantom),
+## :448-460 (solar), :496-503 (cyber), :526-533 (shuriken, curves sampled),
+## :571-575 (celestial, curves sampled), :598-601 (classic)
+static func hull_points_for(shape: ProgressionManager.ShipShape) -> PackedVector2Array:
+	match shape:
+		ProgressionManager.ShipShape.VIPER:
+			return PackedVector2Array(
+				[
+					Vector2(18.0, 0.0),
+					Vector2(2.0, -5.0),
+					Vector2(-10.0, -14.0),
+					Vector2(-13.0, -11.0),
+					Vector2(-8.0, -4.0),
+					Vector2(-14.0, -6.0),
+					Vector2(-14.0, 6.0),
+					Vector2(-8.0, 4.0),
+					Vector2(-13.0, 11.0),
+					Vector2(-10.0, 14.0),
+					Vector2(2.0, 5.0),
+				]
+			)
+		ProgressionManager.ShipShape.PHANTOM:
+			return PackedVector2Array(
+				[
+					Vector2(17.0, 0.0),
+					Vector2(2.0, -12.0),
+					Vector2(-14.0, -9.0),
+					Vector2(-6.0, 0.0),
+					Vector2(-14.0, 9.0),
+					Vector2(2.0, 12.0),
+				]
+			)
+		ProgressionManager.ShipShape.SOLAR:
+			return PackedVector2Array(
+				[
+					Vector2(16.0, -3.0),
+					Vector2(16.0, 3.0),
+					Vector2(4.0, 9.0),
+					Vector2(-4.0, 9.0),
+					Vector2(-12.0, 14.0),
+					Vector2(-14.0, 12.0),
+					Vector2(-10.0, 5.0),
+					Vector2(-13.0, 0.0),
+					Vector2(-10.0, -5.0),
+					Vector2(-14.0, -12.0),
+					Vector2(-12.0, -14.0),
+					Vector2(-4.0, -9.0),
+					Vector2(4.0, -9.0),
+				]
+			)
+		ProgressionManager.ShipShape.CYBER:
+			return PackedVector2Array(
+				[
+					Vector2(16.0, 0.0),
+					Vector2(8.0, -6.0),
+					Vector2(-8.0, -9.0),
+					Vector2(-13.0, -5.0),
+					Vector2(-8.0, 0.0),
+					Vector2(-13.0, 5.0),
+					Vector2(-8.0, 9.0),
+					Vector2(8.0, 6.0),
+				]
+			)
+		ProgressionManager.ShipShape.SHURIKEN:
+			# :526-533 — four blades, each a lineTo tip then a quadraticCurveTo back in
+			var pts: PackedVector2Array = PackedVector2Array([Vector2(17.0, 0.0)])
+			pts.append_array(_quad(Vector2(17.0, 0.0), Vector2(8.0, 5.0), Vector2(2.0, 2.0)))
+			pts.append(Vector2(0.0, 16.0))
+			pts.append_array(_quad(Vector2(0.0, 16.0), Vector2(-5.0, 8.0), Vector2(-2.0, 2.0)))
+			pts.append(Vector2(-15.0, 0.0))
+			pts.append_array(_quad(Vector2(-15.0, 0.0), Vector2(-8.0, -5.0), Vector2(-2.0, -2.0)))
+			pts.append(Vector2(0.0, -16.0))
+			pts.append_array(_quad(Vector2(0.0, -16.0), Vector2(5.0, -8.0), Vector2(2.0, -2.0)))
+			return pts
+		ProgressionManager.ShipShape.CELESTIAL:
+			# :571-575 — nose, two swept wings and a notch, all quadratic
+			var pts: PackedVector2Array = PackedVector2Array([Vector2(18.0, 0.0)])
+			pts.append_array(_quad(Vector2(18.0, 0.0), Vector2(4.0, -8.0), Vector2(-12.0, -12.0)))
+			pts.append_array(_quad(Vector2(-12.0, -12.0), Vector2(-8.0, 0.0), Vector2(-6.0, 0.0)))
+			pts.append_array(_quad(Vector2(-6.0, 0.0), Vector2(-8.0, 0.0), Vector2(-12.0, 12.0)))
+			pts.append_array(_quad(Vector2(-12.0, 12.0), Vector2(4.0, 8.0), Vector2(18.0, 0.0)))
+			return pts
+		_:
+			return PackedVector2Array(
+				[Vector2(15.0, 0.0), Vector2(-12.0, -9.0), Vector2(-7.0, 0.0), Vector2(-12.0, 9.0)]
+			)
+
+
+## quadraticCurveTo sampled without its start point (the caller already has it).
+static func _quad(p0: Vector2, control: Vector2, p1: Vector2) -> PackedVector2Array:
+	var out: PackedVector2Array = PackedVector2Array()
+	for i: int in range(1, 9):
+		var t: float = float(i) / 8.0
+		var q0: Vector2 = p0.lerp(control, t)
+		var q1: Vector2 = control.lerp(p1, t)
+		out.append(q0.lerp(q1, t))
+	return out
+
+
+## PORT: web/src/tilt-to-live/PlayerShip.ts:360-405
+func _draw_hull_viper(hull_col: Color, primary: Color, stroke_col: Color, core_col: Color) -> void:
+	# Twin canards (:362-366)
+	draw_colored_polygon(
+		PackedVector2Array([Vector2(4.0, -4.0), Vector2(1.0, -9.0), Vector2(-1.0, -4.0)]), primary
+	)
+	draw_colored_polygon(
+		PackedVector2Array([Vector2(4.0, 4.0), Vector2(1.0, 9.0), Vector2(-1.0, 4.0)]), primary
+	)
+	# Forward-swept delta hull (:369-387)
+	var hull: PackedVector2Array = hull_points_for(ProgressionManager.ShipShape.VIPER)
+	draw_colored_polygon(hull, hull_col)
+	draw_polyline(_closed(hull), stroke_col, 1.8)
+	# Wingtip laser pods (:390-394)
+	draw_circle(Vector2(-10.0, -14.0), 2.0, primary)
+	draw_circle(Vector2(-10.0, 14.0), 2.0, primary)
+	# Cockpit canopy (:397-404)
+	draw_colored_polygon(
+		PackedVector2Array(
+			[Vector2(8.0, 0.0), Vector2(-2.0, -2.5), Vector2(-5.0, 0.0), Vector2(-2.0, 2.5)]
+		),
+		core_col
+	)
+
+
+## PORT: web/src/tilt-to-live/PlayerShip.ts:407-442
+func _draw_hull_phantom(hull_col: Color, accent: Color, stroke_col: Color, core_col: Color) -> void:
+	# Stealth diamond faceted voidcraft (:409-422)
+	var hull: PackedVector2Array = hull_points_for(ProgressionManager.ShipShape.PHANTOM)
+	draw_colored_polygon(hull, hull_col)
+	draw_polyline(_closed(hull), stroke_col, 1.8)
+	# Spine facet line (:425-430)
+	draw_line(Vector2(17.0, 0.0), Vector2(-6.0, 0.0), accent, 1.0)
+	# Central pulsing dark-matter crystal (:433-441)
+	var p_pulse: float = 0.8 + 0.2 * sin(_elapsed * 10.0)
+	draw_colored_polygon(
+		PackedVector2Array(
+			[
+				Vector2(4.0, 0.0),
+				Vector2(-2.0, -4.0 * p_pulse),
+				Vector2(-6.0, 0.0),
+				Vector2(-2.0, 4.0 * p_pulse),
+			]
+		),
+		core_col
+	)
+
+
+## PORT: web/src/tilt-to-live/PlayerShip.ts:444-482
+func _draw_hull_solar(hull_col: Color, primary: Color, stroke_col: Color, core_col: Color) -> void:
+	# Heavy reinforced battlecruiser (:446-466)
+	var hull: PackedVector2Array = hull_points_for(ProgressionManager.ShipShape.SOLAR)
+	draw_colored_polygon(hull, hull_col)
+	draw_polyline(_closed(hull), stroke_col, 2.0)
+	# Armored shoulder insets (:469-471)
+	draw_rect(Rect2(-2.0, -7.0, 4.0, 3.0), primary)
+	draw_rect(Rect2(-2.0, 4.0, 4.0, 3.0), primary)
+	# Bridge deck (:474-481)
+	draw_colored_polygon(
+		PackedVector2Array(
+			[Vector2(6.0, 0.0), Vector2(-2.0, -2.5), Vector2(-4.0, 0.0), Vector2(-2.0, 2.5)]
+		),
+		core_col
+	)
+
+
+## PORT: web/src/tilt-to-live/PlayerShip.ts:484-520
+func _draw_hull_cyber(
+	hull_col: Color, primary: Color, accent: Color, stroke_col: Color, core_col: Color
+) -> void:
+	# Floating vector brackets (:486-491)
+	draw_polyline(
+		PackedVector2Array([Vector2(-2.0, -13.0), Vector2(-8.0, -15.0), Vector2(-12.0, -11.0)]),
+		primary,
+		1.6
+	)
+	draw_polyline(
+		PackedVector2Array([Vector2(-2.0, 13.0), Vector2(-8.0, 15.0), Vector2(-12.0, 11.0)]),
+		primary,
+		1.6
+	)
+	# Cyber hull (:494-509)
+	var hull: PackedVector2Array = hull_points_for(ProgressionManager.ShipShape.CYBER)
+	draw_colored_polygon(hull, hull_col)
+	draw_polyline(_closed(hull), stroke_col, 1.8)
+	# Hex matrix core (:512-519)
+	draw_rect(Rect2(-2.0, -3.0, 6.0, 6.0), accent, false, 1.2)
+	draw_circle(Vector2(1.0, 0.0), 2.2, core_col)
+
+
+## PORT: web/src/tilt-to-live/PlayerShip.ts:522-553
+func _draw_hull_shuriken(
+	hull_col: Color, accent: Color, stroke_col: Color, core_col: Color
+) -> void:
+	# Dynamic quad-blade ninja star (:524-539)
+	var hull: PackedVector2Array = hull_points_for(ProgressionManager.ShipShape.SHURIKEN)
+	draw_colored_polygon(hull, hull_col)
+	draw_polyline(_closed(hull), stroke_col, 1.8)
+	# Center spinning rune (:542-547) — ctx.rotate(elapsed * 6) on a 6x6 strokeRect
+	var rune: PackedVector2Array = PackedVector2Array()
+	for corner: Vector2 in [
+		Vector2(-3.0, -3.0), Vector2(3.0, -3.0), Vector2(3.0, 3.0), Vector2(-3.0, 3.0)
+	]:
+		rune.append(corner.rotated(_elapsed * 6.0))
+	draw_polyline(_closed(rune), accent, 1.2)
+	draw_circle(Vector2.ZERO, 2.5, core_col)  # :549-552
+
+
+## PORT: web/src/tilt-to-live/PlayerShip.ts:555-592
+func _draw_hull_celestial(
+	hull_col: Color, primary: Color, stroke_col: Color, core_col: Color
+) -> void:
+	# Floating celestial halo ring (:557-566): a dashed [6,3] ellipse (-7,0) rx 5 ry 14,
+	# dash offset -elapsed*12, sampled as a polyline of 32 chords.
+	# PORT-NOTE: chord count is a rasterisation choice; canvas ellipse() is analytic.
+	var ring: PackedVector2Array = PackedVector2Array()
+	for i: int in range(33):
+		var a: float = TAU * float(i) / 32.0
+		ring.append(Vector2(-7.0 + cos(a) * 5.0, sin(a) * 14.0))
+	var offset: float = -_elapsed * 12.0
+	for i: int in range(32):
+		_draw_dashed_line_offset(ring[i], ring[i + 1], 6.0, 3.0, offset, primary, 1.6)
+		offset -= ring[i].distance_to(ring[i + 1])
+	# Sweeping divine hull (:569-581)
+	var hull: PackedVector2Array = hull_points_for(ProgressionManager.ShipShape.CELESTIAL)
+	draw_colored_polygon(hull, hull_col)
+	draw_polyline(_closed(hull), stroke_col, 1.8)
+	# Astral diode cockpit (:584-591)
+	draw_colored_polygon(
+		PackedVector2Array(
+			[Vector2(6.0, 0.0), Vector2(-1.0, -3.0), Vector2(-3.0, 0.0), Vector2(-1.0, 3.0)]
+		),
+		core_col
+	)
+
+
+## PORT: web/src/tilt-to-live/PlayerShip.ts:594-617
+func _draw_hull_classic(hull_col: Color, stroke_col: Color, core_col: Color) -> void:
+	var hull: PackedVector2Array = hull_points_for(ProgressionManager.ShipShape.CLASSIC)
+	draw_colored_polygon(hull, hull_col)
+	draw_polyline(_closed(hull), stroke_col, 1.8)
+	draw_colored_polygon(
+		PackedVector2Array(
+			[Vector2(5.0, 0.0), Vector2(-4.0, -3.0), Vector2(-2.0, 0.0), Vector2(-4.0, 3.0)]
+		),
+		core_col
+	)
 
 
 ## PORT: web/src/tilt-to-live/PlayerShip.ts:319-353

@@ -245,3 +245,54 @@ func test_entity_layer_draws_coins_without_error() -> void:
 	layer.queue_redraw()
 	await get_tree().process_frame
 	assert_true(true, "two coins, one inside FADE_WARNING_TIME, drew without a script error")
+
+
+func _remove_save() -> void:
+	var absolute: String = ProjectSettings.globalize_path(ProgressionManager.SAVE_PATH)
+	if FileAccess.file_exists(absolute):
+		DirAccess.remove_absolute(absolute)
+
+
+func test_hull_points_match_the_ts_prows() -> void:
+	# PORT: web/src/tilt-to-live/PlayerShip.ts — first moveTo of each hull
+	assert_eq(EntityLayer.hull_points_for(ProgressionManager.ShipShape.CLASSIC).size(), 4)  # :598-601
+	assert_eq(
+		EntityLayer.hull_points_for(ProgressionManager.ShipShape.CLASSIC)[0], Vector2(15.0, 0.0)
+	)
+	assert_eq(EntityLayer.hull_points_for(ProgressionManager.ShipShape.VIPER).size(), 11)  # :371-381
+	assert_eq(
+		EntityLayer.hull_points_for(ProgressionManager.ShipShape.VIPER)[0], Vector2(18.0, 0.0)
+	)
+	assert_eq(EntityLayer.hull_points_for(ProgressionManager.ShipShape.PHANTOM).size(), 6)  # :411-416
+	assert_eq(EntityLayer.hull_points_for(ProgressionManager.ShipShape.SOLAR).size(), 13)  # :448-460
+	assert_eq(EntityLayer.hull_points_for(ProgressionManager.ShipShape.CYBER).size(), 8)  # :496-503
+	assert_gt(
+		EntityLayer.hull_points_for(ProgressionManager.ShipShape.SHURIKEN).size(),
+		8,
+		"curves sampled"
+	)
+	assert_eq(
+		EntityLayer.hull_points_for(ProgressionManager.ShipShape.SHURIKEN)[0], Vector2(17.0, 0.0)
+	)
+	assert_eq(
+		EntityLayer.hull_points_for(ProgressionManager.ShipShape.CELESTIAL)[0], Vector2(18.0, 0.0)
+	)
+
+
+func test_entity_layer_draws_every_ship_shape() -> void:
+	_remove_save()
+	var progression: ProgressionManager = ProgressionManager.new()
+	var layer: EntityLayer = EntityLayer.new()
+	var player: PlayerShip = PlayerShip.new(300.0, 200.0)
+	layer.bind_entities(player, EnemySwarm.new(), WeaponSystem.new())
+	add_child_autofree(layer)
+	for ship: ProgressionManager.ShipSkinConfig in progression.ship_catalog:
+		layer.set_ship_skin(ship)
+		assert_eq(layer.get_ship_skin().id, ship.id)
+		layer.queue_redraw()
+		await get_tree().process_frame
+	layer.set_ship_skin(null)
+	layer.queue_redraw()
+	await get_tree().process_frame
+	assert_true(true, "seven hulls and the null fallback drew without a script error")
+	_remove_save()
