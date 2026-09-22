@@ -169,6 +169,8 @@ const HANDLING_INNER_GAP: int = 14
 const HANDLING_BOX_MIN_HEIGHT: int = 320
 const HANDLING_PREVIEW_GAP: int = 12
 const LEGEND_GLYPH: int = 8
+const LEGEND_LEFT: int = 20  # PORT: web/src/styles/game.css:2755
+const LEGEND_BOTTOM: int = 18  # PORT: web/src/styles/game.css:2756
 ## Slider ranges. PORT: web/src/tilt-to-live/ArmoryUI.ts:823-825, :847-849
 const TURN_MIN: float = 0.5
 const TURN_MAX: float = 2.0
@@ -926,11 +928,22 @@ func _render_handling_tab() -> Control:
 	_preview.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	box.add_child(_preview)
 	preview_column.add_child(box)
-	var legend: HBoxContainer = HBoxContainer.new()  # PORT: :868-875; game.css:2771-2783
+	# .handling-preview-legend: an overlay inside the box, not a sibling row
+	# below it (game.css:2753-2760). PORT: :868-875; game.css:2762-2769
+	var legend: HBoxContainer = HBoxContainer.new()
 	legend.add_theme_constant_override("separation", int(HANDLING_INNER_GAP * _ui_scale))
+	legend.mouse_filter = Control.MOUSE_FILTER_IGNORE  # PORT: game.css:2759 (pointer-events: none)
 	legend.add_child(_legend_item(HandlingPreview.DEADZONE_COLOR, "deadzone"))
 	legend.add_child(_legend_item(HandlingPreview.TOP_SPEED_COLOR, "top speed at"))
-	preview_column.add_child(legend)
+	# _preview (not box) is the parent: HandlingPreview extends Control, not a
+	# Container, so anchors/offsets place the legend freely over its own
+	# _draw() canvas — a plain Control child draws after its parent's _draw(),
+	# matching the CSS's absolute-overlay stacking.
+	_preview.add_child(legend)
+	legend.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	legend.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	legend.offset_left = LEGEND_LEFT * _ui_scale  # PORT: game.css:2755
+	legend.offset_bottom = -LEGEND_BOTTOM * _ui_scale  # PORT: game.css:2756
 	layout.add_child(preview_column)
 
 	var margin: MarginContainer = _margin(HANDLING_PAD_Y, HANDLING_PAD_X)
