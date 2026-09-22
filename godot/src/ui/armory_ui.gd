@@ -158,6 +158,27 @@ const ARENA_SECTION_GAP: int = 24
 const BOOST_COLUMNS: int = 2
 const BOOST_GRID_GAP: int = 10
 const BOOST_CARD_GAP: int = 10
+## Handling layout. PORT: web/src/styles/game.css:2631 (pad 36/40), :2634 (gap 40),
+## :2641 (column gap 28), :2646 (field gap 14), :2678-2680 (slider h 4), :2722
+## (preview gap 12), :2736 (box min-h 320), :2772-2773 (legend glyph 8)
+const HANDLING_PAD_Y: int = 36
+const HANDLING_PAD_X: int = 40
+const HANDLING_COLUMN_GAP: int = 40
+const HANDLING_FIELD_GAP: int = 28
+const HANDLING_INNER_GAP: int = 14
+const HANDLING_BOX_MIN_HEIGHT: int = 320
+const HANDLING_PREVIEW_GAP: int = 12
+const LEGEND_GLYPH: int = 8
+## Slider ranges. PORT: web/src/tilt-to-live/ArmoryUI.ts:823-825, :847-849
+const TURN_MIN: float = 0.5
+const TURN_MAX: float = 2.0
+const TURN_STEP: float = 0.1
+const DEADZONE_MIN: float = 0.0
+const DEADZONE_MAX: float = 16.0
+const DEADZONE_STEP: float = 1.0
+## Reset defaults. PORT: web/src/tilt-to-live/ArmoryUI.ts:1287-1288
+const DEFAULT_SENSITIVITY: float = 1.0
+const DEFAULT_DEADZONE: float = 4.0
 
 ## The save every tab reads and every purchase writes. PORT: web/src/tilt-to-live/ArmoryUI.ts:75
 var progression: ProgressionManager = null
@@ -171,6 +192,8 @@ var weapons_catalog: Array[WeaponConfig] = []
 var boosts_catalog: Array[BoostConfig] = []
 var _ui_scale: float = 1.0
 var _tab_buttons: Array[Button] = []
+## The live steering preview shown on the handling tab. PORT: web/src/tilt-to-live/ArmoryUI.ts:84
+var _preview: HandlingPreview = null
 
 @onready var _panel_margin: MarginContainer = %PanelMargin
 @onready var _header_margin: MarginContainer = %HeaderMargin
@@ -825,11 +848,94 @@ func _render_arena_tab() -> Control:
 	return _scroll_body(margin)
 
 
-## Task 6 replaces this. PORT: web/src/tilt-to-live/ArmoryUI.ts:805-880
+## PORT: web/src/tilt-to-live/ArmoryUI.ts:805-880
 func _render_handling_tab() -> Control:
-	var tab: VBoxContainer = VBoxContainer.new()
-	tab.name = "HandlingTab"
-	return tab
+	var tuning: ProgressionManager.SteeringTuning = progression.data.tuning
+
+	var layout: HBoxContainer = HBoxContainer.new()
+	layout.name = "HandlingTab"
+	layout.add_theme_constant_override("separation", int(HANDLING_COLUMN_GAP * _ui_scale))
+
+	# Left column: controls (Board 11). PORT: :811-860
+	var controls: VBoxContainer = VBoxContainer.new()
+	controls.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	controls.add_theme_constant_override("separation", int(HANDLING_FIELD_GAP * _ui_scale))
+	var turn_field: VBoxContainer = _handling_field(
+		"Turn rate", "TurnValue", "%.1f×" % tuning.sensitivity, "Higher turns sharper."  # PORT: :816
+	)
+	_handling_slider(
+		turn_field,
+		"TurnSlider",
+		TURN_MIN,
+		TURN_MAX,
+		TURN_STEP,
+		tuning.sensitivity,
+		"0.5×",
+		"2.0×",
+		_on_turn_rate_changed
+	)
+	controls.add_child(turn_field)
+	var divider: ColorRect = ColorRect.new()  # PORT: :834; game.css:2693-2695
+	divider.color = ArmoryTheme.COLOR_BORDER
+	divider.custom_minimum_size.y = 1.0
+	controls.add_child(divider)
+	var deadzone_field: VBoxContainer = _handling_field(
+		"Deadzone",
+		"DeadzoneValue",
+		"%dpx" % int(tuning.deadzone),  # PORT: :840
+		"Stops drift when you hold still."
+	)
+	_handling_slider(
+		deadzone_field,
+		"DeadzoneSlider",
+		DEADZONE_MIN,
+		DEADZONE_MAX,
+		DEADZONE_STEP,
+		tuning.deadzone,
+		"0px",
+		"16px",
+		_on_deadzone_changed
+	)
+	controls.add_child(deadzone_field)
+	var reset: Button = Button.new()  # PORT: :859
+	reset.name = "ResetButton"
+	reset.text = "Reset"
+	reset.theme_type_variation = "GhostButton"
+	reset.custom_minimum_size.y = ArmoryTheme.ACTION_BUTTON_HEIGHT * _ui_scale
+	reset.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	reset.pressed.connect(_on_handling_reset_pressed)
+	controls.add_child(reset)
+	layout.add_child(controls)
+
+	# Right column: interactive live preview (Board 11). PORT: :863-877
+	var preview_column: VBoxContainer = VBoxContainer.new()
+	preview_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	preview_column.add_theme_constant_override("separation", int(HANDLING_PREVIEW_GAP * _ui_scale))
+	# PORT: :864; game.css:2730
+	preview_column.add_child(_label_of("LIVE PREVIEW — MOVE THE CURSOR", "FaintLabel"))
+	var box: PanelContainer = PanelContainer.new()  # PORT: :865; game.css:2734-2743
+	box.custom_minimum_size.y = HANDLING_BOX_MIN_HEIGHT * _ui_scale
+	box.add_theme_stylebox_override(
+		"panel",
+		ArmoryTheme.flat(
+			ArmoryTheme.COLOR_ARENA, ArmoryTheme.COLOR_BORDER, ArmoryTheme.PANEL_RADIUS
+		)
+	)
+	_preview = HandlingPreview.new()
+	_preview.name = "HandlingPreview"
+	_preview.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	box.add_child(_preview)
+	preview_column.add_child(box)
+	var legend: HBoxContainer = HBoxContainer.new()  # PORT: :868-875; game.css:2771-2783
+	legend.add_theme_constant_override("separation", int(HANDLING_INNER_GAP * _ui_scale))
+	legend.add_child(_legend_item(HandlingPreview.DEADZONE_COLOR, "deadzone"))
+	legend.add_child(_legend_item(HandlingPreview.TOP_SPEED_COLOR, "top speed at"))
+	preview_column.add_child(legend)
+	layout.add_child(preview_column)
+
+	var margin: MarginContainer = _margin(HANDLING_PAD_Y, HANDLING_PAD_X)
+	margin.add_child(layout)
+	return _scroll_body(margin)
 
 
 ## PORT: web/src/tilt-to-live/ArmoryUI.ts:889-937
@@ -895,14 +1001,16 @@ func _render_boosts_tab() -> Control:
 	return _scroll_body(margin)
 
 
-## Task 6 replaces this. PORT: web/src/tilt-to-live/ArmoryUI.ts:943-1106
+## PORT: web/src/tilt-to-live/ArmoryUI.ts:943-1106 — the body is HandlingPreview.start().
 func _init_handling_preview() -> void:
-	pass
+	if _preview != null and is_instance_valid(_preview):
+		_preview.start(progression)
 
 
-## Task 6 replaces this. PORT: web/src/tilt-to-live/ArmoryUI.ts:1108-1113
+## PORT: web/src/tilt-to-live/ArmoryUI.ts:1108-1113
 func _stop_handling_preview() -> void:
-	pass
+	if _preview != null and is_instance_valid(_preview):
+		_preview.stop()
 
 
 ## PORT: web/src/tilt-to-live/ArmoryUI.ts:1134-1142
@@ -993,6 +1101,32 @@ func _on_equip_enemy_pressed(id: String) -> void:
 		render()
 
 
+## PORT: web/src/tilt-to-live/ArmoryUI.ts:1262-1271 — updates the pill in place, no render().
+func _on_turn_rate_changed(value: float) -> void:
+	progression.set_sensitivity(value)
+	var disp: Label = find_child("TurnValue", true, false) as Label
+	if disp != null:
+		disp.text = "%.1f×" % value
+	state_changed.emit()
+
+
+## PORT: web/src/tilt-to-live/ArmoryUI.ts:1274-1283
+func _on_deadzone_changed(value: float) -> void:
+	progression.set_deadzone(value)
+	var disp: Label = find_child("DeadzoneValue", true, false) as Label
+	if disp != null:
+		disp.text = "%dpx" % int(value)
+	state_changed.emit()
+
+
+## PORT: web/src/tilt-to-live/ArmoryUI.ts:1286-1291
+func _on_handling_reset_pressed() -> void:
+	progression.set_sensitivity(DEFAULT_SENSITIVITY)
+	progression.set_deadzone(DEFAULT_DEADZONE)
+	state_changed.emit()
+	render()
+
+
 ## `${n.toLocaleString()}` without the unit (ArmoryUI.ts:550).
 static func _group_digits(n: int) -> String:
 	var with_unit: String = format_points(n)
@@ -1013,6 +1147,70 @@ func _margin(pad_y: int, pad_x: int) -> MarginContainer:
 	m.add_theme_constant_override("margin_right", int(pad_x * _ui_scale))
 	m.add_theme_constant_override("margin_bottom", int(pad_y * _ui_scale))
 	return m
+
+
+## One slider field's header (label + value pill) and hint.
+## PORT: web/src/tilt-to-live/ArmoryUI.ts:813-819, :821-822
+func _handling_field(
+	label: String, value_name: String, value_text: String, hint: String
+) -> VBoxContainer:
+	var field: VBoxContainer = VBoxContainer.new()
+	field.add_theme_constant_override("separation", int(HANDLING_INNER_GAP * _ui_scale))
+	var header: HBoxContainer = HBoxContainer.new()
+	var name_label: Label = _label_of(label, "HeadingLabel")  # PORT: game.css:2656-2658 (16px, 600)
+	name_label.add_theme_font_size_override("font_size", int(16 * _ui_scale))
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(name_label)
+	var pill: Label = _label_of(value_text, "FlareLabel")  # PORT: game.css:2660-2665 (15px mono, ion)
+	pill.name = value_name
+	pill.add_theme_color_override("font_color", ArmoryTheme.COLOR_ION)
+	header.add_child(pill)
+	field.add_child(header)
+	field.add_child(_label_of(hint, "MutedLabel"))  # PORT: game.css:2670-2672
+	return field
+
+
+## Appends the slider and its boundary row to a field built by _handling_field.
+## PORT: web/src/tilt-to-live/ArmoryUI.ts:823-832
+func _handling_slider(
+	field: VBoxContainer,
+	slider_name: String,
+	min_value: float,
+	max_value: float,
+	step: float,
+	value: float,
+	low_text: String,
+	high_text: String,
+	on_changed: Callable
+) -> void:
+	var slider: HSlider = HSlider.new()
+	slider.name = slider_name
+	slider.min_value = min_value
+	slider.max_value = max_value
+	slider.step = step
+	slider.value = value
+	slider.custom_minimum_size.y = ControlPicker.BASE_TOUCH_TARGET * _ui_scale
+	slider.value_changed.connect(on_changed)
+	field.add_child(slider)
+	var bounds: HBoxContainer = HBoxContainer.new()  # PORT: :828-831
+	var low: Label = _label_of(low_text, "SubtleLabel")
+	low.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bounds.add_child(low)
+	bounds.add_child(_label_of(high_text, "SubtleLabel"))
+	field.add_child(bounds)
+
+
+## .legend-item. PORT: web/src/tilt-to-live/ArmoryUI.ts:869-874; game.css:2771-2783
+func _legend_item(color: Color, text: String) -> HBoxContainer:
+	var item: HBoxContainer = HBoxContainer.new()
+	var glyph: Panel = Panel.new()
+	glyph.custom_minimum_size = Vector2(LEGEND_GLYPH * _ui_scale, LEGEND_GLYPH * _ui_scale)
+	glyph.add_theme_stylebox_override(
+		"panel", ArmoryTheme.flat(Color.TRANSPARENT, color, int(LEGEND_GLYPH * _ui_scale / 2.0))
+	)
+	item.add_child(glyph)
+	item.add_child(_label_of(text, "FaintLabel"))
+	return item
 
 
 ## .armory-sub-header: pill + explanation. PORT: game.css:2269-2287

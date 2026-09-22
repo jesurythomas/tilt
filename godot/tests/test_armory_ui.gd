@@ -489,3 +489,72 @@ func test_unaffordable_boost_is_disabled() -> void:
 	_armory.open("boosts")
 	assert_true(_button("Boost_extraLives").disabled)
 	assert_false(_button("Boost_hullCompact").disabled, "1,500 is affordable")
+
+
+func _slider(name: String) -> HSlider:
+	var s: HSlider = _armory.find_child(name, true, false) as HSlider
+	assert_not_null(s, "%s must exist" % name)
+	return s
+
+
+func test_handling_tab_shows_the_tuning_and_starts_the_preview() -> void:
+	_armory.open("handling")
+	await get_tree().process_frame
+	# PORT: web/src/tilt-to-live/ArmoryUI.ts:816, :840
+	assert_eq(_label("TurnValue").text, "1.0×")
+	assert_eq(_label("DeadzoneValue").text, "4px")
+	var turn: HSlider = _slider("TurnSlider")
+	assert_eq(turn.min_value, 0.5)
+	assert_eq(turn.max_value, 2.0)
+	assert_eq(turn.step, 0.1)
+	var dead: HSlider = _slider("DeadzoneSlider")
+	assert_eq(dead.min_value, 0.0)
+	assert_eq(dead.max_value, 16.0)
+	assert_eq(dead.step, 1.0)
+	var preview: HandlingPreview = (
+		_armory.find_child("HandlingPreview", true, false) as HandlingPreview
+	)
+	assert_not_null(preview)
+	assert_true(preview.is_running(), "initHandlingPreview on the handling tab (:387-389)")
+
+
+func test_sliders_write_through_and_emit_without_rerender() -> void:
+	_armory.open("handling")
+	watch_signals(_armory)
+	var preview: HandlingPreview = (
+		_armory.find_child("HandlingPreview", true, false) as HandlingPreview
+	)
+	_slider("TurnSlider").value = 1.7
+	assert_almost_eq(_progression.data.tuning.sensitivity, 1.7, 0.0001)
+	assert_eq(_label("TurnValue").text, "1.7×")
+	_slider("DeadzoneSlider").value = 9.0
+	assert_eq(_progression.data.tuning.deadzone, 9.0)
+	assert_eq(_label("DeadzoneValue").text, "9px")
+	assert_signal_emit_count(_armory, "state_changed", 2)
+	var same: HandlingPreview = (
+		_armory.find_child("HandlingPreview", true, false) as HandlingPreview
+	)
+	assert_eq(same, preview, "slider input updates the pill in place, no render() (:1264-1270)")
+
+
+func test_reset_restores_defaults_and_rerenders() -> void:
+	_progression.set_sensitivity(1.9)
+	_progression.set_deadzone(12.0)
+	_armory.open("handling")
+	watch_signals(_armory)
+	_button("ResetButton").pressed.emit()
+	# PORT: web/src/tilt-to-live/ArmoryUI.ts:1286-1291
+	assert_eq(_progression.data.tuning.sensitivity, 1.0)
+	assert_eq(_progression.data.tuning.deadzone, 4.0)
+	assert_signal_emitted(_armory, "state_changed")
+	assert_eq(_slider("TurnSlider").value, 1.0)
+	assert_eq(_label("DeadzoneValue").text, "4px")
+
+
+func test_leaving_the_handling_tab_stops_the_preview() -> void:
+	_armory.open("handling")
+	var preview: HandlingPreview = (
+		_armory.find_child("HandlingPreview", true, false) as HandlingPreview
+	)
+	_armory.close()
+	assert_false(preview.is_running(), "close() → stopHandlingPreview (:318)")
