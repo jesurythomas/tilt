@@ -137,8 +137,8 @@ const SHIP_COUNT_LABEL: int = 6
 ## Arena layout. PORT: web/src/styles/game.css:2474-2477 (3 cols, gap 16, top 14),
 ## :2495 (preview h 90), :2521 (enemy preview h 90), :2507 (grid 18px),
 ## :2512-2513 (dust dot 4), :2517 (dust opacity 0.8), :2530-2531 (dot 32),
-## :2535 (border 2), :2539-2540 (pupil 7), :2544 (body pad 14/16), :2547 (gap 8);
-## ArmoryUI.ts:788 (section gap 24)
+## :2539-2540 (pupil 7), :2544 (body pad 14/16), :2547 (gap 8);
+## ArmoryUI.ts:788 (section gap 24), :756 (border 2)
 const ARENA_COLUMNS: int = 3
 const ARENA_GRID_GAP: int = 16
 const ARENA_GRID_TOP: int = 14
@@ -700,9 +700,9 @@ func _render_arena_tab() -> Control:
 			)
 			action.pressed.connect(_on_buy_arena_pressed.bind(theme_config.id))
 
-		# Preview box: radial gradient → the mid stop as the fill (M3 two-circle
-		# rule; a 90px box has no visible centre disc), boundary as the border,
-		# 18px grid lines, one dust dot. PORT: :695-705
+		# PORT-NOTE: Preview box: radial gradient → the mid stop as the fill (M3
+		# two-circle rule; a 90px box has no visible centre disc), boundary as
+		# the border, 18px grid lines, one dust dot. PORT: :695-705
 		var preview: PanelContainer = PanelContainer.new()
 		preview.custom_minimum_size.y = ARENA_PREVIEW_HEIGHT * _ui_scale
 		preview.add_theme_stylebox_override(
@@ -785,7 +785,8 @@ func _render_arena_tab() -> Control:
 		)
 		var inner_center: CenterContainer = CenterContainer.new()
 		inner_center.set_anchors_preset(Control.PRESET_FULL_RECT)
-		# The gradient's 0.65 stop as the inner disc (M3 two-circle rule). PORT: EnemySwarm.ts:1596
+		# PORT-NOTE: the gradient's 0.65 stop as the inner disc (M3 two-circle
+		# rule). PORT: EnemySwarm.ts:1596
 		var inner: Panel = _swatch(
 			skin.body_gradient[0], int(ENEMY_DOT * 0.65), int(ENEMY_DOT * 0.65 / 2.0)
 		)
