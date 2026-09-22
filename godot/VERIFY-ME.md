@@ -257,3 +257,96 @@ Not observable yet: perk ranks, extra lives, hull compact, enemy slow and the
 two multipliers all read from the save but nothing on the phone can change
 them until the Armory (M8). To see them now, edit the JSON with `run-as` and
 relaunch — e.g. `"extraLives": 2` gives three lives at the next run.
+
+## M8 — Armory UI (device pass, plan Task 10)
+
+Unattended evidence at 41c04e8: 42/42 GUT scripts pass (361 tests); headless
+`--quit-after 120` exits 0 with no script error; the APK exports
+(30,531,097 bytes).
+The A55 was still off adb, so no install, launch or screenshot happened.
+Run §0 first. The Armory opens from **ARMORY** on the pause overlay and on the
+death screen (and from the `b`/`u` keys on desktop). Every purchase path is
+proven headless in `tests/test_armory_ui.gd`; what only the phone can show is
+touch operability, layout inside the safe area, the look of the three
+cosmetics in a run, and persistence across a real relaunch.
+
+Facts from execution (not in the brief):
+- The GUT suite is 42/42 scripts, **361 tests** (not 362).
+- The DIVERGENCE grep count is **71**, not 70 — one divergence is cited twice
+  in `armory_ui.gd`.
+- Plan defect #22: `GameRoot._on_run_ended` sets `phase = GAME_OVER`
+  (`TiltGame.ts:2073`), so `_physics_process` stops the sim after death — the
+  death explosion freezes in place. This matches the web game (its loop has
+  no game-over branch); note it as expected, not a bug.
+- Plan defect #21: opening the Armory from the **pause** button leaves the
+  pause panel visible underneath the overlay — `TiltGame.ts:2343-2347` hides
+  it only on a playing→paused transition (the `b`/`u` key from a live run).
+  On device the Armory overlay should cover it; if the pause panel shows
+  through or around the Armory, record that as a layout finding.
+
+- [ ] **Reachable and inside the bezel:** pause → ARMORY. The panel fills the
+      screen minus the arena inset (no chrome under the camera cutout or the
+      gesture bar); a `<` back button top-left, no `X`; a blue **Play** bar
+      along the bottom. Tapping Play returns to the pause overlay with RESUME.
+      Check for defect #21: does the pause panel show through/around the
+      Armory overlay?
+- [ ] **All five tabs render and are operable with a thumb:** Weapons, Ships,
+      Arena, Handling, Boosts. Every button is at least the size of the pause
+      button; nothing overlaps its neighbour; each tab scrolls vertically if
+      it overflows. **On this landscape phone the weapons tab keeps its
+      two-column desktop layout** (list left, detail right) rather than the
+      web's stacked mobile layout at ≤820 CSS px — plan Open question 1; say
+      if it is too cramped.
+- [ ] **Buy a track rank:** Weapons → Blackhole → Duration "1,800 pts" → the
+      balance drops, the pip fills, the button reads the next price, the
+      readout advances (6.3s → 6.8s becomes 6.8s → 7.3s).
+- [ ] **Buy a keystone:** Laser → Cross Beam "3,500 pts" → "Unlocked ✓" in
+      green. Start a run, collect a laser orb: the beam is a 4-way cross
+      (M4's keystone effect, now purchasable).
+- [ ] **Ships:** buy Solar (600), Equip it. The card border goes green and
+      the hull preview is the gold battlecruiser. **Play:** the ship in the
+      run is now the gold solar hull with orange thrusters and a nuke as the
+      starting orb — not the white arrow. Try Viper (already unlocked):
+      forward-swept red hull; Phantom: purple stealth diamond with a pulsing
+      crystal; Cyber: brackets + hex core; Shuriken: spinning star with a
+      rotating rune; Revenant: the celestial hull with a dashed halo.
+- [ ] **Arena → Enemy Variations:** buy Toxic (400), equip. Dots in the run
+      are green with pale rims; chargers/artillery/carriers take the skin's
+      colours too (they only do for non-classic skins, EnemySwarm.ts:1260).
+- [ ] **Classic skin look-change (plan Open question 5):** even with the
+      classic skin equipped, hazard (orange) dots are gone in a run and the
+      pulsar's ring/stroke are the crimson skin's `#ff8899` rather than
+      `#ff4757`/`#ffa502`. This is what the web game draws in a live run
+      (the skin is always passed, TiltGame.ts:2311); M3 had ported the
+      menu-backdrop arm. Say if you want the hazard orange back — that is a
+      one-line spec divergence, not a port fix.
+- [ ] **Arena → Arena Themes:** buy Synthwave (400), equip. The backdrop,
+      grid tint (if gridlines are on) and the perimeter change colour. With
+      the default Void theme the perimeter is now the theme's
+      `rgba(91,140,255,0.4)` rather than M1's 0.45 and the grid 0.18 rather
+      than 0.28 (same class as the skin note — the theme is always passed in
+      a live run).
+- [ ] **Handling:** drag the Turn rate slider — the pill updates live and the
+      preview ship on the right turns sharper; Deadzone likewise grows the
+      amber ring. Drag a finger inside the preview box: the ship chases it.
+      Reset restores 1.0× / 4px. Play a run: the steering change is felt
+      (tuning is read by PlayerShip every frame).
+- [ ] **Boosts:** buy Extra Life (4,000) → a run starts with 2 lives.
+- [ ] **Purchases persist across a restart:** kill the app from recents,
+      relaunch, open the Armory: every purchase and equip above is still
+      there; then
+      `adb -s RRCXB04L8EJ shell run-as com.jtg.perilpoint cat files/tilt_to_live_progression_v3.json`
+      shows `"equippedCursorId":"solar"` and the spent balance.
+- [ ] **Death screen:** die → ARMORY opens over the death screen; closing it
+      returns to the death screen (no pause overlay). Check for defect #22:
+      the death explosion should be frozen in place (sim stops on
+      `phase = GAME_OVER`), matching the web game — this is expected, not a
+      bug.
+- [ ] Frame time with the Armory open over a paused run and, separately, in
+      a run with the Solar hull and Toxic skin:
+      `adb -s RRCXB04L8EJ shell dumpsys gfxinfo com.jtg.perilpoint | grep -A3 50th`
+      — 50th percentile at or under 16 ms in both.
+
+Not observable yet: the HUD's own Armory button (`btn-tilt-armory-hud`,
+TiltGame.ts:1453) is not ported — plan Open question 2; the menu's entry to
+the Armory is M11's.
