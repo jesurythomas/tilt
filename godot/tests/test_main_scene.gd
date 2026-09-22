@@ -130,6 +130,20 @@ func test_main_scene_carries_the_armory_and_its_buttons() -> void:
 	assert_true(root.find_child("GameOverArmoryButton", true, false) is Button)
 
 
+func test_armory_root_and_overlay_cover_the_whole_viewport() -> void:
+	# Finding 1: only the panel is inset by arena_origin; the root Control and
+	# its Overlay ColorRect must cover the full screen (game.css:1601-1602
+	# `.armory-overlay { position: fixed; inset: 0 }`).
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	root.resize_canvas()
+	var viewport_rect: Rect2 = root.get_viewport().get_visible_rect()
+	var armory: Control = root.find_child("Armory", true, false) as Control
+	var overlay: ColorRect = armory.find_child("Overlay", true, false) as ColorRect
+	assert_eq(armory.get_global_rect(), viewport_rect, "Armory root stays full-rect")
+	assert_eq(overlay.get_global_rect(), viewport_rect, "Overlay always covers the screen")
+
+
 func test_pause_armory_button_leaves_the_pause_panel_under_the_overlay() -> void:
 	# PORT: web/src/tilt-to-live/TiltGame.ts:2343-2347 (branch not taken from
 	# an already-paused phase), :2379-2385

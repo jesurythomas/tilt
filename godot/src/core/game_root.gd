@@ -61,7 +61,7 @@ var _bounds: Vector2 = Vector2.ZERO
 @onready var _entity_layer: EntityLayer = %EntityLayer
 @onready var _effect_layer: EffectLayer = %EffectLayer
 @onready var _joystick_layer: JoystickLayer = %JoystickLayer
-@onready var _hud: HudController = find_child("Hud", true, false) as HudController
+@onready var _hud: HudController = %Hud as HudController
 @onready var _armory: ArmoryUI = %Armory
 
 
@@ -338,13 +338,10 @@ func resize_canvas() -> void:
 	_effect_layer.set_arena_origin(arena_origin)
 	_joystick_layer.set_arena_origin(arena_origin)
 
-	# The Armory shares the HUD's ui_scale; on mobile its edge-to-edge panel is
+	# The Armory shares the HUD's ui_scale; its root stays full-rect (the
+	# overlay must cover the whole screen), and on mobile only the panel is
 	# inset by arena_origin so it stays inside the safe area (spec §8 M8).
-	_armory.set_ui_scale(HudController.ui_scale_for(viewport))
-	_armory.offset_left = arena_origin.x
-	_armory.offset_top = arena_origin.y
-	_armory.offset_right = -arena_origin.x
-	_armory.offset_bottom = -arena_origin.y
+	_armory.set_ui_scale(HudController.ui_scale_for(viewport), arena_origin)
 
 
 ## PORT: web/src/tilt-to-live/TiltGame.ts:2073 (triggerPlayerDeath's phase flip)

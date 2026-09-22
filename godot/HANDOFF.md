@@ -5,12 +5,13 @@ Rewritten at every module stop. Written for a session with zero context.
 ## State
 
 Last completed module: **M8 — Armory UI (+ cosmetics in the renderer)**,
-code-complete 2026-09-22 (head `f0cac03`).
+final-review fix wave landed 2026-09-22 (head is this commit — `git log -1
+--format=%H` — a commit cannot cite its own hash inside its own tree).
 Code-complete, **device pass pending** (none ticked in `PORT-PROGRESS.md`):
 **M2.5 — Mobile feel** (head `37f9fd4` + the user's tuning `c023e09`),
 **M3 — Enemy roster** (head `5bb5cc9`), **M4 — Weapons** (head `0b7fccf`),
 **M7 — Persistence and economy** (head `dba9126`),
-**M8 — Armory UI** (head `f0cac03`).
+**M8 — Armory UI** (head is this commit, see above).
 Nothing since M2 has run on a phone: the A55 dropped off adb on 2026-09-20 and
 did not return; the user then ran their own pass and committed tuning as
 `c023e09` (gyro feel + FPS under mass explosions). It was still absent from
@@ -35,7 +36,7 @@ Branch: `feat/godot-port` (no upstream; nothing pushed).
 cd /c/Users/Jesury/Documents/Personal/dread-flock
 GODOT="/c/Users/Jesury/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe"
 
-tools/run_tests.sh                        # expect: OK: 42/42 scripts (361 tests, 4279 asserts)
+tools/run_tests.sh                        # expect: OK: 42/42 scripts (362 tests, 4289 asserts)
 gdformat --check godot/src godot/tests    # expect: 75 files would be left unchanged
 gdlint godot/src godot/tests              # expect: Success: no problems found
 grep -rn "DIVERGENCE" godot/src/ | wc -l  # expect: 71
@@ -43,16 +44,19 @@ grep -rn "DIVERGENCE" godot/src/ | wc -l  # expect: 71
 git checkout godot/project.godot          # headless runs strip one default-valued line; never commit that
 ```
 
-Every command above was run fresh at `f0cac03` (2026-09-22) and passed:
-`OK: 42/42 scripts collected, all tests passed` (Tests 361, Passing Tests 361,
-Asserts 4279); `gdformat --check` reported `75 files would be left unchanged`;
-`gdlint` reported `Success: no problems found`; `grep -rn "DIVERGENCE"
-godot/src/ | wc -l` printed `71` (one divergence — the mobile-chrome gate on
-`OS.has_feature("mobile")` — cited twice in `armory_ui.gd`, so 70 divergences
-show as 71 grep hits); the headless run's `grep -c "SCRIPT ERROR"` printed
-`0`; `git status --short` was empty before and after. `grep -rn "TODO(M8)"
-godot/src/ godot/tests/` is empty; `grep -n "draw_set_transform(Vector2("
-godot/src/render/` is empty. `adb devices` returns no attached devices.
+Every command above was run fresh at this commit (2026-09-22, the
+final-review fix wave) and passed: `OK: 42/42 scripts collected, all tests
+passed` (Tests 362, Passing Tests 362, Asserts 4289 — one test grew by the
+final-review fix wave's new spec, `test_armory_root_and_overlay_cover_the_
+whole_viewport`); `gdformat --check` reported `75 files would be left
+unchanged`; `gdlint` reported `Success: no problems found`; `grep -rn
+"DIVERGENCE" godot/src/ | wc -l` printed `71` (one divergence — the
+mobile-chrome gate on `OS.has_feature("mobile")` — cited twice in
+`armory_ui.gd`, so 70 divergences show as 71 grep hits); the headless run's
+`grep -c "SCRIPT ERROR"` printed `0`; `git status --short` was empty before
+and after. `grep -rn "TODO(M8)" godot/src/ godot/tests/` is empty; `grep -n
+"draw_set_transform(Vector2(" godot/src/render/` is empty. `adb devices`
+returns no attached devices.
 
 `--check-only -s` on `src/meta/progression_manager.gd`, `game_options.gd`,
 `save_store.gd`, `sim/coin_system.gd` each fail with `Identifier not found:
@@ -384,8 +388,11 @@ comment-only edit even though the plan's file table said "not modified".
 ## M8 — what landed
 
 Plan `docs/superpowers/plans/2026-09-20-m8-armory-ui.md` (11 tasks); ledger
-`.superpowers/sdd/2026-09-20-m8-armory-ui/` (rulings summarised below). 13
-commits, `b8567e2..f0cac03`.
+`.superpowers/sdd/2026-09-20-m8-armory-ui/` (rulings summarised below). 14
+commits, `b8567e2..f0cac03`, plus the exit commit `19c4e22`, plus this
+final-review fix commit — 16 commits total, `b8567e2..HEAD` (a commit cannot
+cite its own hash; `git rev-list --count b8567e2..HEAD` is 15, +1 inclusive
+of `b8567e2` itself = 16).
 
 | Area | Files |
 |---|---|
@@ -529,7 +536,11 @@ implementer stopping to ask or a reviewer checking a claim):
   matching the web game's own loop, which has no game-over branch.
 
 **Accepted gaps (deferred minors from the ledger):** several `ArmoryTheme`
-tokens sat unused between Tasks 1-6, confirmed all used by Task 6's close;
+tokens sat unused between Tasks 1-6, confirmed all used by Task 6's close —
+the final review found one that had regressed, `OVERLAY_BG` (read nowhere,
+`armory.tscn`'s Overlay duplicated the literal); fixed by wiring
+`%Overlay.color = ArmoryTheme.OVERLAY_BG` into `ArmoryUI._ready()`, so the
+claim is true again;
 `_open_weapons` test helper has no PORT tag (test scaffolding); locked ship
 cards keep `COLOR_PANEL` where `game.css:2306/2315` darkens further
 (brief-level simplification); `_draw_dashed_circle`'s segment loop is
@@ -541,6 +552,26 @@ consistent); `_on_run_ended` has no re-entry guard (the sim's
 mandated, lacks its own PORT-NOTE tag); `test_entity_layer_draws_every_
 enemy_type_under_every_skin` is smoke-only (OQ 5's gate asymmetry is not
 individually asserted); `background_colors()` reallocates per `_draw()`.
+
+**Final-review accepted gaps (2026-09-22, recorded rather than fixed):**
+`HandlingPreview` is recreated on every `render()` (`armory_ui.gd::_render_handling_tab`,
+PORT-NOTE at the `_preview = HandlingPreview.new()` site), so the TS instance's
+`previewShip`/`previewInitialized` (`ArmoryUI.ts:83-94`) reset on tab return
+and on a same-tab re-tap, and `HandlingPreview.start()` reads `size` before
+first layout (`handling_preview.gd:105-106`) so the initial placement uses
+the 280×260 floor for one frame; the fix (reparent the existing preview,
+defer placement one frame) is deferred. Test-only getters with no production
+reader: `EntityLayer.get_ship_skin`/`get_enemy_skin`,
+`GridLayer.get_arena_theme`/`background_texture`, `GameRoot.is_armory_open`.
+`armory.tscn`'s footer margins (12/16/20) and header/tab separations
+(20/4/16) are not scaled by `ArmoryUI.set_ui_scale`. Every `state_changed`
+(including each slider tick) drives `_apply_equipped_cosmetics` →
+`set_arena_theme` → a full `_build_background()` rebake in `grid_layer.gd`;
+the fix is a guard on id-change. The weapons-tab swatch
+(`item.add_child(_swatch(...))`, `armory_ui.gd` weapons sidebar) is a raw
+`Panel` child of a `Button`, so it sits at (0,0) over the button's padding
+instead of in a flex row beside the label — `VERIFY-ME.md` §M8 has the
+device-pass line.
 
 **The `_on_run_ended`/GAME_OVER behaviour change (plan defect #22, above):**
 before M8, nothing set `phase = GAME_OVER` on death, so the sim kept ticking

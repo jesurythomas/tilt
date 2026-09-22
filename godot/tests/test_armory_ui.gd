@@ -317,6 +317,10 @@ func test_keystone_shows_its_keystone_cost_and_unlocks() -> void:
 	assert_signal_emitted(_armory, "state_changed")
 	assert_true(_button("Keystone_crossBeam").disabled)
 	assert_eq(_button("Keystone_crossBeam").text, "Unlocked ✓")
+	assert_true(
+		ProgressionManager.new().data.perks.laser.cross_beam,
+		"upgrade_perk saved (spec §8 M8 acceptance)"
+	)
 
 
 func test_starting_weapon_config_resolves_aliases() -> void:
@@ -370,6 +374,9 @@ func test_buy_ship_charges_and_unlocks() -> void:
 	)
 	assert_true(_button("EquippedShip_solar").disabled)
 	assert_eq(_label("ShipsPill").text, "Hull · 4 of 6 unlocked")
+	var reloaded: ProgressionManager = ProgressionManager.new()
+	assert_true(reloaded.data.unlocked_cursors.has("solar"), "buy_ship saved")
+	assert_eq(reloaded.data.equipped_cursor_id, "solar", "buy_ship's equip-on-purchase saved")
 
 
 func test_unaffordable_ship_is_disabled() -> void:
@@ -412,6 +419,7 @@ func test_buy_then_equip_arena_theme() -> void:
 
 func test_buy_then_equip_enemy_skin() -> void:
 	_armory.open("arena")
+	watch_signals(_armory)
 	_button("BuyEnemy_toxic").pressed.emit()
 	assert_true(_progression.data.unlocked_enemy_skins.has("toxic"))
 	assert_eq(
@@ -423,6 +431,10 @@ func test_buy_then_equip_enemy_skin() -> void:
 	_button("EquipEnemy_toxic").pressed.emit()
 	assert_eq(_progression.data.equipped_enemy_skin_id, "toxic")
 	assert_eq(_label("EnemiesPill").text, "Enemy Variations · 3 of 6 unlocked")
+	assert_signal_emit_count(_armory, "state_changed", 3, "buy toxic, buy glitch, equip toxic")
+	var reloaded: ProgressionManager = ProgressionManager.new()
+	assert_true(reloaded.data.unlocked_enemy_skins.has("glitch"), "buy_enemy_skin saved")
+	assert_eq(reloaded.data.equipped_enemy_skin_id, "toxic", "equip_enemy_skin saved")
 
 
 func test_unaffordable_theme_is_disabled() -> void:
@@ -535,6 +547,9 @@ func test_sliders_write_through_and_emit_without_rerender() -> void:
 		_armory.find_child("HandlingPreview", true, false) as HandlingPreview
 	)
 	assert_eq(same, preview, "slider input updates the pill in place, no render() (:1264-1270)")
+	var reloaded: ProgressionManager = ProgressionManager.new()
+	assert_almost_eq(reloaded.data.tuning.sensitivity, 1.7, 0.0001, "slider write-through saved")
+	assert_eq(reloaded.data.tuning.deadzone, 9.0, "slider write-through saved")
 
 
 func test_reset_restores_defaults_and_rerenders() -> void:

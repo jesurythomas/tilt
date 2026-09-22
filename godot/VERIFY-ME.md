@@ -284,19 +284,24 @@ Facts from execution (not in the brief):
   On device the Armory overlay should cover it; if the pause panel shows
   through or around the Armory, record that as a layout finding.
 
-- [ ] **Reachable and inside the bezel:** pause → ARMORY. The panel fills the
-      screen minus the arena inset (no chrome under the camera cutout or the
-      gesture bar); a `<` back button top-left, no `X`; a blue **Play** bar
-      along the bottom. Tapping Play returns to the pause overlay with RESUME.
-      Check for defect #21: does the pause panel show through/around the
-      Armory overlay?
+- [ ] **Reachable and inside the bezel:** pause → ARMORY. The overlay now
+      covers the whole screen by construction (`Armory` root and `Overlay`
+      ColorRect are full-rect, final-review finding 1); only the panel's
+      edges sit inside the bezel/safe area, inset by `arena_origin`
+      (no chrome under the camera cutout or the gesture bar). A `<` back
+      button top-left, no `X`; a blue **Play** bar along the bottom. Tapping
+      Play returns to the pause overlay with RESUME. Check for defect #21:
+      does the pause panel show through/around the Armory overlay?
 - [ ] **All five tabs render and are operable with a thumb:** Weapons, Ships,
       Arena, Handling, Boosts. Every button is at least the size of the pause
       button; nothing overlaps its neighbour; each tab scrolls vertically if
       it overflows. **On this landscape phone the weapons tab keeps its
       two-column desktop layout** (list left, detail right) rather than the
       web's stacked mobile layout at ≤820 CSS px — plan Open question 1; say
-      if it is too cramped.
+      if it is too cramped. Known gap, not a new defect: the weapons-list
+      swatch is a raw `Panel` child of its `Button` and sits at (0,0) over
+      the button's padding rather than in a flex row beside the label
+      (final-review finding 10) — note whether it visibly overlaps the text.
 - [ ] **Buy a track rank:** Weapons → Blackhole → Duration "1,800 pts" → the
       balance drops, the pip fills, the button reads the next price, the
       readout advances (6.3s → 6.8s becomes 6.8s → 7.3s).

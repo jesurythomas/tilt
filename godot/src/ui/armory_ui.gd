@@ -30,9 +30,10 @@ extends Control
 ## DIVERGENCE(spec §8 M8): game.css:2817-2911 switches to the mobile chrome
 ## (edge-to-edge panel, back button instead of close, sticky Play footer) at
 ## an 820 CSS-px width. There is no CSS px here; the switch is gated on
-## OS.has_feature("mobile"), and the edge-to-edge panel is inset by
-## GameRoot.arena_origin so it stays inside the landscape safe area (spec §8
-## M8 acceptance).
+## OS.has_feature("mobile"). The overlay (Overlay ColorRect) always covers the
+## whole screen — only the panel (%PanelMargin) is inset, by
+## GameRoot.arena_origin, so it stays inside the landscape safe area (spec §8
+## M8 acceptance); see set_ui_scale.
 
 ## onStateChanged (ArmoryUI.ts:76): after every successful purchase, equip or
 ## tuning change.
@@ -171,6 +172,7 @@ const HANDLING_PREVIEW_GAP: int = 12
 const LEGEND_GLYPH: int = 8
 const LEGEND_LEFT: int = 20  # PORT: web/src/styles/game.css:2755
 const LEGEND_BOTTOM: int = 18  # PORT: web/src/styles/game.css:2756
+const LEGEND_GAP: int = 18  # PORT: web/src/styles/game.css:2758
 ## Slider ranges. PORT: web/src/tilt-to-live/ArmoryUI.ts:823-825, :847-849
 const TURN_MIN: float = 0.5
 const TURN_MAX: float = 2.0
@@ -197,6 +199,7 @@ var _tab_buttons: Array[Button] = []
 ## The live steering preview shown on the handling tab. PORT: web/src/tilt-to-live/ArmoryUI.ts:84
 var _preview: HandlingPreview = null
 
+@onready var _overlay: ColorRect = %Overlay
 @onready var _panel_margin: MarginContainer = %PanelMargin
 @onready var _header_margin: MarginContainer = %HeaderMargin
 @onready var _back_button: Button = %BackButton
@@ -211,6 +214,7 @@ var _preview: HandlingPreview = null
 
 func _ready() -> void:
 	visible = false
+	_overlay.color = ArmoryTheme.OVERLAY_BG
 	var is_mobile: bool = OS.has_feature("mobile")
 	# DIVERGENCE(spec §8 M8): see the class doc. PORT: game.css:2836, :2840, :2908
 	_back_button.visible = is_mobile
@@ -301,18 +305,27 @@ func render() -> void:
 		new_scroll.set_deferred("scroll_vertical", prev_scroll_top)  # PORT: :391-394
 
 
-## Scales fonts, paddings and touch targets to the viewport (HudController's ui_scale).
-func set_ui_scale(scale: float) -> void:
+## Scales fonts, paddings and touch targets to the viewport (HudController's
+## ui_scale). `inset` is GameRoot.arena_origin: on mobile the panel (not the
+## root — the overlay always covers the whole screen) is pulled in by it so
+## it stays inside the safe area; desktop keeps the fixed 20px pad.
+func set_ui_scale(scale: float, inset: Vector2 = Vector2.ZERO) -> void:
 	_ui_scale = scale
 	theme = ArmoryTheme.build(scale)
 	var is_mobile: bool = OS.has_feature("mobile")
 	# PORT: game.css:1609 (20px) and :2819 (0 on mobile — the panel is inset
-	# by arena_origin instead; see GameRoot.open_armory).
-	var pad: int = 0 if is_mobile else int(20 * scale)
-	_panel_margin.add_theme_constant_override("margin_left", pad)
-	_panel_margin.add_theme_constant_override("margin_top", pad)
-	_panel_margin.add_theme_constant_override("margin_right", pad)
-	_panel_margin.add_theme_constant_override("margin_bottom", pad)
+	# by arena_origin instead; see GameRoot.resize_canvas).
+	if is_mobile:
+		_panel_margin.add_theme_constant_override("margin_left", int(inset.x))
+		_panel_margin.add_theme_constant_override("margin_right", int(inset.x))
+		_panel_margin.add_theme_constant_override("margin_top", int(inset.y))
+		_panel_margin.add_theme_constant_override("margin_bottom", int(inset.y))
+	else:
+		var pad: int = int(20 * scale)
+		_panel_margin.add_theme_constant_override("margin_left", pad)
+		_panel_margin.add_theme_constant_override("margin_top", pad)
+		_panel_margin.add_theme_constant_override("margin_right", pad)
+		_panel_margin.add_theme_constant_override("margin_bottom", pad)
 	var pad_y: int = ArmoryTheme.HEADER_PAD_Y_MOBILE if is_mobile else ArmoryTheme.HEADER_PAD_Y
 	var pad_x: int = ArmoryTheme.HEADER_PAD_X_MOBILE if is_mobile else ArmoryTheme.HEADER_PAD_X
 	_header_margin.add_theme_constant_override("margin_left", int(pad_x * scale))
@@ -923,6 +936,15 @@ func _render_handling_tab() -> Control:
 			ArmoryTheme.COLOR_ARENA, ArmoryTheme.COLOR_BORDER, ArmoryTheme.PANEL_RADIUS
 		)
 	)
+	# PORT-NOTE: render() rebuilds the whole tab, so a new HandlingPreview is
+	# instanced every time this tab is (re)rendered — on tab return and on a
+	# same-tab re-tap — instead of being reparented in place. The TS instance
+	# keeps `previewShip`/`previewInitialized` across renders (ArmoryUI.ts:83-94);
+	# here they reset to HandlingPreview.start()'s defaults each time, and
+	# start() reads `size` before first layout (handling_preview.gd:105-106),
+	# so the initial placement uses the 280×260 floor for one frame. Accepted
+	# gap (final review finding 4); the fix (reparent the existing preview,
+	# defer placement one frame) is deferred.
 	_preview = HandlingPreview.new()
 	_preview.name = "HandlingPreview"
 	_preview.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -931,7 +953,7 @@ func _render_handling_tab() -> Control:
 	# .handling-preview-legend: an overlay inside the box, not a sibling row
 	# below it (game.css:2753-2760). PORT: :868-875; game.css:2762-2769
 	var legend: HBoxContainer = HBoxContainer.new()
-	legend.add_theme_constant_override("separation", int(HANDLING_INNER_GAP * _ui_scale))
+	legend.add_theme_constant_override("separation", int(LEGEND_GAP * _ui_scale))
 	legend.mouse_filter = Control.MOUSE_FILTER_IGNORE  # PORT: game.css:2759 (pointer-events: none)
 	legend.add_child(_legend_item(HandlingPreview.DEADZONE_COLOR, "deadzone"))
 	legend.add_child(_legend_item(HandlingPreview.TOP_SPEED_COLOR, "top speed at"))
