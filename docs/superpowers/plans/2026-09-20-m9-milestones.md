@@ -3443,3 +3443,11 @@ Ruling: M-3 — reword the VERIFY-ME M9 toast line (close the Armory within 3 s 
 Ruling: M-4 — replace goal_manager.gd:24 doc with a real description — none.
 Ruling: M-5, M-7 — pre-existing patterns, out of M9 scope; recorded in HANDOFF — none now.
 Ruling: M-6 — already accepted (M10).
+
+Mid-execution rulings (task-level, from the same ledger):
+
+- Task 3: BLOCKED (plan defect #29): mode test expected mode-only ids, but survive_30/60 (run_survival, no mode check :930-932) also complete for mode runs on a fresh manager. Ruling: expected arrays become [survive_30, survive_60, mode_code_red_30] (3-cap cuts mode_code_red_60) and [survive_30, mode_gauntlet_30], with a comment citing :930-932 and the cap — the test still proves mode goals only count in their mode (classic run completes none) — costs nothing unless the TS is misread.
+- Task 3: plan defect #30: goal_manager.gd is 1002 lines > gdlint max-file-lines 1000. Ruling: line 1 '# gdlint:disable=max-file-lines' (LAW 3 one-file-one-file; precedent armory_ui.gd:1, entity_layer.gd:1, progression_manager.gd:1); fix Global Constraints' 'neither approaches' note — none.
+- Task 5: plan defect #31: Timer.time_left is read-only; implementer used timer.start(0.4) in test_a_second_toast_replaces_the_first. Ruling: accept — same partway state, test intent intact — none.
+- Task 8: complete (commits 79d1d48..4179296; docs-only, controller read the diff in place of a reviewer seat — Ruling: a 19-line VERIFY-ME append needs no separate reviewer; the final review covers it — cost: a doc slip reaches the device pass)
+- Final fix: parked — I-1 regression test calls evaluate_live_total_goals directly instead of a real update() tick — Ruling: code stands; the test fails on the pre-fix immediate fill and the re-reviewer verified run_controller.gd:190-227 has no early return between death and step 8 — cost: a future reorder of step 8 would not be caught by this test
