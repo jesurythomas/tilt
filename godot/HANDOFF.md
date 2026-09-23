@@ -33,7 +33,9 @@ Next module: **M8.5 (Interface rework)** — new, from the mobile redesign
 (fonts, `UiTheme`, `ui_scale` = min(h/390, w/844)). Task 2 landed: HUD on the
 Hud board, arena frame, lives, weapon timer. Task 3 landed: Pause is a
 `PauseSheet` on the Pause board (Sound/Music switches, Calibrate, segmented
-`ControlPicker`). Then M9, whose plan exists but
+`ControlPicker`). Task 4 landed: Run over is a `RunOverSheet`. Task 5 landed:
+the Armory shell and Weapons tab are on the `ArmoryWeapons` board; Tasks 6–7
+rebuild the other four tabs. Then M9, whose plan exists but
 has Tasks 5–7 superseded. See `## Next`. The A55 "Mobile scale split" pass
 was skipped for now by the user (phone still absent from adb) — its checks
 stay unticked in `VERIFY-ME.md`.
@@ -731,10 +733,30 @@ call them now, and `test_pause_sheet.gd` stays green unchanged.
 tests, 4492 asserts). gdformat/gdlint clean; ff4757 grep empty; headless
 `--quit-after 120` → 0 `SCRIPT ERROR`.
 
-**Now: M8.5 Task 5 (Armory shell + Weapons)**, with
+**Done 2026-09-23: M8.5 Task 5 (Armory shell + Weapons)** (`999a815`, fix
+`48dfa7c`) — `scenes/armory.tscn` is rewritten to the `ArmoryWeapons.dc.html`
+shell: `Overlay` → `PanelMargin` → a 64-px `Header` (`BackButton`,
+`TitleLabel`, `Tabs` of `Tab_<name>`, `Balance` = `BalanceLabel` +
+`BalanceUnit`, `PlayButton`, width `ArmoryUI.PLAY_WIDTH` 92), `HeaderRule`,
+`Body`. `CloseButton`, `StickyFooter`, `TabsScroll` and `HeaderRight` are gone.
+The Weapons tab is a `WeaponList` of toggle `Weapon_<id>` rows (name +
+`WeaponRank_<id>`) beside a detail column (`InvestedValue`,
+`TrackCard_<key>`/`Track_<key>`/`TrackValue_<key>`,
+`KeystoneCard_<key>`/`Keystone_<key>`) in a `ScrollBody`. New helpers
+for Tasks 6–7: `_px`, `_pad`, `_one_line` (any HBox caller must set
+`SIZE_EXPAND_FILL` — review found the weapon names collapsing to 1 px; fixed
+and specced). `_vrule()` now reuses `UiTheme.hairline`. Ships, Arena, Handling
+and Boosts still render their legacy bodies inside the new shell until Tasks
+6–7. The 844-px header fit passed on real font metrics (ruling M18 unused).
+`tools/run_tests.sh` → `OK: 45/45 scripts collected, all tests passed` (405
+tests, 4510 asserts). gdformat/gdlint clean; headless → 0 `SCRIPT ERROR`;
+`DIVERGENCE` count 136.
+
+**Now: M8.5 Task 6 (Ships + Arena)**, with
 superpowers:subagent-driven-development. Literal first step: `git status
 --short` (must be clean under `godot/`), then read the plan's header, Global
-Constraints and Rulings, then Task 5.
+Constraints and Rulings, then Task 6. The SDD ledger is
+`.superpowers/sdd/2026-09-23-m8.5-interface-rework/progress.md`.
 
 **After M8.5:** rewrite Tasks 5–7 of
 `docs/superpowers/plans/2026-09-20-m9-milestones.md` to spec §6.5 (Tasks 1–4
