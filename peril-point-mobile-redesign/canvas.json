@@ -1,0 +1,179 @@
+{
+ "v": 3,
+ "createdOnFiles": {
+  "v": 1,
+  "at": "2026-09-23T01:08:29Z"
+ },
+ "title": "Peril Point — Mobile Redesign",
+ "launch": {
+  "view": "canvas"
+ },
+ "pages": [],
+ "boards": {
+  "Main.dc.html": {
+   "x": 0,
+   "y": 1640,
+   "w": 844,
+   "h": 390,
+   "title": "Menu",
+   "is_interactive": true
+  },
+  "ColdOpen.dc.html": {
+   "x": 924,
+   "y": 1640,
+   "w": 844,
+   "h": 390,
+   "title": "Cold open",
+   "is_interactive": true
+  },
+  "Hud.dc.html": {
+   "x": 1848,
+   "y": 1640,
+   "w": 844,
+   "h": 390,
+   "title": "HUD — touch stick",
+   "is_interactive": true
+  },
+  "Calibrate.dc.html": {
+   "x": 2772,
+   "y": 1640,
+   "w": 844,
+   "h": 390,
+   "title": "Calibrate tilt",
+   "is_interactive": true
+  },
+  "System.dc.html": {
+   "x": 0,
+   "y": 260,
+   "w": 1320,
+   "h": 1000,
+   "title": "Interface system"
+  },
+  "Pause.dc.html": {
+   "x": 0,
+   "y": 2410,
+   "w": 844,
+   "h": 390,
+   "title": "Paused",
+   "is_interactive": true
+  },
+  "RunOver.dc.html": {
+   "x": 924,
+   "y": 2410,
+   "w": 844,
+   "h": 390,
+   "title": "Run over",
+   "is_interactive": true
+  },
+  "ArmoryWeapons.dc.html": {
+   "x": 0,
+   "y": 3180,
+   "w": 844,
+   "h": 390,
+   "title": "Armory — weapons",
+   "is_interactive": true
+  },
+  "ArmoryShips.dc.html": {
+   "x": 924,
+   "y": 3180,
+   "w": 844,
+   "h": 390,
+   "title": "Armory — ships",
+   "is_interactive": true
+  },
+  "ArmoryArena.dc.html": {
+   "x": 1848,
+   "y": 3180,
+   "w": 844,
+   "h": 390,
+   "title": "Armory — arena",
+   "is_interactive": true
+  },
+  "ArmoryHandling.dc.html": {
+   "x": 2772,
+   "y": 3180,
+   "w": 844,
+   "h": 390,
+   "title": "Armory — handling",
+   "is_interactive": true
+  },
+  "ArmoryBoosts.dc.html": {
+   "x": 3696,
+   "y": 3180,
+   "w": 844,
+   "h": 390,
+   "title": "Armory — boosts",
+   "is_interactive": true
+  },
+  "Settings.dc.html": {
+   "x": 0,
+   "y": 3950,
+   "w": 844,
+   "h": 390,
+   "title": "Settings",
+   "is_interactive": true
+  },
+  "Milestones.dc.html": {
+   "x": 924,
+   "y": 3950,
+   "w": 844,
+   "h": 390,
+   "title": "Milestones",
+   "is_interactive": true
+  }
+ },
+ "order": [
+  "Main.dc.html",
+  "ColdOpen.dc.html",
+  "Hud.dc.html",
+  "Calibrate.dc.html",
+  "System.dc.html",
+  "Pause.dc.html",
+  "RunOver.dc.html",
+  "ArmoryWeapons.dc.html",
+  "ArmoryShips.dc.html",
+  "ArmoryArena.dc.html",
+  "ArmoryHandling.dc.html",
+  "ArmoryBoosts.dc.html",
+  "Settings.dc.html",
+  "Milestones.dc.html"
+ ],
+ "notes": {
+  "t_found": {
+   "x": 0,
+   "y": 0,
+   "text": "Foundations",
+   "kind": "title1",
+   "maxW": 1320
+  },
+  "t_play": {
+   "x": 0,
+   "y": 1380,
+   "text": "Launch and play",
+   "kind": "title1",
+   "maxW": 3616
+  },
+  "t_int": {
+   "x": 0,
+   "y": 2150,
+   "text": "Pause and run over",
+   "kind": "title1",
+   "maxW": 1768
+  },
+  "t_arm": {
+   "x": 0,
+   "y": 2920,
+   "text": "Armory",
+   "kind": "title1",
+   "maxW": 4540
+  },
+  "t_menu": {
+   "x": 0,
+   "y": 3690,
+   "text": "Settings and milestones",
+   "kind": "title1",
+   "maxW": 1768
+  }
+ },
+ "designSystems": []
+}

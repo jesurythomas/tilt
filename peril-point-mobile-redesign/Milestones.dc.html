@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Milestones</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#08090E;color:#E6E9F0;font-family:'IBM Plex Sans',sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#C7CDDB}a:hover{color:#E6E9F0}
+button{font-family:'IBM Plex Sans',sans-serif}
+</style>
+</helmet>
+<div style="width: 844px; height: 390px; box-sizing: border-box; background: #0B0E14; display: flex; flex-direction: column; overflow: hidden; color: #E6E9F0;">
+  <div style="height: 64px; box-sizing: border-box; padding: 8px 28px 8px 24px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #1B2029; flex-shrink: 0;">
+    <a href="Main.dc.html" aria-label="Back" style="display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 48px; height: 48px; flex-shrink: 0; border: 1px solid #262C38; border-radius: 6px; background: rgba(20,24,33,0.85); text-decoration: none; cursor: pointer; padding: 0; background: transparent;"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M10 3 L5 8 L10 13" stroke="#C7CDDB" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></a>
+    <h2 style="margin: 0 6px 0 2px; font-family: 'Archivo', sans-serif; font-stretch: 118%; font-weight: 700; font-stretch: 112%; font-size: 21px; line-height: 1;">Milestones</h2>
+    
+    <div style="flex-grow: 1;"></div>
+    <span style="font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 13px; color: #99A1B3;">14<span style="color: #7A8397;">/36</span></span><span style="width: 120px; height: 4px; border-radius: 2px; background: #1B2029; display: block; position: relative; margin: 0 8px;"><span style="position: absolute; left: 0; top: 0; bottom: 0; width: 39%; border-radius: 2px; background: #5B8CFF;"></span></span><span style="font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 15px; font-weight: 500; color: #FFB14D;">7,331 <span style="font-size: 10px; letter-spacing: 0.1em; color: #A08A5C;">PTS</span></span>
+  </div>
+  <div style="flex-grow: 1; min-height: 0; box-sizing: border-box; padding: 12px 28px 0 24px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px;">
+    <sc-for list="{{tiers}}" as="t" hint-placeholder-count="3">
+      <div style="display: flex; flex-direction: column; gap: 6px; min-height: 0; overflow: hidden; position: relative;">
+        <div style="display: flex; align-items: baseline; gap: 10px; flex-shrink: 0;">
+          <span style="font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; font-size: 10px; color: {{t.tint}};">{{t.name}}</span>
+          <span style="font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 11px; color: #7A8397;">{{t.count}}</span>
+        </div>
+        <sc-for list="{{t.items}}" as="m" hint-placeholder-count="4">
+          <div style="flex-shrink: 0; display: flex; align-items: center; gap: 11px; height: 58px; box-sizing: border-box; padding: 0 12px; background: {{m.bg}}; border: 1px solid {{m.border}}; border-radius: 6px;">
+            <span style="flex-shrink: 0; width: 20px; height: 20px; box-sizing: border-box; border-radius: 4px; border: 1px solid {{m.markBorder}}; background: {{m.markBg}}; display: flex; align-items: center; justify-content: center;">
+              <sc-if value="{{m.done}}" hint-placeholder-val="{{true}}"><svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden="true"><path d="M1.5 5.8 L4.2 8.5 L9.5 2.8" stroke="#08090E" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path></svg></sc-if>
+            </span>
+            <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px;">
+              <span style="font-size: 13px; font-weight: 500; color: {{m.fg}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{m.name}}</span>
+              <span style="font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 11px; color: #7A8397; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{m.goal}}</span>
+              <sc-if value="{{m.showBar}}" hint-placeholder-val="{{true}}"><span style="height: 3px; border-radius: 2px; background: #1B2029; display: block; position: relative; margin-top: 1px;"><span style="position: absolute; left: 0; top: 0; bottom: 0; width: {{m.pct}}; border-radius: 2px; background: #5B8CFF;"></span></span></sc-if>
+            </div>
+            <span style="font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 12px; font-weight: 500; color: {{m.ptsColor}};">{{m.pts}}</span>
+          </div>
+        </sc-for>
+        <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 40px; background: linear-gradient(rgba(11,14,20,0), #0B0E14); pointer-events: none;"></div>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 844, "height": 390}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const done = (name, goal, pts) => ({ name, goal, pts: '+' + pts, done: true, showBar: false, pct: '100%', bg: '#0F131B', border: '#1B2029', fg: '#99A1B3', markBorder: '#3DDC97', markBg: '#3DDC97', ptsColor: '#7A8397' });
+    const open = (name, goal, pct, pts) => ({ name, goal, pts: '+' + pts, done: false, showBar: true, pct, bg: '#141821', border: '#262C38', fg: '#E6E9F0', markBorder: '#3A4252', markBg: 'transparent', ptsColor: '#FFB14D' });
+    return { tiers: [
+      { name: 'Score', tint: '#5B8CFF', count: '5 of 9', items: [
+        open('Swarm Survivor', '8,140 / 10,000', '81%', 3), open('Void Walker', '32,420 / 50,000', '65%', 5),
+        open('Century', '32,420 / 100,000', '32%', 8), done('Neon Striker', '5,000 in a run', 2), done('Rookie Dodger', '1,000 in a run', 1) ] },
+      { name: 'Combat', tint: '#A78BFA', count: '6 of 14', items: [
+        open('Perfect Vortex', '12 / 40 in one well', '30%', 5), open('Overkill', '89 / 500 kills in a run', '18%', 4),
+        open('Untouched', 'a minute, no shield', '0%', 6), done('Chain Reaction', '10\u00d7 multiplier', 2), done('First Blood', '10 kills', 1) ] },
+      { name: 'Mastery', tint: '#FFB14D', count: '3 of 13', items: [
+        open('Full Hangar', '3 / 7 ships unlocked', '43%', 10), open('Code Red Veteran', '3 / 10 Code Red runs', '30%', 6),
+        done('Gauntlet Runner', 'finish a Gauntlet wall', 2) ] }
+    ] };
+  }
+}
+</script>
+</body>
+</html>

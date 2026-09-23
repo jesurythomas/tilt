@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Run over</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#08090E;color:#E6E9F0;font-family:'IBM Plex Sans',sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#C7CDDB}a:hover{color:#E6E9F0}
+button{font-family:'IBM Plex Sans',sans-serif}
+</style>
+</helmet>
+<div style="width: 844px; height: 390px; position: relative; overflow: hidden; box-sizing: border-box; background-color: #0D1016; background-image: linear-gradient(rgba(91,140,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(91,140,255,0.05) 1px, transparent 1px); background-size: 34px 34px; color: #E6E9F0;">
+  <sc-for list="{{dots}}" as="d" hint-placeholder-count="8"><div style="position: absolute; left: {{d.x}}px; top: {{d.y}}px; width: {{d.s}}px; height: {{d.s}}px; border-radius: 50%; background: rgba(255,71,87,0.28);"></div></sc-for>
+  <div style="position: absolute; inset: 0; background: rgba(8,9,14,0.86);"></div>
+  <div style="position: absolute; left: 72px; top: 22px; width: 700px; height: 346px; box-sizing: border-box; padding: 24px; background: #12161F; border: 1px solid #262C38; border-radius: 10px; box-shadow: 0 24px 64px rgba(0,0,0,0.6); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px;">
+
+    <div style="display: flex; flex-direction: column; gap: 16px; justify-content: center;">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+        <span style="font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 54px; font-weight: 500; line-height: 1; letter-spacing: -0.02em;">32,420</span>
+        <span style="font-size: 13px; color: #7A8397;">Swarmed at 1:42 — Standard, 1.0×</span>
+      </div>
+      <div style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 8px; background: rgba(255,177,77,0.08); border: 1px solid rgba(255,177,77,0.3); border-radius: 4px;">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><path d="M6.5 1 L8.2 4.7 L12 5.2 L9.2 8 L9.9 12 L6.5 10.1 L3.1 12 L3.8 8 L1 5.2 L4.8 4.7 Z" stroke="#FFB14D" stroke-width="1.1" stroke-linejoin="round"></path></svg><span style="font-size: 13px; font-weight: 600; color: #FFB14D;">New best — up 4,110</span>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: #262C38; border: 1px solid #262C38; border-radius: 6px; overflow: hidden;">
+        <div style="background: #161B25; padding: 12px 6px; display: flex; flex-direction: column; align-items: center; gap: 4px;"><span style="font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 18px; font-weight: 500;">89</span><span style="font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; font-size: 9px; letter-spacing: 0.12em; color: #7A8397;">Kills</span></div><div style="background: #161B25; padding: 12px 6px; display: flex; flex-direction: column; align-items: center; gap: 4px;"><span style="font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 18px; font-weight: 500;">12×</span><span style="font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; font-size: 9px; letter-spacing: 0.12em; color: #7A8397;">Best chain</span></div><div style="background: #161B25; padding: 12px 6px; display: flex; flex-direction: column; align-items: center; gap: 4px;"><span style="font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 18px; font-weight: 500;">1:42</span><span style="font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; font-size: 9px; letter-spacing: 0.12em; color: #7A8397;">Alive</span></div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px; padding-left: 28px; border-left: 1px solid #262C38; margin-left: -1px;">
+      <div style="display: flex; align-items: baseline; justify-content: space-between;">
+        <span style="font-size: 13px; color: #99A1B3;">Points earned</span>
+        <span style="font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 15px; font-weight: 500; color: #FFB14D;">+3,331 <span style="color: #7A8397;">→</span> 7,331</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px;"><div style="display: flex; align-items: center; gap: 9px;"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2 7.5 L5.5 11 L12 3.5" stroke="#3DDC97" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg><span style="flex-grow: 1; font-size: 13px; color: #C7CDDB;">Neon Striker — 5,000 in a run</span><span style="font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 12px; color: #FFB14D;">+2</span></div><div style="display: flex; align-items: center; gap: 9px;"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2 7.5 L5.5 11 L12 3.5" stroke="#3DDC97" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg><span style="flex-grow: 1; font-size: 13px; color: #C7CDDB;">Swarm Survivor — 10,000 in a run</span><span style="font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 12px; color: #FFB14D;">+3</span></div></div>
+      <div style="flex-grow: 1;"></div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; font-size: 10px; color: #7A8397; width: 44px;">Steer</span>
+        <div style="flex-grow: 1;"><div style="display: flex; box-sizing: border-box; height: 48px; padding: 3px; gap: 3px; background: #0D1016; border: 1px solid #262C38; border-radius: 6px;"><button type="button" aria-pressed="false" style="flex-grow: 1; height: 100%; border: 1px solid transparent; border-radius: 4px; background: transparent; color: #7A8397; font-size: 14px; font-weight: 500; cursor: pointer; padding: 0 14px;">Touch</button><button type="button" aria-pressed="true" style="flex-grow: 1; height: 100%; border: 1px solid #3A4252; border-radius: 4px; background: #1B2029; color: #E6E9F0; font-size: 14px; font-weight: 600; cursor: pointer; padding: 0 14px;">Tilt</button></div></div>
+      </div>
+      <a href="ColdOpen.dc.html" style="display: flex; align-items: center; justify-content: center; gap: 10px; box-sizing: border-box; border: none; border-radius: 6px; background: #5B8CFF; color: #08090E; font-size: 17px; font-weight: 600; text-decoration: none; cursor: pointer; height: 56px;">Retry</a>
+      <div style="display: flex; gap: 8px;">
+        <a href="Main.dc.html" style="display: flex; align-items: center; justify-content: center; gap: 8px; box-sizing: border-box; height: 48px; border: 1px solid #3A4252; border-radius: 6px; background: transparent; color: #C7CDDB; font-size: 14px; font-weight: 500; text-decoration: none; cursor: pointer; flex-grow: 1;">Menu</a>
+        <a href="ArmoryWeapons.dc.html" style="display: flex; align-items: center; justify-content: center; gap: 8px; box-sizing: border-box; height: 48px; border: 1px solid #3A4252; border-radius: 6px; background: transparent; color: #C7CDDB; font-size: 14px; font-weight: 500; text-decoration: none; cursor: pointer; flex-grow: 1;">Spend <span style="font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; color: #FFB14D;">7,331</span></a>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 844, "height": 390}}'>
+class Component extends DCLogic {
+  renderVals() { return { dots: [{x:330,y:120,s:8},{x:386,y:96,s:8},{x:452,y:110,s:8},{x:512,y:150,s:8},{x:560,y:206,s:8},{x:530,y:270,s:8},{x:300,y:190,s:8},{x:286,y:262,s:8},{x:640,y:120,s:7},{x:700,y:232,s:7},{x:676,y:310,s:7},{x:246,y:330,s:7},{x:412,y:322,s:7},{x:760,y:160,s:7}] }; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Armory — weapons</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#08090E;color:#E6E9F0;font-family:'IBM Plex Sans',sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#C7CDDB}a:hover{color:#E6E9F0}
+button{font-family:'IBM Plex Sans',sans-serif}
+</style>
+</helmet>
+<div style="width: 844px; height: 390px; box-sizing: border-box; background: #0B0E14; display: flex; flex-direction: column; overflow: hidden; color: #E6E9F0; font-family: 'IBM Plex Sans', sans-serif;">
+  <div style="height: 64px; box-sizing: border-box; padding: 8px 28px 8px 24px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #1B2029; flex-shrink: 0;">
+    <a href="Main.dc.html" aria-label="Back" style="display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 48px; height: 48px; flex-shrink: 0; border: 1px solid #262C38; border-radius: 6px; background: rgba(20,24,33,0.85); text-decoration: none; cursor: pointer; padding: 0; background: transparent;"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M10 3 L5 8 L10 13" stroke="#C7CDDB" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></a>
+    <h2 style="margin: 0 6px 0 2px; font-family: 'Archivo', sans-serif; font-stretch: 118%; font-weight: 700; font-stretch: 112%; font-size: 21px; line-height: 1;">Armory</h2>
+    <nav aria-label="Armory sections" style="display: flex; gap: 2px;"><a href="ArmoryWeapons.dc.html" aria-current="page" style="display: flex; align-items: center; height: 48px; padding: 0 12px; box-sizing: border-box; border-radius: 6px; background: #1B2029; color: #E6E9F0; font-size: 14px; font-weight: 600; text-decoration: none;">Weapons</a><a href="ArmoryShips.dc.html" style="display: flex; align-items: center; height: 48px; padding: 0 12px; box-sizing: border-box; border-radius: 6px; color: #7A8397; font-size: 14px; font-weight: 500; text-decoration: none;">Ships</a><a href="ArmoryArena.dc.html" style="display: flex; align-items: center; height: 48px; padding: 0 12px; box-sizing: border-box; border-radius: 6px; color: #7A8397; font-size: 14px; font-weight: 500; text-decoration: none;">Arena</a><a href="ArmoryHandling.dc.html" style="display: flex; align-items: center; height: 48px; padding: 0 12px; box-sizing: border-box; border-radius: 6px; color: #7A8397; font-size: 14px; font-weight: 500; text-decoration: none;">Handling</a><a href="ArmoryBoosts.dc.html" style="display: flex; align-items: center; height: 48px; padding: 0 12px; box-sizing: border-box; border-radius: 6px; color: #7A8397; font-size: 14px; font-weight: 500; text-decoration: none;">Boosts</a></nav>
+    <div style="flex-grow: 1;"></div>
+    <span style="font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 15px; font-weight: 500; color: #FFB14D;">7,331 <span style="font-size: 10px; letter-spacing: 0.1em; color: #A08A5C;">PTS</span></span><a href="ColdOpen.dc.html" style="display: flex; align-items: center; justify-content: center; gap: 10px; box-sizing: border-box; border: none; border-radius: 6px; background: #5B8CFF; color: #08090E; font-size: 17px; font-weight: 600; text-decoration: none; cursor: pointer; height: 48px; width: 92px; font-size: 15px; margin-left: 6px;">Play</a>
+  </div>
+  <div style="flex-grow: 1; display: flex; min-height: 0;">
+    <div style="width: 196px; flex-shrink: 0; box-sizing: border-box; padding: 10px 10px 0 24px; border-right: 1px solid #1B2029; display: flex; flex-direction: column; gap: 2px; overflow: hidden; position: relative;">
+      <sc-for list="{{weapons}}" as="w" hint-placeholder-count="7">
+        <button type="button" aria-pressed="{{w.pressed}}" onClick="{{w.pick}}" style="flex-shrink: 0; display: flex; align-items: center; gap: 10px; height: 48px; box-sizing: border-box; padding: 0 12px; border-radius: 6px; background: {{w.bg}}; border: 1px solid {{w.border}}; cursor: pointer; text-align: left;">
+          <span style="width: 8px; height: 8px; border-radius: 2px; background: {{w.dot}}; display: block; flex-shrink: 0;"></span>
+          <span style="flex-grow: 1; font-size: 14px; font-weight: 500; color: {{w.fg}};">{{w.name}}</span>
+          <span style="font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 11px; color: #7A8397;">{{w.rank}}</span>
+        </button>
+      </sc-for>
+      <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 36px; background: linear-gradient(rgba(11,14,20,0), #0B0E14); pointer-events: none;"></div>
+    </div>
+
+    <div style="flex-grow: 1; min-width: 0; box-sizing: border-box; padding: 16px 28px 16px 20px; display: flex; flex-direction: column; gap: 14px;">
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <div style="width: 44px; height: 44px; flex-shrink: 0; box-sizing: border-box; border-radius: 6px; background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.35); display: flex; align-items: center; justify-content: center;">
+          <svg width="22" height="22" viewBox="0 0 30 30" fill="none" aria-hidden="true"><circle cx="15" cy="15" r="11" stroke="#A78BFA" stroke-width="1.6"></circle><circle cx="15" cy="15" r="5" fill="#A78BFA"></circle></svg>
+        </div>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px;">
+          <h3 style="margin: 0; font-family: 'Archivo', sans-serif; font-stretch: 118%; font-weight: 700; font-stretch: 112%; font-size: 21px; line-height: 1.05;">Blackhole</h3>
+          <span style="font-size: 13px; color: #99A1B3;">Drags dots in, then collapses.</span>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
+          <span style="font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; font-size: 10px; color: #7A8397;">Invested</span>
+          <span style="font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 15px; font-weight: 500; color: #FFB14D;">6,700</span>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1.65fr 1fr; gap: 12px; min-height: 0;">
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <sc-for list="{{tracks}}" as="t" hint-placeholder-count="3">
+            <div style="display: flex; align-items: center; gap: 12px; height: 62px; box-sizing: border-box; padding: 0 7px 0 14px; background: #141821; border: 1px solid #262C38; border-radius: 6px;">
+              <div style="width: 104px; flex-shrink: 0; display: flex; flex-direction: column; gap: 2px;">
+                <span style="font-size: 14px; font-weight: 600;">{{t.name}}</span>
+                <span style="font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 11px; color: #99A1B3;">{{t.effect}}</span>
+              </div>
+              <div style="flex-grow: 1; display: flex; gap: 4px;" aria-label="{{t.rankLabel}}">
+                <sc-for list="{{t.pips}}" as="p" hint-placeholder-count="5"><span style="flex-grow: 1; height: 5px; border-radius: 2px; background: {{p.fill}}; display: block;"></span></sc-for>
+              </div>
+              <button type="button" style="width: 88px; height: 48px; flex-shrink: 0; border: 1px solid #5B8CFF; border-radius: 4px; background: rgba(91,140,255,0.12); color: #8FB0FF; font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 13px; font-weight: 500; cursor: pointer;">{{t.cost}}</button>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="flex-grow: 1; display: flex; flex-direction: row; align-items: center; gap: 10px; box-sizing: border-box; padding: 8px 7px 8px 13px; background: rgba(167,139,250,0.07); border: 1px solid rgba(167,139,250,0.3); border-radius: 6px;">
+            <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;"><strong style="font-size: 14px; font-weight: 600;">Aegis</strong><span style="font-size: 12px; line-height: 1.35; color: #99A1B3;">You are safe inside the well.</span></div>
+            <button type="button" style="flex-shrink: 0; height: 48px; padding: 0 12px; border: 1px solid #A78BFA; border-radius: 4px; background: rgba(167,139,250,0.12); color: #C4B0FD; font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 13px; cursor: pointer;">2,500</button>
+          </div>
+          <div style="flex-grow: 1; display: flex; flex-direction: row; align-items: center; gap: 10px; box-sizing: border-box; padding: 8px 7px 8px 13px; background: #10141B; border: 1px solid #1B2029; border-radius: 6px;">
+            <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;"><strong style="font-size: 14px; font-weight: 600; color: #99A1B3;">Supernova</strong><span style="font-size: 12px; line-height: 1.35; color: #7A8397;">Collapse fires a shockwave.</span></div>
+            <button type="button" disabled="" style="flex-shrink: 0; display: flex; align-items: center; gap: 5px; height: 48px; padding: 0 10px; border: 1px solid #262C38; border-radius: 4px; background: transparent; color: #7A8397; font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 13px;"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><rect x="2" y="5.5" width="8" height="5.5" rx="1" stroke="#7A8397" stroke-width="1.2"></rect><path d="M4 5.5 V3.8 A2 2 0 0 1 8 3.8 V5.5" stroke="#7A8397" stroke-width="1.2"></path></svg>5,000</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 844, "height": 390}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { sel: 'blackhole' }; }
+  renderVals() {
+    const pips = (n, max) => Array.from({ length: max }, (_, i) => ({ fill: i < n ? '#5B8CFF' : '#262C38' }));
+    const list = [
+      ['blackhole', 'Blackhole', '#A78BFA', '9/15'], ['missiles', 'Missiles', '#5B8CFF', '15/15'], ['laser', 'Laser', '#5B8CFF', '3/10'],
+      ['nuke', 'Nuke', '#FFB14D', '1/10'], ['freeze', 'Shockwave', '#8FB0FF', '0/5'], ['shield', 'Shield', '#3DDC97', '4/10'], ['lightning', 'Lightning', '#FFB14D', '0/10']
+    ];
+    return {
+      weapons: list.map(([id, name, dot, rank]) => {
+        const on = id === this.state.sel;
+        return { name, dot, rank, pressed: on ? 'true' : 'false', bg: on ? '#1B2029' : 'transparent', border: on ? '#3A4252' : 'transparent',
+          fg: on ? '#E6E9F0' : '#C7CDDB', pick: () => this.setState({ sel: id }) };
+      }),
+      tracks: [
+        { name: 'Duration', effect: '+0.5s / rank', cost: '1,800', rankLabel: 'Rank 3 of 5', pips: pips(3, 5) },
+        { name: 'Radius', effect: '+18 / rank', cost: '1,100', rankLabel: 'Rank 2 of 5', pips: pips(2, 5) },
+        { name: 'Pull', effect: '+20% / rank', cost: '2,800', rankLabel: 'Rank 4 of 5', pips: pips(4, 5) }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

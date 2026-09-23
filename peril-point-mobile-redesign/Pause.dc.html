@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Paused</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#08090E;color:#E6E9F0;font-family:'IBM Plex Sans',sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#C7CDDB}a:hover{color:#E6E9F0}
+button{font-family:'IBM Plex Sans',sans-serif}
+</style>
+</helmet>
+<div style="width: 844px; height: 390px; position: relative; overflow: hidden; box-sizing: border-box; background-color: #0D1016; background-image: linear-gradient(rgba(91,140,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(91,140,255,0.05) 1px, transparent 1px); background-size: 34px 34px; color: #E6E9F0;">
+  <sc-for list="{{dots}}" as="d" hint-placeholder-count="8"><div style="position: absolute; left: {{d.x}}px; top: {{d.y}}px; width: {{d.s}}px; height: {{d.s}}px; border-radius: 50%; background: rgba(255,71,87,0.28);"></div></sc-for>
+  <div style="position: absolute; inset: 0; background: rgba(8,9,14,0.8);"></div>
+  <div style="position: absolute; left: 112px; top: 24px; width: 620px; height: 342px; box-sizing: border-box; padding: 24px; background: #12161F; border: 1px solid #262C38; border-radius: 10px; box-shadow: 0 24px 64px rgba(0,0,0,0.6); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px;">
+
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px;">
+        <h2 style="margin: 0; font-family: 'Archivo', sans-serif; font-stretch: 118%; font-weight: 700; font-stretch: 112%; font-size: 26px; line-height: 1;">Paused</h2>
+        <span style="font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 13px; color: #7A8397;">18,940 · 1:04 · Standard</span>
+      </div>
+      <a href="Hud.dc.html" style="display: flex; align-items: center; justify-content: center; gap: 10px; box-sizing: border-box; border: none; border-radius: 6px; background: #5B8CFF; color: #08090E; font-size: 17px; font-weight: 600; text-decoration: none; cursor: pointer; height: 56px; font-size: 16px;">Resume</a>
+      <a href="ColdOpen.dc.html" style="display: flex; align-items: center; justify-content: center; gap: 8px; box-sizing: border-box; height: 48px; border: 1px solid #3A4252; border-radius: 6px; background: transparent; color: #C7CDDB; font-size: 14px; font-weight: 500; text-decoration: none; cursor: pointer;">Restart run</a>
+      <a href="Main.dc.html" style="display: flex; align-items: center; justify-content: center; gap: 8px; box-sizing: border-box; height: 48px; border: 1px solid #3A4252; border-radius: 6px; background: transparent; color: #C7CDDB; font-size: 14px; font-weight: 500; text-decoration: none; cursor: pointer;">Quit to menu</a>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px; padding-left: 28px; border-left: 1px solid #262C38; margin-left: -1px;">
+      <span style="font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; font-size: 10px; color: #7A8397;">Steer</span>
+      <div style="display: flex; gap: 8px;">
+        <div style="flex-grow: 1;"><div style="display: flex; box-sizing: border-box; height: 48px; padding: 3px; gap: 3px; background: #0D1016; border: 1px solid #262C38; border-radius: 6px;"><button type="button" aria-pressed="false" style="flex-grow: 1; height: 100%; border: 1px solid transparent; border-radius: 4px; background: transparent; color: #7A8397; font-size: 14px; font-weight: 500; cursor: pointer; padding: 0 14px;">Touch</button><button type="button" aria-pressed="true" style="flex-grow: 1; height: 100%; border: 1px solid #3A4252; border-radius: 4px; background: #1B2029; color: #E6E9F0; font-size: 14px; font-weight: 600; cursor: pointer; padding: 0 14px;">Tilt</button></div></div>
+        <a href="Calibrate.dc.html" aria-label="Calibrate tilt" style="display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 48px; height: 48px; flex-shrink: 0; border: 1px solid #262C38; border-radius: 6px; background: rgba(20,24,33,0.85); text-decoration: none; cursor: pointer; padding: 0; background: transparent; border-color: #3A4252;"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="6" stroke="#C7CDDB" stroke-width="1.3"></circle><circle cx="9.5" cy="6.8" r="1.8" fill="#C7CDDB"></circle><path d="M8 1 V3 M8 13 V15 M1 8 H3 M13 8 H15" stroke="#C7CDDB" stroke-width="1.3" stroke-linecap="round"></path></svg></a>
+      </div>
+      <div style="display: flex; flex-direction: column; margin-top: 4px;">
+        <div style="display: flex; align-items: center; height: 48px; border-bottom: 1px solid #1B2029;"><label for="p-sfx" style="flex-grow: 1; font-size: 14px; color: #C7CDDB;">Sound</label><button id="p-sfx" type="button" role="switch" aria-checked="true" style="flex-shrink: 0; width: 48px; height: 28px; border: 1px solid #5B8CFF; border-radius: 14px; background: rgba(91,140,255,0.2); position: relative; cursor: pointer; padding: 0;"><span style="position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; border-radius: 50%; background: #5B8CFF; display: block;"></span></button></div>
+        <div style="display: flex; align-items: center; height: 48px;"><label for="p-mus" style="flex-grow: 1; font-size: 14px; color: #C7CDDB;">Music</label><button id="p-mus" type="button" role="switch" aria-checked="false" style="flex-shrink: 0; width: 48px; height: 28px; border: 1px solid #3A4252; border-radius: 14px; background: #1B2029; position: relative; cursor: pointer; padding: 0;"><span style="position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #626B7E; display: block;"></span></button></div>
+      </div>
+      <div style="flex-grow: 1;"></div>
+      <div style="display: flex; gap: 8px;">
+        <a href="ArmoryWeapons.dc.html" style="display: flex; align-items: center; justify-content: center; gap: 8px; box-sizing: border-box; height: 48px; border: 1px solid #3A4252; border-radius: 6px; background: transparent; color: #C7CDDB; font-size: 14px; font-weight: 500; text-decoration: none; cursor: pointer; flex-grow: 1;">Armory</a>
+        <a href="Settings.dc.html" style="display: flex; align-items: center; justify-content: center; gap: 8px; box-sizing: border-box; height: 48px; border: 1px solid #3A4252; border-radius: 6px; background: transparent; color: #C7CDDB; font-size: 14px; font-weight: 500; text-decoration: none; cursor: pointer; flex-grow: 1;">Settings</a>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 844, "height": 390}}'>
+class Component extends DCLogic {
+  renderVals() { return { dots: [{x:330,y:120,s:8},{x:386,y:96,s:8},{x:452,y:110,s:8},{x:512,y:150,s:8},{x:560,y:206,s:8},{x:530,y:270,s:8},{x:300,y:190,s:8},{x:286,y:262,s:8},{x:640,y:120,s:7},{x:700,y:232,s:7},{x:676,y:310,s:7},{x:246,y:330,s:7},{x:412,y:322,s:7},{x:760,y:160,s:7}] }; }
+}
+</script>
+</body>
+</html>

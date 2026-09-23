@@ -26,8 +26,10 @@ adb on 2026-09-21 during M7 and **remains absent on 2026-09-22** during M8
 Also landed after M4: **HUD score feedback** (`9cc3e8f..31bf2ce`, spec
 `docs/superpowers/specs/2026-09-21-hud-score-feedback-design.md`) — kill-site
 callouts removed; the score pulses in a multiplier-tier colour instead.
-Next module: **M9 (Milestones)** — chosen by the user 2026-09-23; plan
-written, **not started**, see `## Next` at the end of this file. The A55
+Next module: **M8.5 (Interface rework)** — new, from the mobile redesign
+(`peril-point-mobile-redesign/`, spec
+`docs/superpowers/specs/2026-09-23-mobile-interface-system-design.md`); then
+M9, whose plan exists but has Tasks 5–7 superseded. See `## Next`. The A55
 "Mobile scale split" pass was skipped for now by the user (phone still absent
 from adb) — its checks stay unticked in `VERIFY-ME.md`.
 Branch: `feat/godot-port` (no upstream; nothing pushed).
@@ -651,18 +653,22 @@ Both constants are provisional; the VERIFY-ME section says which to move.
 
 ## Next
 
-**M9 — Milestones**, plan `docs/superpowers/plans/2026-09-20-m9-milestones.md`
-(9 tasks; user rulings R1–R2 and plan rulings R3–R7 are recorded at its top).
-**Literal first step:** read that plan's header, rulings and Global
-Constraints, then execute **Task 1** (SaveStore string-list files) with
-superpowers:subagent-driven-development. After each task: tick it in the plan,
-update this file's `## State` line ("M9 in progress: Tasks 1–N landed; next
-Task N+1"), commit per the task's commit step.
+**First: the user reviews the interface-system spec**
+`docs/superpowers/specs/2026-09-23-mobile-interface-system-design.md`
+(written 2026-09-23 from `peril-point-mobile-redesign/`; every decision in it
+was ruled on in brainstorming). Apply any requested changes to the spec.
 
-The plan's Open questions (R7 death-tick double count, the 4px rail on a
-phone, unported CSS animations) are for the user — raise them at M9's stop.
+**Then: write the M8.5 plan** —
+`docs/superpowers/plans/2026-09-23-m8.5-interface-rework.md`, using
+superpowers:writing-plans, with the task order in spec §8. Literal first
+step: read the spec in full, the boards `System`, `Hud`, `Pause`, `RunOver`
+and the five `Armory*.dc.html`, then `src/ui/armory_theme.gd`,
+`hud_controller.gd`, `armory_ui.gd`, `handling_preview.gd`,
+`control_picker.gd` and `scenes/main.tscn`, `scenes/armory.tscn`.
 
-M5 (deps M2) and M10 (deps M3) are the modules open after M9.
+**After M8.5:** rewrite Tasks 5–7 of
+`docs/superpowers/plans/2026-09-20-m9-milestones.md` to spec §6.5 (Tasks 1–4
+stand), then execute M9.
 
 Before starting: `git status --short` must be clean under `godot/` (the user
 may leave device tuning uncommitted — never stash or revert it), and read

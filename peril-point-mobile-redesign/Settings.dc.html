@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Settings</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#08090E;color:#E6E9F0;font-family:'IBM Plex Sans',sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#C7CDDB}a:hover{color:#E6E9F0}
+button{font-family:'IBM Plex Sans',sans-serif}
+</style>
+</helmet>
+<div style="width: 844px; height: 390px; box-sizing: border-box; background: #0B0E14; display: flex; flex-direction: column; overflow: hidden; color: #E6E9F0;">
+  <div style="height: 64px; box-sizing: border-box; padding: 8px 28px 8px 24px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #1B2029; flex-shrink: 0;">
+    <a href="Main.dc.html" aria-label="Back" style="display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 48px; height: 48px; flex-shrink: 0; border: 1px solid #262C38; border-radius: 6px; background: rgba(20,24,33,0.85); text-decoration: none; cursor: pointer; padding: 0; background: transparent;"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M10 3 L5 8 L10 13" stroke="#C7CDDB" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></a>
+    <h2 style="margin: 0 6px 0 2px; font-family: 'Archivo', sans-serif; font-stretch: 118%; font-weight: 700; font-stretch: 112%; font-size: 21px; line-height: 1;">Settings</h2>
+    
+    <div style="flex-grow: 1;"></div>
+    
+  </div>
+  <div style="flex-grow: 1; min-height: 0; box-sizing: border-box; padding: 14px 28px 16px 24px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-content: start;">
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <span style="font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; font-size: 10px; color: #5B8CFF;">Controls</span>
+      <div style="display: flex; gap: 8px;"><button type="button" aria-pressed="false" style="flex-grow: 1; height: 64px; box-sizing: border-box; border: 1px solid #262C38; border-radius: 6px; background: #141821; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 3px; padding: 0 14px;"><span style="font-size: 15px; font-weight: 600; color: #C7CDDB;">Touch</span><span style="font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 11px; color: #7A8397;">drag anywhere</span></button><button type="button" aria-pressed="true" style="flex-grow: 1; height: 64px; box-sizing: border-box; border: 1px solid #5B8CFF; border-radius: 6px; background: #1B2029; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 3px; padding: 0 14px;"><span style="font-size: 15px; font-weight: 600; color: #E6E9F0;">Tilt</span><span style="font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 11px; color: #7A8397;">phone gyroscope</span></button></div>
+      <a href="Calibrate.dc.html" style="display: flex; align-items: center; justify-content: center; gap: 8px; box-sizing: border-box; height: 48px; border: 1px solid #3A4252; border-radius: 6px; background: transparent; color: #C7CDDB; font-size: 14px; font-weight: 500; text-decoration: none; cursor: pointer;"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="6" stroke="#C7CDDB" stroke-width="1.3"></circle><circle cx="9.5" cy="6.8" r="1.8" fill="#C7CDDB"></circle><path d="M8 1 V3 M8 13 V15 M1 8 H3 M13 8 H15" stroke="#C7CDDB" stroke-width="1.3" stroke-linecap="round"></path></svg>Calibrate tilt</a>
+      <a href="ArmoryHandling.dc.html" style="font-size: 12px; line-height: 1.5; color: #99A1B3; text-decoration: underline; text-decoration-color: #3A4252; text-underline-offset: 3px; padding: 6px 0;">Turn rate and sensitivity live in Armory › Handling</a>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <span style="font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; font-size: 10px; color: #5B8CFF;">Readability</span>
+      <div style="display: flex; align-items: center; gap: 12px; min-height: 60px; box-sizing: border-box; padding: 8px 12px 8px 14px; background: #141821; border: 1px solid #262C38; border-radius: 6px;"><div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;"><label for="s-halo" style="font-size: 14px; font-weight: 500;">Enemy outlines</label><span style="font-size: 12px; color: #7A8397;">White ring on every dot.</span></div><button id="s-halo" type="button" role="switch" aria-checked="true" style="flex-shrink: 0; width: 48px; height: 28px; border: 1px solid #5B8CFF; border-radius: 14px; background: rgba(91,140,255,0.2); position: relative; cursor: pointer; padding: 0;"><span style="position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; border-radius: 50%; background: #5B8CFF; display: block;"></span></button></div>
+      <div style="display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; padding: 10px 12px 12px 14px; background: #141821; border: 1px solid #262C38; border-radius: 6px;">
+        <span style="font-size: 14px; font-weight: 500;">Screen shake</span>
+        <div style="display: flex; box-sizing: border-box; height: 48px; padding: 3px; gap: 3px; background: #0D1016; border: 1px solid #262C38; border-radius: 6px;"><button type="button" aria-pressed="false" style="flex-grow: 1; height: 100%; border: 1px solid transparent; border-radius: 4px; background: transparent; color: #7A8397; font-size: 14px; font-weight: 500; cursor: pointer; padding: 0 14px;">Off</button><button type="button" aria-pressed="true" style="flex-grow: 1; height: 100%; border: 1px solid #3A4252; border-radius: 4px; background: #1B2029; color: #E6E9F0; font-size: 14px; font-weight: 600; cursor: pointer; padding: 0 14px;">Low</button><button type="button" aria-pressed="false" style="flex-grow: 1; height: 100%; border: 1px solid transparent; border-radius: 4px; background: transparent; color: #7A8397; font-size: 14px; font-weight: 500; cursor: pointer; padding: 0 14px;">Full</button></div>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <span style="font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; font-size: 10px; color: #5B8CFF;">Audio</span>
+      <div style="display: flex; align-items: center; gap: 12px; min-height: 60px; box-sizing: border-box; padding: 8px 12px 8px 14px; background: #141821; border: 1px solid #262C38; border-radius: 6px;"><div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;"><label for="s-sfx" style="font-size: 14px; font-weight: 500;">Sound</label></div><button id="s-sfx" type="button" role="switch" aria-checked="true" style="flex-shrink: 0; width: 48px; height: 28px; border: 1px solid #5B8CFF; border-radius: 14px; background: rgba(91,140,255,0.2); position: relative; cursor: pointer; padding: 0;"><span style="position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; border-radius: 50%; background: #5B8CFF; display: block;"></span></button></div>
+      <div style="display: flex; align-items: center; gap: 12px; min-height: 60px; box-sizing: border-box; padding: 8px 12px 8px 14px; background: #141821; border: 1px solid #262C38; border-radius: 6px;"><div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;"><label for="s-mus" style="font-size: 14px; font-weight: 500;">Music</label></div><button id="s-mus" type="button" role="switch" aria-checked="true" style="flex-shrink: 0; width: 48px; height: 28px; border: 1px solid #5B8CFF; border-radius: 14px; background: rgba(91,140,255,0.2); position: relative; cursor: pointer; padding: 0;"><span style="position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; border-radius: 50%; background: #5B8CFF; display: block;"></span></button></div>
+      <span style="font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; font-size: 10px; color: #5B8CFF; margin-top: 8px;">Data</span>
+      <div style="display: flex; align-items: center; gap: 12px; min-height: 60px; box-sizing: border-box; padding: 8px 12px 8px 14px; background: #141821; border: 1px solid #262C38; border-radius: 6px;"><div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 14px; font-weight: 500;">Reset progress</span><span style="font-size: 12px; color: #7A8397;">Cannot be undone.</span></div><button type="button" style="height: 48px; padding: 0 14px; border: 1px solid #3A4252; border-radius: 4px; background: transparent; color: #99A1B3; font-size: 13px; cursor: pointer;">Reset</button></div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 844, "height": 390}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

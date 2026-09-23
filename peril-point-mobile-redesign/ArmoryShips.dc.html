@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Armory — ships</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#08090E;color:#E6E9F0;font-family:'IBM Plex Sans',sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#C7CDDB}a:hover{color:#E6E9F0}
+button{font-family:'IBM Plex Sans',sans-serif}
+</style>
+</helmet>
+<div style="width: 844px; height: 390px; box-sizing: border-box; background: #0B0E14; display: flex; flex-direction: column; overflow: hidden; color: #E6E9F0; font-family: 'IBM Plex Sans', sans-serif;">
+  <div style="height: 64px; box-sizing: border-box; padding: 8px 28px 8px 24px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #1B2029; flex-shrink: 0;">
+    <a href="Main.dc.html" aria-label="Back" style="display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 48px; height: 48px; flex-shrink: 0; border: 1px solid #262C38; border-radius: 6px; background: rgba(20,24,33,0.85); text-decoration: none; cursor: pointer; padding: 0; background: transparent;"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M10 3 L5 8 L10 13" stroke="#C7CDDB" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></a>
+    <h2 style="margin: 0 6px 0 2px; font-family: 'Archivo', sans-serif; font-stretch: 118%; font-weight: 700; font-stretch: 112%; font-size: 21px; line-height: 1;">Armory</h2>
+    <nav aria-label="Armory sections" style="display: flex; gap: 2px;"><a href="ArmoryWeapons.dc.html" style="display: flex; align-items: center; height: 48px; padding: 0 12px; box-sizing: border-box; border-radius: 6px; color: #7A8397; font-size: 14px; font-weight: 500; text-decoration: none;">Weapons</a><a href="ArmoryShips.dc.html" aria-current="page" style="display: flex; align-items: center; height: 48px; padding: 0 12px; box-sizing: border-box; border-radius: 6px; background: #1B2029; color: #E6E9F0; font-size: 14px; font-weight: 600; text-decoration: none;">Ships</a><a href="ArmoryArena.dc.html" style="display: flex; align-items: center; height: 48px; padding: 0 12px; box-sizing: border-box; border-radius: 6px; color: #7A8397; font-size: 14px; font-weight: 500; text-decoration: none;">Arena</a><a href="ArmoryHandling.dc.html" style="display: flex; align-items: center; height: 48px; padding: 0 12px; box-sizing: border-box; border-radius: 6px; color: #7A8397; font-size: 14px; font-weight: 500; text-decoration: none;">Handling</a><a href="ArmoryBoosts.dc.html" style="display: flex; align-items: center; height: 48px; padding: 0 12px; box-sizing: border-box; border-radius: 6px; color: #7A8397; font-size: 14px; font-weight: 500; text-decoration: none;">Boosts</a></nav>
+    <div style="flex-grow: 1;"></div>
+    <span style="font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 15px; font-weight: 500; color: #FFB14D;">7,331 <span style="font-size: 10px; letter-spacing: 0.1em; color: #A08A5C;">PTS</span></span><a href="ColdOpen.dc.html" style="display: flex; align-items: center; justify-content: center; gap: 10px; box-sizing: border-box; border: none; border-radius: 6px; background: #5B8CFF; color: #08090E; font-size: 17px; font-weight: 600; text-decoration: none; cursor: pointer; height: 48px; width: 92px; font-size: 15px; margin-left: 6px;">Play</a>
+  </div>
+  <div style="flex-grow: 1; min-height: 0; box-sizing: border-box; padding: 14px 0 16px 24px; display: flex; flex-direction: column; gap: 12px;">
+    <div style="display: flex; align-items: baseline; gap: 12px;">
+      <span style="font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: #7A8397;">Hull · 3 of 7</span>
+      <span style="font-size: 13px; color: #7A8397;">Changes hitbox and turn rate. Nothing else.</span>
+    </div>
+    <div style="display: flex; gap: 12px; overflow: hidden;">
+      <sc-for list="{{ships}}" as="s" hint-placeholder-count="5">
+        <div style="width: 172px; flex-shrink: 0; box-sizing: border-box; background: {{s.bg}}; border: 1px solid {{s.border}}; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column;">
+          <div style="height: 82px; display: flex; align-items: center; justify-content: center; background: #0D1016; border-bottom: 1px solid #1B2029;">
+            <svg width="44" height="44" viewBox="0 0 48 48" fill="none" aria-hidden="true" style="opacity: {{s.opacity}};"><path d="{{s.path}}" fill="{{s.tint}}"></path></svg>
+          </div>
+          <div style="padding: 11px 12px 12px; display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 6px;">
+              <strong style="font-size: 15px; font-weight: 600; color: {{s.fg}};">{{s.name}}</strong>
+              <span style="font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 11px; color: #7A8397; white-space: nowrap;">{{s.trait}}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;"><span style="font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; font-size: 9px; letter-spacing: 0.1em; color: #7A8397; width: 42px;">Hitbox</span><span style="flex-grow: 1; height: 4px; border-radius: 2px; background: #1B2029; display: block; position: relative;"><span style="position: absolute; left: 0; top: 0; bottom: 0; width: {{s.hitbox}}; border-radius: 2px; background: #5B8CFF;"></span></span></div>
+            <div style="display: flex; align-items: center; gap: 8px;"><span style="font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; font-size: 9px; letter-spacing: 0.1em; color: #7A8397; width: 42px;">Turn</span><span style="flex-grow: 1; height: 4px; border-radius: 2px; background: #1B2029; display: block; position: relative;"><span style="position: absolute; left: 0; top: 0; bottom: 0; width: {{s.turn}}; border-radius: 2px; background: #5B8CFF;"></span></span></div>
+            <button type="button" style="height: 48px; margin-top: 2px; border: 1px solid {{s.btnBorder}}; border-radius: 4px; background: {{s.btnBg}}; color: {{s.btnFg}}; font-size: 13px; font-weight: 500; cursor: pointer;">{{s.action}}</button>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 844, "height": 390}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const owned = { bg: '#141821', border: '#3DDC97', fg: '#E6E9F0', opacity: '1', btnBorder: '#3DDC97', btnBg: 'rgba(61,220,151,0.10)', btnFg: '#3DDC97', action: 'Equipped' };
+    const have = { bg: '#141821', border: '#262C38', fg: '#E6E9F0', opacity: '1', btnBorder: '#3A4252', btnBg: 'transparent', btnFg: '#C7CDDB', action: 'Equip' };
+    const buy = (p) => ({ bg: '#10141B', border: '#1B2029', fg: '#99A1B3', opacity: '0.45', btnBorder: '#5B8CFF', btnBg: 'rgba(91,140,255,0.12)', btnFg: '#8FB0FF', action: p + ' pts' });
+    return { ships: [
+      { ...owned, name: 'Arrow', trait: 'Balanced', path: 'M40 24 L14 10 L19 24 L14 38 Z', tint: '#5B8CFF', hitbox: '50%', turn: '60%' },
+      { ...have, name: 'Viper', trait: 'Aggressive', path: 'M40 24 L12 8 L20 24 L12 40 Z', tint: '#FF8A94', hitbox: '60%', turn: '81%' },
+      { ...have, name: 'Phantom', trait: 'Evasive', path: 'M42 24 L10 12 L22 24 L10 36 Z', tint: '#A78BFA', hitbox: '20%', turn: '48%' },
+      { ...buy('600'), name: 'Aegis', trait: 'Heavy', path: 'M41 24 L33 9 L17 9 L7 24 L17 39 L33 39 Z', tint: '#FFB14D', hitbox: '95%', turn: '27%' },
+      { ...buy('800'), name: 'Matrix', trait: 'Fast cooldown', path: 'M24 6 L40 24 L24 42 L8 24 Z', tint: '#3DDC97', hitbox: '53%', turn: '78%' },
+      { ...buy('1,000'), name: 'Shuriken', trait: 'Spin drift', path: 'M24 6 L30 18 L42 24 L30 30 L24 42 L18 30 L6 24 L18 18 Z', tint: '#8FB0FF', hitbox: '43%', turn: '96%' },
+      { ...buy('2,500'), name: 'Revenant', trait: 'Second wind', path: 'M40 24 L16 8 L22 24 L16 40 Z', tint: '#C7CDDB', hitbox: '68%', turn: '54%' }
+    ] };
+  }
+}
+</script>
+</body>
+</html>

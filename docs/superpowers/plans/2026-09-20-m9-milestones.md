@@ -8,6 +8,11 @@
 
 **Tech Stack:** Godot 4.7.2-stable, GDScript (static typing enforced), GUT headless, gdtoolkit 4.5.0, esbuild (from `web/node_modules`) for the parity dump.
 
+> **⚠ 2026-09-23 — partly superseded.** `docs/superpowers/specs/2026-09-23-mobile-interface-system-design.md`
+> makes the mobile redesign the visual authority and inserts **M8.5 — Interface rework** before M9.
+> Tasks 1–4 below stand. **Tasks 5–7 (GoalsHUD rail/toast/modal, game-over rows) are to be rewritten
+> to that spec's §6.5 on `UiTheme` before execution.** Do not execute this plan until M8.5 is done.
+
 **Spec:** `docs/superpowers/specs/2026-09-20-peril-point-godot-port-design.md` §8 Module 9 (also §4.6 persistence, §5.3 signals, §5.4 frame order step 10, §6.3 Tier 1/Tier 2). Read it with `godot/CONVENTIONS.md` before any task.
 
 **TS sources (read in full before your task):** `web/src/tilt-to-live/GoalManager.ts` (983 lines), `web/src/tilt-to-live/GoalsHUD.ts` (488 lines), and the `TiltGame.ts` sites cited per task.

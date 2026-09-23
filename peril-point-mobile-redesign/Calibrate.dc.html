@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Calibrate tilt</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#08090E;color:#E6E9F0;font-family:'IBM Plex Sans',sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#C7CDDB}a:hover{color:#E6E9F0}
+button{font-family:'IBM Plex Sans',sans-serif}
+</style>
+</helmet>
+<div style="width: 844px; height: 390px; position: relative; overflow: hidden; box-sizing: border-box; background-color: #0D1016; background-image: linear-gradient(rgba(91,140,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(91,140,255,0.05) 1px, transparent 1px); background-size: 34px 34px; color: #E6E9F0;">
+  <div style="position: absolute; inset: 0; background: rgba(8,9,14,0.82);"></div>
+  <div style="position: absolute; left: 60px; top: 0; bottom: 0; width: 360px; display: flex; flex-direction: column; justify-content: center; gap: 18px;">
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <span style="font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: #5B8CFF;">Tilt</span>
+      <h2 style="margin: 0; font-family: 'Archivo', sans-serif; font-stretch: 118%; font-weight: 700; font-stretch: 112%; font-size: 28px; line-height: 1;">Calibrate</h2>
+      <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #99A1B3;">Hold the phone the way you play. That angle becomes still.</p>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 10px; width: 260px;">
+      <a href="Main.dc.html" style="display: flex; align-items: center; justify-content: center; gap: 10px; box-sizing: border-box; border: none; border-radius: 6px; background: #5B8CFF; color: #08090E; font-size: 17px; font-weight: 600; text-decoration: none; cursor: pointer; height: 56px;">Set level</a>
+      <a href="Main.dc.html" style="display: flex; align-items: center; justify-content: center; gap: 8px; box-sizing: border-box; height: 48px; border: 1px solid #3A4252; border-radius: 6px; background: transparent; color: #C7CDDB; font-size: 14px; font-weight: 500; text-decoration: none; cursor: pointer;">Cancel</a>
+    </div>
+  </div>
+  <div style="position: absolute; right: 96px; top: 50%; transform: translateY(-50%); width: 230px; height: 230px; box-sizing: border-box; border-radius: 50%; border: 1px solid #262C38; background: rgba(20,24,33,0.6);">
+    <div style="position: absolute; left: 50%; top: 14px; bottom: 14px; width: 1px; background: #1B2029;"></div>
+    <div style="position: absolute; top: 50%; left: 14px; right: 14px; height: 1px; background: #1B2029;"></div>
+    <div style="position: absolute; left: 50%; top: 50%; width: 132px; height: 132px; margin: -66px 0 0 -66px; box-sizing: border-box; border-radius: 50%; border: 1px dashed rgba(91,140,255,0.3);"></div>
+    <div style="position: absolute; left: 50%; top: 50%; width: 40px; height: 40px; margin: -20px 0 0 -20px; box-sizing: border-box; border-radius: 50%; border: 1px solid rgba(255,177,77,0.7);"></div>
+    <div style="position: absolute; left: 50%; top: 50%; width: 28px; height: 28px; margin: -24px 0 0 -8px; border-radius: 50%; background: #5B8CFF; box-shadow: 0 0 16px rgba(91,140,255,0.6);"></div>
+  </div>
+  <div style="position: absolute; right: 96px; bottom: 26px; width: 230px; display: flex; justify-content: center; gap: 18px;">
+    <span style="display: flex; align-items: center; gap: 7px; font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 11px; color: #7A8397;"><span style="width: 9px; height: 9px; box-sizing: border-box; border-radius: 50%; border: 1px solid rgba(255,177,77,0.7); display: block;"></span>still</span>
+    <span style="display: flex; align-items: center; gap: 7px; font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 11px; color: #7A8397;"><span style="width: 9px; height: 9px; box-sizing: border-box; border-radius: 50%; border: 1px dashed rgba(91,140,255,0.6); display: block;"></span>top speed</span>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 844, "height": 390}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
