@@ -38,6 +38,9 @@ func test_hud_run_ended_shows_the_run_over_sheet() -> void:
 	stats.max_multiplier = 12.0
 
 	GameEvents.run_ended.emit(4200, stats)
+	# PORT: web/src/tilt-to-live/TiltGame.ts:2089-2151 — the sheet fills 450 ms
+	# after the death tick (I-1).
+	await get_tree().create_timer(0.5).timeout
 	assert_true(sheet.visible, "GameOverPanel must be visible on run_ended")
 	assert_eq((sheet.find_child("FinalScoreLabel", true, false) as Label).text, "4,200")
 	assert_eq((sheet.find_child("FinalKillsLabel", true, false) as Label).text, "25")

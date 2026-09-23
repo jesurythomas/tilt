@@ -4,7 +4,20 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**M9 in progress:** Tasks 1–8 landed (device half unrun, A55 absent); next Task 9.
+**M9 in progress:** Tasks 1–8 landed (device half unrun, A55 absent); final
+review's I-1 fixed 2026-09-24 (see below); next Task 9.
+
+**Final review fixes** (`.superpowers/sdd/2026-09-20-m9-milestones/final-review.md`,
+`final-fix-report.md`): **I-1** — Run over now fills/shows 450 ms after
+`run_ended`, ported from `TiltGame.ts:2089-2151` (`HudController._on_run_ended`
+starts a one-shot `Timer`; stopped on Retry or any phase change so a stale
+fill cannot reopen the sheet), so a total-goal completion on the death tick
+(step 8, `run_controller.gd:227`) now reaches "Points earned" and the
+balance. **M-1, M-3, M-4** — PORT-NOTE added at `goals_hud.gd`'s Escape
+handling; `VERIFY-ME.md`'s M9 Toast line reworded (Armory-close/mid-run total,
+calibrate marked pending I-2); `goal_manager.gd:24`'s stale process-note
+replaced. **I-2** (toast under Pause/Armory) is parked for the user — plan
+Open question 6.
 
 Last completed module: **M8.5 — Interface rework**, code complete
 2026-09-23 (code head `541e92c`; the exit commit is this one — `git log -1
@@ -67,7 +80,7 @@ Branch: `feat/godot-port` (no upstream; nothing pushed).
 cd /c/Users/Jesury/Documents/Personal/dread-flock
 GODOT="/c/Users/Jesury/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe"
 
-tools/run_tests.sh                        # expect: OK: 48/48 scripts (486 tests, 5462 asserts)
+tools/run_tests.sh                        # expect: OK: 48/48 scripts (487 tests, 5467 asserts)
 gdformat --check godot/src godot/tests    # expect: 86 files would be left unchanged
 gdlint godot/src godot/tests              # expect: Success: no problems found
 grep -rn "TODO(M9)" godot/src/ godot/tests/  # expect: nothing
@@ -86,6 +99,11 @@ nothing; the ff4757 grep printed nothing; DIVERGENCE `174`, UI-SYSTEM `106`;
 SCRIPT ERROR count `0`; `git status --short` empty afterwards (working tree,
 before this task's own changes were staged). The module's leftover-marker
 grep (a `TODO` tagged with the module id) finds nothing under `godot/`.
+
+Re-run after the final review's I-1 fix (2026-09-24, before Task 9): `OK:
+48/48 scripts collected, all tests passed` (Tests 487, Passing 487, Asserts
+5467 — +1 script-level regression test for the death-tick order, `# gdlint`
+clean, `SCRIPT ERROR` count `0`). See "Final review fixes" below.
 
 `--check-only -s` on `src/meta/progression_manager.gd`, `game_options.gd`,
 `save_store.gd`, `sim/coin_system.gd` each fail with `Identifier not found:

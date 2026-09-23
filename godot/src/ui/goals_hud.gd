@@ -142,6 +142,11 @@ func _unhandled_input(event: InputEvent) -> void:
 			close_all_goals_modal()
 		else:
 			open_all_goals_modal()
+	# PORT-NOTE(M-1): this Escape and GameRoot._unhandled_input's Escape
+	# (game_root.gd:187-189) are two independent listeners, like the TS's two
+	# window keydown listeners (GoalsHUD.ts:156-157, TiltGame.ts:1325). Neither
+	# marks the event handled, so one Escape with the Armory open on top of
+	# Milestones closes both, faithfully.
 	elif key.keycode == KEY_ESCAPE and is_modal_open():
 		close_all_goals_modal()
 

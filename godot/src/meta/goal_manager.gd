@@ -21,7 +21,7 @@ const STORAGE_KEY: String = "tilt_to_live_completed_goals_v1"
 const CUMULATIVE_STORAGE_KEY: String = "tilt_to_live_cumulative_stats_v1"
 ## The localStorage keys as user:// files (spec §4.6).
 const SAVE_PATH: String = "user://" + STORAGE_KEY + ".json"
-## M15: CONVENTIONS §5 — every public member is documented.
+## The lifetime-totals file (CumulativeStats, the TS's cumulative object shape).
 const CUMULATIVE_SAVE_PATH: String = "user://" + CUMULATIVE_STORAGE_KEY + ".json"
 
 ## Every goal, in the TS's order — evaluation order and the 3-per-run cap

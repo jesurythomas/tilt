@@ -374,6 +374,9 @@ func test_run_over_shows_points_and_spend() -> void:
 	await get_tree().process_frame
 	var balance: int = root.progression.data.points
 	GameEvents.run_ended.emit(0, Types.GameStats.new())
+	# PORT: web/src/tilt-to-live/TiltGame.ts:2089-2151 — the sheet fills 450 ms
+	# after the death tick (I-1).
+	await get_tree().create_timer(0.5).timeout
 	var panel: Control = root.find_child("GameOverPanel", true, false) as Control
 	assert_true(panel.visible)
 	assert_eq(
@@ -449,6 +452,9 @@ func test_run_over_lists_the_runs_milestones_and_opens_the_screen() -> void:
 	var rc: RunController = root._run_controller
 	rc.run_tracker.score = 1000
 	rc.trigger_player_death()
+	# PORT: web/src/tilt-to-live/TiltGame.ts:2089-2151 — the sheet fills 450 ms
+	# after the death tick (I-1).
+	await get_tree().create_timer(0.5).timeout
 	var list: VBoxContainer = root.find_child("MilestonesList", true, false) as VBoxContainer
 	assert_true(list.visible, "TiltGame.ts:2140")
 	assert_eq(list.get_child_count(), 1)
@@ -474,6 +480,48 @@ func test_run_over_hides_an_empty_milestones_list() -> void:
 	add_child_autofree(root)
 	await get_tree().process_frame
 	root._run_controller.trigger_player_death()
+	# PORT: web/src/tilt-to-live/TiltGame.ts:2089-2151 — the sheet fills 450 ms
+	# after the death tick (I-1).
+	await get_tree().create_timer(0.5).timeout
 	assert_false((root.find_child("MilestonesList", true, false) as Control).visible, ":2141-2143")
 	assert_eq((root.find_child("PointsEarnedLabel", true, false) as Label).text, "+0")
 	assert_eq((root.find_child("PointsBalanceLabel", true, false) as Label).text, "7,331")
+
+
+## I-1 regression: the death tick's step 8 (run_controller.gd:227) runs
+## evaluate_live_total_goals AFTER trigger_player_death's evaluate_run has
+## already folded the run's goal rewards into cumulative.total_points_earned
+## (goal_manager.gd:213-214), so a total_points goal can complete on the death
+## tick itself. Run over's 450 ms delay (TiltGame.ts:2089-2151) must still
+## show that completion's points in "Points earned" and the balance.
+func test_run_over_includes_a_total_goal_completed_on_the_death_tick() -> void:
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	var rc: RunController = root._run_controller
+	var balance_before: int = rc.progression.data.points
+	# One point short of total_points_10's target of 10 (goal_manager.gd:697);
+	# score_1k's +1 reward (evaluate_run step 3) closes the gap, which only
+	# evaluate_live_total_goals (step 8) can see (:1954 vs :2086 order).
+	rc.goals.cumulative.total_points_earned = 9
+	rc.run_tracker.score = 1000
+	rc.trigger_player_death()
+	assert_false(rc.goals.is_completed("total_points_10"), "not yet — step 8 has not run")
+	# Simulate run_controller.gd step 8, which runs after run_ended in the same
+	# tick (update()'s top-of-function guard is only checked once per call).
+	rc.goals.evaluate_live_total_goals(rc.run_tracker)
+	assert_true(rc.goals.is_completed("total_points_10"), "death-tick live check")
+	await get_tree().create_timer(0.5).timeout
+	var earned: Label = root.find_child("PointsEarnedLabel", true, false) as Label
+	assert_eq(earned.text, "+3", "score_1k +1 and total_points_10 +2 (:2118)")
+	var balance: Label = root.find_child("PointsBalanceLabel", true, false) as Label
+	assert_eq(
+		balance.text,
+		UiTheme.group_digits(balance_before + 3),
+		"the death-tick completion must reach the balance (:2119)",
+	)
+	assert_eq(
+		(balance.text as String).replace(",", "").to_int(),
+		rc.progression.data.points,
+		"Run over must not under-report the real balance",
+	)

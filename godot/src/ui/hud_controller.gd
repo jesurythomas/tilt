@@ -106,6 +106,14 @@ var _pickers: Array[ControlPicker] = []
 # kill pulse's tier agrees with the multiplier chip's tier.
 var _current_multiplier: int = 1
 var _score_pulse_tween: Tween = null
+# PORT: web/src/tilt-to-live/TiltGame.ts:2089-2151 — the game-over modal fills
+# 450 ms after the death tick, so the death tick's own live-goal completion
+# (run_controller.gd step 8, evaluated after run_ended fires) reaches
+# "Points earned" and the balance. Stopped by a Retry or a phase change during
+# the window so a stale fill cannot reopen/overwrite the sheet.
+var _run_over_timer: Timer = null
+var _pending_final_score: int = 0
+var _pending_stats: Types.GameStats = null
 
 @onready var _score_label: Label = get_node_or_null("%ScoreLabel")
 @onready var _best_label: Label = get_node_or_null("%BestLabel")
@@ -138,6 +146,12 @@ func _ready() -> void:
 		_run_over.milestones_requested.connect(_on_milestones_requested)
 	if _restart_button == null:
 		_restart_button = find_child("RestartButton", true, false) as Button
+
+	_run_over_timer = Timer.new()
+	_run_over_timer.name = "RunOverTimer"
+	_run_over_timer.one_shot = true
+	add_child(_run_over_timer)
+	_run_over_timer.timeout.connect(_on_run_over_timer_timeout)
 
 	_frame = find_child("Frame", true, false) as Panel
 	_score_block = find_child("ScoreBlock", true, false) as VBoxContainer
@@ -484,20 +498,35 @@ func _show_weapon_timer(reading: WeaponTimer) -> void:
 func _on_run_ended(final_score: int, stats: Types.GameStats) -> void:
 	if _game_over_panel == null:
 		return
+	_pending_final_score = final_score
+	_pending_stats = stats
+	# PORT: web/src/tilt-to-live/TiltGame.ts:2151 — fill and show the sheet 450 ms
+	# after the death tick, not inside run_ended's own emission (I-1).
+	_run_over_timer.start(0.45)
+
+
+func _on_run_over_timer_timeout() -> void:
+	if _game_over_panel == null or _run_over == null:
+		return
+	# Guard: a Retry or a phase change during the 450 ms window (both stop
+	# _run_over_timer below) must drop this fill, and a node that left the tree
+	# cannot process the timer that would have fired it.
+	if not is_inside_tree():
+		return
 	# I1: GameRoot._ready() (and its `settings`) has not necessarily run before
 	# HudController._ready() calls _sync_pickers() the first time — HudController
 	# is GameRoot's descendant, so the ancestor's _ready() runs after this
 	# node's — so the death screen's picker shows no active scheme until the
 	# player changes it. Re-syncing whenever this surface opens covers it.
 	_sync_pickers()
-	if _run_over != null:
-		_run_over.show_result(run_result_for(final_score, stats, _run))
+	_run_over.show_result(run_result_for(_pending_final_score, _pending_stats, _run))
 	_game_over_panel.visible = true
 
 
 func _on_phase_changed(phase: Types.GamePhase) -> void:
 	if phase != Types.GamePhase.PLAYING:
 		return
+	_run_over_timer.stop()
 	if _game_over_panel != null:
 		_game_over_panel.visible = false
 	if _pause_panel != null:
@@ -505,6 +534,7 @@ func _on_phase_changed(phase: Types.GamePhase) -> void:
 
 
 func _on_restart_pressed() -> void:
+	_run_over_timer.stop()
 	if _game_over_panel != null:
 		_game_over_panel.visible = false
 	var root: GameRoot = get_tree().get_first_node_in_group("game_root") as GameRoot
