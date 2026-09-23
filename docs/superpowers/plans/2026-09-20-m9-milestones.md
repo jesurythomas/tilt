@@ -3337,9 +3337,9 @@ git log -1 --format=%B
 
 **Files:** Modify (append): `godot/VERIFY-ME.md`.
 
-- [ ] **Step 1:** `"$ADB" devices`. If `RRCXB04L8EJ` is listed: build and install exactly as `VERIFY-ME.md` §0 records (same export preset and commands — M13: §0, not §M8, holds the commands; M8.5 is the latest device section), launch, and capture `"$ADB" -s RRCXB04L8EJ logcat -d | grep -c "SCRIPT ERROR"` (expect `0`) and the frame-time command from the "Mobile scale split" section. If it is not listed, record `adb devices returned no devices on <date>` and do the unattended checks only: `tools/run_tests.sh`, the headless boot, and an Android export if §0 shows one can run without the phone.
+- [x] **Step 1:** `"$ADB" devices`. If `RRCXB04L8EJ` is listed: build and install exactly as `VERIFY-ME.md` §0 records (same export preset and commands — M13: §0, not §M8, holds the commands; M8.5 is the latest device section), launch, and capture `"$ADB" -s RRCXB04L8EJ logcat -d | grep -c "SCRIPT ERROR"` (expect `0`) and the frame-time command from the "Mobile scale split" section. If it is not listed, record `adb devices returned no devices on <date>` and do the unattended checks only: `tools/run_tests.sh`, the headless boot, and an Android export if §0 shows one can run without the phone.
 
-- [ ] **Step 2:** Append to `godot/VERIFY-ME.md` (never recreate the file):
+- [x] **Step 2:** Append to `godot/VERIFY-ME.md` (never recreate the file):
 
 ```markdown
 ## M9 — Milestones (device pass, plan Task 8)
@@ -3357,7 +3357,7 @@ Hand-held checks (tick when seen on the A55):
 - [ ] **Frame time** under a mass explosion unchanged from the "Mobile scale split" figure (the per-tick goal check is a 57-goal loop).
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git checkout godot/project.godot

@@ -4,7 +4,7 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**M9 in progress:** Tasks 1–7 landed; next Task 8.
+**M9 in progress:** Tasks 1–8 landed (device half unrun, A55 absent); next Task 9.
 
 Last completed module: **M8.5 — Interface rework**, code complete
 2026-09-23 (code head `541e92c`; the exit commit is this one — `git log -1

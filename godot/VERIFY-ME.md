@@ -430,3 +430,22 @@ tick M8's section only through this one (spec §7). Build and install per
 
 **Findings** (fill in; one line each: screen — what differs from the board)
 - (none — not run: A55 absent from adb on 2026-09-23; debug APK exports at 31,561,743 bytes, +1,030,646 over M8's 30,531,097)
+
+## M9 — Milestones (device pass, plan Task 8)
+
+Unattended evidence: `adb devices` returned no devices on 2026-09-23 (the
+A55, RRCXB04L8EJ, is absent); `tools/run_tests.sh` → `OK: 48/48 scripts
+collected, all tests passed` (486 tests, 5462 asserts); `"$GODOT" --headless
+--path godot --quit-after 120 2>&1 | grep -c "SCRIPT ERROR"` → `0`; debug
+APK export (`--export-debug "Android"`) succeeded, `godot/build/peril-point-debug.apk`
+at 31,640,597 bytes, +78,854 over M8.5's 31,561,743.
+
+Hand-held checks (tick when seen on the A55):
+
+- [ ] **Rail** (`Hud.dc.html`): a 3 px ion line on the top edge of the arena frame, from its left corner, growing by 1/57 of the frame's width per milestone. It does not respond to taps. Hidden only in menu mode (M11).
+- [ ] **Toast**: completing a milestone (buying a ship in the Armory, or a cumulative total mid-run) shows a card under the lives icons — green check, title, `+N` in flare — for 3 s. It does not block touches or the joystick. Calibrate (Pause, gyro scheme) shows `TILT CALIBRATED` / `Neutral Angle Zeroed ✓` with the ion ring for 2.8 s; note whether the ✓ renders.
+- [ ] **Run over**: a run that earns milestones lists them under "Points earned +X → balance" (check, `Title — description`, `+N`); the list is hidden when none were earned. With 4+ rows the list clips and Retry stays on screen (R9 — say whether clipping looks acceptable).
+- [ ] **Screen from Run over** (`Milestones.dc.html`): tapping the points row or the list opens the full-screen Milestones screen: 64 px header (Back, title, `n/57`, progress track, points), three side-by-side columns (Score 9, Combat 17, Mastery 31), open goals above done ones, each column drag-scrolls with a fade at its foot. Back closes it; nothing underneath reacts to taps while it is open.
+- [ ] **Unlock goals at boot**: an existing save that already owns a goal's ship/skin/arena completes that goal once at launch, silently (B3: no toast, no points paid — only cumulative.totalPointsEarned moves), never twice.
+- [ ] **Persistence**: kill the app and relaunch — completed milestones and cumulative totals survive (`user://tilt_to_live_completed_goals_v1.json` is a bare JSON array).
+- [ ] **Frame time** under a mass explosion unchanged from the "Mobile scale split" figure (the per-tick goal check is a 57-goal loop).
