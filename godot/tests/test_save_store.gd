@@ -99,3 +99,36 @@ func test_read_int_accepts_int_and_float() -> void:
 
 func test_read_string_array_skips_non_strings() -> void:
 	assert_eq(SaveStore.read_string_array({"l": ["a", 1.0, "b", true]}, "l"), ["a", "b"])
+
+
+func test_string_list_absent_file_loads_as_empty() -> void:
+	assert_eq(SaveStore.load_string_list(PATH), [] as Array[String])
+	assert_false(FileAccess.file_exists(PATH), "a load never creates the file")
+
+
+func test_string_list_round_trips_as_a_bare_json_array() -> void:
+	var items: Array[String] = ["score_1k", "kills_15"]
+	assert_true(SaveStore.save_string_list(PATH, items))
+	var file: FileAccess = FileAccess.open(PATH, FileAccess.READ)
+	var text: String = file.get_as_text()
+	file.close()
+	assert_eq(text, '["score_1k","kills_15"]', "spec §4.6: the TS shape, a bare array")
+	assert_eq(SaveStore.load_string_list(PATH), items)
+
+
+func test_string_list_skips_non_strings() -> void:
+	_write_raw(PATH, '["a", 3, null, "b", {"c": 1}]')
+	assert_eq(SaveStore.load_string_list(PATH), ["a", "b"] as Array[String])
+
+
+func test_string_list_quarantines_an_object() -> void:
+	_write_raw(PATH, '{"a": 1}')
+	assert_eq(SaveStore.load_string_list(PATH), [] as Array[String])
+	assert_false(FileAccess.file_exists(PATH))
+	assert_true(FileAccess.file_exists(SaveStore.corrupt_path_for(PATH)))
+
+
+func test_string_list_quarantines_unparseable_text() -> void:
+	_write_raw(PATH, "[not json")
+	assert_eq(SaveStore.load_string_list(PATH), [] as Array[String])
+	assert_true(FileAccess.file_exists(SaveStore.corrupt_path_for(PATH)))

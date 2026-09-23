@@ -139,7 +139,7 @@ Inputs the spec implies that are most likely to bite a player; each has its test
 **Interfaces:**
 - Produces: `static func SaveStore.load_string_list(path: String) -> Array[String]` (`[]` when absent/unreadable/quarantined; non-string elements skipped); `static func SaveStore.save_string_list(path: String, items: Array[String]) -> bool`.
 
-- [ ] **Step 1: Write the failing tests** — append to `godot/tests/test_save_store.gd` (the file's `PATH`, `_remove`, `_write_raw`, `before_each`/`after_each` already clean `PATH` and its corrupt twin):
+- [x] **Step 1: Write the failing tests** — append to `godot/tests/test_save_store.gd` (the file's `PATH`, `_remove`, `_write_raw`, `before_each`/`after_each` already clean `PATH` and its corrupt twin):
 
 ```gdscript
 func test_string_list_absent_file_loads_as_empty() -> void:
@@ -175,12 +175,12 @@ func test_string_list_quarantines_unparseable_text() -> void:
 	assert_true(FileAccess.file_exists(SaveStore.corrupt_path_for(PATH)))
 ```
 
-- [ ] **Step 2: Run to verify they fail**
+- [x] **Step 2: Run to verify they fail**
 
 Run: `tools/run_tests.sh`
 Expected: FAIL — `test_save_store.gd` does not parse (`load_string_list` not found), reported as `collected 44 of 45`. Confirm with `"$GODOT" --headless --path godot --check-only -s tests/test_save_store.gd` → `Static function "load_string_list()" not found`.
 
-- [ ] **Step 3: Implement** — insert after `save_dict` in `godot/src/meta/save_store.gd`:
+- [x] **Step 3: Implement** — insert after `save_dict` in `godot/src/meta/save_store.gd`:
 
 ```gdscript
 ## Reads `path` as a JSON array of strings; non-string elements are skipped.
@@ -223,11 +223,11 @@ static func save_string_list(path: String, items: Array[String]) -> bool:
 
 Also extend the class doc comment's first line: `## user:// JSON files (objects, and one bare string array) with corrupt-file quarantine, …`.
 
-- [ ] **Step 4: Run to verify they pass**
+- [x] **Step 4: Run to verify they pass**
 
 Run: `tools/run_tests.sh` → `OK: 45/45 scripts (425 tests)`. Then `gdformat --check godot/src godot/tests` and `gdlint godot/src godot/tests` clean.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git checkout godot/project.godot

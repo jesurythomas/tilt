@@ -5,8 +5,8 @@
 ## place those three things exist in the port.
 class_name SaveStore
 extends RefCounted
-## user:// JSON files with corrupt-file quarantine, and the typed readers every
-## save consumer uses on the parsed object.
+## user:// JSON files (objects, and one bare string array) with corrupt-file
+## quarantine, and the typed readers every save consumer uses on the parsed object.
 ##
 ## Never instantiated: every member is static, so nothing here is an autoload
 ## or a singleton (spec §5.2). Callers keep their own file path constant and
@@ -57,6 +57,44 @@ static func save_dict(path: String, data: Dictionary) -> bool:
 		Log.warn("SaveStore: %s could not be written" % path)
 		return false
 	file.store_string(JSON.stringify(data))
+	file.close()
+	return true
+
+
+## Reads `path` as a JSON array of strings; non-string elements are skipped.
+## [] when absent, unreadable, or quarantined.
+# PORT-NOTE: the one save whose TS shape is a bare array — GoalManager.ts:676-686,
+# 'tilt_to_live_completed_goals_v1'. Spec §4.6 keeps the shape, and load_dict
+# quarantines anything that is not an object, so this is its array twin.
+static func load_string_list(path: String) -> Array[String]:
+	var out: Array[String] = []
+	if not FileAccess.file_exists(path):
+		return out
+	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		Log.warn("SaveStore: %s exists but could not be opened; using defaults" % path)
+		return out
+	var raw: String = file.get_as_text()
+	file.close()
+	var json: JSON = JSON.new()
+	var err: Error = json.parse(raw)
+	if err != OK or not (json.data is Array):
+		_quarantine(path)
+		return out
+	var items: Array = json.data
+	for item: Variant in items:
+		if item is String:
+			out.append(item)
+	return out
+
+
+## Writes `items` to `path` as a JSON array. False (and a warning) when the file cannot be opened.
+static func save_string_list(path: String, items: Array[String]) -> bool:
+	var file: FileAccess = FileAccess.open(path, FileAccess.WRITE)
+	if file == null:
+		Log.warn("SaveStore: %s could not be written" % path)
+		return false
+	file.store_string(JSON.stringify(items))
 	file.close()
 	return true
 
