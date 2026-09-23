@@ -33,8 +33,6 @@ const COLOR_LOCKED_IN: Color = Color("#3DDC97")
 ## Secondary literals the boards repeat, each cited to the first board using it.
 const TEXT_FAINT: Color = Color("#7A8397")  # DIVERGENCE(UI-SYSTEM): System.dc.html
 const TEXT_SECONDARY: Color = Color("#C7CDDB")  # DIVERGENCE(UI-SYSTEM): System.dc.html
-# DIVERGENCE(UI-SYSTEM): Pause.dc.html — switch knob off
-const TEXT_SUBTLE: Color = Color("#626B7E")
 const POINTS_UNIT: Color = Color("#A08A5C")  # DIVERGENCE(UI-SYSTEM): ArmoryWeapons.dc.html — PTS
 const ION_TEXT: Color = Color("#8FB0FF")  # DIVERGENCE(UI-SYSTEM): System.dc.html — CostButton
 const PLASMA_TEXT: Color = Color("#C4B0FD")  # DIVERGENCE(UI-SYSTEM): ArmoryWeapons.dc.html

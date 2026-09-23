@@ -35,7 +35,8 @@ Hud board, arena frame, lives, weapon timer. Task 3 landed: Pause is a
 `PauseSheet` on the Pause board (Sound/Music switches, Calibrate, segmented
 `ControlPicker`). Task 4 landed: Run over is a `RunOverSheet`. Task 5 landed:
 the Armory shell and Weapons tab are on the `ArmoryWeapons` board. Task 6
-landed: Ships and Arena on their boards; Task 7 rebuilds Handling + Boosts. Then M9, whose plan exists but
+landed: Ships and Arena on their boards. Task 7 landed: Handling + Boosts on
+their boards, legacy tokens gone. Task 8 (device pass or its hand-off) is next. Then M9, whose plan exists but
 has Tasks 5–7 superseded. See `## Next`. The A55 "Mobile scale split" pass
 was skipped for now by the user (phone still absent from adb) — its checks
 stay unticked in `VERIFY-ME.md`.
@@ -766,18 +767,41 @@ old `Buy/Equip/Equipped{Arena,Enemy}_<id>` names, and a state line
 `ArenaState_/EnemyState_<id>` ("✓ Equipped" / "Owned" / "N pts").
 `ArenaCost_*`/`EnemyCost_*` are gone; `_arena_card`/`_arena_grid` deleted.
 New shared helpers for Task 7: `_caption_row`, `_scroll_row`, `BODY_PAD_*`.
-`_action_button` and `_swatch` are now orphans — Task 7's orphan loop removes
-them. A nested-scroll drag check was added to the plan's Task 8 checklist.
+`_action_button` and `_swatch` were orphaned here; Task 7 deleted them. A nested-scroll drag check was added to the plan's Task 8 checklist.
 `tools/run_tests.sh` → `OK: 45/45 scripts collected, all tests passed` (413
 tests, 4538 asserts). gdformat/gdlint clean; ff4757 grep empty; headless → 0
 `SCRIPT ERROR`.
 
-**Now: M8.5 Task 7 (Handling + Boosts + legacy cleanup)**, with
-superpowers:subagent-driven-development. Literal first step: `git status
---short` (must be clean under `godot/`), then read the plan's header, Global
-Constraints and Rulings, then Task 7. Pre-flight I5 (orphan loop must
-exclude `_on_*`; `_on_deadzone_changed` survives) and M9 (`GRID_COLOR` from
-`UiTheme.COLOR_ION`) apply to Task 7. The SDD ledger is
+**Done 2026-09-23: M8.5 Task 7 (Handling + Boosts + legacy cleanup)**
+(`3d75503` + review minors) — Handling (`ArmoryHandling.dc.html`): `HandlingTab`
+with `TurnValue`/`TurnSlider`, `TiltValue`/`TiltSlider` (0.5–2.0 step 0.1,
+edits `ControlSettings.tilt_sensitivity`; shown only when `bind(p, s)` got
+settings), `CalibrateTiltButton` (emits `ArmoryUI.calibrate_requested` →
+`GameRoot.calibrate_gyro`), `ResetButton` (also resets tilt to 1.0), and the
+`HandlingPreview` box with a `PreviewLegend` overlay. `DeadzoneValue`/
+`DeadzoneSlider` are gone; `_on_deadzone_changed` survives uncalled (PORT-NOTE).
+`GameRoot._on_armory_state_changed` re-applies `settings.tilt_sensitivity` to
+`_tilt`. `HandlingPreview` grid is 34 px ion at 5%, box = `UiTheme.COLOR_ARENA`.
+Boosts (`ArmoryBoosts.dc.html`): `BoostsTab`, `BoostsPill` caption ("Permanent.
+They stack into every run.", M14), a 2-col grid of 76-px `BoostCard_<id>` with
+`BoostPips_<id>` (rank as pips only) and a `CostButton` `Boost_<id>` ("Max" or
+grouped digits). `BoostRank_*` is gone. The `UiTheme` legacy block,
+`_build_legacy_armory`/`_legacy_*` and `TEXT_SUBTLE` are deleted; the ArmoryUI
+orphans (`_label_of`, `_margin`, `_sub_header`, `_action_button`, `_swatch`,
+`_card`, `_pips`, 9 legacy consts) are deleted. `grep TODO(M8.5)` is empty.
+Remaining `game.css` cites are deliberate: `LOADOUT_ICON` (Ruling N),
+`_scroll_body` and the `ArenaGridLines` class (structural). The Task 7
+implementer was cut off by a usage limit mid-Step 8; the controller finished
+it inline. `tools/run_tests.sh` → `OK: 45/45 scripts collected, all tests
+passed` (420 tests, 4559 asserts). gdformat/gdlint clean; ff4757 grep empty;
+headless → 0 `SCRIPT ERROR`; `DIVERGENCE` count 154.
+
+**Now: M8.5 Task 8 (Device pass, or its hand-off)** — read the plan's Task 8.
+Step 1 checks `adb devices` for `RRCXB04L8EJ` (absent since 2026-09-20); if
+absent, skip to Step 3 and append the unrun checklist to `godot/VERIFY-ME.md`
+under `## M8.5 — Interface rework` (never recreate the file; never report
+device results that were not observed). Task 8 includes the nested-scroll
+drag check and the new Handling tilt slider/Calibrate. The SDD ledger is
 `.superpowers/sdd/2026-09-23-m8.5-interface-rework/progress.md`.
 
 **After M8.5:** rewrite Tasks 5–7 of

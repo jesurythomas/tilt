@@ -677,6 +677,17 @@ func test_leaving_the_handling_tab_stops_the_preview() -> void:
 	assert_false(preview.is_running(), "close() → stopHandlingPreview (:318)")
 
 
+func test_handling_without_settings_hides_the_tilt_slider() -> void:
+	# bind(p) alone: `s` defaults to null, which hides the tilt field.
+	var armory: ArmoryUI = ARMORY_SCENE.instantiate() as ArmoryUI
+	add_child_autofree(armory)
+	armory.bind(_progression)
+	armory.open("handling")
+	assert_null(armory.find_child("TiltSlider", true, false))
+	(armory.find_child("ResetButton", true, false) as Button).pressed.emit()
+	assert_eq(_progression.data.tuning.sensitivity, 1.0, "Reset works without settings")
+
+
 func test_ship_meter_fraction() -> void:
 	# Interface spec §6.4 (ruled): value ÷ the catalog's largest value of that stat.
 	var values: Array[float] = [1.0, 1.2, 0.4, 1.9]

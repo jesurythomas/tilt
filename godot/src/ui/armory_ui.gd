@@ -1154,7 +1154,8 @@ func _render_handling_tab() -> Control:
 	reset.name = "ResetButton"
 	reset.theme_type_variation = "SecondaryButton"
 	reset.text = "Reset"
-	reset.add_theme_color_override("font_color", UiTheme.COLOR_TEXT_MUTED)  # ArmoryHandling.dc.html
+	# DIVERGENCE(UI-SYSTEM): ArmoryHandling.dc.html — muted Reset label.
+	reset.add_theme_color_override("font_color", UiTheme.COLOR_TEXT_MUTED)
 	reset.custom_minimum_size.y = _px(UiTheme.TOUCH_TARGET)
 	reset.pressed.connect(_on_handling_reset_pressed)
 	actions.add_child(reset)
@@ -1205,7 +1206,7 @@ func _render_boosts_tab() -> Control:
 	var column: VBoxContainer = VBoxContainer.new()
 	column.name = "BoostsTab"
 	column.add_theme_constant_override("separation", _px(BOOSTS_GAP))
-	# PORT: :928-931
+	# PORT: :928-931 (copy: interface spec, ruling M14)
 	column.add_child(_caption_row("BoostsPill", "Boosts", "Permanent. They stack into every run."))
 
 	var grid: GridContainer = GridContainer.new()  # PORT: :932-934
