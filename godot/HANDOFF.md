@@ -708,15 +708,18 @@ are deliberate.
 ## Next
 
 **M8.5 is closed (device pass pending).** Next module: **M9 — Milestones**
-(deps M7 + M8.5). Its plan exists at
-`docs/superpowers/plans/2026-09-20-m9-milestones.md`, but **Tasks 5–7 are
-marked SUPERSEDED** — their UI predates the interface system.
+(deps M7 + M8.5). Its plan,
+`docs/superpowers/plans/2026-09-20-m9-milestones.md`, is ready to execute:
+Tasks 5–7 were rewritten 2026-09-23 to interface spec §6.3/§6.5 on `UiTheme`
+(rail on the arena frame's top edge, toast in the HUD's `ToastSlot`,
+full-screen three-column Milestones screen, Run over list + tap opener), with
+new rulings R8–R11 and a Review Focus section; Tasks 1–4's test counts were
+rebased onto 45 scripts / 420 tests (the plan ends at 48 / 486).
 
-First step, literally: read the interface spec §6.5
-(`docs/superpowers/specs/2026-09-23-mobile-interface-system-design.md`), then
-`peril-point-mobile-redesign/Milestones.dc.html` and `Hud.dc.html`, then the
-M9 plan. **Rewrite Tasks 5–7 of the M9 plan to spec §6.5 on `UiTheme`**
-(Tasks 1–4 stand), commit that, then execute M9.
+First step, literally: read the M9 plan's header, Rulings, Global Constraints
+and Review Focus, then execute it from **Task 1** (subagent-driven, as M8.5
+was, unless the user chooses otherwise). Open questions 2–3 (R9 list
+clipping, R10 no bar on open run goals) are for the user at the device pass.
 
 Before starting: `git status --short` must be clean under `godot/` (the user
 may leave device tuning uncommitted — never stash or revert it), and read

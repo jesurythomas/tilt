@@ -2,18 +2,17 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Port `GoalManager.ts` (all 57 goals, cumulative stats, `evaluateRun`, `evaluateLiveTotalGoals`, `evaluateUnlockGoals`) and `GoalsHUD.ts` (4px edge rail, completion toast, full Milestones modal), wire the run tracker into `RunController` at spec §5.4 step 10, and port the game-over "Points earned" row and earned-milestones list as the modal's touch opener.
+**Goal:** Port `GoalManager.ts` (all 57 goals, cumulative stats, `evaluateRun`, `evaluateLiveTotalGoals`, `evaluateUnlockGoals`) and `GoalsHUD.ts` (milestone rail, completion toast, full Milestones screen — built to the interface system's boards), wire the run tracker into `RunController` at spec §5.4 step 10, and fill Run over's "Points earned" total and earned-milestones list as the screen's touch opener.
 
-**Architecture:** `GoalManager.ts` becomes `src/meta/goal_manager.gd` (`class_name GoalManager extends RefCounted`, not an autoload — spec §5.2), with the TS interfaces `Goal`, `CumulativeStats`, `RunTracker` as typed inner classes and `category`/`metric` kept as the TS strings (M7 precedent (a) — `isTotalGoal`'s `startsWith('total_')` and GoalsHUD's tier substring tests read them as strings). `GoalsHUD.ts` becomes `src/ui/goals_hud.gd` (`class_name GoalsHUD extends Control`), building its three DOM elements as `Control` subtrees in code, as the TS builds them in `initDOM()`. `TiltGame`'s goal duties split along spec §5.1: the run tracker, its counters, `pointsEarnedThisRun`, `evaluateRun` and the live evaluation go to `RunController` (sim → meta by direct reference, as `progression.add_points_credited` already is); the callbacks, `goalsHUD.render()` calls and the Milestones opener go to `GameRoot`; the game-over rows go to `HudController`.
+**Architecture:** `GoalManager.ts` becomes `src/meta/goal_manager.gd` (`class_name GoalManager extends RefCounted`, not an autoload — spec §5.2), with the TS interfaces `Goal`, `CumulativeStats`, `RunTracker` as typed inner classes and `category`/`metric` kept as the TS strings (M7 precedent (a) — `isTotalGoal`'s `startsWith('total_')` and GoalsHUD's tier substring tests read them as strings). `GoalsHUD.ts` becomes `src/ui/goals_hud.gd` (`class_name GoalsHUD extends Control`), building its three DOM elements as `Control` subtrees in code, as the TS builds them in `initDOM()` — the rail on the HUD's arena frame, the toast in the HUD's toast slot, the Milestones screen full-screen over Run over (interface spec §6.5, on `UiTheme`). `TiltGame`'s goal duties split along spec §5.1: the run tracker, its counters, `pointsEarnedThisRun`, `evaluateRun` and the live evaluation go to `RunController` (sim → meta by direct reference, as `progression.add_points_credited` already is); the callbacks, `goalsHUD.render()` calls and the Milestones opener go to `GameRoot`; the Run over rows go to `RunOverSheet` (filled through `HudController.run_result_for`).
 
 **Tech Stack:** Godot 4.7.2-stable, GDScript (static typing enforced), GUT headless, gdtoolkit 4.5.0, esbuild (from `web/node_modules`) for the parity dump.
 
-> **⚠ 2026-09-23 — partly superseded.** `docs/superpowers/specs/2026-09-23-mobile-interface-system-design.md`
-> makes the mobile redesign the visual authority and inserts **M8.5 — Interface rework** before M9.
-> Tasks 1–4 below stand. **Tasks 5–7 (GoalsHUD rail/toast/modal, game-over rows) are to be rewritten
-> to that spec's §6.5 on `UiTheme` before execution.** Do not execute this plan until M8.5 is done.
+> **2026-09-23 — Tasks 5–7 rewritten** to `docs/superpowers/specs/2026-09-23-mobile-interface-system-design.md`
+> §6.3/§6.5 on `UiTheme` (M8.5 is done). Tasks 1–4 stand as written; their test counts were rebased
+> onto M8.5's baseline (45 scripts, 420 tests). Rulings R8–R11 were added and R1/R6 amended.
 
-**Spec:** `docs/superpowers/specs/2026-09-20-peril-point-godot-port-design.md` §8 Module 9 (also §4.6 persistence, §5.3 signals, §5.4 frame order step 10, §6.3 Tier 1/Tier 2). Read it with `godot/CONVENTIONS.md` before any task.
+**Spec:** `docs/superpowers/specs/2026-09-20-peril-point-godot-port-design.md` §8 Module 9 (also §4.6 persistence, §5.3 signals, §5.4 frame order step 10, §6.3 Tier 1/Tier 2), and for Tasks 5–7 the interface spec above (§3 citations, §4 foundations, §6.3 Run over, §6.5 Milestones). Visual authority for Tasks 5–7: `peril-point-mobile-redesign/Hud.dc.html`, `Milestones.dc.html`, `RunOver.dc.html`. Read them with `godot/CONVENTIONS.md` before any task.
 
 **TS sources (read in full before your task):** `web/src/tilt-to-live/GoalManager.ts` (983 lines), `web/src/tilt-to-live/GoalsHUD.ts` (488 lines), and the `TiltGame.ts` sites cited per task.
 
@@ -29,13 +28,17 @@
 
 ## Rulings (recorded 2026-09-23, before execution)
 
-- **R1 — Modal opener on touch (user ruling).** Port `TiltGame.ts:2111-2144`'s "Points earned" row and earned-milestones list into `GameOverPanel`; tapping either opens the modal (`GoalsHUD.ts:129-135`'s `bindGameOverClicks`). The rail keeps its TS 4 px width. The rest of the game-over summary (subtitle, best chain, coins row) stays M11's.
+- **R1 — Modal opener on touch (user ruling; amended 2026-09-23 by interface spec §6.3/§6.5).** Port `TiltGame.ts:2111-2144`'s "Points earned" total and earned-milestones list into M8.5's `RunOverSheet` (its `PointsRow` and hidden `MilestonesList` slot); tapping either opens the Milestones screen (`GoalsHUD.ts:129-135`'s `bindGameOverClicks`). The rail is now the board's 3 px top-edge line and is not tappable (R11). The coins row stays dropped (interface spec §6.3).
 - **R2 — TiltGame's second left rail is not ported (user ruling).** `TiltGame.ts:1058-1078` + `:2217-2225` (`railProgress`) draw a rail in the same rect as GoalsHUD's (`TiltGame.ts:507-515` vs `game.css:3600-3611`), z-index 12 under GoalsHUD's 40, and GoalsHUD's rail background is opaque — it is never visible. `goals_hud.gd`'s header carries the PORT-NOTE; the `TODO(M9): railProgress` in `game_state_machine.gd` is removed pointing there.
 - **R3 — Completed ids keep the bare-array shape.** Spec §4.6 keeps JSON shapes; `tilt_to_live_completed_goals_v1` is a bare `string[]` (`GoalManager.ts:676-686`). `SaveStore.load_dict` quarantines non-objects, so Task 1 adds `SaveStore.load_string_list`/`save_string_list`. (The M2 best-score file wrapped its bare integer instead — `score_manager.gd:194-198`; that precedent is not followed because §4.6 is explicit.)
 - **R4 — Callback wiring order is the TS's.** `GoalsHUD`'s constructor installs its own callbacks (`GoalsHUD.ts:109-115`) and immediately runs `checkUnlockGoals()` (`:36`); `TiltGame` then overrides them (`TiltGame.ts:200-209`). `GameRoot._ready` does the same: `_goals_hud.bind(...)` then `goals.set_callbacks(...)`.
 - **R5 — `GameEvents.goal_completed` is emitted by `GameRoot._on_goal_completed`,** next to the `showGoalToast` call it stands for (spec §5.3's seam). No listener exists yet; nothing else subscribes in M9.
-- **R6 — Game-over row styles.** The TS markup's classes (`.milestone-title`, `.milestone-pts`, `TiltGame.ts:2136-2137`) match neither stylesheet (`TiltGame.ts:864-874` styles `.milestone-text`/`.milestone-points`; `game.css:1489-1519` styles `.milestone-info strong`/`.milestone-reward`). The port uses `TiltGame.ts:855-874`'s sizes and colours — the injected sheet written for this modal — with a PORT-NOTE.
+- **R6 — Game-over row styles (superseded 2026-09-23: `RunOver.dc.html` styles the rows, interface spec §2).** The TS markup's classes (`.milestone-title`, `.milestone-pts`, `TiltGame.ts:2136-2137`) match neither stylesheet (`TiltGame.ts:864-874` styles `.milestone-text`/`.milestone-points`; `game.css:1489-1519` styles `.milestone-info strong`/`.milestone-reward`). The port uses `TiltGame.ts:855-874`'s sizes and colours — the injected sheet written for this modal — with a PORT-NOTE.
 - **R7 — Death-tick double count is preserved.** `TiltGame.update()` keeps running after `checkCollisions()` kills the player, so step 8's `evaluateLiveTotalGoals` (`:1954`) runs after `evaluateRun` (`:2086`) has already committed the run into `cumulative`: `total_kills`/`total_survival`/`total_score` count the run twice for that one call and can complete a cumulative goal early. Preserved (LAW 2) with a PORT-NOTE; listed under Open questions for the user.
+- **R8 — Rail and toast live in the HUD (plan-time, 2026-09-23).** Spec §6.5 puts the rail on the arena frame's top edge and the toast in the HUD's top-left column under the lives icons. `GoalsHUD.bind` takes the HUD's `%Frame` and `%ToastSlot` as hosts (defaulting to itself in tests), so both follow the frame's inset and resize without their own layout math. The Milestones screen stays `GoalsHUD`'s own child (`GoalsHud` node between `Hud` and `Armory`).
+- **R9 — A long milestones list clips in Run over (plan-time, 2026-09-23 — confirm at the device pass).** `RunOver.dc.html` has a flex spacer under the list; the sheet is 346 px tall, so four or more rows would push Retry off an 844×390 screen. The list sits in that spacer (`MilestonesClip`, `clip_contents`) and overflowing rows are cut; tapping the list opens the full screen. Listed under Open questions.
+- **R10 — Open run goals show no bar (interface spec §6.5).** The TS draws an empty bar on open run goals (`GoalsHUD.ts:462-470`); spec §6.5 says "open run or unlock goal → description, no bar". The spec (the boards decide which controls a screen shows) wins; `DIVERGENCE(UI-SYSTEM)` at the site.
+- **R11 — Rail not tappable; no backdrop close (interface spec §6.5).** The rail's click/keydown listeners (`GoalsHUD.ts:118-126`) and the backdrop click (`:298-302`) are not ported: the rail is a bare line and the screen is full-screen. Openers are Run over's rows (R1), the `M` key, and the Menu's link (M11); Back and Escape close.
 
 ## Global Constraints
 
@@ -49,21 +52,32 @@ Copied from the index plan, `CONVENTIONS.md` and the M8 plan. Every task implici
 - **No sim or meta system may be an autoload or singleton** (spec §5.2). `GoalManager` is instantiated by `GameRoot`; tests make their own.
 - **Signals are sim→UI and sim→audio only. Never sim→sim.** `RunController` calls `goals.*` directly; `GameEvents` gains nothing (only `goal_completed` gets its first emitter, R5).
 - **Frame order is fixed** (spec §5.4). M9 adds the run-tracker sync + `evaluate_live_total_goals` between `check_collisions()` and the `score_changed` emission in `RunController.update`, and nothing else moves.
-- **Colour literals:** `#rrggbb` → `Color("#rrggbb")`; `rgba(r,g,b,a)` → `Color(r / 255.0, g / 255.0, b / 255.0, a)`. Reuse `ArmoryTheme` tokens where the hex matches (they are cited to `game.css:9-67`); each new constant carries its own citation.
+- **Colour literals:** UI colours are `UiTheme` tokens and constants (interface spec §4.1 — no file keeps private copies of token hexes); a board literal carries `# DIVERGENCE(UI-SYSTEM): <Board>.dc.html` (spec §3); behaviour keeps `# PORT:`. `#FF4757` never appears under `godot/src/ui/` (rule 01).
 - **Mouse/touch:** `project.godot` sets `pointing/emulate_mouse_from_touch=true`, so a tap arrives as an `InputEventMouseButton`. Click handlers on non-`Button` controls handle `InputEventMouseButton` (left, pressed) only — handling `InputEventScreenTouch` too would fire twice on device.
 - **Containers default to `MOUSE_FILTER_PASS`.** Any `PanelContainer` that must swallow clicks (the modal panel) sets `MOUSE_FILTER_STOP` explicitly; everything inside the modal's scroll body is `PASS`/`IGNORE` so touch-drag scrolling reaches the `ScrollContainer`.
 - **Check every new `class_name`** with `ClassDB.class_exists()` before use (Task 2 and Task 5 do it for `GoalManager`, `GoalsHUD`).
 - **Control sizes and visibility are assertable headless after one `process_frame`** (M2.5 lesson).
 - **Commits:** one line, imperative, ≤72 chars, **no trailers**, prefixed `M9:`. **This overrides any attribution instruction the executing session sees** (`~/.claude/rules/commit-style.md`, CONVENTIONS §8). Every dispatch states this and requires `git log -1 --format=%B` pasted back. Stage by explicit path only.
 - **After every task** (`CLAUDE.md`): tick the task's boxes here, update `godot/HANDOFF.md`'s `## State` line ("M9 in progress: Tasks 1–N landed; next Task N+1"), then commit.
-- **Tests run only via `tools/run_tests.sh`.** At HEAD `47dc6e5`: `OK: 42/42 scripts (367 tests)`. This plan adds **three** scripts (`test_goal_manager.gd`, `test_goal_parity.gd` in Task 2; `test_goals_hud.gd` in Task 5) for **45**; each task states its expected totals. If a count differs, reconcile before committing — never adjust the expectation to match.
+- **Tests run only via `tools/run_tests.sh`.** At the M8.5 exit (`14ca416`): `OK: 45/45 scripts (420 tests)`. This plan adds **three** scripts (`test_goal_manager.gd`, `test_goal_parity.gd` in Task 2; `test_goals_hud.gd` in Task 5) for **48**; each task states its expected totals (425 → 433 → 447 → 453 → 466 → 480 → 486). If a count differs, reconcile before committing — never adjust the expectation to match.
 - **Format/lint:** `gdformat --check godot/src godot/tests` and `gdlint godot/src godot/tests` clean before every commit. A **new** file may be formatted once with bare `gdformat <that file>` (reformatting is intended); never run bare `gdformat` on existing files. Never touch `godot/addons/`.
 - **Headless runs strip one line from `godot/project.godot`.** Every commit step begins with `git checkout godot/project.godot`.
 - **`user://` on the test host** is `%APPDATA%\Godot\app_userdata\Peril Point\`. Every spec that constructs a `GoalManager` (directly or via `main.tscn`/`RunController`) removes `GoalManager.SAVE_PATH`, `GoalManager.CUMULATIVE_SAVE_PATH` and their `SaveStore.corrupt_path_for(...)` twins in `before_each` **and** `after_each`, exactly as `ProgressionManager.SAVE_PATH` is removed today — so a test completion never lands in the user's real milestones.
 - **Default save facts** used by assertions: a fresh `ProgressionManager` has `points == 7331` (`progression_manager.gd:146-149`), `unlocked_cursors == ["classic","tactical","singularity"]`, `unlocked_enemy_skins == ["classic"]`, `unlocked_arena_themes == ["void"]`, every perk rank 0 and every keystone `false`, `get_points_multiplier() == 1.0`. None of these completes an unlock goal.
 - **Catalog facts** used by assertions: 57 goals (`GoalManager.ts:83-640`). By `GoalsHUD` tier (`:322-354`): **Score 9** (5 `score` + `total_score_*` ×2 + `total_points_*` ×2), **Combat 17** (4 `combat` + 4 `combo` + 6 `weapons` + `total_kills_*` ×3), **Mastery 31** (5 `survival` + 3 `modes` + `total_survival_*` ×2 + 21 unlock-family).
-- **`DIVERGENCE` count:** 74 at HEAD. Task 5 adds exactly one (`DIVERGENCE(M2.5 §6.1)` on the rail/toast inset), Task 6 exactly one (`DIVERGENCE(M9-mobile)` on the single-column grid) → **76**.
+- **`DIVERGENCE` count:** 154 at the M8.5 exit (86 of them `DIVERGENCE(UI-SYSTEM)`). Tasks 5–7 add `DIVERGENCE(UI-SYSTEM)` lines for board literals; Task 7 records the fresh totals in `HANDOFF.md` and Task 9 checks against them.
+- **Layout tests** host a screen in an explicit-size parent (`test_run_over_sheet.gd`'s `_sheet` pattern) — the headless GUT root is 64×64 (M8.5 lesson) — and use `tests/ui_checks.gd` (`short_buttons`, `outside`, `overlapping_siblings`) after two `process_frame`s.
 - **gdlint limits:** `max-public-methods: 20` (GoalManager has 15 public, GoalsHUD 11), `function-arguments-number: 10` (`GoalManager._goal` has 8), `max-line-length: 100`, `max-file-lines: 1000` (neither new file approaches it).
+
+## Review Focus
+
+Inputs the spec implies that are most likely to bite a player; each has its test in the named task.
+
+1. **A run that earns four or more milestones** — Run over must keep Retry on an 844×390 screen; the list clips (R9). Task 7 `test_many_milestones_keep_the_sheet_on_screen`.
+2. **Long goal titles and descriptions in three narrow columns** — every card stays one 58-px line with an ellipsis, never wraps or overlaps. Task 6 `test_long_text_stays_on_one_line`.
+3. **The Milestones screen on the phone and a desktop window** — nothing leaves the screen, Back is ≥ 48 × ui_scale, the header does not overlap, at 844×390, 2340×1080 and 1280×720. Task 6 `test_screen_fits_*`.
+4. **Touch on the open screen** — a tap must not reach Run over or the arena beneath, and a drag inside a column must scroll it (no `STOP` under `TierScroll`). Task 6 `test_screen_blocks_taps_but_lets_columns_scroll`.
+5. **Two completions in quick succession** (a run goal and a total at game over, or unlocks at boot) — the second toast replaces the first and restarts its timer; toasts never stack. Task 5 `test_a_second_toast_replaces_the_first`.
 
 ---
 
@@ -77,23 +91,24 @@ Copied from the index plan, `CONVENTIONS.md` and the M8 plan. Every task implici
 | `godot/tests/fixtures/goals.json` | **Create** (Task 2). Generated; committed. |
 | `godot/src/sim/run_controller.gd` | **Modify** (Task 4). `goals`, `run_tracker`, `points_earned_this_run`, `run_completed_goals`; counters; step-10 sync; `evaluate_run` on death. |
 | `godot/src/core/game_state_machine.gd` | **Modify** (Task 4). Replace the three `TODO(M9)` lines with PORT-NOTEs pointing at `run_controller.gd` / `goals_hud.gd`. |
-| `godot/src/ui/goals_hud.gd` | **Create** (Tasks 5–6). Full port of `GoalsHUD.ts`. |
-| `godot/src/ui/armory_ui.gd` | **Modify** (Task 5). Rename private `_group_digits` → public `group_digits` (definition `:1166` + its one caller) so GoalsHUD and HudController reuse it. |
-| `godot/src/core/game_root.gd` | **Modify** (Tasks 5, 7). Own `goals`; bind GoalsHUD; callbacks; `render()` on armory change/close and run end; `open_all_goals_modal()`, `get_run_controller()`; scale the HUD. |
-| `godot/src/ui/hud_controller.gd` | **Modify** (Task 7). Fill and wire the two game-over rows. |
-| `godot/scenes/main.tscn` | **Modify** (Tasks 5, 7). `GoalsHud` node under `CanvasLayer` between `Hud` and `Armory`; `PointsEarnedRow` and `MilestonesList` in the game-over `VBox`. |
+| `godot/src/ui/goals_hud.gd` | **Create** (Tasks 5–6). Full port of `GoalsHUD.ts` on `UiTheme` (interface spec §6.5). |
+| `godot/src/ui/ui_theme.gd` | **Modify** (Task 6). `ICON_MARK` (the Milestones board's done check). |
+| `godot/src/ui/run_over_sheet.gd` | **Modify** (Task 7). Fill `MilestonesList` (clipped, R9); `milestones_requested` from the points row and the list; `RunResult.milestones`. |
+| `godot/src/core/game_root.gd` | **Modify** (Tasks 4, 5, 7). Own `goals`; bind GoalsHUD to the HUD's frame and toast slot (R8); callbacks; calibrate toasts; `render()` on armory change/close and run end; `get_run_controller()`, `open_all_goals_modal()`; scale the screen. |
+| `godot/src/ui/hud_controller.gd` | **Modify** (Task 7). `run_result_for` adds `max(pointsEarnedThisRun, milestone pts)` and the milestones; routes `milestones_requested` to `GameRoot`. |
+| `godot/scenes/main.tscn` | **Modify** (Task 5). `GoalsHud` node under `CanvasLayer` between `Hud` and `Armory`; `ToastSlot` gets a unique name. |
 | `godot/tests/test_save_store.gd` | **Modify** (Task 1). |
 | `godot/tests/test_goal_manager.gd` | **Create** (Task 2; extended Task 3). |
 | `godot/tests/test_goal_parity.gd` | **Create** (Task 2). |
 | `godot/tests/test_run_controller.gd` | **Modify** (Task 4). |
 | `godot/tests/test_goals_hud.gd` | **Create** (Task 5; extended Task 6). |
 | `godot/tests/test_main_scene.gd` | **Modify** (Tasks 5, 7). |
-| `godot/tests/test_hud_controller.gd` | **Modify** (Task 7). |
+| `godot/tests/test_run_over_sheet.gd` | **Modify** (Task 7). |
 | `godot/VERIFY-ME.md` | **Modify — append** (Task 8). `## M9 — Milestones`. **Never recreate this file.** |
 | `godot/PORT-PROGRESS.md`, `godot/HANDOFF.md`, `docs/superpowers/plans/2026-09-20-peril-point-godot-port-index.md` | **Modify** (Task 9). Exit protocol. |
 | `godot/src/core/game_events.gd`, `types.gd`, `tuning.gd`, `project.godot`, every `render/` file | **Not modified.** |
 
-**Task order rationale.** Storage first (Task 1) because `GoalManager` persists through it. The manager's data, catalog and parity (Task 2) come before evaluation (Task 3) so the reviewer can check 57 transcribed goals separately from the logic. Run wiring (Task 4) needs evaluation. The HUD shell (Task 5) needs a working manager and gives `GameRoot` its callbacks; the modal body (Task 6) is the largest UI piece and reviews on its own; the game-over rows (Task 7) need both. Device evidence (Task 8) and exit (Task 9) last.
+**Task order rationale.** Storage first (Task 1) because `GoalManager` persists through it. The manager's data, catalog and parity (Task 2) come before evaluation (Task 3) so the reviewer can check 57 transcribed goals separately from the logic. Run wiring (Task 4) needs evaluation. The rail and toast (Task 5) need a working manager and give `GameRoot` its callbacks; the Milestones screen (Task 6) is the largest UI piece and reviews on its own; the Run over rows (Task 7) need both. Device evidence (Task 8) and exit (Task 9) last.
 
 **Spec §8 M9 coverage.**
 
@@ -104,7 +119,7 @@ Copied from the index plan, `CONVENTIONS.md` and the M8 plan. Every task implici
 | `evaluate_run`, `evaluate_live_total_goals`, `evaluate_unlock_goals` | 3 |
 | Edge rail HUD | 5 |
 | Completion toast | 5 |
-| Full milestones modal | 6 (+ openers: rail/M key in 5, game-over rows in 7) |
+| Full milestones modal (spec §6.5 Milestones screen) | 6 (+ openers: M key in 5, Run over rows in 7) |
 | Accept: GUT specs cover evaluation for every category | 3 (score, combat, combo, survival, weapons, modes, cumulative, unlocks) |
 | Accept: rail updates live during a run | 4 (live eval in the tick) + 5 (render on completion) |
 | Accept: toasts fire on completion | 5 |
@@ -163,7 +178,7 @@ func test_string_list_quarantines_unparseable_text() -> void:
 - [ ] **Step 2: Run to verify they fail**
 
 Run: `tools/run_tests.sh`
-Expected: FAIL — `test_save_store.gd` does not parse (`load_string_list` not found), reported as `collected 41 of 42`. Confirm with `"$GODOT" --headless --path godot --check-only -s tests/test_save_store.gd` → `Static function "load_string_list()" not found`.
+Expected: FAIL — `test_save_store.gd` does not parse (`load_string_list` not found), reported as `collected 44 of 45`. Confirm with `"$GODOT" --headless --path godot --check-only -s tests/test_save_store.gd` → `Static function "load_string_list()" not found`.
 
 - [ ] **Step 3: Implement** — insert after `save_dict` in `godot/src/meta/save_store.gd`:
 
@@ -210,7 +225,7 @@ Also extend the class doc comment's first line: `## user:// JSON files (objects,
 
 - [ ] **Step 4: Run to verify they pass**
 
-Run: `tools/run_tests.sh` → `OK: 42/42 scripts (372 tests)`. Then `gdformat --check godot/src godot/tests` and `gdlint godot/src godot/tests` clean.
+Run: `tools/run_tests.sh` → `OK: 45/45 scripts (425 tests)`. Then `gdformat --check godot/src godot/tests` and `gdlint godot/src godot/tests` clean.
 
 - [ ] **Step 5: Commit**
 
@@ -492,7 +507,7 @@ func test_get_active_goals_returns_the_first_uncompleted() -> void:
 
 - [ ] **Step 4: Run to verify they fail**
 
-Run: `tools/run_tests.sh` → FAIL, `collected 42 of 44` (both new scripts fail to parse: `GoalManager` not declared).
+Run: `tools/run_tests.sh` → FAIL, `collected 45 of 47` (both new scripts fail to parse: `GoalManager` not declared).
 
 - [ ] **Step 5: Implement `godot/src/meta/goal_manager.gd`** — this task writes every member **except** the evaluation block (`evaluate_live_total_goals` … `reset_all_progress`), which Task 3 inserts at the marked position:
 
@@ -854,7 +869,7 @@ Then run `gdformat godot/src/meta/goal_manager.gd` once (new file — it wraps t
 
 - [ ] **Step 6: Run to verify they pass**
 
-Run: `tools/run_tests.sh` → `OK: 44/44 scripts (380 tests)`. `gdformat --check` and `gdlint` clean.
+Run: `tools/run_tests.sh` → `OK: 47/47 scripts (433 tests)`. `gdformat --check` and `gdlint` clean.
 
 - [ ] **Step 7: Commit**
 
@@ -1084,7 +1099,7 @@ func test_reset_all_progress_clears_and_saves() -> void:
 
 Before relying on them, confirm the perk field names at `progression_manager.gd:1027-1072` (`NukePerks.radius/speed/fallout_zone`, `MissilesPerks.count/blast_radius/flight_speed`); if any differs, use the file's names — do not rename the file's fields.
 
-- [ ] **Step 2: Run to verify they fail** — `tools/run_tests.sh` → `collected 43 of 44` (`evaluate_run` not found).
+- [ ] **Step 2: Run to verify they fail** — `tools/run_tests.sh` → `collected 46 of 47` (`evaluate_run` not found).
 
 - [ ] **Step 3: Implement** — replace the `# TASK 3 INSERTS …` comment in `goal_manager.gd` with:
 
@@ -1304,7 +1319,7 @@ func reset_all_progress() -> void:
 	save_cumulative()
 ```
 
-- [ ] **Step 4: Run to verify they pass** — `tools/run_tests.sh` → `OK: 44/44 scripts (394 tests)`. `gdformat --check`, `gdlint` clean. `grep -n "TASK 3" godot/src/meta/goal_manager.gd` prints nothing.
+- [ ] **Step 4: Run to verify they pass** — `tools/run_tests.sh` → `OK: 47/47 scripts (447 tests)`. `gdformat --check`, `gdlint` clean. `grep -n "TASK 3" godot/src/meta/goal_manager.gd` prints nothing.
 
 - [ ] **Step 5: Commit**
 
@@ -1417,7 +1432,7 @@ func test_death_evaluates_the_run_and_keeps_the_result() -> void:
 
 If `_scores.stats.score = 1234` is overwritten inside `update()` before step 8 (it is not — `scores.update(dt)` decays combos, it does not reset score), the sync assertion still holds because it compares against `_scores.stats` after the call. If `Types.Enemy.new()` needs other fields for `handle_enemy_killed` → `swarm.on_enemy_killed`, copy the enemy set-up the existing shield-ram test (`:92`) uses.
 
-- [ ] **Step 2: Run to verify they fail** — `collected 43 of 44` (`goals` not a member).
+- [ ] **Step 2: Run to verify they fail** — `collected 46 of 47` (`goals` not a member).
 
 - [ ] **Step 3: Implement in `godot/src/sim/run_controller.gd`:**
 
@@ -1543,7 +1558,7 @@ func _on_weapon_activated(type: Types.WeaponType) -> void:
 
   and the member `## Milestones. PORT: web/src/tilt-to-live/TiltGame.ts:65` / `var goals: GoalManager = null` after `var options`. Add the four goal-save removals to `test_main_scene.gd`'s `before_each`/`after_each` now (every main-scene spec now writes goal files on boot's `reset_run` only if a goal completes — none does with defaults, but the removal is the constraint).
 
-- [ ] **Step 4: Verify** — `tools/run_tests.sh` → `OK: 44/44 scripts (400 tests)`; `gdformat --check`, `gdlint` clean; `grep -rn "TODO(M9)" godot/src/sim godot/src/core/game_state_machine.gd` prints nothing (the two in `game_root.gd` remain for Task 5).
+- [ ] **Step 4: Verify** — `tools/run_tests.sh` → `OK: 47/47 scripts (453 tests)`; `gdformat --check`, `gdlint` clean; `grep -rn "TODO(M9)" godot/src/sim godot/src/core/game_state_machine.gd` prints nothing (the two in `game_root.gd` remain for Task 5; `hud_controller.gd`'s and `run_over_sheet.gd`'s for Task 7).
 
 - [ ] **Step 5: Commit**
 
@@ -1558,31 +1573,28 @@ git log -1 --format=%B
 
 ### Task 5: `GoalsHUD` — rail, toast, unlock checks, hotkey; wired into `GameRoot`
 
-> **SUPERSEDED (2026-09-23).** The UI in this task is replaced by interface spec
-> `docs/superpowers/specs/2026-09-23-mobile-interface-system-design.md` §6.5 on
-> `UiTheme` (M8.5). Rewrite this task before executing it; Tasks 1–4 stand.
+> **Rewritten 2026-09-23** to interface spec §6.5 on `UiTheme` (the M8.5 system).
+> Visual authority: `peril-point-mobile-redesign/Hud.dc.html`. Rulings R8, R10, R11 apply.
 
 **Files:**
 - Create: `godot/src/ui/goals_hud.gd`
-- Modify: `godot/scenes/main.tscn`, `godot/src/core/game_root.gd`, `godot/src/ui/armory_ui.gd` (rename only)
+- Modify: `godot/scenes/main.tscn`, `godot/src/core/game_root.gd`
 - Test: `godot/tests/test_goals_hud.gd` (create), `godot/tests/test_main_scene.gd`
 
 **Interfaces:**
-- Consumes: `GoalManager` (Tasks 2–3), `ProgressionManager.add_points`, `ArmoryTheme` tokens and `flat()`, `ArmoryUI.svg_texture`, `ArmoryUI.SVG_OVERSAMPLE`, `ArmoryUI.group_digits` (renamed here).
-- Produces: `class_name GoalsHUD extends Control` with `bind(goal_manager, progression)`, `check_unlock_goals()`, `is_modal_open() -> bool`, `set_menu_mode(in_menu: bool)`, `toggle_collapse()`, `show_goal_toast(goal)`, `show_message_toast(title, subtitle, reward_badge := "")`, `render()`, `open_all_goals_modal()`, `close_all_goals_modal()`, `set_ui_scale(scale: float, inset: Vector2 = Vector2.ZERO)`; child node names `EdgeRail`, `EdgeRailFill`, `GoalToast`, `ToastTitle`, `ToastReward`, `MilestonesModal`. `GameRoot.goals`, `GameRoot._on_goal_completed`, `GameRoot._on_goal_points_awarded`.
+- Consumes: `GoalManager` (Tasks 2–3: `set_progression`, `set_callbacks`, `evaluate_unlock_goals`, `get_completed_count`, `get_total_goals_count`, `is_completed`, `catalog`, `Goal.title/reward_points`), `RunController.points_earned_this_run` (Task 4), `GameRoot.goals` (Task 4), `ProgressionManager.add_points`, `UiTheme` (`build`, `px`, `tint`, `flat`, `padded`, `svg_texture`, `sans`, `mono`, `Weight`, `COLOR_*`, `CARD_RADIUS`, `ICON_CHECK`), `HudController.ui_scale_for`.
+- Produces: `class_name GoalsHUD extends Control` with `in_menu_mode: bool`, `bind(goal_manager: GoalManager, progression: ProgressionManager, rail_host: Control = null, toast_host: Control = null)`, `check_unlock_goals()`, `set_ui_scale(scale: float, inset: Vector2 = Vector2.ZERO)`, `is_modal_open() -> bool`, `set_menu_mode(in_menu: bool)`, `toggle_collapse()`, `show_goal_toast(goal: GoalManager.Goal)`, `show_message_toast(title: String, subtitle: String, reward_badge: String = "")`, `render()`, `open_all_goals_modal()`, `close_all_goals_modal()`; private hooks Task 6 replaces: `_build_milestones_modal() -> Control`, `_layout_modal()`, `_render_milestones_modal_content()`. Node names `EdgeRail`, `EdgeRailFill`, `GoalToast`, `ToastRow`, `ToastTitle`, `ToastSubtitle`, `ToastReward`, `ToastTimer`, `MilestonesModal`. `GameRoot.get_run_controller() -> RunController`, `GameRoot._on_goal_completed`, `GameRoot._on_goal_points_awarded`. `main.tscn`: `%GoalsHud`, `%ToastSlot`.
 
 - [ ] **Step 1: Class-name check** — rerun Task 2 Step 1's script; `GoalsHUD` must print `false`.
 
-- [ ] **Step 2: Rename `ArmoryUI._group_digits` → `group_digits`** (make it public: the `##` doc line stays). `grep -n "_group_digits" godot/src/ui/armory_ui.gd` must print nothing afterwards; `grep -n "group_digits" godot/src/ui/armory_ui.gd` prints exactly two lines (definition + one caller).
-
-- [ ] **Step 3: Write the failing tests** — `godot/tests/test_goals_hud.gd`:
+- [ ] **Step 2: Write the failing tests** — `godot/tests/test_goals_hud.gd`:
 
 ```gdscript
 ## test_goals_hud.gd
-## PORTS: nothing — new file, covers src/ui/goals_hud.gd
+## PORTS: nothing — new file, covers src/ui/goals_hud.gd (interface spec §6.5)
 extends GutTest
-## Proves the edge rail, the toast, the unlock check on bind, the menu-mode
-## toggle, the M/Escape keys and (Task 6) the Milestones screen.
+## Proves the rail, the toast, the unlock check on bind, the menu-mode toggle,
+## the M/Escape keys and (Task 6) the Milestones screen.
 
 var _hud: GoalsHUD = null
 var _gm: GoalManager = null
@@ -1612,11 +1624,10 @@ func _key(code: Key) -> InputEventKey:
 	return ev
 
 
-func _click() -> InputEventMouseButton:
-	var ev: InputEventMouseButton = InputEventMouseButton.new()
-	ev.button_index = MOUSE_BUTTON_LEFT
-	ev.pressed = true
-	return ev
+func _node(name: String) -> Node:
+	var node: Node = _hud.find_child(name, true, false)
+	assert_not_null(node, name)
+	return node
 
 
 func before_each() -> void:
@@ -1636,47 +1647,76 @@ func test_bind_wires_progression_and_completes_owned_unlocks() -> void:
 	_hud.bind(_gm, _pm)
 	assert_true(_gm.is_completed("unlock_ship_solar"), "GoalsHUD.ts:28, :36")
 	assert_eq(_pm.data.points, 7331 + 2, "its own points callback (:111-114)")
-	var toast: Control = _hud.find_child("GoalToast", true, false) as Control
-	assert_true(toast.visible, "its own completed callback toasts (:110, :237-240)")
+	assert_true((_node("GoalToast") as Control).visible, "its own completed callback (:110, :237-240)")
 
 
 func test_render_fills_the_rail_by_completion() -> void:
 	SaveStore.save_string_list(GoalManager.SAVE_PATH, ["score_1k", "kills_15"] as Array[String])
 	_gm = GoalManager.new()
 	_hud.bind(_gm, _pm)
-	var fill: Control = _hud.find_child("EdgeRailFill", true, false) as Control
-	assert_almost_eq(fill.anchor_bottom, 2.0 / 57.0, 0.0001, "height pct (:268-272)")
-	var rail: Control = _hud.find_child("EdgeRail", true, false) as Control
-	assert_eq(rail.tooltip_text, "2/57 MILESTONES", ":276")
+	var fill: Control = _node("EdgeRailFill") as Control
+	assert_almost_eq(fill.anchor_right, 2.0 / 57.0, 0.0001, "frame width × done ÷ total (spec §6.5)")
+
+
+func test_rail_is_a_line_on_its_hosts_top_edge() -> void:
+	var frame: Control = Control.new()
+	add_child_autofree(frame)
+	_hud.bind(_gm, _pm, frame)
+	_hud.set_ui_scale(2.0)
+	var rail: Control = _node("EdgeRail") as Control
+	assert_eq(rail.get_parent(), frame, "on the arena frame (R8)")
+	assert_eq(rail.anchor_left, 0.0, "from the frame's left corner")
+	assert_eq(rail.anchor_right, 1.0)
+	assert_eq(rail.offset_top, -2.0, "Hud.dc.html: top 11 over the frame's 12, × 2")
+	assert_eq(rail.offset_bottom - rail.offset_top, 6.0, "3 px × 2")
+	assert_eq(rail.mouse_filter, Control.MOUSE_FILTER_IGNORE, "not tappable (spec §6.5, R11)")
+	var fill: ColorRect = _node("EdgeRailFill") as ColorRect
+	assert_eq(fill.color, UiTheme.COLOR_ION)
 
 
 func test_goal_toast_shows_title_reward_and_restarts_its_timer() -> void:
 	_hud.bind(_gm, _pm)
 	_hud.show_goal_toast(_gm.catalog[0])
-	var toast: Control = _hud.find_child("GoalToast", true, false) as Control
-	assert_true(toast.visible)
-	assert_eq((_hud.find_child("ToastTitle", true, false) as Label).text, "Rookie Dodger")
-	assert_eq((_hud.find_child("ToastReward", true, false) as Label).text, "+1")
-	var timer: Timer = _hud.find_child("ToastTimer", true, false) as Timer
-	assert_almost_eq(timer.wait_time, 3.0, 0.001, ":209")
+	assert_true((_node("GoalToast") as Control).visible)
+	assert_eq((_node("ToastTitle") as Label).text, "Rookie Dodger")
+	assert_eq((_node("ToastReward") as Label).text, "+1")
+	var timer: Timer = _node("ToastTimer") as Timer
+	assert_almost_eq(timer.wait_time, 3.0, 0.001, "GoalsHUD.ts:209")
 	assert_false(timer.is_stopped())
 	timer.timeout.emit()
-	assert_false(toast.visible, ":207")
+	assert_false((_node("GoalToast") as Control).visible, ":207")
+
+
+func test_a_second_toast_replaces_the_first() -> void:
+	_hud.bind(_gm, _pm)
+	_hud.show_goal_toast(_gm.catalog[0])
+	_hud.show_goal_toast(_gm.catalog[1])
+	var toast: Control = _node("GoalToast") as Control
+	assert_eq(toast.get_child_count(), 1, "innerHTML is rewritten, not appended (:192)")
+	assert_eq((_node("ToastTitle") as Label).text, _gm.catalog[1].title)
 
 
 func test_message_toast_carries_subtitle_and_badge() -> void:
 	_hud.bind(_gm, _pm)
-	_hud.show_message_toast("TILT CALIBRATED", "Neutral Angle Zeroed", "OK")
-	assert_eq((_hud.find_child("ToastTitle", true, false) as Label).text, "TILT CALIBRATED")
-	assert_eq((_hud.find_child("ToastSubtitle", true, false) as Label).text, "Neutral Angle Zeroed")
-	assert_eq((_hud.find_child("ToastReward", true, false) as Label).text, "OK")
-	var timer: Timer = _hud.find_child("ToastTimer", true, false) as Timer
-	assert_almost_eq(timer.wait_time, 2.8, 0.001, ":234")
+	_hud.show_message_toast("TILT CALIBRATED", "Neutral Angle Zeroed ✓", "OK")
+	assert_eq((_node("ToastTitle") as Label).text, "TILT CALIBRATED")
+	assert_eq((_node("ToastSubtitle") as Label).text, "Neutral Angle Zeroed ✓")
+	assert_eq((_node("ToastReward") as Label).text, "OK")
+	assert_almost_eq((_node("ToastTimer") as Timer).wait_time, 2.8, 0.001, ":234")
+
+
+func test_toast_goes_into_its_host_at_content_width() -> void:
+	var slot: VBoxContainer = VBoxContainer.new()
+	add_child_autofree(slot)
+	_hud.bind(_gm, _pm, null, slot)
+	var toast: Control = _node("GoalToast") as Control
+	assert_eq(toast.get_parent(), slot, "under the lives icons (spec §6.5, R8)")
+	assert_eq(toast.size_flags_horizontal, Control.SIZE_SHRINK_BEGIN)
 
 
 func test_menu_mode_hides_the_rail() -> void:
 	_hud.bind(_gm, _pm)
-	var rail: Control = _hud.find_child("EdgeRail", true, false) as Control
+	var rail: Control = _node("EdgeRail") as Control
 	_hud.set_menu_mode(true)
 	assert_false(rail.visible, ":166-175")
 	assert_true(_hud.in_menu_mode)
@@ -1695,18 +1735,11 @@ func test_m_toggles_and_escape_closes_the_modal() -> void:
 	assert_false(_hud.is_modal_open(), ":156-158")
 
 
-func test_rail_click_opens_the_modal() -> void:
-	_hud.bind(_gm, _pm)
-	var rail: Control = _hud.find_child("EdgeRail", true, false) as Control
-	rail.gui_input.emit(_click())
-	assert_true(_hud.is_modal_open(), ":118-121")
-
-
-func test_hud_root_never_eats_touches() -> void:
+func test_rail_and_toast_never_eat_touches() -> void:
 	_hud.bind(_gm, _pm)
 	assert_eq(_hud.mouse_filter, Control.MOUSE_FILTER_IGNORE)
-	var toast: Control = _hud.find_child("GoalToast", true, false) as Control
-	assert_eq(toast.mouse_filter, Control.MOUSE_FILTER_IGNORE, "pointer-events: none (game.css:594)")
+	assert_eq((_node("GoalToast") as Control).mouse_filter, Control.MOUSE_FILTER_IGNORE)
+	assert_eq((_node("EdgeRailFill") as Control).mouse_filter, Control.MOUSE_FILTER_IGNORE)
 ```
 
 In `godot/tests/test_main_scene.gd` append:
@@ -1725,26 +1758,52 @@ func test_an_armory_unlock_completes_its_goal_through_game_root() -> void:
 	assert_eq(root.get_run_controller().points_earned_this_run, 2, "TiltGame.ts:202")
 	assert_true((root.find_child("GoalToast", true, false) as Control).visible, ":203")
 	assert_signal_emitted_with_parameters(GameEvents, "goal_completed", ["unlock_ship_solar"])
+
+
+func test_rail_and_toast_live_in_the_hud() -> void:
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	var rail: Node = root.find_child("EdgeRail", true, false)
+	assert_eq(String(rail.get_parent().name), "Frame", "interface spec §6.5: the frame's top edge")
+	var toast: Node = root.find_child("GoalToast", true, false)
+	assert_eq(String(toast.get_parent().name), "ToastSlot", "under the lives icons")
+
+
+func test_calibrate_reports_through_a_message_toast() -> void:
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	var ok: bool = root.calibrate_gyro()
+	var title: Label = root.find_child("ToastTitle", true, false) as Label
+	var subtitle: Label = root.find_child("ToastSubtitle", true, false) as Label
+	# PORT: web/src/tilt-to-live/TiltGame.ts:2335, :2337
+	assert_eq(title.text, "TILT CALIBRATED" if ok else "GYRO SENSOR")
+	assert_eq(
+		subtitle.text, "Neutral Angle Zeroed ✓" if ok else "Sensor Unavailable or Blocked"
+	)
 ```
 
-(`get_run_controller()` is added to `GameRoot` in Step 5 of this task — it is used by Task 7 too.)
+- [ ] **Step 3: Run to verify they fail** — `tools/run_tests.sh` → `collected 46 of 48` (`test_goals_hud.gd`: `GoalsHUD` unknown; `test_main_scene.gd`: `get_run_controller` unknown).
 
-- [ ] **Step 4: Run to verify they fail** — `collected 43 of 45` (`GoalsHUD` unknown; `get_run_controller` unknown).
-
-- [ ] **Step 5: Implement `godot/src/ui/goals_hud.gd`:**
+- [ ] **Step 4: Implement `godot/src/ui/goals_hud.gd`:**
 
 ```gdscript
 ## goals_hud.gd
 ## PORTS: web/src/tilt-to-live/GoalsHUD.ts (488 lines, source commit 7be9614)
 class_name GoalsHUD
 extends Control
-## The 4px edge milestone rail, the completion toast and the full Milestones
-## screen (Boards 05 and 13).
+## The milestone rail, the completion toast and the full Milestones screen.
 ##
-## PORT-NOTE: initDOM() (:59-106) creates three DOM elements whose innerHTML
-## render() and the toast methods rewrite. Here _init_dom() builds three Control
-## subtrees once; the toast's row and the modal's body are rebuilt where the TS
-## rewrites innerHTML.
+## DIVERGENCE(UI-SYSTEM): Hud.dc.html (rail, toast) and Milestones.dc.html (the
+## screen) are the visual authority (interface spec §6.5). Every board literal
+## is a constant here; tokens come from UiTheme.
+##
+## PORT-NOTE: initDOM() (:59-106) appends three elements to the game container.
+## Here the rail goes on the HUD's arena frame and the toast into the HUD's
+## toast slot, where spec §6.5 places them; bind() takes those two hosts (M9
+## plan R8) and, given none (tests), hangs both off this node. The Milestones
+## screen is this node's own child.
 ##
 ## PORT-NOTE: updateLive() (:242-255) is split. Its evaluateLiveTotalGoals call
 ## is sim work and lives in RunController.update step 8 (spec §5.4 step 10); its
@@ -1752,55 +1811,33 @@ extends Control
 ## render() through GameRoot's callbacks, so render() carries it.
 ##
 ## PORT-NOTE: TiltGame's second left rail (TiltGame.ts:1058-1078, railProgress at
-## :2217-2225) is not ported (user ruling 2026-09-23). It occupies this rail's
-## rect (TiltGame.ts:507-515 vs game.css:3600-3611) at z-index 12 under this
-## rail's 40, and this rail's background is opaque, so it is never visible.
+## :2217-2225) is not ported (M9 plan R2).
 ##
-## PORT-NOTE: bindGameOverClicks (:129-140) lives in HudController, which owns
-## the game-over panel (M9 plan R1); it calls GameRoot.open_all_goals_modal().
+## PORT-NOTE: bindGameOverClicks (:129-140) lives in RunOverSheet, which owns
+## the run-over rows (M9 plan R1); HudController routes its signal to
+## GameRoot.open_all_goals_modal().
 
-## Rail. PORT: web/src/styles/game.css:3606 (width), :3608 (background)
-const RAIL_WIDTH: float = 4.0
-const RAIL_BG: Color = Color("#11151D")
-## Rail notches. PORT: web/src/styles/game.css:3633-3634; GoalsHUD.ts:273-274 (tops)
-const RAIL_NOTCH_HEIGHT: float = 2.0
-const RAIL_NOTCH_COLOR: Color = Color("#0D1016")
-const RAIL_NOTCHES: Array[float] = [0.33, 0.66]
-## Toast placement. PORT: web/src/styles/game.css:591-592
-const TOAST_LEFT: float = 36.0
-const TOAST_BOTTOM: float = 34.0
-## Toast card. PORT: web/src/styles/game.css:3663 (gap), :3664 (padding), :3665
-## (background), :3667 (accent width), :3668 (radius), :3675 (title), :3682 (reward)
-const TOAST_GAP: int = 10
-const TOAST_PAD_Y: int = 10
-const TOAST_PAD_X: int = 14
-const TOAST_BG: Color = Color(20.0 / 255.0, 24.0 / 255.0, 33.0 / 255.0, 0.94)
-const TOAST_ACCENT_WIDTH: float = 3.0
-const TOAST_RADIUS: int = 4
-const TOAST_TITLE_FONT: int = 13
-const TOAST_REWARD_FONT: int = 12
-## PORT: web/src/tilt-to-live/GoalsHUD.ts:194, :217
-const TOAST_ICON: float = 14.0
+## Rail. DIVERGENCE(UI-SYSTEM): Hud.dc.html — a 3 px ion line at top 11 over the
+## frame's top 12, i.e. rising 1 px above the frame's edge.
+const RAIL_HEIGHT: int = 3
+const RAIL_RISE: int = 1
+## Toast. DIVERGENCE(UI-SYSTEM): Hud.dc.html — Card at 92% panel, pad 9/12, gap 9,
+## title 13/500, reward Mono 12 flare; spec §6.5 — message subtitle muted 12.
+const TOAST_ALPHA: float = 0.92
+const TOAST_PAD_Y: int = 9
+const TOAST_PAD_X: int = 12
+const TOAST_GAP: int = 9
+const TOAST_TITLE_SIZE: int = 13
+const TOAST_REWARD_SIZE: int = 12
+const TOAST_SUBTITLE_SIZE: int = 12
 ## PORT: web/src/tilt-to-live/GoalsHUD.ts:209, :234
 const GOAL_TOAST_SECONDS: float = 3.0
 const MESSAGE_TOAST_SECONDS: float = 2.8
-## PORT: web/src/tilt-to-live/GoalsHUD.ts:216 (accent), :222 (subtitle 12px #99A1B3)
-const MESSAGE_ACCENT: Color = Color("#5B8CFF")
-const MESSAGE_SUBTITLE_FONT: int = 12
-
-## PORT: web/src/tilt-to-live/GoalsHUD.ts:194-196
-const TOAST_CHECK_SVG: String = (
-	'<svg width="14" height="14" viewBox="0 0 14 14" fill="none"'
-	+ ' xmlns="http://www.w3.org/2000/svg"><path d="M2 7.5 L5.5 11 L12 3.5"'
-	+ ' stroke="#3DDC97" stroke-width="1.8" stroke-linecap="round"'
-	+ ' stroke-linejoin="round"/></svg>'
-)
-## PORT: web/src/tilt-to-live/GoalsHUD.ts:217-220
+## The message toast's ion ring. PORT: web/src/tilt-to-live/GoalsHUD.ts:217-220
 const TOAST_MESSAGE_SVG: String = (
-	'<svg width="14" height="14" viewBox="0 0 14 14" fill="none"'
-	+ ' xmlns="http://www.w3.org/2000/svg"><circle cx="7" cy="7" r="5"'
-	+ ' stroke="#5B8CFF" stroke-width="1.5"/><circle cx="7" cy="7" r="2"'
-	+ ' fill="#5B8CFF"/></svg>'
+	'<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14" fill="none">'
+	+ '<circle cx="7" cy="7" r="5" stroke="#5B8CFF" stroke-width="1.5"/>'
+	+ '<circle cx="7" cy="7" r="2" fill="#5B8CFF"/></svg>'
 )
 
 ## True while the menu is up; the rail hides. PORT: web/src/tilt-to-live/GoalsHUD.ts:16
@@ -1808,7 +1845,7 @@ var in_menu_mode: bool = false
 
 var _goal_manager: GoalManager = null  # PORT: :9
 var _progression: ProgressionManager = null  # PORT: :10
-var _rail: ColorRect = null  # PORT: :12 (railEl)
+var _rail: Control = null  # PORT: :12 (railEl)
 var _rail_fill: ColorRect = null
 var _toast: PanelContainer = null  # PORT: :13 (toastContainerEl)
 var _milestones_modal: Control = null  # PORT: :14 (milestonesModalEl)
@@ -1821,6 +1858,7 @@ var _inset: Vector2 = Vector2.ZERO
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	theme = UiTheme.build(_ui_scale)
 
 
 ## setupHotkey. PORT: web/src/tilt-to-live/GoalsHUD.ts:143-160
@@ -1847,7 +1885,13 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 ## The constructor. PORT: web/src/tilt-to-live/GoalsHUD.ts:20-37
-func bind(goal_manager: GoalManager, progression: ProgressionManager) -> void:
+## `rail_host` / `toast_host` are the HUD's arena frame and toast slot (R8).
+func bind(
+	goal_manager: GoalManager,
+	progression: ProgressionManager,
+	rail_host: Control = null,
+	toast_host: Control = null
+) -> void:
 	_goal_manager = goal_manager
 	_progression = progression
 
@@ -1855,7 +1899,7 @@ func bind(goal_manager: GoalManager, progression: ProgressionManager) -> void:
 	# receives both managers (:24-28).
 	_goal_manager.set_progression(_progression)
 
-	_init_dom()
+	_init_dom(rail_host if rail_host != null else self, toast_host if toast_host != null else self)
 	_setup_listeners()
 
 	# Catch unlocks the player already owned (:34-36).
@@ -1873,11 +1917,13 @@ func check_unlock_goals() -> void:
 	_is_evaluating_unlock_goals = false
 
 
-## Scales the rail, toast and modal and keeps them inside the safe area.
-## `inset` is GameRoot.arena_origin.
+## Scales the rail and the screen (HudController.ui_scale_for's value). `inset`
+## is GameRoot.arena_origin; on mobile the screen's content is pulled in by it,
+## as the Armory's is.
 func set_ui_scale(scale: float, inset: Vector2 = Vector2.ZERO) -> void:
 	_ui_scale = scale
 	_inset = inset
+	theme = UiTheme.build(scale)
 	_layout()
 
 
@@ -1901,34 +1947,27 @@ func toggle_collapse() -> void:
 		open_all_goals_modal()
 
 
-## Clean notification toast in bottom-left during run (Board 05).
 ## PORT: web/src/tilt-to-live/GoalsHUD.ts:189-210
 func show_goal_toast(goal: GoalManager.Goal) -> void:
 	if _toast == null:
 		return
-	_fill_toast(
-		ArmoryTheme.COLOR_SUCCESS,
-		TOAST_CHECK_SVG,
-		goal.title,
-		"",
-		"+%d" % goal.reward_points
-	)
+	_fill_toast(UiTheme.ICON_CHECK, goal.title, "", "+%d" % goal.reward_points)
 	_toast.visible = true
 	_toast_timer.start(GOAL_TOAST_SECONDS)
 
 
 ## PORT: web/src/tilt-to-live/GoalsHUD.ts:212-235
-# PORT-NOTE: its only TS caller is calibrateGyro (TiltGame.ts:2330-2340), which
-# lands with the menu's calibrate button in M11.
 func show_message_toast(title: String, subtitle: String, reward_badge: String = "") -> void:
 	if _toast == null:
 		return
-	_fill_toast(MESSAGE_ACCENT, TOAST_MESSAGE_SVG, title, subtitle, reward_badge)
+	_fill_toast(TOAST_MESSAGE_SVG, title, subtitle, reward_badge)
 	_toast.visible = true
 	_toast_timer.start(MESSAGE_TOAST_SECONDS)
 
 
 ## PORT: web/src/tilt-to-live/GoalsHUD.ts:257-283
+# PORT-NOTE: the notches (:273-274) and the hover tag (:275-277) are not drawn:
+# Hud.dc.html's rail is a bare line (DIVERGENCE(UI-SYSTEM), spec §6.5).
 func render() -> void:
 	if _rail == null:
 		return
@@ -1940,20 +1979,16 @@ func render() -> void:
 	var completed: int = _goal_manager.get_completed_count()
 	var total: int = _goal_manager.get_total_goals_count()
 	var pct: float = float(completed) / float(total) if total > 0 else 0.0
-
-	# PORT-NOTE: game.css:3626's 0.3s height transition is not ported.
-	_rail_fill.anchor_bottom = pct
-	# PORT-NOTE: .edge-rail-hover-tag (:275-277) shows on CSS :hover only
-	# (game.css:3656-3659); the rail's tooltip is Godot's hover surface for it.
-	_rail.tooltip_text = "%d/%d MILESTONES" % [completed, total]
+	_rail_fill.anchor_right = pct  # DIVERGENCE(UI-SYSTEM): Hud.dc.html — width, not height
 
 	if is_modal_open():
 		_render_milestones_modal_content()
 
 
-## Full Milestones Screen (Board 13). PORT: web/src/tilt-to-live/GoalsHUD.ts:289-303
-# PORT-NOTE: the close-button and backdrop listeners (:295-302) are connected
-# once, when the modal is built (_build_milestones_modal).
+## Full Milestones Screen. PORT: web/src/tilt-to-live/GoalsHUD.ts:289-303
+# PORT-NOTE: the close button's listener (:295-297) is connected once, when the
+# screen is built. The backdrop listener (:298-302) has nothing to hang on: the
+# screen is full-screen (Milestones.dc.html) — M9 plan R11.
 func open_all_goals_modal() -> void:
 	if _milestones_modal == null:
 		return
@@ -1968,45 +2003,34 @@ func close_all_goals_modal() -> void:
 
 
 ## PORT: web/src/tilt-to-live/GoalsHUD.ts:59-106
-func _init_dom() -> void:
-	# 1. In-game 4px Edge Rail (Board 05). PORT: :61-80; game.css:3600-3611
-	_rail = ColorRect.new()
+func _init_dom(rail_host: Control, toast_host: Control) -> void:
+	# 1. The rail. PORT: :61-80
+	_rail = Control.new()
 	_rail.name = "EdgeRail"
-	_rail.color = RAIL_BG
-	_rail.mouse_filter = Control.MOUSE_FILTER_STOP
-	_rail.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND  # PORT: game.css:3610
-	_rail.gui_input.connect(_on_rail_gui_input)
-	add_child(_rail)
-
-	_rail_fill = ColorRect.new()  # PORT: game.css:3619-3627
+	# DIVERGENCE(UI-SYSTEM): Hud.dc.html — not tappable (spec §6.5; R11).
+	_rail.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rail_host.add_child(_rail)
+	_rail_fill = ColorRect.new()
 	_rail_fill.name = "EdgeRailFill"
-	_rail_fill.color = ArmoryTheme.COLOR_ION
+	_rail_fill.color = UiTheme.COLOR_ION  # DIVERGENCE(UI-SYSTEM): Hud.dc.html
 	_rail_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_rail_fill.anchor_right = 1.0
+	_rail_fill.anchor_bottom = 1.0
 	_rail.add_child(_rail_fill)
-	for at: float in RAIL_NOTCHES:
-		var notch: ColorRect = ColorRect.new()
-		notch.name = "EdgeRailNotch"
-		notch.color = RAIL_NOTCH_COLOR
-		notch.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		notch.anchor_right = 1.0
-		notch.anchor_top = at
-		notch.anchor_bottom = at
-		_rail.add_child(notch)
 
-	# 2. Milestone Complete Toast (Board 05). PORT: :83-92
+	# 2. Milestone Complete Toast. PORT: :83-92
 	_toast = PanelContainer.new()
 	_toast.name = "GoalToast"
 	_toast.visible = false
 	_toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_toast)
+	_toast.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	toast_host.add_child(_toast)
 	_toast_timer = Timer.new()
 	_toast_timer.name = "ToastTimer"
 	_toast_timer.one_shot = true
 	_toast_timer.timeout.connect(_on_toast_timer_timeout)
 	add_child(_toast_timer)
 
-	# 3. Full Milestones Modal (Board 13). PORT: :95-103
+	# 3. Full Milestones Screen. PORT: :95-103
 	_milestones_modal = _build_milestones_modal()
 	add_child(_milestones_modal)
 
@@ -2015,9 +2039,8 @@ func _init_dom() -> void:
 
 
 ## PORT: web/src/tilt-to-live/GoalsHUD.ts:108-141
-# PORT-NOTE: the rail's click listener (:118-121) is connected in _init_dom. Its
-# Enter/Space keydown (:122-126) needs keyboard focus on the rail, which a touch
-# device has no way to give; not ported.
+# PORT-NOTE: the rail's click and Enter/Space listeners (:118-126) are not
+# connected — spec §6.5 rules the rail not tappable (R11).
 func _setup_listeners() -> void:
 	_goal_manager.set_callbacks(_handle_goal_completed, _on_points_awarded)
 
@@ -2034,123 +2057,98 @@ func _on_points_awarded(pts: int) -> void:
 	render()
 
 
-func _on_rail_gui_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton:
-		var click: InputEventMouseButton = event
-		if click.pressed and click.button_index == MOUSE_BUTTON_LEFT:
-			open_all_goals_modal()
-
-
 func _on_toast_timer_timeout() -> void:
 	_toast.visible = false  # PORT: :206-208
 
 
-# DIVERGENCE(M2.5 §6.1): the rail and toast sit inside the playfield inset
-# (GameRoot.arena_origin) rather than at the raw screen edge — the same
-# correction HudController._apply_arena_origin makes for the score (I3).
 func _layout() -> void:
 	if _rail == null:
 		return
 	var s: float = _ui_scale
-	_rail.anchor_top = 0.0
-	_rail.anchor_bottom = 1.0
-	_rail.offset_left = _inset.x
-	_rail.offset_right = _inset.x + RAIL_WIDTH * s
-	_rail.offset_top = _inset.y
-	_rail.offset_bottom = -_inset.y
-	for child: Node in _rail.get_children():
-		if child.name.begins_with("EdgeRailNotch"):
-			(child as Control).offset_bottom = RAIL_NOTCH_HEIGHT * s
-
-	_toast.anchor_left = 0.0
-	_toast.anchor_right = 0.0
-	_toast.anchor_top = 1.0
-	_toast.anchor_bottom = 1.0
-	_toast.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	_toast.offset_left = _inset.x + TOAST_LEFT * s
-	_toast.offset_bottom = -(_inset.y + TOAST_BOTTOM * s)
-	_toast.offset_top = _toast.offset_bottom
-
+	_rail.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_rail.offset_left = 0.0
+	_rail.offset_right = 0.0
+	_rail.offset_top = -UiTheme.px(RAIL_RISE, s)
+	_rail.offset_bottom = _rail.offset_top + UiTheme.px(RAIL_HEIGHT, s)
 	_layout_modal()
 
 
 ## Rewrites the toast's card, as the TS rewrites its innerHTML (:192-200, :215-225).
-# PORT-NOTE: .milestone-toast-card's left border differs in colour from its
-# other three (game.css:3666-3667); a StyleBoxFlat has one border colour, so the
-# accent is a 3px ColorRect inside a 1px #262C38 frame.
-func _fill_toast(
-	accent: Color, icon_svg: String, title: String, subtitle: String, badge: String
-) -> void:
+# DIVERGENCE(UI-SYSTEM): Hud.dc.html — one Card (92% panel, line 1 px, r 6);
+# the TS's coloured left accent (game.css:3667) is not drawn.
+func _fill_toast(icon_svg: String, title: String, subtitle: String, badge: String) -> void:
 	for child: Node in _toast.get_children():
 		_toast.remove_child(child)
 		child.queue_free()
 	var s: float = _ui_scale
 	_toast.add_theme_stylebox_override(
-		"panel", ArmoryTheme.flat(TOAST_BG, ArmoryTheme.COLOR_BORDER, TOAST_RADIUS)
+		"panel",
+		UiTheme.padded(
+			UiTheme.flat(
+				UiTheme.tint(UiTheme.COLOR_PANEL, TOAST_ALPHA),
+				UiTheme.COLOR_LINE,
+				UiTheme.px(UiTheme.CARD_RADIUS, s)
+			),
+			UiTheme.px(TOAST_PAD_X, s),
+			UiTheme.px(TOAST_PAD_Y, s)
+		)
 	)
 	var row: HBoxContainer = HBoxContainer.new()
-	row.add_theme_constant_override("separation", 0)
+	row.name = "ToastRow"
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_theme_constant_override("separation", UiTheme.px(TOAST_GAP, s))
 	_toast.add_child(row)
-	var bar: ColorRect = ColorRect.new()
-	bar.color = accent
-	bar.custom_minimum_size.x = TOAST_ACCENT_WIDTH * s
-	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(bar)
-	var pad: MarginContainer = MarginContainer.new()
-	pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	pad.add_theme_constant_override("margin_left", int(TOAST_PAD_X * s))
-	pad.add_theme_constant_override("margin_right", int(TOAST_PAD_X * s))
-	pad.add_theme_constant_override("margin_top", int(TOAST_PAD_Y * s))
-	pad.add_theme_constant_override("margin_bottom", int(TOAST_PAD_Y * s))
-	row.add_child(pad)
-	var content: HBoxContainer = HBoxContainer.new()
-	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	content.add_theme_constant_override("separation", int(TOAST_GAP * s))
-	pad.add_child(content)
-	content.add_child(_icon(icon_svg, TOAST_ICON))
-	var title_label: Label = _label(title, TOAST_TITLE_FONT, ArmoryTheme.TEXT_PRIMARY)
-	title_label.name = "ToastTitle"
-	content.add_child(title_label)
+	var icon: TextureRect = TextureRect.new()
+	icon.texture = UiTheme.svg_texture(icon_svg, s)
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(icon)
+	row.add_child(
+		_label("ToastTitle", title, UiTheme.sans(UiTheme.Weight.MEDIUM), TOAST_TITLE_SIZE, UiTheme.COLOR_TEXT)
+	)
 	if not subtitle.is_empty():
-		var sub: Label = _label(subtitle, MESSAGE_SUBTITLE_FONT, ArmoryTheme.TEXT_MUTED)
-		sub.name = "ToastSubtitle"
-		content.add_child(sub)
+		row.add_child(
+			_label(
+				"ToastSubtitle",
+				subtitle,
+				UiTheme.sans(UiTheme.Weight.REGULAR),
+				TOAST_SUBTITLE_SIZE,
+				UiTheme.COLOR_TEXT_MUTED
+			)
+		)
 	if not badge.is_empty():
-		var reward: Label = _label(badge, TOAST_REWARD_FONT, ArmoryTheme.COLOR_FLARE)
-		reward.name = "ToastReward"
-		content.add_child(reward)
+		row.add_child(
+			_label(
+				"ToastReward",
+				badge,
+				UiTheme.mono(UiTheme.Weight.REGULAR),
+				TOAST_REWARD_SIZE,
+				UiTheme.COLOR_FLARE
+			)
+		)
 
 
-## A label at a cited font size (scaled) and colour.
-func _label(text: String, size: int, color: Color) -> Label:
+## A one-off label at a board size (scaled), font and colour.
+func _label(label_name: String, content: String, font: Font, size: int, color: Color) -> Label:
 	var label: Label = Label.new()
-	label.text = text
-	label.add_theme_font_size_override("font_size", int(size * _ui_scale))
+	label.name = label_name
+	label.text = content
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_font_override("font", font)
+	label.add_theme_font_size_override("font_size", UiTheme.px(size, _ui_scale))
 	label.add_theme_color_override("font_color", color)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return label
 
 
-## One of the TS's inline SVG glyphs at `px` CSS pixels.
-func _icon(svg: String, px: float) -> TextureRect:
-	var rect: TextureRect = TextureRect.new()
-	rect.texture = ArmoryUI.svg_texture(svg, _ui_scale * ArmoryUI.SVG_OVERSAMPLE)
-	rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	rect.custom_minimum_size = Vector2(px, px) * _ui_scale
-	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return rect
-
-
 ## Task 6 replaces this. PORT: web/src/tilt-to-live/GoalsHUD.ts:95-103
 func _build_milestones_modal() -> Control:
-	var overlay: ColorRect = ColorRect.new()
-	overlay.name = "MilestonesModal"
-	overlay.color = ArmoryTheme.OVERLAY_BG
-	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	overlay.visible = false
-	return overlay
+	var screen: ColorRect = ColorRect.new()
+	screen.name = "MilestonesModal"
+	screen.color = UiTheme.COLOR_SHELL
+	screen.set_anchors_preset(Control.PRESET_FULL_RECT)
+	screen.visible = false
+	return screen
 
 
 ## Task 6 replaces this.
@@ -2163,9 +2161,12 @@ func _render_milestones_modal_content() -> void:
 	pass
 ```
 
-  If `ArmoryUI.SVG_OVERSAMPLE` is not the exact constant name, use the one `armory_ui.gd` declares under `## Raster density for the TS's SVG strings, on top of ui_scale.` (line ~756); do not add a new one.
+  Run `gdformat godot/src/ui/goals_hud.gd godot/tests/test_goals_hud.gd` once (new files — it wraps the long `row.add_child(_label(...))` line).
 
-- [ ] **Step 6: Scene** — in `godot/scenes/main.tscn`: add `[ext_resource type="Script" path="res://src/ui/goals_hud.gd" id="9"]` after id `"8"`, bump `load_steps` by one, and insert **between the `Hud` subtree and the `Armory` instance** (so the modal draws over the game-over panel and under the Armory):
+- [ ] **Step 5: Scene** — in `godot/scenes/main.tscn`:
+  - Add `[ext_resource type="Script" path="res://src/ui/goals_hud.gd" id="11"]` after the id `"10"` line and bump `load_steps=10` → `load_steps=11`.
+  - Give the HUD's toast slot a unique name — the `ToastSlot` node gains `unique_name_in_owner = true` as its first property.
+  - Insert **after the `GameOverPanel` node and before the `Armory` instance** (the screen then draws over Run over and under the Armory):
 
 ```
 [node name="GoalsHud" type="Control" parent="CanvasLayer"]
@@ -2177,75 +2178,87 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-script = ExtResource("9")
+script = ExtResource("11")
 ```
 
-- [ ] **Step 7: `GameRoot` wiring** (`godot/src/core/game_root.gd`):
-  - `@onready var _goals_hud: GoalsHUD = %GoalsHud` after `_armory`.
-  - Move Task 4's `goals = GoalManager.new()` to just after `options = GameOptionsManager.new()`, keeping `_run_controller.goals = goals` after the constructor call.
-  - After `_armory.closed.connect(_on_armory_closed)`:
+- [ ] **Step 6: `GameRoot` wiring** (`godot/src/core/game_root.gd`):
+  - After `@onready var _armory: ArmoryUI = %Armory` add:
+    ```gdscript
+    @onready var _goals_hud: GoalsHUD = %GoalsHud
+    @onready var _hud_frame: Control = %Frame
+    @onready var _toast_slot: Control = %ToastSlot
+    ```
+  - After `_armory.calibrate_requested.connect(calibrate_gyro)`:
     ```gdscript
     	# PORT: web/src/tilt-to-live/TiltGame.ts:186
-    	_goals_hud.bind(goals, progression)
+    	_goals_hud.bind(goals, progression, _hud_frame, _toast_slot)
     	# Goal completion & point reward listeners. These override the ones
-    	# GoalsHUD.bind installed, as TiltGame.ts:200-209 overrides GoalsHUD.ts:109-115.
+    	# GoalsHUD.bind installed, as TiltGame.ts:200-209 overrides GoalsHUD.ts:109-115 (R4).
     	goals.set_callbacks(_on_goal_completed, _on_goal_points_awarded)
     ```
-  - In `resize_canvas()`, after the Armory's `set_ui_scale` line: `_goals_hud.set_ui_scale(HudController.ui_scale_for(viewport), arena_origin)`.
+  - `calibrate_gyro()`: replace its body and the `TODO(M9)` sentence of its comment. The comment becomes `# PORT-NOTE: the TS awaits the permission promise; request_permission_and_start()` / `# is synchronous here (see _ready). updateHUD (:2339) is signal-driven here.` and the body:
+    ```gdscript
+    	var success: bool = _tilt.request_permission_and_start()
+    	if success:
+    		_tilt.calibrate_current_position()
+    		_goals_hud.show_message_toast("TILT CALIBRATED", "Neutral Angle Zeroed ✓")  # PORT: :2335
+    	else:
+    		_goals_hud.show_message_toast("GYRO SENSOR", "Sensor Unavailable or Blocked")  # PORT: :2337
+    	return success
+    ```
+  - In `resize_canvas()`, after the `_armory.set_ui_scale(...)` line: `_goals_hud.set_ui_scale(HudController.ui_scale_for(viewport), arena_origin)`.
   - `_on_run_ended`: add `_goals_hud.render()  # PORT: web/src/tilt-to-live/TiltGame.ts:2146` after the phase line.
-  - `_on_armory_state_changed`: add `_goals_hud.render()` as its first line; in its PORT-NOTE replace `goalsHUD.render (:2358) is M9's;` with `goalsHUD.render (:2358) is the call below;`.
-  - `_on_armory_closed`: replace `# TODO(M9): goalsHUD.render (:2383). TODO(M11): menu.render (:2384).` with `_goals_hud.render()  # PORT: :2383` and `# TODO(M11): menu.render (:2384).`.
-  - New methods at the end of the public section (before `_on_run_ended`):
+  - `_on_armory_state_changed`: add `_goals_hud.render()` as its first line; in its PORT-NOTE replace `goalsHUD.render (:2358) is M9's;` with `goalsHUD.render (:2358) is the first call below;`.
+  - `_on_armory_closed`: replace `# TODO(M9): goalsHUD.render (:2383). TODO(M11): menu.render (:2384).` with `_goals_hud.render()  # PORT: :2383` then `# TODO(M11): menu.render (:2384).`.
+  - A public method after `is_armory_open()`:
+    ```gdscript
+    ## The live run's controller; the Milestones wiring reads its run results.
+    # PORT-NOTE: no TS counterpart — TiltGame reads its own fields (TiltGame.ts:2111-2144);
+    # here those fields live on RunController.
+    func get_run_controller() -> RunController:
+    	return _run_controller
+    ```
+  - Private methods after `_on_run_ended` (CONVENTIONS §2 — private section):
+    ```gdscript
+    ## PORT: web/src/tilt-to-live/TiltGame.ts:200-204 (the onGoalCompleted callback)
+    func _on_goal_completed(goal: GoalManager.Goal) -> void:
+    	_run_controller.points_earned_this_run += goal.reward_points
+    	_goals_hud.show_goal_toast(goal)
+    	GameEvents.goal_completed.emit(goal.id)  # spec §5.3; M9 plan R5
 
-```gdscript
-## The live run's controller; the game-over summary reads its run results.
-# PORT-NOTE: no TS counterpart — TiltGame's game-over code reads its own
-# fields (TiltGame.ts:2111-2144); here those fields live on RunController.
-func get_run_controller() -> RunController:
-	return _run_controller
 
+    ## PORT: web/src/tilt-to-live/TiltGame.ts:205-208 (the onPointsAwarded callback)
+    func _on_goal_points_awarded(pts: int) -> void:
+    	progression.add_points(pts)
+    	_goals_hud.render()
+    ```
 
-## PORT: web/src/tilt-to-live/TiltGame.ts:200-204 (the onGoalCompleted callback)
-func _on_goal_completed(goal: GoalManager.Goal) -> void:
-	_run_controller.points_earned_this_run += goal.reward_points
-	_goals_hud.show_goal_toast(goal)
-	GameEvents.goal_completed.emit(goal.id)  # spec §5.3; M9 plan R5
+- [ ] **Step 7: Glyph check** — the calibrate subtitle carries `✓` (U+2713). Run `"$GODOT" --headless --path godot -s` on a throwaway script in the scratchpad that prints `UiTheme.sans(UiTheme.Weight.REGULAR).has_char(0x2713)`, or add the one-line assert to `test_ui_theme.gd` temporarily and remove it. If it prints `false`, keep the string (LAW 2) and add to `## Open questions` below: "Plex Sans has no ✓; the calibrate toast renders it with the fallback font". Do not change the text.
 
-
-## PORT: web/src/tilt-to-live/TiltGame.ts:205-208 (the onPointsAwarded callback)
-func _on_goal_points_awarded(pts: int) -> void:
-	progression.add_points(pts)
-	_goals_hud.render()
-```
-
-  (`_on_goal_completed`/`_on_goal_points_awarded` are private, so they go in the private section after `_on_run_ended` per CONVENTIONS §2 — place them there, not next to `get_run_controller`.)
-
-- [ ] **Step 8: Verify** — `tools/run_tests.sh` → `OK: 45/45 scripts (409 tests)`; `gdformat --check`, `gdlint` clean; `grep -rn "TODO(M9)" godot/src/` prints nothing; `grep -rn "DIVERGENCE" godot/src/ | wc -l` prints `75`; `"$GODOT" --headless --path godot --quit-after 120 2>&1 | grep -c "SCRIPT ERROR"` prints `0`.
+- [ ] **Step 8: Verify** — `tools/run_tests.sh` → `OK: 48/48 scripts (466 tests)` (Task 4's 453 + 10 in `test_goals_hud.gd` + 3 in `test_main_scene.gd`); `gdformat --check godot/src godot/tests` (`86 files would be left unchanged`), `gdlint godot/src godot/tests` clean; `grep -rn "TODO(M9)" godot/src/core/` prints nothing; `grep -rniE "ff4757" godot/src/ui/` prints nothing; `"$GODOT" --headless --path godot --quit-after 120 2>&1 | grep -c "SCRIPT ERROR"` prints `0`.
 
 - [ ] **Step 9: Commit**
 
 ```bash
 git checkout godot/project.godot
-git add godot/src/ui/goals_hud.gd godot/src/ui/armory_ui.gd godot/src/core/game_root.gd godot/scenes/main.tscn godot/tests/test_goals_hud.gd godot/tests/test_main_scene.gd docs/superpowers/plans/2026-09-20-m9-milestones.md godot/HANDOFF.md
-git commit -m "M9: port the goals rail and toast and wire goal callbacks in GameRoot"
+git add godot/src/ui/goals_hud.gd godot/src/core/game_root.gd godot/scenes/main.tscn godot/tests/test_goals_hud.gd godot/tests/test_main_scene.gd docs/superpowers/plans/2026-09-20-m9-milestones.md godot/HANDOFF.md
+git commit -m "M9: add the milestone rail and toast to the HUD; next: M9 Task 6"
 git log -1 --format=%B
 ```
 
 ---
 
-### Task 6: `GoalsHUD` — the full Milestones screen (Board 13)
+### Task 6: `GoalsHUD` — the Milestones screen (`Milestones.dc.html`)
 
-> **SUPERSEDED (2026-09-23).** The UI in this task is replaced by interface spec
-> `docs/superpowers/specs/2026-09-23-mobile-interface-system-design.md` §6.5 on
-> `UiTheme` (M8.5). Rewrite this task before executing it; Tasks 1–4 stand.
+> **Rewritten 2026-09-23** to interface spec §6.5 on `UiTheme`. Rulings R10, R11 apply.
 
 **Files:**
-- Modify: `godot/src/ui/goals_hud.gd` (replace the three `Task 6 replaces this` members; add constants and the modal node references)
+- Modify: `godot/src/ui/goals_hud.gd` (replace the three `Task 6 replaces this` members; add constants and node references), `godot/src/ui/ui_theme.gd` (one icon constant)
 - Test: `godot/tests/test_goals_hud.gd` (append)
 
 **Interfaces:**
-- Consumes: Task 5's `_label`, `_icon`, `_ui_scale`; `GoalManager.is_completed/is_unlock_goal/is_total_goal/get_metric_value/catalog`; `ArmoryUI.group_digits`.
-- Produces: node names `MilestonesPanel`, `CounterLabel`, `CounterDenomLabel`, `ProgressFill`, `HeaderPointsLabel`, `HeaderPointsUnit`, `CloseButton`, `MilestonesBody`, `Tier_Score|Combat|Mastery`, `TierName`, `TierCount`, `TierGrid`, `MilestoneCard_<goal id>` containing `MarkBox`, `NameLabel`, `GoalLabel`, optional `BarTrack`/`BarFill`, `PointsLabel`.
+- Consumes: Task 5's `_ui_scale`, `_inset`, `_label`; `GoalManager.is_completed/is_unlock_goal/is_total_goal/get_metric_value/catalog`; `UiTheme` (`text`, `caps`, `group_digits`, `px`, `flat`, `padded`, `tint`, `svg_texture`, `sans`, `mono`, `ICON_BACK`, `COLOR_*`, `TEXT_FAINT`, `POINTS_UNIT`, `DONE_CARD`, `CARD_RADIUS`, `TOUCH_TARGET`; variations `TitleText`, `BodyText`, `MonoFaintText`, `MonoText`, `PointsText`, `CapsText`, `FlatIconButton`).
+- Produces: `UiTheme.ICON_MARK`. Node names `ScreenMargin`, `HeaderMargin`, `Header`, `BackButton`, `TitleLabel`, `CounterLabel`, `CounterDenomLabel`, `ProgressTrack`, `ProgressFill`, `HeaderPointsLabel`, `HeaderPointsUnit`, `HeaderRule`, `BodyMargin`, `TierColumns`, `Tier_Score|Combat|Mastery` each with `TierName`, `TierCount`, `TierScroll`, `TierCards`, `TierFade`; cards `MilestoneCard_<goal id>` containing `MarkBox`, `NameLabel`, `GoalLabel`, optional `BarTrack`/`BarFill`, `PointsLabel`.
 
 - [ ] **Step 1: Write the failing tests** — append to `godot/tests/test_goals_hud.gd`:
 
@@ -2258,38 +2271,85 @@ func _open() -> Control:
 
 
 func _text(name: String) -> String:
-	return (_hud.find_child(name, true, false) as Label).text
+	return (_node(name) as Label).text
 
 
 func _card(id: String) -> Control:
 	return _hud.find_child("MilestoneCard_" + id, true, false) as Control
 
 
+## A GoalsHUD in an explicit-size host (the headless root snaps to 64×64 — M8.5 lesson).
+func _hosted(size: Vector2, scale: float) -> GoalsHUD:
+	var host: Control = Control.new()
+	host.size = size
+	add_child_autofree(host)
+	var hud: GoalsHUD = GoalsHUD.new()
+	host.add_child(hud)
+	hud.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	hud.bind(_gm, _pm)
+	hud.set_ui_scale(scale)
+	hud.open_all_goals_modal()
+	return hud
+
+
+func _assert_screen_fits(size: Vector2, scale: float) -> void:
+	var hud: GoalsHUD = _hosted(size, scale)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var screen: Control = hud.find_child("MilestonesModal", true, false) as Control
+	var outside: Array[String] = UiChecks.outside(screen, screen.get_global_rect())
+	assert_true(outside.is_empty(), "fits %s: %s" % [size, outside])
+	var short: Array[String] = UiChecks.short_buttons(screen, UiTheme.TOUCH_TARGET * scale)
+	assert_true(short.is_empty(), "rule 05 at %s: %s" % [size, short])
+	var header: Node = hud.find_child("Header", true, false)
+	assert_true(UiChecks.overlapping_siblings(header).is_empty(), "header at %s" % size)
+	for tier: String in ["Score", "Combat", "Mastery"]:
+		var column: Control = hud.find_child("Tier_" + tier, true, false) as Control
+		assert_gt(column.size.x, 0.0, "%s column has width at %s" % [tier, size])
+
+
 func test_header_shows_counter_progress_and_points() -> void:
 	SaveStore.save_string_list(GoalManager.SAVE_PATH, ["score_1k"] as Array[String])
 	_gm = GoalManager.new()
 	await _open()
+	assert_eq(_text("TitleLabel"), "Milestones")
 	assert_eq(_text("CounterLabel"), "1", "GoalsHUD.ts:367")
 	assert_eq(_text("CounterDenomLabel"), "/57")
 	assert_eq(_text("HeaderPointsLabel"), "7,331", ":372 toLocaleString")
-	assert_eq(_text("HeaderPointsUnit"), " pts", "the TS's space before the unit span (:372)")
-	var fill: Control = _hud.find_child("ProgressFill", true, false) as Control
+	assert_eq(_text("HeaderPointsUnit"), "PTS", "Milestones.dc.html caps unit")
+	var fill: Control = _node("ProgressFill") as Control
 	assert_almost_eq(fill.anchor_right, 0.02, 0.0001, "round(1/57*100) = 2 (:317)")
 
 
-func test_three_tiers_with_their_counts() -> void:
+func test_three_tier_columns_with_their_counts() -> void:
 	SaveStore.save_string_list(GoalManager.SAVE_PATH, ["kills_15"] as Array[String])
 	_gm = GoalManager.new()
 	await _open()
-	var counts: Array[String] = []
 	var names: Array[String] = []
+	var counts: Array[String] = []
 	for tier: String in ["Score", "Combat", "Mastery"]:
 		var group: Control = _hud.find_child("Tier_" + tier, true, false) as Control
 		assert_not_null(group, tier)
-		names.append((group.find_child("TierName", true, false) as Label).text)
+		var tier_name: Label = group.find_child("TierName", true, false) as Label
+		assert_true(tier_name.uppercase, "caps label")
+		names.append(tier_name.text)
 		counts.append((group.find_child("TierCount", true, false) as Label).text)
-	assert_eq(names, ["SCORE", "COMBAT", "MASTERY"] as Array[String], "text-transform (game.css:4175)")
-	assert_eq(counts, ["0 of 9", "1 of 17", "0 of 31"] as Array[String], ":384-391, :356-360")
+	assert_eq(names, ["Score", "Combat", "Mastery"] as Array[String], ":356-360")
+	assert_eq(counts, ["0 of 9", "1 of 17", "0 of 31"] as Array[String], ":384-391")
+	var score_name: Label = _hud.find_child("Tier_Score", true, false).find_child(
+		"TierName", true, false
+	) as Label
+	assert_eq(score_name.get_theme_color("font_color"), UiTheme.COLOR_ION, ":357 tint")
+
+
+func test_open_goals_come_before_done_goals() -> void:
+	SaveStore.save_string_list(GoalManager.SAVE_PATH, ["score_1k"] as Array[String])
+	_gm = GoalManager.new()
+	await _open()
+	var cards: Node = _hud.find_child("Tier_Score", true, false).find_child("TierCards", true, false)
+	var last: Node = cards.get_child(cards.get_child_count() - 1)
+	assert_eq(String(last.name), "MilestoneCard_score_1k", "done last (interface spec §6.5)")
+	assert_ne(String(cards.get_child(0).name), "MilestoneCard_score_1k")
 
 
 func test_done_card_shows_description_and_no_bar() -> void:
@@ -2300,7 +2360,9 @@ func test_done_card_shows_description_and_no_bar() -> void:
 	assert_eq((card.find_child("GoalLabel", true, false) as Label).text, "Reach 1,000 score in a run")
 	assert_null(card.find_child("BarTrack", true, false), ":424-439")
 	var box: StyleBoxFlat = (card as PanelContainer).get_theme_stylebox("panel") as StyleBoxFlat
-	assert_eq(box.bg_color, Color("#0F131B"), "is-done (game.css:4207)")
+	assert_eq(box.bg_color, UiTheme.DONE_CARD, "Milestones.dc.html done card")
+	var pts: Label = card.find_child("PointsLabel", true, false) as Label
+	assert_eq(pts.get_theme_color("font_color"), UiTheme.TEXT_FAINT, "done points are faint")
 
 
 func test_total_goal_shows_live_progress() -> void:
@@ -2312,12 +2374,11 @@ func test_total_goal_shows_live_progress() -> void:
 	assert_almost_eq(fill.anchor_right, 0.40, 0.0001, ":420-422")
 
 
-func test_run_goal_shows_description_and_an_empty_bar() -> void:
+func test_open_run_goal_shows_description_and_no_bar() -> void:
 	await _open()
 	var card: Control = _card("score_1k")
 	assert_eq((card.find_child("GoalLabel", true, false) as Label).text, "Reach 1,000 score in a run")
-	var fill: Control = card.find_child("BarFill", true, false) as Control
-	assert_eq(fill.anchor_right, 0.0, "run goals never compute currentVal (:402-418)")
+	assert_null(card.find_child("BarTrack", true, false), "interface spec §6.5 (R10)")
 
 
 func test_unlock_card_has_no_bar() -> void:
@@ -2325,254 +2386,268 @@ func test_unlock_card_has_no_bar() -> void:
 	assert_null(_card("unlock_ship_solar").find_child("BarTrack", true, false), ":444-455")
 
 
-func test_close_button_and_backdrop_close() -> void:
-	var modal: Control = await _open()
-	(_hud.find_child("CloseButton", true, false) as Button).pressed.emit()
-	assert_false(modal.visible, ":484-486")
-	_hud.open_all_goals_modal()
-	modal.gui_input.emit(_click())
-	assert_false(modal.visible, "backdrop click (:298-302)")
+func test_back_button_closes_the_screen() -> void:
+	var screen: Control = await _open()
+	(_node("BackButton") as Button).pressed.emit()
+	assert_false(screen.visible, ":484-486")
 
 
-func test_desktop_grid_has_three_columns() -> void:
-	await _open()
-	var grid: GridContainer = _hud.find_child("TierGrid", true, false) as GridContainer
-	assert_eq(grid.columns, 3, "game.css:4187 — the test host is not mobile")
-
-
-func test_render_refreshes_an_open_modal() -> void:
+func test_render_refreshes_an_open_screen() -> void:
 	await _open()
 	_gm.cumulative.total_kills = 70
 	_hud.render()
 	var card: Control = _card("total_kills_100")
 	assert_eq((card.find_child("GoalLabel", true, false) as Label).text, "70 / 100", ":280-282")
+
+
+func test_screen_fits_the_board_frame() -> void:
+	await _assert_screen_fits(Vector2(844, 390), 1.0)
+
+
+func test_screen_fits_the_a55() -> void:
+	await _assert_screen_fits(Vector2(2340, 1080), 1080.0 / 390.0)
+
+
+func test_screen_fits_a_desktop_window() -> void:
+	await _assert_screen_fits(Vector2(1280, 720), HudController.ui_scale_for(Vector2(1280, 720)))
+
+
+func test_long_text_stays_on_one_line() -> void:
+	var hud: GoalsHUD = _hosted(Vector2(844, 390), 1.0)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	for node: Node in hud.find_children("MilestoneCard_*", "PanelContainer", true, false):
+		var card: Control = node as Control
+		assert_almost_eq(card.size.y, 58.0, 0.5, "%s stays 58 px (one line each)" % card.name)
+	var goal: Label = hud.find_child("GoalLabel", true, false) as Label
+	assert_eq(goal.text_overrun_behavior, TextServer.OVERRUN_TRIM_ELLIPSIS, "rule 03")
+
+
+func test_screen_blocks_taps_but_lets_columns_scroll() -> void:
+	var screen: Control = await _open()
+	assert_eq(screen.mouse_filter, Control.MOUSE_FILTER_STOP, "nothing under it takes the tap")
+	var scroll: Node = _hud.find_child("TierScroll", true, false)
+	for node: Node in scroll.find_children("*", "Control", true, false):
+		var control: Control = node as Control
+		assert_ne(control.mouse_filter, Control.MOUSE_FILTER_STOP, "%s must pass drags" % node.name)
 ```
 
-- [ ] **Step 2: Run to verify they fail** — the new tests fail on missing nodes (`CounterLabel` null). Expected: `OK` is not printed; 9 failures in `test_goals_hud.gd`.
+- [ ] **Step 2: Run to verify they fail** — `tools/run_tests.sh` does not print `OK`; the 14 new tests fail on missing nodes (`TitleLabel` null, etc.).
 
-- [ ] **Step 3: Implement.** Add constants after the toast constants:
+- [ ] **Step 3: Add the mark icon to `godot/src/ui/ui_theme.gd`**, after `ICON_CHECK`:
 
 ```gdscript
-## Modal panel. PORT: web/src/styles/game.css:4051-4052 (960px / 94vw, 88vh)
-const MODAL_MAX_WIDTH: float = 960.0
-const MODAL_WIDTH_FRACTION: float = 0.94
-const MODAL_HEIGHT_FRACTION: float = 0.88
-## Header. PORT: web/src/styles/game.css:4066 (gap), :4067 (padding 22/36),
-## :4075-4076 (title 26 #E6E9F0), :4081 (counter 14), :4083 (#7A8397),
-## :4088 (denominator #4A5264), :4092-4096 (track 200x4, #1B2029, radius 2),
-## :4113 (right gap 16), :4118 (points 15), :4121 (#FFB14D), :4126 (unit 11),
-## :4128 (unit #8A7449), :4132-4135 (close 40, #262C38, radius 4)
-const HEADER_GAP: int = 20
-const HEADER_PAD_Y: int = 22
-const HEADER_PAD_X: int = 36
-const TITLE_FONT: int = 26
-const COUNTER_FONT: int = 14
-const TEXT_DIM: Color = Color("#4A5264")
-const TRACK_WIDTH: float = 200.0
-const TRACK_HEIGHT: float = 4.0
-const HEADER_RIGHT_GAP: int = 16
-const POINTS_FONT: int = 15
-const POINTS_UNIT_FONT: int = 11
-const POINTS_UNIT_COLOR: Color = Color("#8A7449")
-const CLOSE_SIZE: float = 40.0
-const CLOSE_ICON: float = 14.0  # PORT: GoalsHUD.ts:374
-## Body. PORT: web/src/styles/game.css:4152 (padding 28/36), :4155 (gap 24),
-## :4162 (tier gap 10), :4168 (heading gap 12), :4172-4173 (tier name 11),
-## :4180 (count 11), :4187 (grid gap 10)
-const BODY_PAD_Y: int = 28
-const BODY_PAD_X: int = 36
-const BODY_GAP: int = 24
-const TIER_GAP: int = 10
-const TIER_HEADING_GAP: int = 12
-const TIER_FONT: int = 11
-const GRID_GAP: int = 10
-const GRID_COLUMNS: int = 3  # PORT: game.css:4186
-## Tier tints. PORT: web/src/tilt-to-live/GoalsHUD.ts:357-359
-const TIER_TINTS: Dictionary[String, Color] = {
-	"Score": Color("#5B8CFF"),
-	"Combat": Color("#A78BFA"),
-	"Mastery": Color("#FFB14D"),
-}
-## Card. PORT: web/src/styles/game.css:4199 (gap 14), :4200 (padding 14/16),
-## :4201 (radius 6), :4207 (done bg), :4217-4220 (mark 22, radius 4),
-## :4241 (content gap 3), :4245 (name 14), :4258 (goal 11), :4264-4269
-## (bar 3, margin 3), :4283-4284 (points 12)
-const CARD_GAP: int = 14
-const CARD_PAD_Y: int = 14
-const CARD_PAD_X: int = 16
-const CARD_RADIUS: int = 6
-const CARD_DONE_BG: Color = Color("#0F131B")
-const MARK_SIZE: float = 22.0
+## DIVERGENCE(UI-SYSTEM): Milestones.dc.html — done mark check (void stroke)
+const ICON_MARK: String = (
+	'<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 11 11" fill="none">'
+	+ '<path d="M1.5 5.8 L4.2 8.5 L9.5 2.8" stroke="#08090E" stroke-width="1.9" '
+	+ 'stroke-linecap="round" stroke-linejoin="round"/></svg>'
+)
+```
+
+- [ ] **Step 4: Implement in `goals_hud.gd`.** Constants after `TOAST_MESSAGE_SVG`:
+
+```gdscript
+## Screen. DIVERGENCE(UI-SYSTEM): Milestones.dc.html — header padding 8/28/8/24
+## and gap 12 (the Armory's), counter Mono 13, track 120×4 r2 with 8 px side
+## margins, the points figure's 4 px gap to its unit, body padding 12/28/0/24,
+## column gap 14, column stack gap 6, heading gap 10, card 58 tall with padding
+## 0 12 and gap 11, mark 20 r4, content gap 3, bar 3 r2 with a 1 px top margin,
+## points Mono 12/500, bottom fade 40.
+const HEADER_PAD_Y: int = 8
+const HEADER_PAD_RIGHT: int = 28
+const HEADER_PAD_LEFT: int = 24
+const HEADER_GAP: int = 12
+const COUNTER_SIZE: int = 13
+const TRACK_WIDTH: int = 120
+const TRACK_HEIGHT: int = 4
+const TRACK_RADIUS: int = 2
+const TRACK_MARGIN: int = 8
+const POINTS_GAP: int = 4
+const BODY_PAD_TOP: int = 12
+const BODY_PAD_RIGHT: int = 28
+const BODY_PAD_LEFT: int = 24
+const COLUMN_GAP: int = 14
+const STACK_GAP: int = 6
+const HEADING_GAP: int = 10
+const CARD_HEIGHT: int = 58
+const CARD_PAD_X: int = 12
+const CARD_GAP: int = 11
+const MARK_SIZE: int = 20
 const MARK_RADIUS: int = 4
-const MARK_ICON: float = 11.0  # PORT: GoalsHUD.ts:428
-const CARD_CONTENT_GAP: int = 3
-const CARD_NAME_FONT: int = 14
-const CARD_GOAL_FONT: int = 11
-const BAR_HEIGHT: float = 3.0
-const CARD_POINTS_FONT: int = 12
-
-## PORT: web/src/tilt-to-live/GoalsHUD.ts:374-376
-const CLOSE_SVG: String = (
-	'<svg width="14" height="14" viewBox="0 0 14 14" fill="none"'
-	+ ' xmlns="http://www.w3.org/2000/svg"><path d="M2 2 L12 12 M12 2 L2 12"'
-	+ ' stroke="#99A1B3" stroke-width="1.5" stroke-linecap="round"/></svg>'
-)
-## PORT: web/src/tilt-to-live/GoalsHUD.ts:428-430
-const DONE_CHECK_SVG: String = (
-	'<svg width="11" height="11" viewBox="0 0 11 11" fill="none"'
-	+ ' xmlns="http://www.w3.org/2000/svg"><path d="M1.5 5.8 L4.2 8.5 L9.5 2.8"'
-	+ ' stroke="#08090E" stroke-width="1.9" stroke-linecap="round"'
-	+ ' stroke-linejoin="round"/></svg>'
-)
+const CONTENT_GAP: int = 3
+const BAR_HEIGHT: int = 3
+const BAR_RADIUS: int = 2
+const BAR_TOP: int = 1
+const CARD_POINTS_SIZE: int = 12
+const FADE_HEIGHT: int = 40
+## Tier order and tints. PORT: web/src/tilt-to-live/GoalsHUD.ts:356-360 (the
+## hexes are UiTheme's ion, plasma and flare)
+const TIERS: Array[String] = ["Score", "Combat", "Mastery"]
+const TIER_TINTS: Dictionary[String, Color] = {
+	"Score": UiTheme.COLOR_ION,
+	"Combat": UiTheme.COLOR_PLASMA,
+	"Mastery": UiTheme.COLOR_FLARE,
+}
 ```
 
-Add members after `_milestones_modal`:
+  Members after `_inset`:
 
 ```gdscript
-var _modal_panel: PanelContainer = null
+var _screen_margin: MarginContainer = null
+var _header_margin: MarginContainer = null
+var _header: HBoxContainer = null
+var _back_button: Button = null
 var _counter_label: Label = null
 var _denom_label: Label = null
-var _progress_fill: ColorRect = null
+var _track_margin: MarginContainer = null
+var _progress_track: Panel = null
+var _progress_fill: Panel = null
+var _points_row: HBoxContainer = null
 var _points_label: Label = null
 var _points_unit: Label = null
-var _modal_body: VBoxContainer = null
+var _body_margin: MarginContainer = null
+var _tier_columns: HBoxContainer = null
 ```
 
-Replace the three Task-5 stubs:
+  Replace the three `Task 6 replaces this` members with:
 
 ```gdscript
-## The overlay, panel, header and scrolling body; the body's content is
+## The screen's fixed frame: shell, header and body; the tier columns are
 ## rebuilt by _render_milestones_modal_content, as the TS rebuilds innerHTML.
-## PORT: web/src/tilt-to-live/GoalsHUD.ts:95-103, :362-382;
-## game.css:1599-1612 (overlay), :4050-4061 (panel), :4063-4157 (header, body)
+## PORT: web/src/tilt-to-live/GoalsHUD.ts:95-103, :362-382
+## DIVERGENCE(UI-SYSTEM): Milestones.dc.html — full screen in shell, the
+## Armory's 64 px header (interface spec §6.5).
 func _build_milestones_modal() -> Control:
-	var s: float = _ui_scale
-	var overlay: ColorRect = ColorRect.new()
-	overlay.name = "MilestonesModal"
-	overlay.color = ArmoryTheme.OVERLAY_BG
-	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	overlay.visible = false
-	overlay.gui_input.connect(_on_modal_backdrop_gui_input)
+	var screen: ColorRect = ColorRect.new()
+	screen.name = "MilestonesModal"
+	screen.color = UiTheme.COLOR_SHELL
+	screen.set_anchors_preset(Control.PRESET_FULL_RECT)
+	# The screen swallows taps meant for Run over and the arena underneath.
+	screen.mouse_filter = Control.MOUSE_FILTER_STOP
+	screen.visible = false
 
-	var center: CenterContainer = CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	overlay.add_child(center)
-
-	_modal_panel = PanelContainer.new()
-	_modal_panel.name = "MilestonesPanel"
-	_modal_panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	_modal_panel.add_theme_stylebox_override(
-		"panel",
-		ArmoryTheme.flat(ArmoryTheme.PANEL_BG, ArmoryTheme.COLOR_BORDER, ArmoryTheme.PANEL_RADIUS)
-	)
-	center.add_child(_modal_panel)
-
+	_screen_margin = MarginContainer.new()
+	_screen_margin.name = "ScreenMargin"
+	_screen_margin.mouse_filter = Control.MOUSE_FILTER_PASS
+	screen.add_child(_screen_margin)
+	_screen_margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var column: VBoxContainer = VBoxContainer.new()
 	column.add_theme_constant_override("separation", 0)
-	_modal_panel.add_child(column)
+	_screen_margin.add_child(column)
 
-	# Milestones Header (Board 13). PORT: GoalsHUD.ts:365-379
-	var header_pad: MarginContainer = MarginContainer.new()
-	header_pad.add_theme_constant_override("margin_left", int(HEADER_PAD_X * s))
-	header_pad.add_theme_constant_override("margin_right", int(HEADER_PAD_X * s))
-	header_pad.add_theme_constant_override("margin_top", int(HEADER_PAD_Y * s))
-	header_pad.add_theme_constant_override("margin_bottom", int(HEADER_PAD_Y * s))
-	column.add_child(header_pad)
-	var header: HBoxContainer = HBoxContainer.new()
-	header.add_theme_constant_override("separation", int(HEADER_GAP * s))
-	header_pad.add_child(header)
-	header.add_child(_label("Milestones", TITLE_FONT, ArmoryTheme.TEXT_PRIMARY))
-	var counter: HBoxContainer = HBoxContainer.new()
+	_header_margin = MarginContainer.new()
+	_header_margin.name = "HeaderMargin"
+	column.add_child(_header_margin)
+	_header = HBoxContainer.new()
+	_header.name = "Header"
+	_header_margin.add_child(_header)
+
+	_back_button = Button.new()
+	_back_button.name = "BackButton"
+	_back_button.theme_type_variation = "FlatIconButton"
+	_back_button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	# PORT: web/src/tilt-to-live/GoalsHUD.ts:484-486 (btn-close-milestones)
+	_back_button.pressed.connect(close_all_goals_modal)
+	_header.add_child(_back_button)
+	var title: Label = UiTheme.text("Milestones", "TitleText")  # PORT: :364
+	title.name = "TitleLabel"
+	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_header.add_child(title)
+	var fill: Control = Control.new()
+	fill.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_header.add_child(fill)
+
+	var counter: HBoxContainer = HBoxContainer.new()  # PORT: :367
 	counter.add_theme_constant_override("separation", 0)
-	_counter_label = _label("0", COUNTER_FONT, ArmoryTheme.TEXT_FAINT)
-	_counter_label.name = "CounterLabel"
+	_counter_label = _header_label("CounterLabel", UiTheme.COLOR_TEXT_MUTED)
 	counter.add_child(_counter_label)
-	_denom_label = _label("/0", COUNTER_FONT, TEXT_DIM)
-	_denom_label.name = "CounterDenomLabel"
+	_denom_label = _header_label("CounterDenomLabel", UiTheme.TEXT_FAINT)
 	counter.add_child(_denom_label)
-	header.add_child(counter)
-	var track: ColorRect = ColorRect.new()
-	track.color = ArmoryTheme.COLOR_RAISED
-	track.custom_minimum_size = Vector2(TRACK_WIDTH, TRACK_HEIGHT) * s
-	track.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_progress_fill = ColorRect.new()
-	_progress_fill.name = "ProgressFill"
-	_progress_fill.color = ArmoryTheme.COLOR_ION
-	_progress_fill.anchor_bottom = 1.0
-	track.add_child(_progress_fill)
-	header.add_child(track)
-	var spacer: Control = Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header.add_child(spacer)
-	var right: HBoxContainer = HBoxContainer.new()
-	right.add_theme_constant_override("separation", int(HEADER_RIGHT_GAP * s))
-	var points: HBoxContainer = HBoxContainer.new()
-	points.add_theme_constant_override("separation", 0)
-	_points_label = _label("0", POINTS_FONT, ArmoryTheme.COLOR_FLARE)
-	_points_label.name = "HeaderPointsLabel"
-	points.add_child(_points_label)
-	_points_unit = _label(" pts", POINTS_UNIT_FONT, POINTS_UNIT_COLOR)
-	_points_unit.name = "HeaderPointsUnit"
-	points.add_child(_points_unit)
-	right.add_child(points)
-	var close: Button = Button.new()
-	close.name = "CloseButton"
-	close.custom_minimum_size = Vector2(CLOSE_SIZE, CLOSE_SIZE) * s
-	close.icon = ArmoryUI.svg_texture(CLOSE_SVG, _ui_scale * ArmoryUI.SVG_OVERSAMPLE)
-	close.expand_icon = true
-	close.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	close.add_theme_stylebox_override(
-		"normal", ArmoryTheme.flat(Color(0, 0, 0, 0), ArmoryTheme.COLOR_BORDER, ArmoryTheme.ICON_BUTTON_RADIUS)
-	)
-	close.add_theme_stylebox_override(
-		"hover", ArmoryTheme.flat(ArmoryTheme.COLOR_RAISED, ArmoryTheme.COLOR_BORDER_ACTIVE, ArmoryTheme.ICON_BUTTON_RADIUS)
-	)
-	close.pressed.connect(close_all_goals_modal)
-	right.add_child(close)
-	header.add_child(right)
+	_header.add_child(counter)
 
-	var rule: ColorRect = ColorRect.new()  # PORT: game.css:4068 (border-bottom)
-	rule.color = ArmoryTheme.COLOR_BORDER
-	rule.custom_minimum_size.y = 1.0
+	_track_margin = MarginContainer.new()  # PORT: :368-370
+	_track_margin.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_progress_track = Panel.new()
+	_progress_track.name = "ProgressTrack"
+	_progress_track.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_progress_fill = Panel.new()
+	_progress_fill.name = "ProgressFill"
+	_progress_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_progress_fill.anchor_bottom = 1.0
+	_progress_track.add_child(_progress_fill)
+	_track_margin.add_child(_progress_track)
+	_header.add_child(_track_margin)
+
+	_points_row = HBoxContainer.new()  # PORT: :372
+	_points_label = UiTheme.text("", "PointsText")
+	_points_label.name = "HeaderPointsLabel"
+	_points_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_points_row.add_child(_points_label)
+	_points_unit = UiTheme.text("", "CapsText")
+	_points_unit.name = "HeaderPointsUnit"
+	_points_unit.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_points_unit.add_theme_color_override("font_color", UiTheme.POINTS_UNIT)
+	_points_row.add_child(_points_unit)
+	_header.add_child(_points_row)
+
+	var rule: ColorRect = ColorRect.new()
+	rule.name = "HeaderRule"
+	rule.color = UiTheme.COLOR_RAISED  # DIVERGENCE(UI-SYSTEM): Milestones.dc.html — border-bottom
+	rule.custom_minimum_size.y = 1
+	rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(rule)
 
-	# Milestones Body: 3 Tiers. PORT: GoalsHUD.ts:381-480; game.css:4149-4157
-	var scroll: ScrollContainer = ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	column.add_child(scroll)
-	var body_pad: MarginContainer = MarginContainer.new()
-	body_pad.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	body_pad.add_theme_constant_override("margin_left", int(BODY_PAD_X * s))
-	body_pad.add_theme_constant_override("margin_right", int(BODY_PAD_X * s))
-	body_pad.add_theme_constant_override("margin_top", int(BODY_PAD_Y * s))
-	body_pad.add_theme_constant_override("margin_bottom", int(BODY_PAD_Y * s))
-	scroll.add_child(body_pad)
-	_modal_body = VBoxContainer.new()
-	_modal_body.name = "MilestonesBody"
-	_modal_body.add_theme_constant_override("separation", int(BODY_GAP * s))
-	body_pad.add_child(_modal_body)
-	return overlay
+	_body_margin = MarginContainer.new()
+	_body_margin.name = "BodyMargin"
+	_body_margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	column.add_child(_body_margin)
+	_tier_columns = HBoxContainer.new()
+	_tier_columns.name = "TierColumns"
+	_body_margin.add_child(_tier_columns)
+	return screen
 
 
-## Sizes the panel to min(960px, 94vw) x 88vh, and rebuilds the modal at a
-## new ui_scale (its fonts and paddings are baked at build time).
+## Scales every board size on the screen; rebuilds the columns when it is open
+## (their sizes are baked at build time), as ArmoryUI.set_ui_scale does.
 func _layout_modal() -> void:
-	if _milestones_modal == null:
+	if _screen_margin == null:
 		return
-	var was_open: bool = _milestones_modal.visible
-	remove_child(_milestones_modal)
-	_milestones_modal.queue_free()
-	_milestones_modal = _build_milestones_modal()
-	add_child(_milestones_modal)
-	var vp: Vector2 = get_viewport_rect().size
-	_modal_panel.custom_minimum_size = Vector2(
-		minf(MODAL_MAX_WIDTH * _ui_scale, vp.x * MODAL_WIDTH_FRACTION), vp.y * MODAL_HEIGHT_FRACTION
+	var s: float = _ui_scale
+	var pad: Vector2 = _inset if OS.has_feature("mobile") else Vector2.ZERO
+	_screen_margin.add_theme_constant_override("margin_left", int(pad.x))
+	_screen_margin.add_theme_constant_override("margin_right", int(pad.x))
+	_screen_margin.add_theme_constant_override("margin_top", int(pad.y))
+	_screen_margin.add_theme_constant_override("margin_bottom", int(pad.y))
+	_header_margin.add_theme_constant_override("margin_left", UiTheme.px(HEADER_PAD_LEFT, s))
+	_header_margin.add_theme_constant_override("margin_top", UiTheme.px(HEADER_PAD_Y, s))
+	_header_margin.add_theme_constant_override("margin_right", UiTheme.px(HEADER_PAD_RIGHT, s))
+	_header_margin.add_theme_constant_override("margin_bottom", UiTheme.px(HEADER_PAD_Y, s))
+	_header.add_theme_constant_override("separation", UiTheme.px(HEADER_GAP, s))
+	var side: float = UiTheme.TOUCH_TARGET * s
+	_back_button.custom_minimum_size = Vector2(side, side)
+	_back_button.icon = UiTheme.svg_texture(UiTheme.ICON_BACK, s)
+	for label: Label in [_counter_label, _denom_label]:
+		label.add_theme_font_size_override("font_size", UiTheme.px(COUNTER_SIZE, s))
+	_track_margin.add_theme_constant_override("margin_left", UiTheme.px(TRACK_MARGIN, s))
+	_track_margin.add_theme_constant_override("margin_right", UiTheme.px(TRACK_MARGIN, s))
+	_progress_track.custom_minimum_size = Vector2(TRACK_WIDTH, TRACK_HEIGHT) * s
+	var r: int = UiTheme.px(TRACK_RADIUS, s)
+	_progress_track.add_theme_stylebox_override(
+		"panel", UiTheme.flat(UiTheme.COLOR_RAISED, Color.TRANSPARENT, r)
 	)
-	if was_open:
-		open_all_goals_modal()
+	_progress_fill.add_theme_stylebox_override(
+		"panel", UiTheme.flat(UiTheme.COLOR_ION, Color.TRANSPARENT, r)
+	)
+	_points_row.add_theme_constant_override("separation", UiTheme.px(POINTS_GAP, s))
+	_body_margin.add_theme_constant_override("margin_left", UiTheme.px(BODY_PAD_LEFT, s))
+	_body_margin.add_theme_constant_override("margin_top", UiTheme.px(BODY_PAD_TOP, s))
+	_body_margin.add_theme_constant_override("margin_right", UiTheme.px(BODY_PAD_RIGHT, s))
+	_body_margin.add_theme_constant_override("margin_bottom", 0)
+	_tier_columns.add_theme_constant_override("separation", UiTheme.px(COLUMN_GAP, s))
+	if is_modal_open():
+		_render_milestones_modal_content()
 
 
 ## PORT: web/src/tilt-to-live/GoalsHUD.ts:311-487
@@ -2588,21 +2663,21 @@ func _render_milestones_modal_content() -> void:
 	_counter_label.text = str(completed)  # PORT: :367
 	_denom_label.text = "/%d" % total
 	_progress_fill.anchor_right = progress_pct / 100.0  # PORT: :369
-	_points_label.text = ArmoryUI.group_digits(points)  # PORT: :372
-	# The unit keeps the TS's separating space (:372), so no invented gap is needed.
-	_points_unit.text = " pt" if points == 1 else " pts"
+	_points_label.text = UiTheme.group_digits(points)  # PORT: :372
+	# PORT: :372 (pt at 1). DIVERGENCE(UI-SYSTEM): Milestones.dc.html — caps unit.
+	_points_unit.text = "PT" if points == 1 else "PTS"
 
-	for child: Node in _modal_body.get_children():
-		_modal_body.remove_child(child)
+	for child: Node in _tier_columns.get_children():
+		_tier_columns.remove_child(child)
 		child.queue_free()
 
 	# Categorize goals into the 3 tiers: Score, Combat, Mastery (:319-360)
-	for tier_name: String in ["Score", "Combat", "Mastery"]:
+	for tier_name: String in TIERS:
 		var goals: Array[GoalManager.Goal] = []
 		for goal: GoalManager.Goal in _goal_manager.catalog:
 			if _get_goal_tier(goal) == tier_name:
 				goals.append(goal)
-		_modal_body.add_child(_tier_group(tier_name, TIER_TINTS[tier_name], goals))
+		_tier_columns.add_child(_tier_column(tier_name, goals))
 
 
 ## The TS's local getGoalTier. PORT: web/src/tilt-to-live/GoalsHUD.ts:322-354
@@ -2634,173 +2709,333 @@ func _get_goal_tier(goal: GoalManager.Goal) -> String:
 	return "Mastery"
 
 
-## One .milestones-tier-group. PORT: web/src/tilt-to-live/GoalsHUD.ts:383-478
-# DIVERGENCE(M9-mobile): game.css:4191-4195 drops the grid to one column at a
-# 900 CSS-px width. There is no CSS px here; the switch is gated on
-# OS.has_feature("mobile"), as M8 gated the Armory's mobile chrome.
-func _tier_group(tier_name: String, tint: Color, goals: Array[GoalManager.Goal]) -> Control:
+## One tier column. PORT: web/src/tilt-to-live/GoalsHUD.ts:383-478
+## DIVERGENCE(UI-SYSTEM): Milestones.dc.html — three side-by-side columns, each
+## scrolling on its own under a 40 px shell fade (replaces game.css's grid).
+func _tier_column(tier_name: String, goals: Array[GoalManager.Goal]) -> Control:
 	var s: float = _ui_scale
-	var done_count: int = 0
+	var open: Array[GoalManager.Goal] = []
+	var done: Array[GoalManager.Goal] = []
 	for g: GoalManager.Goal in goals:
 		if _goal_manager.is_completed(g.id):
-			done_count += 1
+			done.append(g)
+		else:
+			open.append(g)
 
-	var group: VBoxContainer = VBoxContainer.new()
-	group.name = "Tier_" + tier_name
-	group.add_theme_constant_override("separation", int(TIER_GAP * s))
+	var column: Control = Control.new()
+	column.name = "Tier_" + tier_name
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	column.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	column.clip_contents = true
+	column.mouse_filter = Control.MOUSE_FILTER_PASS
+	var stack: VBoxContainer = VBoxContainer.new()
+	stack.add_theme_constant_override("separation", UiTheme.px(STACK_GAP, s))
+	column.add_child(stack)
+	stack.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
 	var heading: HBoxContainer = HBoxContainer.new()
-	heading.add_theme_constant_override("separation", int(TIER_HEADING_GAP * s))
-	var name_label: Label = _label(tier_name.to_upper(), TIER_FONT, tint)
+	heading.add_theme_constant_override("separation", UiTheme.px(HEADING_GAP, s))
+	var name_label: Label = UiTheme.caps(tier_name)
 	name_label.name = "TierName"
+	name_label.add_theme_color_override("font_color", TIER_TINTS[tier_name])
 	heading.add_child(name_label)
-	var count_label: Label = _label("%d of %d" % [done_count, goals.size()], TIER_FONT, TEXT_DIM)
-	count_label.name = "TierCount"
-	heading.add_child(count_label)
-	group.add_child(heading)
+	# PORT: :384-391
+	var count: Label = UiTheme.text("%d of %d" % [done.size(), goals.size()], "MonoFaintText")
+	count.name = "TierCount"
+	heading.add_child(count)
+	stack.add_child(heading)
 
-	var grid: GridContainer = GridContainer.new()
-	grid.name = "TierGrid"
-	grid.columns = 1 if OS.has_feature("mobile") else GRID_COLUMNS
-	grid.add_theme_constant_override("h_separation", int(GRID_GAP * s))
-	grid.add_theme_constant_override("v_separation", int(GRID_GAP * s))
-	for goal: GoalManager.Goal in goals:
-		grid.add_child(_milestone_card(goal))
-	group.add_child(grid)
-	return group
+	var scroll: ScrollContainer = ScrollContainer.new()
+	scroll.name = "TierScroll"
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var cards: VBoxContainer = VBoxContainer.new()
+	cards.name = "TierCards"
+	cards.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cards.add_theme_constant_override("separation", UiTheme.px(STACK_GAP, s))
+	# Open goals first, then done ones, each in catalog order (interface spec §6.5).
+	for g: GoalManager.Goal in open + done:
+		cards.add_child(_milestone_card(g))
+	scroll.add_child(cards)
+	stack.add_child(scroll)
+
+	var gradient: Gradient = Gradient.new()
+	gradient.set_color(0, UiTheme.tint(UiTheme.COLOR_SHELL, 0.0))
+	gradient.set_color(1, UiTheme.COLOR_SHELL)
+	var fade_texture: GradientTexture2D = GradientTexture2D.new()
+	fade_texture.gradient = gradient
+	fade_texture.fill_to = Vector2(0.0, 1.0)
+	var fade: TextureRect = TextureRect.new()
+	fade.name = "TierFade"
+	fade.texture = fade_texture
+	fade.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	fade.stretch_mode = TextureRect.STRETCH_SCALE
+	fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.add_child(fade)
+	fade.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	fade.offset_top = -UiTheme.px(FADE_HEIGHT, s)
+	return column
 
 
-## One .milestone-card: done, open unlock, or open with progress.
-## PORT: web/src/tilt-to-live/GoalsHUD.ts:394-474; game.css:4197-4295
+## One card: done, open unlock or run goal, or open lifetime goal with progress.
+## PORT: web/src/tilt-to-live/GoalsHUD.ts:394-474
+## DIVERGENCE(UI-SYSTEM): Milestones.dc.html — card, mark and text styles.
 func _milestone_card(goal: GoalManager.Goal) -> PanelContainer:
 	var s: float = _ui_scale
 	var is_done: bool = _goal_manager.is_completed(goal.id)
 	var is_unlock: bool = _goal_manager.is_unlock_goal(goal)
+	var is_total: bool = not is_unlock and _goal_manager.is_total_goal(goal)
 
 	# Unlock goals have no meaningful numeric target (:398-401).
 	var current_val: float = 0.0
-	if not is_unlock and _goal_manager.is_total_goal(goal):
+	if is_total:
 		current_val = _goal_manager.get_metric_value(goal.metric, GoalManager.RunTracker.new())
-	var pct: int = (
-		0 if is_unlock else clampi(roundi(current_val / goal.target * 100.0), 0, 100)
-	)  # PORT: :420-422
+	var pct: int = 0 if is_unlock else clampi(roundi(current_val / goal.target * 100.0), 0, 100)
 
 	var card: PanelContainer = PanelContainer.new()
 	card.name = "MilestoneCard_" + goal.id
-	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL  # grid columns share the width (1fr)
-	var style: StyleBoxFlat = ArmoryTheme.flat(
-		CARD_DONE_BG if is_done else ArmoryTheme.COLOR_PANEL,
-		ArmoryTheme.COLOR_RAISED if is_done else ArmoryTheme.COLOR_BORDER,
-		CARD_RADIUS
+	card.mouse_filter = Control.MOUSE_FILTER_PASS
+	card.custom_minimum_size.y = CARD_HEIGHT * s
+	card.add_theme_stylebox_override(
+		"panel",
+		UiTheme.padded(
+			UiTheme.flat(
+				UiTheme.DONE_CARD if is_done else UiTheme.COLOR_PANEL,
+				UiTheme.COLOR_RAISED if is_done else UiTheme.COLOR_LINE,
+				UiTheme.px(UiTheme.CARD_RADIUS, s)
+			),
+			UiTheme.px(CARD_PAD_X, s),
+			0.0
+		)
 	)
-	style.content_margin_left = CARD_PAD_X * s
-	style.content_margin_right = CARD_PAD_X * s
-	style.content_margin_top = CARD_PAD_Y * s
-	style.content_margin_bottom = CARD_PAD_Y * s
-	card.add_theme_stylebox_override("panel", style)
-
 	var row: HBoxContainer = HBoxContainer.new()
-	row.add_theme_constant_override("separation", int(CARD_GAP * s))
+	row.mouse_filter = Control.MOUSE_FILTER_PASS
+	row.add_theme_constant_override("separation", UiTheme.px(CARD_GAP, s))
 	card.add_child(row)
 
-	var mark: PanelContainer = PanelContainer.new()  # PORT: game.css:4216-4234
+	var mark: Panel = Panel.new()
 	mark.name = "MarkBox"
+	mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	mark.custom_minimum_size = Vector2(MARK_SIZE, MARK_SIZE) * s
 	mark.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var mr: int = UiTheme.px(MARK_RADIUS, s)
 	if is_done:
 		mark.add_theme_stylebox_override(
-			"panel", ArmoryTheme.flat(ArmoryTheme.COLOR_SUCCESS, ArmoryTheme.COLOR_SUCCESS, MARK_RADIUS)
+			"panel", UiTheme.flat(UiTheme.COLOR_LOCKED_IN, UiTheme.COLOR_LOCKED_IN, mr)
 		)
-		mark.add_child(_icon(DONE_CHECK_SVG, MARK_ICON))
+		var check: TextureRect = TextureRect.new()
+		check.texture = UiTheme.svg_texture(UiTheme.ICON_MARK, s)
+		check.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+		check.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		mark.add_child(check)
+		check.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	else:
 		mark.add_theme_stylebox_override(
-			"panel", ArmoryTheme.flat(Color(0, 0, 0, 0), ArmoryTheme.COLOR_BORDER_ACTIVE, MARK_RADIUS)
+			"panel", UiTheme.flat(Color.TRANSPARENT, UiTheme.COLOR_LINE_STRONG, mr)
 		)
 	row.add_child(mark)
 
 	var content: VBoxContainer = VBoxContainer.new()
+	content.mouse_filter = Control.MOUSE_FILTER_PASS
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content.add_theme_constant_override("separation", int(CARD_CONTENT_GAP * s))
-	var name_label: Label = _label(
-		goal.title, CARD_NAME_FONT, ArmoryTheme.TEXT_FAINT if is_done else ArmoryTheme.TEXT_PRIMARY
+	content.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	content.add_theme_constant_override("separation", UiTheme.px(CONTENT_GAP, s))
+	var name_label: Label = _one_line("NameLabel", goal.title, "BodyText")
+	name_label.add_theme_font_override("font", UiTheme.sans(UiTheme.Weight.MEDIUM))
+	name_label.add_theme_color_override(
+		"font_color", UiTheme.COLOR_TEXT_MUTED if is_done else UiTheme.COLOR_TEXT
 	)
-	name_label.name = "NameLabel"
 	content.add_child(name_label)
 
-	# Open / in-progress goals show "cur / target" for totals (:457-460).
+	# Open lifetime goals show "cur / target" (:457-460); everything else its
+	# description (interface spec §6.5).
 	var subtitle: String = goal.description
-	if not is_done and not is_unlock and _goal_manager.is_total_goal(goal):
+	if not is_done and is_total:
 		subtitle = "%s / %s" % [
-			ArmoryUI.group_digits(int(current_val)), ArmoryUI.group_digits(goal.target)
+			UiTheme.group_digits(int(current_val)), UiTheme.group_digits(goal.target)
 		]
-	var goal_label: Label = _label(subtitle, CARD_GOAL_FONT, ArmoryTheme.TEXT_FAINT)
-	goal_label.name = "GoalLabel"
-	goal_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	content.add_child(goal_label)
+	content.add_child(_one_line("GoalLabel", subtitle, "MonoFaintText"))
 
-	if not is_done and not is_unlock:
-		var bar: ColorRect = ColorRect.new()  # PORT: :468-470; game.css:4263-4280
+	# DIVERGENCE(UI-SYSTEM): interface spec §6.5 — only open lifetime goals carry
+	# a bar; the TS also draws an empty one on open run goals (:462-470) (R10).
+	if not is_done and is_total:
+		var bar_margin: MarginContainer = MarginContainer.new()
+		bar_margin.mouse_filter = Control.MOUSE_FILTER_PASS
+		bar_margin.add_theme_constant_override("margin_top", UiTheme.px(BAR_TOP, s))
+		var bar: Panel = Panel.new()
 		bar.name = "BarTrack"
-		bar.color = ArmoryTheme.COLOR_RAISED
+		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		bar.custom_minimum_size.y = BAR_HEIGHT * s
-		var bar_fill: ColorRect = ColorRect.new()
+		var br: int = UiTheme.px(BAR_RADIUS, s)
+		bar.add_theme_stylebox_override(
+			"panel", UiTheme.flat(UiTheme.COLOR_RAISED, Color.TRANSPARENT, br)
+		)
+		var bar_fill: Panel = Panel.new()
 		bar_fill.name = "BarFill"
-		bar_fill.color = ArmoryTheme.COLOR_ION
+		bar_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		bar_fill.anchor_bottom = 1.0
 		bar_fill.anchor_right = pct / 100.0
+		bar_fill.add_theme_stylebox_override(
+			"panel", UiTheme.flat(UiTheme.COLOR_ION, Color.TRANSPARENT, br)
+		)
 		bar.add_child(bar_fill)
-		content.add_child(bar)
+		bar_margin.add_child(bar)
+		content.add_child(bar_margin)
 	row.add_child(content)
 
 	var pts: Label = _label(
+		"PointsLabel",
 		"+%d" % goal.reward_points,
-		CARD_POINTS_FONT,
-		TEXT_DIM if is_done else ArmoryTheme.COLOR_FLARE
+		UiTheme.mono(UiTheme.Weight.MEDIUM),
+		CARD_POINTS_SIZE,
+		UiTheme.TEXT_FAINT if is_done else UiTheme.COLOR_FLARE
 	)
-	pts.name = "PointsLabel"
 	row.add_child(pts)
 	return card
 
 
-func _on_modal_backdrop_gui_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton:
-		var click: InputEventMouseButton = event
-		if click.pressed and click.button_index == MOUSE_BUTTON_LEFT:
-			close_all_goals_modal()  # PORT: GoalsHUD.ts:298-302
+## A single-line label that ellipsises (rule 03) in a theme variation.
+func _one_line(label_name: String, content: String, variation: String) -> Label:
+	var label: Label = UiTheme.text(content, variation)
+	label.name = label_name
+	label.clip_text = true
+	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return label
+
+
+## A header numeral in Mono at the counter size (set in _layout_modal).
+func _header_label(label_name: String, color: Color) -> Label:
+	var label: Label = UiTheme.text("", "MonoText")
+	label.name = label_name
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_color_override("font_color", color)
+	return label
 ```
 
-Notes for the implementer: `game.css:4264-4269`'s bar `margin-top: 3px` is covered by the content VBox's 3px separation. Keep lines ≤100 columns (split the two long `add_theme_stylebox_override` calls as gdformat prefers). `_layout_modal` rebuilds the modal on every `_layout()`; `_init_dom` builds it once and then calls `_layout()`, which rebuilds it once more — accepted (build is cheap and happens at boot and on resize only).
+  Notes for the implementer: every Control under `TierScroll` must be `PASS` or `IGNORE` (the drag must reach the `ScrollContainer`); `Panel` and `TextureRect` default to `STOP`/`PASS` differently, which is why each sets its filter explicitly. `open + done` concatenates two typed arrays — if the analyzer rejects the result's type, build a third `Array[GoalManager.Goal]` with `append_array` instead. If a card measures taller than 58 px in `test_long_text_stays_on_one_line`, the cause is a label's minimum width, not the style: check `clip_text` is set on both labels before changing any constant.
 
-- [ ] **Step 4: Verify** — `tools/run_tests.sh` → `OK: 45/45 scripts (418 tests)`; `gdformat --check`, `gdlint` clean; `grep -rn "Task 6 replaces" godot/src/` prints nothing; `grep -rn "DIVERGENCE" godot/src/ | wc -l` prints `76`.
+- [ ] **Step 5: Verify** — `tools/run_tests.sh` → `OK: 48/48 scripts (480 tests)`; `gdformat --check`, `gdlint` clean; `grep -rn "Task 6 replaces" godot/src/` prints nothing; `grep -rniE "ff4757" godot/src/ui/` prints nothing.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git checkout godot/project.godot
-git add godot/src/ui/goals_hud.gd godot/tests/test_goals_hud.gd docs/superpowers/plans/2026-09-20-m9-milestones.md godot/HANDOFF.md
-git commit -m "M9: port the Milestones screen with tiers, cards and live progress"
+git add godot/src/ui/goals_hud.gd godot/src/ui/ui_theme.gd godot/tests/test_goals_hud.gd docs/superpowers/plans/2026-09-20-m9-milestones.md godot/HANDOFF.md
+git commit -m "M9: build the Milestones screen to its board; next: M9 Task 7"
 git log -1 --format=%B
 ```
 
 ---
 
-### Task 7: Game-over "Points earned" row and earned-milestones list (R1)
+### Task 7: Run over — points total, earned-milestones list, and the screen opener (R1)
 
-> **SUPERSEDED (2026-09-23).** The UI in this task is replaced by interface spec
-> `docs/superpowers/specs/2026-09-23-mobile-interface-system-design.md` §6.5 on
-> `UiTheme` (M8.5). Rewrite this task before executing it; Tasks 1–4 stand.
+> **Rewritten 2026-09-23** to interface spec §6.3/§6.5 on `UiTheme`. Visual authority:
+> `RunOver.dc.html`. Rulings R1, R9 apply.
 
 **Files:**
-- Modify: `godot/scenes/main.tscn`, `godot/src/ui/hud_controller.gd`, `godot/src/core/game_root.gd`
-- Test: `godot/tests/test_main_scene.gd`, `godot/tests/test_hud_controller.gd`
+- Modify: `godot/src/ui/run_over_sheet.gd`, `godot/src/ui/hud_controller.gd`, `godot/src/core/game_root.gd`, `godot/src/sim/run_controller.gd` (comment only)
+- Test: `godot/tests/test_run_over_sheet.gd`, `godot/tests/test_main_scene.gd`
 
 **Interfaces:**
-- Consumes: `GameRoot.get_run_controller()` (Task 5), `RunController.run_completed_goals/points_earned_this_run/coins.points_from_coins` (Task 4), `ArmoryUI.group_digits`, `GoalsHUD.TOAST_*` not needed.
-- Produces: `GameRoot.open_all_goals_modal() -> void`; scene nodes `PointsEarnedRow`, `PointsValueLabel`, `MilestonesList`.
+- Consumes: `RunController.run_completed_goals/points_earned_this_run/coins.points_from_coins` (Task 4), `GoalsHUD.open_all_goals_modal()` (Task 5), `UiTheme.ICON_CHECK`.
+- Produces: `RunOverSheet.milestones_requested` signal; `RunOverSheet.RunResult.milestones: Array[GoalManager.Goal]`; node names `PointsRow` (now tappable), `MilestonesClip`, `MilestonesList`, rows `MilestoneRow_<goal id>` containing `MilestoneText`, `MilestonePoints`; `GameRoot.open_all_goals_modal() -> void`.
 
-- [ ] **Step 1: Write the failing tests.** Append to `godot/tests/test_main_scene.gd`:
+- [ ] **Step 1: Write the failing tests.** In `godot/tests/test_run_over_sheet.gd`:
+  - In `test_sheet_carries_the_board_controls`, change the last assertion's message from `"hidden until M9 fills it"` to `"hidden until a result lists milestones"`, and add `"MilestonesClip"` to the name list.
+  - Append:
 
 ```gdscript
-func test_game_over_lists_the_runs_milestones_and_opens_the_modal() -> void:
+func _goal(id: String, title: String, description: String, reward: int) -> GoalManager.Goal:
+	var goal: GoalManager.Goal = GoalManager.Goal.new()
+	goal.id = id
+	goal.title = title
+	goal.description = description
+	goal.reward_points = reward
+	return goal
+
+
+func _click() -> InputEventMouseButton:
+	var ev: InputEventMouseButton = InputEventMouseButton.new()
+	ev.button_index = MOUSE_BUTTON_LEFT
+	ev.pressed = true
+	return ev
+
+
+func test_milestones_list_shows_each_earned_goal() -> void:
+	# PORT: web/src/tilt-to-live/TiltGame.ts:2132-2140
+	var sheet: RunOverSheet = _sheet(Vector2(844, 390), 1.0)
+	var result: RunOverSheet.RunResult = _result()
+	result.milestones = [
+		_goal("score_1k", "Rookie Dodger", "Reach 1,000 score in a run", 1),
+		_goal("kills_15", "First Blood", "Destroy 15 red dots in a run", 1),
+	] as Array[GoalManager.Goal]
+	sheet.show_result(result)
+	var list: VBoxContainer = sheet.find_child("MilestonesList", true, false) as VBoxContainer
+	assert_true(list.visible)
+	assert_eq(list.get_child_count(), 2)
+	var row: Node = list.get_child(0)
+	assert_eq(String(row.name), "MilestoneRow_score_1k")
+	assert_eq(
+		(row.find_child("MilestoneText", true, false) as Label).text,
+		"Rookie Dodger — Reach 1,000 score in a run",
+		":2136"
+	)
+	assert_eq((row.find_child("MilestonePoints", true, false) as Label).text, "+1", ":2137")
+
+
+func test_milestones_list_hides_when_none_were_earned() -> void:
+	# PORT: web/src/tilt-to-live/TiltGame.ts:2141-2143
+	var sheet: RunOverSheet = _sheet(Vector2(844, 390), 1.0)
+	var result: RunOverSheet.RunResult = _result()
+	result.milestones = [_goal("score_1k", "Rookie Dodger", "x", 1)] as Array[GoalManager.Goal]
+	sheet.show_result(result)
+	sheet.show_result(_result())
+	var list: VBoxContainer = sheet.find_child("MilestonesList", true, false) as VBoxContainer
+	assert_false(list.visible)
+	assert_eq(list.get_child_count(), 0, "innerHTML = '' (:2142)")
+
+
+func test_tapping_the_points_row_or_the_list_requests_the_screen() -> void:
+	# PORT: web/src/tilt-to-live/GoalsHUD.ts:129-135 (M9 plan R1)
+	var sheet: RunOverSheet = _sheet(Vector2(844, 390), 1.0)
+	watch_signals(sheet)
+	(sheet.find_child("PointsRow", true, false) as Control).gui_input.emit(_click())
+	assert_signal_emit_count(sheet, "milestones_requested", 1)
+	(sheet.find_child("MilestonesList", true, false) as Control).gui_input.emit(_click())
+	assert_signal_emit_count(sheet, "milestones_requested", 2)
+	var release: InputEventMouseButton = _click()
+	release.pressed = false
+	(sheet.find_child("PointsRow", true, false) as Control).gui_input.emit(release)
+	assert_signal_emit_count(sheet, "milestones_requested", 2, "a release is not a second tap")
+
+
+func test_many_milestones_keep_the_sheet_on_screen() -> void:
+	# M9 plan R9: the list takes the column's free space and clips.
+	var sheet: RunOverSheet = _sheet(Vector2(844, 390), 1.0)
+	var result: RunOverSheet.RunResult = _result()
+	var many: Array[GoalManager.Goal] = []
+	for i: int in range(7):
+		many.append(_goal("g%d" % i, "Milestone %d" % i, "a long description for row %d" % i, 2))
+	result.milestones = many
+	sheet.show_result(result)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var panel: Control = sheet.find_child("Sheet", true, false) as Control
+	assert_true(
+		sheet.get_global_rect().grow(0.5).encloses(panel.get_global_rect()),
+		"the sheet stays inside 844×390"
+	)
+	var retry: Control = sheet.find_child("RestartButton", true, false) as Control
+	assert_true(panel.get_global_rect().grow(0.5).encloses(retry.get_global_rect()), "Retry on the sheet")
+	assert_true((sheet.find_child("MilestonesClip", true, false) as Control).clip_contents)
+```
+
+  Append to `godot/tests/test_main_scene.gd`:
+
+```gdscript
+func test_run_over_lists_the_runs_milestones_and_opens_the_screen() -> void:
 	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
 	add_child_autofree(root)
 	await get_tree().process_frame
@@ -2810,228 +3045,178 @@ func test_game_over_lists_the_runs_milestones_and_opens_the_modal() -> void:
 	var list: VBoxContainer = root.find_child("MilestonesList", true, false) as VBoxContainer
 	assert_true(list.visible, "TiltGame.ts:2140")
 	assert_eq(list.get_child_count(), 1)
-	var row_text: Label = list.get_child(0).find_child("MilestoneText", true, false) as Label
-	assert_eq(row_text.text, "Rookie Dodger — Reach 1,000 score in a run", ":2136")
-	var value: Label = root.find_child("PointsValueLabel", true, false) as Label
-	assert_eq(value.text, "+1 → 7,332", "max(1, 1) + 0 coins → 7331 + 1 (:2118-2121)")
+	var text: Label = list.get_child(0).find_child("MilestoneText", true, false) as Label
+	assert_eq(text.text, "Rookie Dodger — Reach 1,000 score in a run", ":2136")
+	var earned: Label = root.find_child("PointsEarnedLabel", true, false) as Label
+	assert_eq(earned.text, "+1", "max(1, 1) + 0 coins (:2118)")
+	var balance: Label = root.find_child("PointsBalanceLabel", true, false) as Label
+	assert_eq(balance.text, "7,332", "7331 + 1 (:2119)")
 	var click: InputEventMouseButton = InputEventMouseButton.new()
 	click.button_index = MOUSE_BUTTON_LEFT
 	click.pressed = true
 	list.gui_input.emit(click)
-	var modal: Control = root.find_child("MilestonesModal", true, false) as Control
-	assert_true(modal.visible, "GoalsHUD.ts:131-132")
+	var screen: Control = root.find_child("MilestonesModal", true, false) as Control
+	assert_true(screen.visible, "GoalsHUD.ts:131-132")
 	(root.find_child("GoalsHud", true, false) as GoalsHUD).close_all_goals_modal()
-	var points_row: Control = root.find_child("PointsEarnedRow", true, false) as Control
-	points_row.gui_input.emit(click)
-	assert_true(modal.visible, "GoalsHUD.ts:133-134")
+	(root.find_child("PointsRow", true, false) as Control).gui_input.emit(click)
+	assert_true(screen.visible, "GoalsHUD.ts:133-134")
 
 
-func test_game_over_hides_an_empty_milestones_list() -> void:
+func test_run_over_hides_an_empty_milestones_list() -> void:
 	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
 	add_child_autofree(root)
 	await get_tree().process_frame
 	root.get_run_controller().trigger_player_death()
-	var list: Control = root.find_child("MilestonesList", true, false) as Control
-	assert_false(list.visible, "TiltGame.ts:2141-2143")
-	var value: Label = root.find_child("PointsValueLabel", true, false) as Label
-	assert_eq(value.text, "+0 → 7,331")
+	assert_false((root.find_child("MilestonesList", true, false) as Control).visible, ":2141-2143")
+	assert_eq((root.find_child("PointsEarnedLabel", true, false) as Label).text, "+0")
+	assert_eq((root.find_child("PointsBalanceLabel", true, false) as Label).text, "7,331")
 ```
 
-Append to `godot/tests/test_hud_controller.gd` (follow the file's existing way of building the HUD alone — the scene or the script, whichever its other tests use):
+- [ ] **Step 2: Run to verify they fail** — `tools/run_tests.sh` → `collected 47 of 48` (`test_run_over_sheet.gd` does not parse: `RunResult.milestones` unknown); the two new `test_main_scene.gd` tests fail (the list stays hidden).
+
+- [ ] **Step 3: `RunOverSheet`** (`godot/src/ui/run_over_sheet.gd`):
+  - Header `## PORTS:` block: after `:2088-2122 (population)` add `, :2132-2144 (earned milestones);` and a line `##        GoalsHUD.ts:129-135 (bindGameOverClicks).`
+  - **Before** `const CONTROL_PICKER ...` (gdlint's class-definitions-order puts signals ahead of constants): `## Tapping the points row or the milestones list. PORT: web/src/tilt-to-live/GoalsHUD.ts:129-135` / `signal milestones_requested`, then a blank line.
+  - Constants after `SPEND_GAP`:
 
 ```gdscript
-func test_run_rows_hide_without_a_game_root() -> void:
-	# Built alone (no GameRoot in the tree), the HUD cannot read the run.
-	GameEvents.run_ended.emit(10, Types.GameStats.new())
-	var row: Control = _hud.find_child("PointsEarnedRow", true, false) as Control
-	if row != null:
-		assert_false(row.visible)
-	var list: Control = _hud.find_child("MilestonesList", true, false) as Control
-	if list != null:
-		assert_false(list.visible)
-	pass_test("rows absent or hidden")
+## Earned-milestone rows. DIVERGENCE(UI-SYSTEM): RunOver.dc.html — list gap 6,
+## row gap 9, the HUD toast's 14 px check, text 13 #C7CDDB, points Mono 12 flare.
+const LIST_GAP: int = 6
+const ROW_GAP: int = 9
+const ROW_POINTS_SIZE: int = 12
 ```
 
-(Rename `_hud` to whatever the file's HUD fixture variable is.)
-
-- [ ] **Step 2: Run to verify they fail** — the main-scene tests fail on a null `MilestonesList`.
-
-- [ ] **Step 3: Scene** — in `godot/scenes/main.tscn`, insert after the `FinalTimeLabel` node (before `ControlsLabel`):
-
-```
-[node name="PointsEarnedRow" type="HBoxContainer" parent="CanvasLayer/Hud/GameOverPanel/Panel/Margin/VBox"]
-unique_name_in_owner = true
-layout_mode = 2
-mouse_filter = 0
-mouse_default_cursor_shape = 2
-
-[node name="PointsLabel" type="Label" parent="CanvasLayer/Hud/GameOverPanel/Panel/Margin/VBox/PointsEarnedRow"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Points earned"
-
-[node name="PointsValueLabel" type="Label" parent="CanvasLayer/Hud/GameOverPanel/Panel/Margin/VBox/PointsEarnedRow"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "+0 → 0"
-
-[node name="MilestonesList" type="VBoxContainer" parent="CanvasLayer/Hud/GameOverPanel/Panel/Margin/VBox"]
-unique_name_in_owner = true
-visible = false
-layout_mode = 2
-mouse_filter = 0
-mouse_default_cursor_shape = 2
-```
-
-Before adding `unique_name_in_owner` to `PointsLabel`, check `grep -n 'name="PointsLabel"' godot/scenes/*.tscn` — if the name already exists as a unique name in `main.tscn`, name this one `PointsEarnedLabel` instead (and use that in the code below).
-
-- [ ] **Step 4: `HudController`** (`godot/src/ui/hud_controller.gd`):
-  - Header `## PORTS:` line gains `, 2111-2144 (points row + earned milestones)`.
-  - Constants after `PULSE_SECONDS`:
+  - Members: `var _ui_scale: float = 1.0`, `var _points_row: HBoxContainer = null`, `var _milestones: VBoxContainer = null`, `var _shown_milestones: Array[GoalManager.Goal] = []`.
+  - `set_ui_scale`: first line `_ui_scale = scale`; last lines `_milestones.add_theme_constant_override("separation", UiTheme.px(LIST_GAP, scale))` and `_fill_milestones(_shown_milestones)` (rows bake their sizes).
+  - `show_result`: after the `_spend_value` line, `_fill_milestones(result.milestones)  # PORT: :2132-2144`.
+  - In `_build_right()`: `points_row` becomes `_points_row` (keep its name `PointsRow`), and before `_right.add_child(_points_row)` replace the two-line `TODO(M9)` comment with:
 
 ```gdscript
-## Game-over points and milestone rows. PORT: web/src/tilt-to-live/TiltGame.ts:835-836
-## (label 13 #99A1B3), :841, :844 (value 15 #FFB14D), :855 (list gap 6), :861 (row
-## gap 9), :865-866 (text 13 #C7CDDB), :872-873 (points 12 #FFB14D), :2135 (check 13)
-const POINTS_LABEL_FONT: int = 13
-const POINTS_LABEL_COLOR: Color = Color("#99A1B3")
-const POINTS_VALUE_FONT: int = 15
-const POINTS_VALUE_COLOR: Color = Color("#FFB14D")
-const MILESTONE_LIST_GAP: int = 6
-const MILESTONE_ROW_GAP: int = 9
-const MILESTONE_TEXT_FONT: int = 13
-const MILESTONE_TEXT_COLOR: Color = Color("#C7CDDB")
-const MILESTONE_POINTS_FONT: int = 12
-const MILESTONE_CHECK: float = 13.0
-## PORT: web/src/tilt-to-live/TiltGame.ts:2135
-const MILESTONE_CHECK_SVG: String = (
-	'<svg width="13" height="13" viewBox="0 0 13 13" fill="none"'
-	+ ' xmlns="http://www.w3.org/2000/svg"><path d="M2 7 L5 10 L11 3.5"'
-	+ ' stroke="#3DDC97" stroke-width="1.7" stroke-linecap="round"'
-	+ ' stroke-linejoin="round"/></svg>'
-)
+	# PORT: web/src/tilt-to-live/GoalsHUD.ts:133-134 (.gameover-points-box opens the screen)
+	_points_row.mouse_filter = Control.MOUSE_FILTER_STOP
+	_points_row.gui_input.connect(_on_rows_gui_input)
 ```
 
-  - Members: `var _ui_scale: float = 1.0`, plus `@onready` lookups after `_restart_button`:
-    `@onready var _points_earned_row: Control = get_node_or_null("%PointsEarnedRow")`, `@onready var _points_label: Label = get_node_or_null("%PointsLabel")`, `@onready var _points_value_label: Label = get_node_or_null("%PointsValueLabel")`, `@onready var _milestones_list: VBoxContainer = get_node_or_null("%MilestonesList")`, and the same `find_child` fallbacks in `_ready()` the other nodes use.
-  - In `_ready()` after the restart-button wiring:
+  and replace the block from `var milestones: VBoxContainer = VBoxContainer.new()` through `_right.add_child(fill)` with:
 
 ```gdscript
-	# bindGameOverClicks. PORT: web/src/tilt-to-live/GoalsHUD.ts:129-135
-	if _points_earned_row != null:
-		_points_earned_row.gui_input.connect(_on_run_rows_gui_input)
-	if _milestones_list != null:
-		_milestones_list.gui_input.connect(_on_run_rows_gui_input)
-		_milestones_list.add_theme_constant_override("separation", MILESTONE_LIST_GAP)
+	# M9 plan R9: the list sits in the board's flex gap (RunOver.dc.html's
+	# flex-grow spacer) and clips there, so a long list never grows the sheet.
+	var clip: Control = Control.new()
+	clip.name = "MilestonesClip"
+	clip.clip_contents = true
+	clip.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_milestones = VBoxContainer.new()
+	_milestones.name = "MilestonesList"
+	_milestones.visible = false
+	# PORT: web/src/tilt-to-live/GoalsHUD.ts:131-132 (the list opens the screen)
+	_milestones.mouse_filter = Control.MOUSE_FILTER_STOP
+	_milestones.gui_input.connect(_on_rows_gui_input)
+	clip.add_child(_milestones)
+	_milestones.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	_right.add_child(clip)
 ```
 
-  - In `set_ui_scale()`: store `_ui_scale = scale`; scale `_points_label` (`POINTS_LABEL_FONT`, colour `POINTS_LABEL_COLOR`) and `_points_value_label` (`POINTS_VALUE_FONT`, colour `POINTS_VALUE_COLOR`) with `add_theme_font_size_override`/`add_theme_color_override`, null-guarded like the others; set the list separation to `int(MILESTONE_LIST_GAP * scale)`.
-  - In `_on_run_ended()`, just before `_game_over_panel.visible = true`: `_fill_run_rows()`.
-  - New private methods (after `_on_run_ended`):
+  - New private methods after `_stat_cell`:
 
 ```gdscript
-## The "Points earned" row and the earned-milestones list.
-## PORT: web/src/tilt-to-live/TiltGame.ts:2111-2144
-# PORT-NOTE: the coins row (:2123-2130), subtitle and best-chain cells are the
-# rest of the game-over summary — M11's (TODO(M11) in run_controller.gd).
-# PORT-NOTE: the TS markup's .milestone-title / .milestone-pts classes
-# (:2136-2137) match no rule; the sizes and colours are the injected sheet's
-# .milestone-text / .milestone-points (:864-874) it was written for (M9 plan R6).
-# PORT-NOTE: .points-arrow's own colour (:848-850) is not split out of the value label.
-func _fill_run_rows() -> void:
-	var root: GameRoot = get_tree().get_first_node_in_group("game_root") as GameRoot
-	if root == null:
-		if _points_earned_row != null:
-			_points_earned_row.visible = false
-		if _milestones_list != null:
-			_milestones_list.visible = false
-		return
-	var rc: RunController = root.get_run_controller()
-
-	var earned_milestones_pts: int = 0
-	for g: GoalManager.Goal in rc.run_completed_goals:
-		earned_milestones_pts += g.reward_points
-	# Coin pickups are a second points income stream folded into the one total (:2113-2117).
-	var total_earned: int = (
-		maxi(rc.points_earned_this_run, earned_milestones_pts) + rc.coins.points_from_coins
-	)
-	var balance: int = root.progression.data.points
-	if _points_value_label != null:
-		_points_value_label.text = (
-			"+%s → %s" % [ArmoryUI.group_digits(total_earned), ArmoryUI.group_digits(balance)]
-		)
-	if _points_earned_row != null:
-		_points_earned_row.visible = true
-
-	if _milestones_list == null:
-		return
-	for child: Node in _milestones_list.get_children():
-		_milestones_list.remove_child(child)
+## PORT: web/src/tilt-to-live/TiltGame.ts:2132-2144
+func _fill_milestones(goals: Array[GoalManager.Goal]) -> void:
+	_shown_milestones = goals
+	for child: Node in _milestones.get_children():
+		_milestones.remove_child(child)
 		child.queue_free()
-	for g: GoalManager.Goal in rc.run_completed_goals:
-		_milestones_list.add_child(_milestone_row(g))
-	_milestones_list.visible = rc.run_completed_goals.size() > 0
+	for goal: GoalManager.Goal in goals:
+		_milestones.add_child(_milestone_row(goal))
+	_milestones.visible = not goals.is_empty()
 
 
-## One .gameover-milestone-item. PORT: web/src/tilt-to-live/TiltGame.ts:2133-2139
+## One earned milestone. PORT: web/src/tilt-to-live/TiltGame.ts:2133-2139
+## DIVERGENCE(UI-SYSTEM): RunOver.dc.html — row styles (M9 plan R6 is superseded).
 func _milestone_row(goal: GoalManager.Goal) -> HBoxContainer:
 	var row: HBoxContainer = HBoxContainer.new()
+	row.name = "MilestoneRow_" + goal.id
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_theme_constant_override("separation", int(MILESTONE_ROW_GAP * _ui_scale))
+	row.add_theme_constant_override("separation", UiTheme.px(ROW_GAP, _ui_scale))
 	var check: TextureRect = TextureRect.new()
-	check.texture = ArmoryUI.svg_texture(MILESTONE_CHECK_SVG, _ui_scale * ArmoryUI.SVG_OVERSAMPLE)
-	check.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	check.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	check.custom_minimum_size = Vector2(MILESTONE_CHECK, MILESTONE_CHECK) * _ui_scale
+	check.texture = UiTheme.svg_texture(UiTheme.ICON_CHECK, _ui_scale)
+	check.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
 	check.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(check)
-	var text: Label = Label.new()
+	var text: Label = UiTheme.text("%s — %s" % [goal.title, goal.description], "BodyText")
 	text.name = "MilestoneText"
-	text.text = "%s — %s" % [goal.title, goal.description]
+	text.add_theme_color_override("font_color", UiTheme.TEXT_SECONDARY)
 	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	text.add_theme_font_size_override("font_size", int(MILESTONE_TEXT_FONT * _ui_scale))
-	text.add_theme_color_override("font_color", MILESTONE_TEXT_COLOR)
+	text.clip_text = true
+	text.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	text.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(text)
-	var pts: Label = Label.new()
-	pts.text = "+%d" % goal.reward_points
-	pts.add_theme_font_size_override("font_size", int(MILESTONE_POINTS_FONT * _ui_scale))
-	pts.add_theme_color_override("font_color", POINTS_VALUE_COLOR)  # PORT: :873
+	var pts: Label = UiTheme.text("+%d" % goal.reward_points, "PointsText")
+	pts.name = "MilestonePoints"
+	pts.add_theme_font_override("font", UiTheme.mono(UiTheme.Weight.REGULAR))
+	pts.add_theme_font_size_override("font_size", UiTheme.px(ROW_POINTS_SIZE, _ui_scale))
+	pts.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(pts)
 	return row
 
 
 ## bindGameOverClicks' handler. PORT: web/src/tilt-to-live/GoalsHUD.ts:131-134
-func _on_run_rows_gui_input(event: InputEvent) -> void:
+func _on_rows_gui_input(event: InputEvent) -> void:
 	if not (event is InputEventMouseButton):
 		return
 	var click: InputEventMouseButton = event
-	if not click.pressed or click.button_index != MOUSE_BUTTON_LEFT:
-		return
+	if click.pressed and click.button_index == MOUSE_BUTTON_LEFT:
+		milestones_requested.emit()
+```
+
+  - `RunResult` gains, after `balance`: `## The goals evaluateRun completed. PORT: web/src/tilt-to-live/TiltGame.ts:2086` / `var milestones: Array[GoalManager.Goal] = []`.
+
+- [ ] **Step 4: `HudController`** (`godot/src/ui/hud_controller.gd`):
+  - In `run_result_for`, replace the two lines from `# TODO(M9): + Math.max(...)` through `result.earned = run.coins.points_from_coins  # PORT: :2118` with:
+
+```gdscript
+		var milestone_points: int = 0
+		for goal: GoalManager.Goal in run.run_completed_goals:
+			milestone_points += goal.reward_points  # PORT: :2111-2114
+		# PORT: :2118 — coins are a second income stream folded into the one total.
+		result.earned = (
+			maxi(run.points_earned_this_run, milestone_points) + run.coins.points_from_coins
+		)
+		result.milestones = run.run_completed_goals.duplicate()  # PORT: :2132
+```
+
+  - In `_ready()`, after `_run_over = _game_over_panel as RunOverSheet`: `if _run_over != null:` / `_run_over.milestones_requested.connect(_on_milestones_requested)`.
+  - A private method after `_on_armory_pressed`:
+
+```gdscript
+## bindGameOverClicks' target. PORT: web/src/tilt-to-live/GoalsHUD.ts:131-134
+func _on_milestones_requested() -> void:
 	var root: GameRoot = get_tree().get_first_node_in_group("game_root") as GameRoot
 	if root != null:
 		root.open_all_goals_modal()
 ```
 
-  - `GameRoot` — after `is_armory_open()`:
+- [ ] **Step 5: `GameRoot`** — after `get_run_controller()`:
 
 ```gdscript
-## Opens the full Milestones screen (the menu link, the game-over rows).
+## Opens the full Milestones screen (the Run over rows, the M key; the menu link is M11's).
 ## PORT: web/src/tilt-to-live/TiltGame.ts:195
 func open_all_goals_modal() -> void:
 	_goals_hud.open_all_goals_modal()
 ```
 
-  - Remove the `TODO(M11)` line in `run_controller.gd`'s step 5.5 comment only if it now overstates — it still holds for the coins row and `coins_collected`; edit it to `# TODO(M11): the game-over coins row reads coins.coins_collected (TiltGame.ts:2108, :2123-2130); points_from_coins already feeds HudController's points row (M9).`
+  In `godot/src/sim/run_controller.gd`, if a `TODO(M11)` comment still says the game-over reads `points_from_coins` (step 5.5), edit it to `# TODO(M11): the coins row reads coins.coins_collected (TiltGame.ts:2108, :2123-2130); points_from_coins already feeds the Run over total (M9).` — otherwise leave the file alone and drop it from `git add`.
 
-- [ ] **Step 5: Verify** — `tools/run_tests.sh` → `OK: 45/45 scripts (421 tests)`; `gdformat --check`, `gdlint` clean; headless boot `grep -c "SCRIPT ERROR"` → `0`.
+- [ ] **Step 6: Verify** — `tools/run_tests.sh` → `OK: 48/48 scripts (486 tests)`; `gdformat --check` (`86 files would be left unchanged`), `gdlint` clean; `grep -rn "TODO(M9)" godot/src/ godot/tests/` prints nothing; `grep -rniE "ff4757" godot/src/ui/` prints nothing; headless boot `grep -c "SCRIPT ERROR"` → `0`. Record `grep -rn "DIVERGENCE" godot/src/ | wc -l` and `grep -rn "DIVERGENCE(UI-SYSTEM)" godot/src/ | wc -l` in `HANDOFF.md`'s verify block — Task 9 checks against them.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
 git checkout godot/project.godot
-git add godot/scenes/main.tscn godot/src/ui/hud_controller.gd godot/src/core/game_root.gd godot/src/sim/run_controller.gd godot/tests/test_main_scene.gd godot/tests/test_hud_controller.gd docs/superpowers/plans/2026-09-20-m9-milestones.md godot/HANDOFF.md
-git commit -m "M9: show earned milestones on game over and open the screen on tap"
+git add godot/src/ui/run_over_sheet.gd godot/src/ui/hud_controller.gd godot/src/core/game_root.gd godot/src/sim/run_controller.gd godot/tests/test_run_over_sheet.gd godot/tests/test_main_scene.gd docs/superpowers/plans/2026-09-20-m9-milestones.md godot/HANDOFF.md
+git commit -m "M9: list earned milestones on Run over and open the screen on tap"
 git log -1 --format=%B
 ```
 
@@ -3052,10 +3237,10 @@ Unattended evidence: <paste the commands run and their output lines>.
 
 Hand-held checks (tick when seen on the A55):
 
-- [ ] **Rail**: a 4px blue-on-dark rail on the left edge, inside the safe area, fills as milestones complete (1/57 per milestone). Hidden only in menu mode (M11).
-- [ ] **Toast**: completing a milestone mid-run (e.g. a cumulative total, or buying a ship in the Armory) shows a bottom-left card with a green check, the title and `+N` for 3 s. It does not block touches or the joystick.
-- [ ] **Game over**: a run that earns milestones lists them under "Points earned +X → balance"; the list is hidden when none were earned.
-- [ ] **Modal from game over**: tapping the points row or the list opens the full Milestones screen; it scrolls by drag; the ✕ button and a tap outside the panel close it. Three tiers (Score 9, Combat 17, Mastery 31), one column on the phone.
+- [ ] **Rail** (`Hud.dc.html`): a 3 px ion line on the top edge of the arena frame, from its left corner, growing by 1/57 of the frame's width per milestone. It does not respond to taps. Hidden only in menu mode (M11).
+- [ ] **Toast**: completing a milestone (buying a ship in the Armory, or a cumulative total mid-run) shows a card under the lives icons — green check, title, `+N` in flare — for 3 s. It does not block touches or the joystick. Calibrate (Pause, gyro scheme) shows `TILT CALIBRATED` / `Neutral Angle Zeroed ✓` with the ion ring for 2.8 s; note whether the ✓ renders.
+- [ ] **Run over**: a run that earns milestones lists them under "Points earned +X → balance" (check, `Title — description`, `+N`); the list is hidden when none were earned. With 4+ rows the list clips and Retry stays on screen (R9 — say whether clipping looks acceptable).
+- [ ] **Screen from Run over** (`Milestones.dc.html`): tapping the points row or the list opens the full-screen Milestones screen: 64 px header (Back, title, `n/57`, progress track, points), three side-by-side columns (Score 9, Combat 17, Mastery 31), open goals above done ones, each column drag-scrolls with a fade at its foot. Back closes it; nothing underneath reacts to taps while it is open.
 - [ ] **Unlock goals at boot**: an existing save that already owns a goal's ship/skin/arena completes that goal once at launch (toast + points), never twice.
 - [ ] **Persistence**: kill the app and relaunch — completed milestones and cumulative totals survive (`user://tilt_to_live_completed_goals_v1.json` is a bare JSON array).
 - [ ] **Frame time** under a mass explosion unchanged from the "Mobile scale split" figure (the per-tick goal check is a 57-goal loop).
@@ -3077,20 +3262,21 @@ git log -1 --format=%B
 - [ ] **Step 1: Verify** — fresh, and read every output:
 
 ```bash
-tools/run_tests.sh                        # expect: OK: 45/45 scripts (421 tests)
-gdformat --check godot/src godot/tests    # expect: 80 files would be left unchanged
+tools/run_tests.sh                        # expect: OK: 48/48 scripts (486 tests)
+gdformat --check godot/src godot/tests    # expect: 86 files would be left unchanged
 gdlint godot/src godot/tests              # expect: Success: no problems found
-grep -rn "DIVERGENCE" godot/src/ | wc -l  # expect: 76
+grep -rn "DIVERGENCE" godot/src/ | wc -l  # expect: the total Task 7 recorded in HANDOFF.md
+grep -rniE "ff4757" godot/src/ui/         # expect: nothing (rule 01)
 grep -rn "TODO(M9)" godot/src/ godot/tests/   # expect: nothing
 "$GODOT" --headless --path godot --quit-after 120 2>&1 | grep -c "SCRIPT ERROR"   # expect: 0
 git checkout godot/project.godot
 ```
 
-  (`80` = 75 at HEAD + `goal_manager.gd`, `goals_hud.gd` + `test_goal_manager.gd`, `test_goal_parity.gd`, `test_goals_hud.gd`.)
+  (`86` = 81 at the M8.5 exit + `goal_manager.gd`, `goals_hud.gd` + `test_goal_manager.gd`, `test_goal_parity.gd`, `test_goals_hud.gd`.)
 
 - [ ] **Step 2: Tick `godot/PORT-PROGRESS.md`** — `- [x] **M9 — Milestones**` with the date, the final commit SHA (the parent of the exit commit, as M8 did) and "device pass pending" if Task 8 had no phone.
 
-- [ ] **Step 3: Rewrite `godot/HANDOFF.md`** for a zero-context session: `## State` (M9 code-complete, device pass pending), `## How to verify right now` (the Step 1 block with the real numbers), a `## M9 — what landed` section (files, rulings R1–R7, the three new test scripts), Open questions (below), and `## Next`: **M5 (Audio bake + SFX) or M10 (Modes)** — M5 deps M2, M10 deps M3, both open; M11 needs all. Literal first step for each, in the style of the current `## Next`.
+- [ ] **Step 3: Rewrite `godot/HANDOFF.md`** for a zero-context session: `## State` (M9 code-complete, device pass pending), `## How to verify right now` (the Step 1 block with the real numbers), a `## M9 — what landed` section (files, rulings R1–R11, the three new test scripts), Open questions (below), and `## Next`: **M5 (Audio bake + SFX) or M10 (Modes)** — M5 deps M2, M10 deps M3, both open; M11 needs all. Literal first step for each, in the style of the current `## Next`.
 
 - [ ] **Step 4: Index plan** — in `docs/superpowers/plans/2026-09-20-peril-point-godot-port-index.md`, mark M9 done exactly as M8's row/line was marked.
 
@@ -3110,5 +3296,6 @@ Then **stop and report to the user** (CONVENTIONS §9 step 5). Do not begin M5 o
 ## Open questions (for the user; record answers here and in HANDOFF)
 
 1. **R7 — death-tick double count.** Should the port keep the TS behaviour where, on the tick the player dies, cumulative goals are checked once more with the run counted twice (it can complete e.g. *Century of Destruction* at 30 lifetime + 40 this run)? The plan preserves it (LAW 2). Fixing it is a one-line spec change (skip step 8's live check once `player.is_dead`).
-2. **The rail is 4 px and near-untappable on a phone** (R1 keeps it). If the device pass finds the rail pointless on mobile, options are a wider invisible hit area or hiding it on mobile — both divergences.
-3. **Toast slide-in animation and rail height transition** (`game.css:595`, `:3626`) are not ported. Say if they should be.
+2. **R9 — a long Run over list clips** rather than scrolling or growing the sheet. Confirm at the device pass, or choose another treatment.
+3. **R10 — open run goals show no progress bar** (spec §6.5), where the TS draws an empty one. Confirm.
+4. **Toast slide-in** (`game.css:595`) is not ported; the boards draw no motion. Say if it should be.
