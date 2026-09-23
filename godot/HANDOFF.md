@@ -34,8 +34,8 @@ Next module: **M8.5 (Interface rework)** — new, from the mobile redesign
 Hud board, arena frame, lives, weapon timer. Task 3 landed: Pause is a
 `PauseSheet` on the Pause board (Sound/Music switches, Calibrate, segmented
 `ControlPicker`). Task 4 landed: Run over is a `RunOverSheet`. Task 5 landed:
-the Armory shell and Weapons tab are on the `ArmoryWeapons` board; Tasks 6–7
-rebuild the other four tabs. Then M9, whose plan exists but
+the Armory shell and Weapons tab are on the `ArmoryWeapons` board. Task 6
+landed: Ships and Arena on their boards; Task 7 rebuilds Handling + Boosts. Then M9, whose plan exists but
 has Tasks 5–7 superseded. See `## Next`. The A55 "Mobile scale split" pass
 was skipped for now by the user (phone still absent from adb) — its checks
 stay unticked in `VERIFY-ME.md`.
@@ -752,10 +752,32 @@ and Boosts still render their legacy bodies inside the new shell until Tasks
 tests, 4510 asserts). gdformat/gdlint clean; headless → 0 `SCRIPT ERROR`;
 `DIVERGENCE` count 136.
 
-**Now: M8.5 Task 6 (Ships + Arena)**, with
+**Done 2026-09-23: M8.5 Task 6 (Ships + Arena)** (`de8335e`, fix
+`4b728c1`) — Ships (`ArmoryShips.dc.html`): `ShipsPill` caption (TS pill
+string, caps) + the spec's explain line "Changes hitbox and turn rate.
+Nothing else." (pre-flight M14), a sideways `ShipsRow` of 172-px `Ship_<id>`
+cards with an 82-px arena-colour preview, `HitboxMeter_<id>`/`TurnMeter_<id>`
+(`ArmoryUI.ship_meter_fraction` = value ÷ catalog max), `LoadoutName`, and the
+unchanged `EquippedShip_/EquipShip_/BuyShip_<id>` actions. Arena
+(`ArmoryArena.dc.html`): `ThemesRow`/`EnemiesRow` of 146-px
+`ArenaCard_/EnemyCard_<id>` panels, each with a 56-px preview on the arena
+colour (review fix) under a transparent `CardButton` tap target keeping the
+old `Buy/Equip/Equipped{Arena,Enemy}_<id>` names, and a state line
+`ArenaState_/EnemyState_<id>` ("✓ Equipped" / "Owned" / "N pts").
+`ArenaCost_*`/`EnemyCost_*` are gone; `_arena_card`/`_arena_grid` deleted.
+New shared helpers for Task 7: `_caption_row`, `_scroll_row`, `BODY_PAD_*`.
+`_action_button` and `_swatch` are now orphans — Task 7's orphan loop removes
+them. A nested-scroll drag check was added to the plan's Task 8 checklist.
+`tools/run_tests.sh` → `OK: 45/45 scripts collected, all tests passed` (413
+tests, 4538 asserts). gdformat/gdlint clean; ff4757 grep empty; headless → 0
+`SCRIPT ERROR`.
+
+**Now: M8.5 Task 7 (Handling + Boosts + legacy cleanup)**, with
 superpowers:subagent-driven-development. Literal first step: `git status
 --short` (must be clean under `godot/`), then read the plan's header, Global
-Constraints and Rulings, then Task 6. The SDD ledger is
+Constraints and Rulings, then Task 7. Pre-flight I5 (orphan loop must
+exclude `_on_*`; `_on_deadzone_changed` survives) and M9 (`GRID_COLOR` from
+`UiTheme.COLOR_ION`) apply to Task 7. The SDD ledger is
 `.superpowers/sdd/2026-09-23-m8.5-interface-rework/progress.md`.
 
 **After M8.5:** rewrite Tasks 5–7 of
