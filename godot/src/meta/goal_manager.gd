@@ -1,3 +1,4 @@
+# gdlint:disable=max-file-lines
 ## goal_manager.gd
 ## PORTS: web/src/tilt-to-live/GoalManager.ts (983 lines, source commit 7be9614)
 class_name GoalManager
@@ -134,9 +135,230 @@ func get_active_goals(max_count: int = 3) -> Array[ActiveGoal]:
 	return out
 
 
-# TASK 3 INSERTS evaluate_live_total_goals, evaluate_run, evaluate_unlock_goals,
-# _check_unlock_goal, _is_weapon_fully_upgraded, get_metric_value and
-# reset_all_progress HERE, in that order (GoalManager.ts:754-982).
+## Evaluates ONLY cumulative / total milestones during active gameplay.
+## Single-run milestones are intentionally never completed mid-run.
+## PORT: web/src/tilt-to-live/GoalManager.ts:754-780
+func evaluate_live_total_goals(tracker: RunTracker) -> Array[Goal]:
+	var newly_completed: Array[Goal] = []
+
+	for goal: Goal in catalog:
+		if _completed_goal_ids.has(goal.id):
+			continue
+		if is_unlock_goal(goal):
+			continue
+		if not is_total_goal(goal):
+			continue
+
+		var current: float = get_metric_value(goal.metric, tracker)
+		if current >= goal.target:
+			_completed_goal_ids[goal.id] = true
+			cumulative.total_points_earned += goal.reward_points
+			newly_completed.append(goal)
+			save_completed()
+			save_cumulative()
+
+			if _on_points_awarded_cb.is_valid():
+				_on_points_awarded_cb.call(goal.reward_points)
+			if _on_goal_completed_cb.is_valid():
+				_on_goal_completed_cb.call(goal)
+
+	return newly_completed
+
+
+## Finalizes milestones when a game completes: commits the run into the
+## lifetime totals, awards every total goal reached and at most 3 run goals.
+## PORT: web/src/tilt-to-live/GoalManager.ts:787-844
+# PORT-NOTE(I3): step 1 commits the run into cumulative, then step 2's
+# get_metric_value("total_*", tracker) adds the same tracker again (:955-962)
+# — every evaluate_run call double-counts the run for total_kills/
+# total_survival/total_score, not only the death-tick call from
+# evaluate_live_total_goals. Preserved (LAW 2); see R7/Open question 1.
+func evaluate_run(tracker: RunTracker) -> Array[Goal]:
+	# 1. Commit run stats to cumulative lifetime totals
+	cumulative.total_kills += tracker.kills
+	cumulative.total_survival_time += floori(tracker.survival_time)
+	cumulative.total_score += tracker.score
+
+	var newly_completed: Array[Goal] = []
+
+	# 2. Evaluate Total / Cumulative milestones (unlimited per game)
+	for goal: Goal in catalog:
+		if _completed_goal_ids.has(goal.id):
+			continue
+		if is_unlock_goal(goal):
+			continue
+		if not is_total_goal(goal):
+			continue
+
+		var current: float = get_metric_value(goal.metric, tracker)
+		if current >= goal.target:
+			_completed_goal_ids[goal.id] = true
+			cumulative.total_points_earned += goal.reward_points
+			newly_completed.append(goal)
+
+	# 3. Evaluate Single-Run milestones (STRICTLY CAPPED AT 3 PER GAME)
+	var eligible_run_goals: Array[Goal] = []
+	for goal: Goal in catalog:
+		if _completed_goal_ids.has(goal.id):
+			continue
+		if is_unlock_goal(goal):
+			continue
+		if is_total_goal(goal):
+			continue
+
+		var current: float = get_metric_value(goal.metric, tracker)
+		if current >= goal.target:
+			eligible_run_goals.append(goal)
+
+	# Award top / first 3 eligible run milestones
+	var awarded_run_goals: Array[Goal] = eligible_run_goals.slice(0, 3)  # PORT: :823
+	for goal: Goal in awarded_run_goals:
+		_completed_goal_ids[goal.id] = true
+		cumulative.total_points_earned += goal.reward_points
+		newly_completed.append(goal)
+
+	save_completed()
+	save_cumulative()
+
+	# Trigger callbacks for awarded goals
+	for goal: Goal in newly_completed:
+		if _on_points_awarded_cb.is_valid():
+			_on_points_awarded_cb.call(goal.reward_points)
+		if _on_goal_completed_cb.is_valid():
+			_on_goal_completed_cb.call(goal)
+
+	return newly_completed
+
+
+## Evaluates the unlock-family goals against current progression state. Not
+## run-scoped — call wherever progression may have just changed. Idempotent:
+## a completed id is skipped before it is checked.
+## PORT: web/src/tilt-to-live/GoalManager.ts:860-892
+func evaluate_unlock_goals() -> Array[Goal]:
+	var newly_completed: Array[Goal] = []
+	if _progression == null:
+		return newly_completed
+
+	var data: ProgressionManager.ProgressionData = _progression.data
+
+	for goal: Goal in catalog:
+		if _completed_goal_ids.has(goal.id):
+			continue
+		if not is_unlock_goal(goal):
+			continue
+
+		if _check_unlock_goal(goal, data):
+			_completed_goal_ids[goal.id] = true
+			cumulative.total_points_earned += goal.reward_points
+			newly_completed.append(goal)
+
+	if newly_completed.size() > 0:
+		save_completed()
+		save_cumulative()
+
+		for goal: Goal in newly_completed:
+			if _on_points_awarded_cb.is_valid():
+				_on_points_awarded_cb.call(goal.reward_points)
+			if _on_goal_completed_cb.is_valid():
+				_on_goal_completed_cb.call(goal)
+
+	return newly_completed
+
+
+## PORT: web/src/tilt-to-live/GoalManager.ts:894-910
+func _check_unlock_goal(goal: Goal, data: ProgressionManager.ProgressionData) -> bool:
+	var id: String = goal.target_id
+	if id.is_empty():
+		return false
+
+	match goal.metric:
+		"ship_unlocked":
+			return data.unlocked_cursors.has(id)
+		"enemy_skin_unlocked":
+			return data.unlocked_enemy_skins.has(id)
+		"arena_unlocked":
+			return data.unlocked_arena_themes.has(id)
+		"weapon_fully_upgraded":
+			return _is_weapon_fully_upgraded(data.perks, id)
+	return false
+
+
+## True when every numeric perk on the weapon is at max rank 5 and every
+## boolean keystone is unlocked. Reads whatever fields the weapon's perks
+## carry. PORT: web/src/tilt-to-live/GoalManager.ts:919-926
+# PORT-NOTE: WeaponPerks.to_dict() is the `perks[weapon]` view (M7 decision
+# (a)); an unknown weapon key is the TS's `undefined` → false (:921).
+func _is_weapon_fully_upgraded(perks: ProgressionManager.WeaponPerks, weapon: String) -> bool:
+	var all_perks: Dictionary = perks.to_dict()
+	if not all_perks.has(weapon):
+		return false
+	var weapon_perks: Dictionary = SaveStore.read_dict(all_perks, weapon)
+
+	for key: Variant in weapon_perks.keys():
+		var k: String = str(key)
+		if weapon_perks[k] is bool:
+			if not SaveStore.read_bool(weapon_perks, k, false):
+				return false
+		elif SaveStore.read_int(weapon_perks, k, 0) < 5:  # PORT: :924
+			return false
+	return true
+
+
+## The goal metric's current value for this run (run_*), this mode
+## (*_survival), or lifetime plus this run (total_*).
+## PORT: web/src/tilt-to-live/GoalManager.ts:928-970
+# I1: one return per metric arm mirrors the TS switch (LAW 3); 18 returns
+# exceeds gdlint's default max-returns 6, same as progression_manager.gd:232-234.
+# gdlint:disable=max-returns
+func get_metric_value(metric: String, tracker: RunTracker) -> float:
+	match metric:
+		"run_score":
+			return float(tracker.score)
+		"run_kills":
+			return float(tracker.kills)
+		"run_multiplier":
+			return tracker.multiplier
+		"run_survival":
+			return floorf(tracker.survival_time)
+		"run_close_calls":
+			return float(tracker.close_calls)
+		"run_nukes":
+			return float(tracker.nukes_detonated)
+		"run_vortex_absorbs":
+			return float(tracker.vortex_absorbs)
+		"run_laser_slices":
+			return float(tracker.laser_slices)
+		"run_missiles":
+			return float(tracker.missiles_fired)
+		"run_freeze_shatters":
+			return float(tracker.freeze_shatters)
+		"run_shield_rams":
+			return float(tracker.shield_rams)
+		"code_red_survival":
+			return floorf(tracker.survival_time) if tracker.mode == "code-red" else 0.0
+		"gauntlet_survival":
+			return floorf(tracker.survival_time) if tracker.mode == "gauntlet" else 0.0
+		# Cumulative Lifetime Metrics:
+		"total_kills":
+			return float(cumulative.total_kills + tracker.kills)
+		"total_survival":
+			return float(cumulative.total_survival_time) + floorf(tracker.survival_time)
+		"total_points":
+			return float(cumulative.total_points_earned)
+		"total_score":
+			return float(cumulative.total_score + tracker.score)
+	return 0.0
+
+
+# gdlint:enable=max-returns
+
+
+## PORT: web/src/tilt-to-live/GoalManager.ts:972-982
+func reset_all_progress() -> void:
+	_completed_goal_ids.clear()
+	cumulative = CumulativeStats.new()
+	save_completed()
+	save_cumulative()
 
 
 ## One catalog entry. GDScript-only construction helper for the :83-640 literal.

@@ -1,3 +1,4 @@
+# gdlint:disable=max-public-methods
 ## test_goal_manager.gd
 ## PORTS: nothing — new file, covers src/meta/goal_manager.gd (spec §6.3 Tier 1)
 extends GutTest
@@ -123,3 +124,253 @@ func test_get_active_goals_returns_the_first_uncompleted() -> void:
 	assert_eq(active[2].goal.id, "score_25k")
 	assert_eq(active[0].current, 0.0, "always 0 (:746)")
 	assert_eq(gm.get_active_goals(1).size(), 1)
+
+
+func _tracker() -> GoalManager.RunTracker:
+	return GoalManager.RunTracker.new()
+
+
+func test_run_goals_never_complete_live() -> void:
+	var t: GoalManager.RunTracker = _tracker()
+	t.score = 1000
+	assert_eq(_gm.evaluate_live_total_goals(t), [] as Array[GoalManager.Goal], ":750-753")
+	assert_false(_gm.is_completed("score_1k"))
+	assert_eq(_ids(_gm.evaluate_run(t)), ["score_1k"] as Array[String])
+
+
+func test_evaluate_run_caps_single_run_goals_at_three_in_catalog_order() -> void:
+	var t: GoalManager.RunTracker = _tracker()
+	t.score = 60000
+	t.kills = 250
+	var done: Array[String] = _ids(_gm.evaluate_run(t))
+	# B1: evaluate_run double-counts the run (I3 PORT-NOTE), so the cumulative
+	# totals complete here too. Filter to the non-total ids to check the cap.
+	var run_goals: Array[String] = []
+	for id: String in done:
+		if not id.begins_with("total_"):
+			run_goals.append(id)
+	assert_eq(
+		run_goals,
+		["score_1k", "score_5k", "score_10k"] as Array[String],
+		"slice(0, 3) of the eligible list (:823)"
+	)
+	assert_eq(
+		done,
+		(
+			[
+				"total_kills_100",
+				"total_kills_500",
+				"total_score_50k",
+				"score_1k",
+				"score_5k",
+				"score_10k",
+			]
+			as Array[String]
+		),
+		"totals complete too — evaluate_run double-counts (I3)"
+	)
+	assert_false(_gm.is_completed("kills_15"), "left for the next run")
+
+
+func test_cumulative_goals_are_uncapped_and_awarded_before_run_goals() -> void:
+	var events: Array[String] = []
+	_gm.set_callbacks(
+		func(g: GoalManager.Goal) -> void: events.append("goal:" + g.id),
+		func(p: int) -> void: events.append("pts:%d" % p)
+	)
+	var t: GoalManager.RunTracker = _tracker()
+	t.kills = 120
+	t.survival_time = 200.7
+	t.score = 60000
+	var done: Array[String] = _ids(_gm.evaluate_run(t))
+	assert_eq(
+		done,
+		(
+			[
+				"total_kills_100",
+				"total_survival_180",
+				"total_score_50k",
+				"score_1k",
+				"score_5k",
+				"score_10k",
+			]
+			as Array[String]
+		),
+		"totals first (:796-807), then the capped run goals (:810-828)"
+	)
+	assert_eq(_gm.cumulative.total_kills, 120, ":789")
+	assert_eq(_gm.cumulative.total_survival_time, 200, "floor (:790)")
+	assert_eq(_gm.cumulative.total_score, 60000, ":791")
+	assert_eq(_gm.cumulative.total_points_earned, 2 + 2 + 3 + 1 + 2 + 3)
+	assert_false(
+		_gm.is_completed("total_points_10"),
+		"7 points when total_points_10 was checked (:796-807 runs before the run goals)"
+	)
+	assert_eq(
+		events.slice(0, 4),
+		["pts:2", "goal:total_kills_100", "pts:2", "goal:total_survival_180"] as Array[String]
+	)
+	assert_eq(events.size(), 12, "one pts + one goal callback per completion (:834-841)")
+	assert_true(FileAccess.file_exists(GoalManager.SAVE_PATH))
+	assert_true(FileAccess.file_exists(GoalManager.CUMULATIVE_SAVE_PATH))
+
+
+func test_live_total_goals_complete_mid_run_and_save_at_once() -> void:
+	var events: Array[String] = []
+	_gm.set_callbacks(
+		func(g: GoalManager.Goal) -> void: events.append("goal:" + g.id),
+		func(p: int) -> void: events.append("pts:%d" % p)
+	)
+	_gm.cumulative.total_kills = 90
+	var t: GoalManager.RunTracker = _tracker()
+	t.kills = 10
+	assert_eq(_ids(_gm.evaluate_live_total_goals(t)), ["total_kills_100"] as Array[String])
+	assert_eq(events, ["pts:2", "goal:total_kills_100"] as Array[String])
+	assert_eq(_gm.cumulative.total_points_earned, 2)
+	assert_eq(_gm.cumulative.total_kills, 90, "live evaluation never commits the run (:754-780)")
+	assert_eq(
+		SaveStore.load_string_list(GoalManager.SAVE_PATH), ["total_kills_100"] as Array[String]
+	)
+	assert_eq(_gm.evaluate_live_total_goals(t), [] as Array[GoalManager.Goal], "never twice")
+
+
+func test_combo_goals_read_the_multiplier() -> void:
+	var t: GoalManager.RunTracker = _tracker()
+	t.multiplier = 5.0
+	assert_eq(_ids(_gm.evaluate_run(t)), ["mult_3", "mult_5"] as Array[String])
+
+
+func test_survival_goals_floor_seconds_and_respect_the_cap() -> void:
+	var t: GoalManager.RunTracker = _tracker()
+	t.close_calls = 7
+	t.survival_time = 61.9
+	assert_eq(
+		_ids(_gm.evaluate_run(t)),
+		["close_call_3", "close_call_7", "survive_30"] as Array[String],
+		"survive_60 is eligible but fourth in catalog order"
+	)
+	assert_eq(_gm.get_metric_value("run_survival", t), 61.0, "Math.floor (:937)")
+
+
+func test_weapon_goals_read_each_counter() -> void:
+	var t: GoalManager.RunTracker = _tracker()
+	t.nukes_detonated = 3
+	t.vortex_absorbs = 20
+	t.laser_slices = 20
+	assert_eq(_ids(_gm.evaluate_run(t)), ["nuke_3", "vortex_20", "laser_20"] as Array[String])
+	var t2: GoalManager.RunTracker = _tracker()
+	t2.missiles_fired = 30
+	t2.freeze_shatters = 15
+	t2.shield_rams = 10
+	assert_eq(
+		_ids(_gm.evaluate_run(t2)), ["missiles_30", "freeze_15", "shield_10"] as Array[String]
+	)
+
+
+func test_mode_goals_count_only_in_their_mode() -> void:
+	var classic: GoalManager.RunTracker = _tracker()
+	classic.survival_time = 65.0
+	assert_eq(_gm.get_metric_value("code_red_survival", classic), 0.0, ":953")
+	assert_eq(_ids(_gm.evaluate_run(classic)), ["survive_30", "survive_60"] as Array[String])
+
+	# B1: evaluate_run double-counts the run into cumulative (I3 PORT-NOTE), so a
+	# shared manager would also complete total_survival_180/total_points_10
+	# across these three calls. Give each tracker a fresh manager.
+	# run_survival goals have no mode check (GoalManager.ts:930-932), so
+	# survive_30/survive_60 are also eligible here; the 3-per-run cap
+	# (catalog order) cuts mode_code_red_60.
+	_remove_saves()
+	var gm_red: GoalManager = GoalManager.new()
+	var red: GoalManager.RunTracker = _tracker()
+	red.mode = "code-red"
+	red.survival_time = 65.0
+	assert_eq(
+		_ids(gm_red.evaluate_run(red)),
+		["survive_30", "survive_60", "mode_code_red_30"] as Array[String]
+	)
+
+	# Same reason: run_survival's survive_30 is eligible alongside
+	# mode_gauntlet_30 (GoalManager.ts:930-932).
+	_remove_saves()
+	var gm_gauntlet: GoalManager = GoalManager.new()
+	var gauntlet: GoalManager.RunTracker = _tracker()
+	gauntlet.mode = "gauntlet"
+	gauntlet.survival_time = 30.0
+	assert_eq(
+		_ids(gm_gauntlet.evaluate_run(gauntlet)),
+		["survive_30", "mode_gauntlet_30"] as Array[String]
+	)
+
+
+func test_total_metrics_add_the_live_run_to_the_committed_totals() -> void:
+	_gm.cumulative.total_kills = 40
+	_gm.cumulative.total_survival_time = 100
+	_gm.cumulative.total_score = 500
+	_gm.cumulative.total_points_earned = 9
+	var t: GoalManager.RunTracker = _tracker()
+	t.kills = 5
+	t.survival_time = 10.8
+	t.score = 250
+	assert_eq(_gm.get_metric_value("total_kills", t), 45.0)
+	assert_eq(_gm.get_metric_value("total_survival", t), 110.0)
+	assert_eq(_gm.get_metric_value("total_score", t), 750.0)
+	assert_eq(_gm.get_metric_value("total_points", t), 9.0, "not tracker-driven (:963)")
+	assert_eq(_gm.get_metric_value("ship_unlocked", t), 0.0, "default arm (:967)")
+
+
+func test_unlock_goals_read_progression() -> void:
+	var pm: ProgressionManager = ProgressionManager.new()
+	_gm.set_progression(pm)
+	assert_eq(_gm.evaluate_unlock_goals(), [] as Array[GoalManager.Goal], "defaults unlock none")
+	pm.data.unlocked_cursors.append("solar")
+	pm.data.unlocked_enemy_skins.append("toxic")
+	pm.data.unlocked_arena_themes.append("synthwave")
+	assert_eq(
+		_ids(_gm.evaluate_unlock_goals()),
+		["unlock_ship_solar", "unlock_skin_toxic", "unlock_arena_synthwave"] as Array[String]
+	)
+	assert_eq(_gm.cumulative.total_points_earned, 2 + 2 + 2)
+	assert_eq(_gm.evaluate_unlock_goals(), [] as Array[GoalManager.Goal], "never re-awarded")
+
+
+func test_weapon_fully_upgraded_needs_every_rank_and_keystone() -> void:
+	var pm: ProgressionManager = ProgressionManager.new()
+	_gm.set_progression(pm)
+	pm.data.perks.missiles.count = 5
+	pm.data.perks.missiles.blast_radius = 5
+	pm.data.perks.missiles.flight_speed = 5
+	assert_eq(
+		_ids(_gm.evaluate_unlock_goals()),
+		["weapon_maxed_missiles"] as Array[String],
+		"missiles has no keystones in WeaponPerks (:919-926 reads what exists)"
+	)
+	pm.data.perks.nuke.radius = 5
+	pm.data.perks.nuke.speed = 5
+	assert_eq(_gm.evaluate_unlock_goals(), [] as Array[GoalManager.Goal], "falloutZone still false")
+	pm.data.perks.nuke.fallout_zone = true
+	assert_eq(_ids(_gm.evaluate_unlock_goals()), ["weapon_maxed_nuke"] as Array[String])
+
+
+func test_unlock_evaluation_is_a_no_op_without_progression() -> void:
+	assert_eq(_gm.evaluate_unlock_goals(), [] as Array[GoalManager.Goal], ":862")
+
+
+func test_run_and_live_evaluation_skip_unlock_goals() -> void:
+	var pm: ProgressionManager = ProgressionManager.new()
+	pm.data.unlocked_cursors.append("solar")
+	_gm.set_progression(pm)
+	_gm.evaluate_run(_tracker())
+	_gm.evaluate_live_total_goals(_tracker())
+	assert_false(_gm.is_completed("unlock_ship_solar"), ":798, :759")
+
+
+func test_reset_all_progress_clears_and_saves() -> void:
+	var t: GoalManager.RunTracker = _tracker()
+	t.score = 1000
+	t.kills = 20
+	_gm.evaluate_run(t)
+	_gm.reset_all_progress()
+	assert_eq(_gm.get_completed_count(), 0)
+	assert_eq(_gm.cumulative.total_kills, 0)
+	assert_eq(SaveStore.load_string_list(GoalManager.SAVE_PATH), [] as Array[String])
+	assert_eq(GoalManager.new().cumulative.total_kills, 0, "saved (:980-981)")

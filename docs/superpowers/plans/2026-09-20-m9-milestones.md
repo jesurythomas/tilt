@@ -69,7 +69,7 @@ Copied from the index plan, `CONVENTIONS.md` and the M8 plan. Every task implici
 - **Catalog facts** used by assertions: 57 goals (`GoalManager.ts:83-640`). By `GoalsHUD` tier (`:322-354`): **Score 9** (5 `score` + `total_score_*` ×2 + `total_points_*` ×2), **Combat 17** (4 `combat` + 4 `combo` + 6 `weapons` + `total_kills_*` ×3), **Mastery 31** (5 `survival` + 3 `modes` + `total_survival_*` ×2 + 21 unlock-family).
 - **`DIVERGENCE` count:** 154 at the M8.5 exit (86 of them `DIVERGENCE(UI-SYSTEM)`). Tasks 5–7 add `DIVERGENCE(UI-SYSTEM)` lines for board literals; Task 7 records the fresh totals in `HANDOFF.md` and Task 9 checks against them.
 - **Layout tests** host a screen in an explicit-size parent (`test_run_over_sheet.gd`'s `_sheet` pattern) — the headless GUT root is 64×64 (M8.5 lesson) — and use `tests/ui_checks.gd` (`short_buttons`, `outside`, `overlapping_siblings`) after two `process_frame`s.
-- **gdlint limits:** `max-public-methods: 20` (GoalManager has 15 public, GoalsHUD 11; this counts only the `src` classes — `max-returns: 6` applies too, `GoalManager.get_metric_value` disables it locally per I1), `function-arguments-number: 10` (`GoalManager._goal` has 8), `max-line-length: 100`, `max-file-lines: 1000` (neither new file approaches it). **I2:** test files are not exempt from `max-public-methods` and test functions count as public; `test_goal_manager.gd`, `test_run_controller.gd`, `test_main_scene.gd` and `test_goals_hud.gd` each cross 20 as this plan's tasks land and each gets `# gdlint:disable=max-public-methods` as line 1 (`test_armory_ui.gd:1` precedent) in the task that crosses it.
+- **gdlint limits:** `max-public-methods: 20` (GoalManager has 15 public, GoalsHUD 11; this counts only the `src` classes — `max-returns: 6` applies too, `GoalManager.get_metric_value` disables it locally per I1), `function-arguments-number: 10` (`GoalManager._goal` has 8), `max-line-length: 100`, `max-file-lines: 1000` (`goal_manager.gd` exceeds it once Task 3 lands the evaluation block — 1002 lines — and disables the check on line 1, `armory_ui.gd:1` precedent). **I2:** test files are not exempt from `max-public-methods` and test functions count as public; `test_goal_manager.gd`, `test_run_controller.gd`, `test_main_scene.gd` and `test_goals_hud.gd` each cross 20 as this plan's tasks land and each gets `# gdlint:disable=max-public-methods` as line 1 (`test_armory_ui.gd:1` precedent) in the task that crosses it.
 
 ## Review Focus
 
@@ -525,6 +525,7 @@ Run: `tools/run_tests.sh` → FAIL, `collected 45 of 47` (both new scripts fail 
 - [x] **Step 5: Implement `godot/src/meta/goal_manager.gd`** — this task writes every member **except** the evaluation block (`evaluate_live_total_goals` … `reset_all_progress`), which Task 3 inserts at the marked position:
 
 ```gdscript
+# gdlint:disable=max-file-lines
 ## goal_manager.gd
 ## PORTS: web/src/tilt-to-live/GoalManager.ts (983 lines, source commit 7be9614)
 class_name GoalManager
@@ -905,7 +906,7 @@ git log -1 --format=%B
 **Interfaces:**
 - Produces: `func evaluate_live_total_goals(tracker: RunTracker) -> Array[Goal]`, `func evaluate_run(tracker: RunTracker) -> Array[Goal]`, `func evaluate_unlock_goals() -> Array[Goal]`, `func get_metric_value(metric: String, tracker: RunTracker) -> float`, `func reset_all_progress() -> void`. Callback order per completed goal: `on_points_awarded(pts)` **then** `on_goal_completed(goal)`.
 
-- [ ] **Step 1: Write the failing tests** — append to `godot/tests/test_goal_manager.gd`:
+- [x] **Step 1: Write the failing tests** — append to `godot/tests/test_goal_manager.gd`:
 
 ```gdscript
 func _tracker() -> GoalManager.RunTracker:
@@ -1044,21 +1045,30 @@ func test_mode_goals_count_only_in_their_mode() -> void:
 	# B1: evaluate_run double-counts the run into cumulative (I3 PORT-NOTE), so a
 	# shared manager would also complete total_survival_180/total_points_10
 	# across these three calls. Give each tracker a fresh manager.
+	# run_survival goals have no mode check (GoalManager.ts:930-932), so
+	# survive_30/survive_60 are also eligible here; the 3-per-run cap
+	# (catalog order) cuts mode_code_red_60.
 	_remove_saves()
 	var gm_red: GoalManager = GoalManager.new()
 	var red: GoalManager.RunTracker = _tracker()
 	red.mode = "code-red"
 	red.survival_time = 65.0
 	assert_eq(
-		_ids(gm_red.evaluate_run(red)), ["mode_code_red_30", "mode_code_red_60"] as Array[String]
+		_ids(gm_red.evaluate_run(red)),
+		["survive_30", "survive_60", "mode_code_red_30"] as Array[String]
 	)
 
+	# Same reason: run_survival's survive_30 is eligible alongside
+	# mode_gauntlet_30 (GoalManager.ts:930-932).
 	_remove_saves()
 	var gm_gauntlet: GoalManager = GoalManager.new()
 	var gauntlet: GoalManager.RunTracker = _tracker()
 	gauntlet.mode = "gauntlet"
 	gauntlet.survival_time = 30.0
-	assert_eq(_ids(gm_gauntlet.evaluate_run(gauntlet)), ["mode_gauntlet_30"] as Array[String])
+	assert_eq(
+		_ids(gm_gauntlet.evaluate_run(gauntlet)),
+		["survive_30", "mode_gauntlet_30"] as Array[String]
+	)
 
 
 func test_total_metrics_add_the_live_run_to_the_committed_totals() -> void:
@@ -1137,9 +1147,9 @@ func test_reset_all_progress_clears_and_saves() -> void:
 
 Before relying on them, confirm the perk field names at `progression_manager.gd:1027-1072` (`NukePerks.radius/speed/fallout_zone`, `MissilesPerks.count/blast_radius/flight_speed`); if any differs, use the file's names — do not rename the file's fields.
 
-- [ ] **Step 2: Run to verify they fail** — `tools/run_tests.sh` → `collected 46 of 47` (`evaluate_run` not found).
+- [x] **Step 2: Run to verify they fail** — `tools/run_tests.sh` → `collected 46 of 47` (`evaluate_run` not found).
 
-- [ ] **Step 3: Implement** — replace the `# TASK 3 INSERTS …` comment in `goal_manager.gd` with:
+- [x] **Step 3: Implement** — replace the `# TASK 3 INSERTS …` comment in `goal_manager.gd` with:
 
 ```gdscript
 ## Evaluates ONLY cumulative / total milestones during active gameplay.
@@ -1368,9 +1378,9 @@ func reset_all_progress() -> void:
 	save_cumulative()
 ```
 
-- [ ] **Step 4: Run to verify they pass** — `tools/run_tests.sh` → `OK: 47/47 scripts (447 tests)`. `gdformat --check`, `gdlint` clean. `grep -n "TASK 3" godot/src/meta/goal_manager.gd` prints nothing.
+- [x] **Step 4: Run to verify they pass** — `tools/run_tests.sh` → `OK: 47/47 scripts (447 tests)`. `gdformat --check`, `gdlint` clean. `grep -n "TASK 3" godot/src/meta/goal_manager.gd` prints nothing.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git checkout godot/project.godot
