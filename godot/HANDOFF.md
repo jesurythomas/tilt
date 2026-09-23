@@ -4,7 +4,7 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**M9 in progress:** Tasks 1–4 landed; next Task 5.
+**M9 in progress:** Tasks 1–5 landed; next Task 6.
 
 Last completed module: **M8.5 — Interface rework**, code complete
 2026-09-23 (code head `541e92c`; the exit commit is this one — `git log -1
@@ -706,6 +706,17 @@ are deliberate.
   §6.4) — rule it in the ledger, fix it, add a spec.
 - A usage limit can cut an implementer off mid-step with work uncommitted;
   the next session reads `git status` and finishes inline rather than redoing.
+
+## Process lessons carried forward (M9 Task 5 addition)
+
+- **`Timer.time_left` has no setter in Godot 4.7.2** (getter only; `ClassDB`
+  shows no `set_time_left`) — a plan-specified test tried
+  `timer.time_left = 0.4` to fake a partway-elapsed toast timer and failed to
+  parse ("Cannot assign a new value to a read-only property"). Fixed to
+  `timer.start(0.4)`, which drives the timer into the same state (twenty-ninth
+  plan defect across modules). Anything that needs to fake a Timer's elapsed
+  state should restart it at the target `wait_time` instead of writing
+  `time_left`.
 
 ## Next
 

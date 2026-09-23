@@ -76,6 +76,9 @@ var _bounds: Vector2 = Vector2.ZERO
 @onready var _joystick_layer: JoystickLayer = %JoystickLayer
 @onready var _hud: HudController = %Hud as HudController
 @onready var _armory: ArmoryUI = %Armory
+@onready var _goals_hud: GoalsHUD = %GoalsHud
+@onready var _hud_frame: Control = %Frame
+@onready var _toast_slot: Control = %ToastSlot
 
 
 func _ready() -> void:
@@ -121,6 +124,11 @@ func _ready() -> void:
 	_armory.state_changed.connect(_on_armory_state_changed)
 	_armory.closed.connect(_on_armory_closed)
 	_armory.calibrate_requested.connect(calibrate_gyro)
+	# PORT: web/src/tilt-to-live/TiltGame.ts:186
+	_goals_hud.bind(goals, progression, _hud_frame, _toast_slot)
+	# Goal completion & point reward listeners. These override the ones
+	# GoalsHUD.bind installed, as TiltGame.ts:200-209 overrides GoalsHUD.ts:109-115 (R4).
+	goals.set_callbacks(_on_goal_completed, _on_goal_points_awarded)
 	_apply_equipped_cosmetics()
 	GameEvents.run_ended.connect(_on_run_ended)
 
@@ -291,13 +299,14 @@ func restart_run() -> void:
 
 ## calibrateGyro. PORT: web/src/tilt-to-live/TiltGame.ts:2331-2341
 # PORT-NOTE: the TS awaits the permission promise; request_permission_and_start()
-# is synchronous here (see _ready). TODO(M9): goalsHUD.showMessageToast
-# ('TILT CALIBRATED' / 'GYRO SENSOR', :2335/:2337) — no GoalsHUD until M9
-# (interface spec §5); updateHUD (:2339) is signal-driven here.
+# is synchronous here (see _ready). updateHUD (:2339) is signal-driven here.
 func calibrate_gyro() -> bool:
 	var success: bool = _tilt.request_permission_and_start()
 	if success:
 		_tilt.calibrate_current_position()
+		_goals_hud.show_message_toast("TILT CALIBRATED", "Neutral Angle Zeroed ✓")  # PORT: :2335
+	else:
+		_goals_hud.show_message_toast("GYRO SENSOR", "Sensor Unavailable or Blocked")  # PORT: :2337
 	return success
 
 
@@ -407,6 +416,7 @@ func resize_canvas() -> void:
 	# overlay must cover the whole screen), and on mobile only the panel is
 	# inset by arena_origin so it stays inside the safe area (spec §8 M8).
 	_armory.set_ui_scale(HudController.ui_scale_for(viewport), arena_origin)
+	_goals_hud.set_ui_scale(HudController.ui_scale_for(viewport), arena_origin)
 
 
 ## PORT: web/src/tilt-to-live/TiltGame.ts:2073 (triggerPlayerDeath's phase flip)
@@ -417,14 +427,30 @@ func resize_canvas() -> void:
 # shell mirrors the sim's run_ended signal here instead.
 func _on_run_ended(_final_score: int, _stats: Types.GameStats) -> void:
 	_state.phase = Types.GamePhase.GAME_OVER
+	_goals_hud.render()  # PORT: web/src/tilt-to-live/TiltGame.ts:2146
+
+
+## PORT: web/src/tilt-to-live/TiltGame.ts:200-204 (the onGoalCompleted callback)
+func _on_goal_completed(goal: GoalManager.Goal) -> void:
+	_run_controller.points_earned_this_run += goal.reward_points
+	_goals_hud.show_goal_toast(goal)
+	GameEvents.goal_completed.emit(goal.id)  # spec §5.3; M9 plan R5
+
+
+## PORT: web/src/tilt-to-live/TiltGame.ts:205-208 (the onPointsAwarded callback)
+func _on_goal_points_awarded(pts: int) -> void:
+	progression.add_points(pts)
+	_goals_hud.render()
 
 
 ## handleProgressionChanged. PORT: web/src/tilt-to-live/TiltGame.ts:2356-2361
 # PORT-NOTE: updateHUD (:2357) is signal-driven here and has nothing to
-# refresh; goalsHUD.render (:2358) is M9's; menu.render (:2359) is M11's;
-# updateCursor (:2360) has no pointer on Android. What a purchase does change
-# on this platform is the equipped cosmetics the layers draw.
+# refresh; goalsHUD.render (:2358) is the first call below; menu.render
+# (:2359) is M11's; updateCursor (:2360) has no pointer on Android. What a
+# purchase does change on this platform is the equipped cosmetics the layers
+# draw.
 func _on_armory_state_changed() -> void:
+	_goals_hud.render()
 	# Interface spec §6.4: the Handling tab's tilt slider edits settings.tilt_sensitivity.
 	_tilt.tilt_sensitivity = settings.tilt_sensitivity
 	_apply_equipped_cosmetics()
@@ -434,7 +460,8 @@ func _on_armory_state_changed() -> void:
 func _on_armory_closed() -> void:
 	if _state.phase == Types.GamePhase.PAUSED:
 		_hud.set_pause_panel_visible(true)
-	# TODO(M9): goalsHUD.render (:2383). TODO(M11): menu.render (:2384).
+	_goals_hud.render()  # PORT: :2383
+	# TODO(M11): menu.render (:2384).
 	_apply_equipped_cosmetics()
 
 

@@ -1,3 +1,4 @@
+# gdlint:disable=max-public-methods
 ## test_main_scene.gd
 ## PORTS: nothing — new file, covers scenes/main.tscn
 extends GutTest
@@ -402,3 +403,40 @@ func test_armory_tilt_slider_reaches_the_tilt_input() -> void:
 	slider.value = 1.6
 	assert_almost_eq(root.settings.tilt_sensitivity, 1.6, 0.0001)
 	assert_almost_eq(root._tilt.tilt_sensitivity, 1.6, 0.0001)
+
+
+func test_an_armory_unlock_completes_its_goal_through_game_root() -> void:
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	watch_signals(GameEvents)
+	root.progression.data.unlocked_cursors.append("solar")
+	var armory: ArmoryUI = root.find_child("Armory", true, false) as ArmoryUI
+	armory.state_changed.emit()
+	assert_true(root.goals.is_completed("unlock_ship_solar"), "TiltGame.ts:2358 → GoalsHUD.ts:264")
+	assert_eq(root.progression.data.points, 7331 + 2, "TiltGame.ts:206")
+	assert_eq(root._run_controller.points_earned_this_run, 2, "TiltGame.ts:202")
+	assert_true((root.find_child("GoalToast", true, false) as Control).visible, ":203")
+	assert_signal_emitted_with_parameters(GameEvents, "goal_completed", ["unlock_ship_solar"])
+
+
+func test_rail_and_toast_live_in_the_hud() -> void:
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	var rail: Node = root.find_child("EdgeRail", true, false)
+	assert_eq(String(rail.get_parent().name), "Frame", "interface spec §6.5: the frame's top edge")
+	var toast: Node = root.find_child("GoalToast", true, false)
+	assert_eq(String(toast.get_parent().name), "ToastSlot", "under the lives icons")
+
+
+func test_calibrate_reports_through_a_message_toast() -> void:
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	var ok: bool = root.calibrate_gyro()
+	var title: Label = root.find_child("ToastTitle", true, false) as Label
+	var subtitle: Label = root.find_child("ToastSubtitle", true, false) as Label
+	# PORT: web/src/tilt-to-live/TiltGame.ts:2335, :2337
+	assert_eq(title.text, "TILT CALIBRATED" if ok else "GYRO SENSOR")
+	assert_eq(subtitle.text, "Neutral Angle Zeroed ✓" if ok else "Sensor Unavailable or Blocked")

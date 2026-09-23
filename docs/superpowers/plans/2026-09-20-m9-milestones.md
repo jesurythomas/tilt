@@ -1647,9 +1647,9 @@ git log -1 --format=%B
 - Consumes: `GoalManager` (Tasks 2–3: `set_progression`, `set_callbacks`, `evaluate_unlock_goals`, `get_completed_count`, `get_total_goals_count`, `is_completed`, `catalog`, `Goal.title/reward_points`), `RunController.points_earned_this_run` (Task 4), `GameRoot.goals` (Task 4), `ProgressionManager.add_points`, `UiTheme` (`build`, `px`, `tint`, `flat`, `padded`, `svg_texture`, `sans`, `mono`, `Weight`, `COLOR_*`, `CARD_RADIUS`, `ICON_CHECK`), `HudController.ui_scale_for`.
 - Produces: `class_name GoalsHUD extends Control` with `in_menu_mode: bool`, `bind(goal_manager: GoalManager, progression: ProgressionManager, rail_host: Control = null, toast_host: Control = null)`, `check_unlock_goals()`, `set_ui_scale(scale: float, inset: Vector2 = Vector2.ZERO)`, `is_modal_open() -> bool`, `set_menu_mode(in_menu: bool)`, `toggle_collapse()`, `show_goal_toast(goal: GoalManager.Goal)`, `show_message_toast(title: String, subtitle: String, reward_badge: String = "")`, `render()`, `open_all_goals_modal()`, `close_all_goals_modal()`; private hooks Task 6 replaces: `_build_milestones_modal() -> Control`, `_layout_modal()`, `_render_milestones_modal_content()`. Node names `EdgeRail`, `EdgeRailFill`, `GoalToast`, `ToastRow`, `ToastTitle`, `ToastSubtitle`, `ToastReward`, `ToastTimer`, `MilestonesModal`. `GameRoot._on_goal_completed`, `GameRoot._on_goal_points_awarded` (M8: no `get_run_controller()` — tests read `root._run_controller`, `test_main_scene.gd:296` precedent). `main.tscn`: `%GoalsHud`, `%ToastSlot`.
 
-- [ ] **Step 1: Class-name check** — rerun Task 2 Step 1's script; `GoalsHUD` must print `false`.
+- [x] **Step 1: Class-name check** — rerun Task 2 Step 1's script; `GoalsHUD` must print `false`.
 
-- [ ] **Step 2: Write the failing tests** — `godot/tests/test_goals_hud.gd`:
+- [x] **Step 2: Write the failing tests** — `godot/tests/test_goals_hud.gd`:
 
 ```gdscript
 ## test_goals_hud.gd
@@ -1864,9 +1864,9 @@ func test_calibrate_reports_through_a_message_toast() -> void:
 	)
 ```
 
-- [ ] **Step 3: Run to verify they fail** — `tools/run_tests.sh` → `collected 47 of 48` (`test_goals_hud.gd`: `GoalsHUD` unknown). `test_main_scene.gd` parses (M8: it reads `root._run_controller` directly, already a member since Task 4) but its three new tests fail their assertions until `goals_hud.gd` and the `GameRoot` wiring below land.
+- [x] **Step 3: Run to verify they fail** — `tools/run_tests.sh` → `collected 47 of 48` (`test_goals_hud.gd`: `GoalsHUD` unknown). `test_main_scene.gd` parses (M8: it reads `root._run_controller` directly, already a member since Task 4) but its three new tests fail their assertions until `goals_hud.gd` and the `GameRoot` wiring below land.
 
-- [ ] **Step 4: Implement.** First, I4: add the message toast's ion ring to `godot/src/ui/ui_theme.gd`,
+- [x] **Step 4: Implement.** First, I4: add the message toast's ion ring to `godot/src/ui/ui_theme.gd`,
   after `ICON_CHECK`:
 
 ```gdscript
@@ -2262,7 +2262,7 @@ func _render_milestones_modal_content() -> void:
 
   Run `gdformat godot/src/ui/goals_hud.gd godot/tests/test_goals_hud.gd` once (new files — it wraps the long `row.add_child(_label(...))` line).
 
-- [ ] **Step 5: Scene** — in `godot/scenes/main.tscn`:
+- [x] **Step 5: Scene** — in `godot/scenes/main.tscn`:
   - Add `[ext_resource type="Script" path="res://src/ui/goals_hud.gd" id="11"]` after the id `"10"` line and bump `load_steps=10` → `load_steps=11`.
   - Give the HUD's toast slot a unique name — the `ToastSlot` node gains `unique_name_in_owner = true` as its first property.
   - Insert **after the `GameOverPanel` node and before the `Armory` instance** (the screen then draws over Run over and under the Armory):
@@ -2280,7 +2280,7 @@ mouse_filter = 2
 script = ExtResource("11")
 ```
 
-- [ ] **Step 6: `GameRoot` wiring** (`godot/src/core/game_root.gd`):
+- [x] **Step 6: `GameRoot` wiring** (`godot/src/core/game_root.gd`):
   - After `@onready var _armory: ArmoryUI = %Armory` add:
     ```gdscript
     @onready var _goals_hud: GoalsHUD = %GoalsHud
@@ -2326,11 +2326,11 @@ script = ExtResource("11")
     	_goals_hud.render()
     ```
 
-- [ ] **Step 7: Glyph check** — the calibrate subtitle carries `✓` (U+2713). Run `"$GODOT" --headless --path godot -s` on a throwaway script in the scratchpad that prints `UiTheme.sans(UiTheme.Weight.REGULAR).has_char(0x2713)`, or add the one-line assert to `test_ui_theme.gd` temporarily and remove it. If it prints `false`, keep the string (LAW 2) and add to `## Open questions` below: "Plex Sans has no ✓; the calibrate toast renders it with the fallback font". Do not change the text.
+- [x] **Step 7: Glyph check** — the calibrate subtitle carries `✓` (U+2713). Run `"$GODOT" --headless --path godot -s` on a throwaway script in the scratchpad that prints `UiTheme.sans(UiTheme.Weight.REGULAR).has_char(0x2713)`, or add the one-line assert to `test_ui_theme.gd` temporarily and remove it. If it prints `false`, keep the string (LAW 2) and add to `## Open questions` below: "Plex Sans has no ✓; the calibrate toast renders it with the fallback font". Do not change the text.
 
-- [ ] **Step 8: Verify** — `tools/run_tests.sh` → `OK: 48/48 scripts (466 tests)` (Task 4's 453 + 10 in `test_goals_hud.gd` + 3 in `test_main_scene.gd`); `gdformat --check godot/src godot/tests` (`86 files would be left unchanged`), `gdlint godot/src godot/tests` clean; `grep -rn "TODO(M9)" godot/src/core/` prints nothing; `grep -rniE "ff4757" godot/src/ui/` prints nothing; `"$GODOT" --headless --path godot --quit-after 120 2>&1 | grep -c "SCRIPT ERROR"` prints `0`.
+- [x] **Step 8: Verify** — `tools/run_tests.sh` → `OK: 48/48 scripts (466 tests)` (Task 4's 453 + 10 in `test_goals_hud.gd` + 3 in `test_main_scene.gd`); `gdformat --check godot/src godot/tests` (`86 files would be left unchanged`), `gdlint godot/src godot/tests` clean; `grep -rn "TODO(M9)" godot/src/core/` prints nothing; `grep -rniE "ff4757" godot/src/ui/` prints nothing; `"$GODOT" --headless --path godot --quit-after 120 2>&1 | grep -c "SCRIPT ERROR"` prints `0`.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git checkout godot/project.godot

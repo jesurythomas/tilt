@@ -135,6 +135,13 @@ const ICON_CHECK: String = (
 	+ '<path d="M2 7.5 L5.5 11 L12 3.5" stroke="#3DDC97" stroke-width="1.8" '
 	+ 'stroke-linecap="round" stroke-linejoin="round"/></svg>'
 )
+## DIVERGENCE(UI-SYSTEM): Hud.dc.html — message toast ring.
+## PORT: web/src/tilt-to-live/GoalsHUD.ts:217-220
+const ICON_RING: String = (
+	'<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14" fill="none">'
+	+ '<circle cx="7" cy="7" r="5" stroke="#5B8CFF" stroke-width="1.5"/>'
+	+ '<circle cx="7" cy="7" r="2" fill="#5B8CFF"/></svg>'
+)
 ## DIVERGENCE(UI-SYSTEM): RunOver.dc.html — new-best star
 const ICON_STAR: String = (
 	'<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 13 13" fill="none">'
