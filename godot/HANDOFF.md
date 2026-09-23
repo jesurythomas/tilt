@@ -31,7 +31,9 @@ Next module: **M8.5 (Interface rework)** — new, from the mobile redesign
 `docs/superpowers/specs/2026-09-23-mobile-interface-system-design.md`, plan
 `docs/superpowers/plans/2026-09-23-m8.5-interface-rework.md`). Task 1 landed
 (fonts, `UiTheme`, `ui_scale` = min(h/390, w/844)). Task 2 landed: HUD on the
-Hud board, arena frame, lives, weapon timer. Then M9, whose plan exists but
+Hud board, arena frame, lives, weapon timer. Task 3 landed: Pause is a
+`PauseSheet` on the Pause board (Sound/Music switches, Calibrate, segmented
+`ControlPicker`). Then M9, whose plan exists but
 has Tasks 5–7 superseded. See `## Next`. The A55 "Mobile scale split" pass
 was skipped for now by the user (phone still absent from adb) — its checks
 stay unticked in `VERIFY-ME.md`.
@@ -693,10 +695,31 @@ task's report for detail.
 tests, 4401 asserts). `gdformat --check`/`gdlint` clean; `grep -rniE "ff4757"
 godot/src/ui/` empty; headless `--quit-after 120` → 0 `SCRIPT ERROR`.
 
-**Now: M8.5 Task 3 (Pause)**, with
-superpowers:subagent-driven-development (or executing-plans). Literal first
-step: `git status --short` (must be clean under `godot/`), then read the
-plan's header, Global Constraints and Rulings, then Task 3.
+**Done 2026-09-23: M8.5 Task 3 (Pause)** (`ac83a93`) — `PausePanel` in
+`main.tscn` is now one scripted `PauseSheet` node (`src/ui/pause_sheet.gd`,
+`Pause.dc.html`): Resume (hero, left column per ruling M5), Restart run,
+Armory, Sound/Music switches that write through `GameRoot.set_sfx_enabled`/
+`set_music_enabled` (saved via `GameOptionsManager`; opening the sheet uses
+`set_pressed_no_signal`, so it never writes), Calibrate (shown only for the
+gyro scheme, calls `GameRoot.calibrate_gyro`), a score · time · mode stats
+line, and the segmented `ControlPicker` (`PanelContainer`, Touch | Tilt |
+Keyboard, `UiTheme.TOUCH_TARGET`). `GameStateMachine.format_time` is now
+`static`. `ControlPicker.BASE_TOUCH_TARGET` is gone, so its two uses in
+`armory_ui.gd` and one in `test_armory_ui.gd` now read `UiTheme.TOUCH_TARGET`
+(same 48.0). Quit/Settings stay absent (`TODO(M11)`). Saved Sound/Music are
+not applied at boot yet: AudioBank is still a stub, and that belongs to M5
+(ledger minor). `tools/run_tests.sh` → `OK: 44/44 scripts collected, all
+tests passed` (393 tests, 4438 asserts). gdformat/gdlint clean; ff4757 grep
+empty; `DIVERGENCE` count 124 (unchanged: three new UI-SYSTEM citations
+replaced three M2.5 ones); headless → 0 `SCRIPT ERROR`.
+
+**Now: M8.5 Task 4 (Run over)**, with
+superpowers:subagent-driven-development. Per ruling I4, Task 4 also moves the
+shared scrim/centre/sheet build, `_column()` and the hairline rule from
+`pause_sheet.gd` into static `UiTheme` helpers, and `test_pause_sheet.gd` must
+stay green. Literal first step: `git status --short` (must be clean under
+`godot/`), then read the plan's header, Global Constraints and Rulings, then
+Task 4.
 
 **After M8.5:** rewrite Tasks 5–7 of
 `docs/superpowers/plans/2026-09-20-m9-milestones.md` to spec §6.5 (Tasks 1–4
