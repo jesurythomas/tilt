@@ -187,8 +187,8 @@ func update(
 
 	# 5.5 Update Coin Pickups (own spawn timer, independent of weapon orbs)
 	# PORT: web/src/tilt-to-live/TiltGame.ts:1930-1940 — spec §5.4 step 7
-	# TODO(M11): the game-over summary reads coins.coins_collected and
-	# coins.points_from_coins (TiltGame.ts:2108-2129).
+	# TODO(M11): the coins row reads coins.coins_collected (TiltGame.ts:2108,
+	# :2123-2130); points_from_coins already feeds the Run over total (M9).
 	# TODO(M10): read the active mode once M10 owns modes (TiltGame.ts:1931
 	# uses activeMode).
 	var mode_config: GameOptionsManager.ModeConfig = options.get_mode_config(options.settings.mode)

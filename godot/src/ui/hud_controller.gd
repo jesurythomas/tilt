@@ -134,6 +134,8 @@ func _ready() -> void:
 	if _game_over_panel == null:
 		_game_over_panel = find_child("GameOverPanel", true, false) as Control
 	_run_over = _game_over_panel as RunOverSheet
+	if _run_over != null:
+		_run_over.milestones_requested.connect(_on_milestones_requested)
 	if _restart_button == null:
 		_restart_button = find_child("RestartButton", true, false) as Button
 
@@ -377,8 +379,14 @@ static func run_result_for(
 		result.mode_multiplier = mode.score_multiplier
 		if run.scores.is_new_best and run.scores.best_score_diff > 0:  # PORT: :2097
 			result.best_diff = run.scores.best_score_diff
-		# TODO(M9): + Math.max(pointsEarnedThisRun, earnedMilestonesPts) (:2118).
-		result.earned = run.coins.points_from_coins  # PORT: :2118
+		var milestone_points: int = 0
+		for goal: GoalManager.Goal in run.run_completed_goals:
+			milestone_points += goal.reward_points  # PORT: :2111-2114
+		# PORT: :2118 — coins are a second income stream folded into the one total.
+		result.earned = (
+			maxi(run.points_earned_this_run, milestone_points) + run.coins.points_from_coins
+		)
+		result.milestones = run.run_completed_goals.duplicate()  # PORT: :2132
 		result.balance = run.progression.data.points  # PORT: :2119
 	return result
 
@@ -550,6 +558,13 @@ func _on_armory_pressed() -> void:
 	if root == null:
 		return
 	root.open_armory()
+
+
+## bindGameOverClicks' target. PORT: web/src/tilt-to-live/GoalsHUD.ts:131-134
+func _on_milestones_requested() -> void:
+	var root: GameRoot = get_tree().get_first_node_in_group("game_root") as GameRoot
+	if root != null:
+		root.open_all_goals_modal()
 
 
 # PORT: web/src/tilt-to-live/TiltGame.ts:1619-1630 — the modal is populated as it opens.

@@ -72,6 +72,7 @@ func test_sheet_carries_the_board_controls() -> void:
 		"PointsEarnedLabel",
 		"PointsBalanceLabel",
 		"MilestonesList",
+		"MilestonesClip",
 		"ControlPicker",
 		"RestartButton",
 		"GameOverArmoryButton",
@@ -82,7 +83,7 @@ func test_sheet_carries_the_board_controls() -> void:
 	assert_null(sheet.find_child("FinalCoinsLabel", true, false), "coins cell dropped (spec §6.3)")
 	assert_false(
 		(sheet.find_child("MilestonesList", true, false) as Control).visible,
-		"hidden until M9 fills it"
+		"hidden until a result lists milestones"
 	)
 
 
@@ -123,3 +124,94 @@ func test_subtitle_text() -> void:
 	assert_eq(
 		RunOverSheet.subtitle_text("0:07", "Code Red", 1.5), "Swarmed at 0:07 — Code Red, 1.5×"
 	)
+
+
+func _goal(id: String, title: String, description: String, reward: int) -> GoalManager.Goal:
+	var goal: GoalManager.Goal = GoalManager.Goal.new()
+	goal.id = id
+	goal.title = title
+	goal.description = description
+	goal.reward_points = reward
+	return goal
+
+
+func _click() -> InputEventMouseButton:
+	var ev: InputEventMouseButton = InputEventMouseButton.new()
+	ev.button_index = MOUSE_BUTTON_LEFT
+	ev.pressed = true
+	return ev
+
+
+func test_milestones_list_shows_each_earned_goal() -> void:
+	# PORT: web/src/tilt-to-live/TiltGame.ts:2132-2140
+	var sheet: RunOverSheet = _sheet(Vector2(844, 390), 1.0)
+	var result: RunOverSheet.RunResult = _result()
+	result.milestones = (
+		[
+			_goal("score_1k", "Rookie Dodger", "Reach 1,000 score in a run", 1),
+			_goal("kills_15", "First Blood", "Destroy 15 red dots in a run", 1),
+		]
+		as Array[GoalManager.Goal]
+	)
+	sheet.show_result(result)
+	var list: VBoxContainer = sheet.find_child("MilestonesList", true, false) as VBoxContainer
+	assert_true(list.visible)
+	assert_eq(list.get_child_count(), 2)
+	var row: Node = list.get_child(0)
+	assert_eq(String(row.name), "MilestoneRow_score_1k")
+	assert_eq(
+		(row.find_child("MilestoneText", true, false) as Label).text,
+		"Rookie Dodger — Reach 1,000 score in a run",
+		":2136"
+	)
+	assert_eq((row.find_child("MilestonePoints", true, false) as Label).text, "+1", ":2137")
+
+
+func test_milestones_list_hides_when_none_were_earned() -> void:
+	# PORT: web/src/tilt-to-live/TiltGame.ts:2141-2143
+	var sheet: RunOverSheet = _sheet(Vector2(844, 390), 1.0)
+	var result: RunOverSheet.RunResult = _result()
+	result.milestones = [_goal("score_1k", "Rookie Dodger", "x", 1)] as Array[GoalManager.Goal]
+	sheet.show_result(result)
+	sheet.show_result(_result())
+	var list: VBoxContainer = sheet.find_child("MilestonesList", true, false) as VBoxContainer
+	assert_false(list.visible)
+	assert_eq(list.get_child_count(), 0, "innerHTML = '' (:2142)")
+
+
+func test_tapping_the_points_row_or_the_list_requests_the_screen() -> void:
+	# PORT: web/src/tilt-to-live/GoalsHUD.ts:129-135 (M9 plan R1)
+	var sheet: RunOverSheet = _sheet(Vector2(844, 390), 1.0)
+	watch_signals(sheet)
+	(sheet.find_child("PointsRow", true, false) as Control).gui_input.emit(_click())
+	assert_signal_emit_count(sheet, "milestones_requested", 1)
+	(sheet.find_child("MilestonesList", true, false) as Control).gui_input.emit(_click())
+	assert_signal_emit_count(sheet, "milestones_requested", 2)
+	var release: InputEventMouseButton = _click()
+	release.pressed = false
+	(sheet.find_child("PointsRow", true, false) as Control).gui_input.emit(release)
+	assert_signal_emit_count(sheet, "milestones_requested", 2, "a release is not a second tap")
+
+
+func test_many_milestones_keep_the_sheet_on_screen() -> void:
+	# M9 plan R9: the list takes the column's free space and clips.
+	var sheet: RunOverSheet = _sheet(Vector2(844, 390), 1.0)
+	var result: RunOverSheet.RunResult = _result()
+	var many: Array[GoalManager.Goal] = []
+	for i: int in range(7):
+		many.append(_goal("g%d" % i, "Milestone %d" % i, "a long description for row %d" % i, 2))
+	result.milestones = many
+	sheet.show_result(result)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var panel: Control = sheet.find_child("Sheet", true, false) as Control
+	assert_true(
+		sheet.get_global_rect().grow(0.5).encloses(panel.get_global_rect()),
+		"the sheet stays inside 844×390"
+	)
+	var retry: Control = sheet.find_child("RestartButton", true, false) as Control
+	# M1: wrapped by hand — gdformat --check would fail an existing file at >100 columns.
+	assert_true(
+		panel.get_global_rect().grow(0.5).encloses(retry.get_global_rect()), "Retry on the sheet"
+	)
+	assert_true((sheet.find_child("MilestonesClip", true, false) as Control).clip_contents)

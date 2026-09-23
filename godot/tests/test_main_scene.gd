@@ -440,3 +440,40 @@ func test_calibrate_reports_through_a_message_toast() -> void:
 	# PORT: web/src/tilt-to-live/TiltGame.ts:2335, :2337
 	assert_eq(title.text, "TILT CALIBRATED" if ok else "GYRO SENSOR")
 	assert_eq(subtitle.text, "Neutral Angle Zeroed ✓" if ok else "Sensor Unavailable or Blocked")
+
+
+func test_run_over_lists_the_runs_milestones_and_opens_the_screen() -> void:
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	var rc: RunController = root._run_controller
+	rc.run_tracker.score = 1000
+	rc.trigger_player_death()
+	var list: VBoxContainer = root.find_child("MilestonesList", true, false) as VBoxContainer
+	assert_true(list.visible, "TiltGame.ts:2140")
+	assert_eq(list.get_child_count(), 1)
+	var text: Label = list.get_child(0).find_child("MilestoneText", true, false) as Label
+	assert_eq(text.text, "Rookie Dodger — Reach 1,000 score in a run", ":2136")
+	var earned: Label = root.find_child("PointsEarnedLabel", true, false) as Label
+	assert_eq(earned.text, "+1", "max(1, 1) + 0 coins (:2118)")
+	var balance: Label = root.find_child("PointsBalanceLabel", true, false) as Label
+	assert_eq(balance.text, "7,332", "7331 + 1 (:2119)")
+	var click: InputEventMouseButton = InputEventMouseButton.new()
+	click.button_index = MOUSE_BUTTON_LEFT
+	click.pressed = true
+	list.gui_input.emit(click)
+	var screen: Control = root.find_child("MilestonesModal", true, false) as Control
+	assert_true(screen.visible, "GoalsHUD.ts:131-132")
+	(root.find_child("GoalsHud", true, false) as GoalsHUD).close_all_goals_modal()
+	(root.find_child("PointsRow", true, false) as Control).gui_input.emit(click)
+	assert_true(screen.visible, "GoalsHUD.ts:133-134")
+
+
+func test_run_over_hides_an_empty_milestones_list() -> void:
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	root._run_controller.trigger_player_death()
+	assert_false((root.find_child("MilestonesList", true, false) as Control).visible, ":2141-2143")
+	assert_eq((root.find_child("PointsEarnedLabel", true, false) as Label).text, "+0")
+	assert_eq((root.find_child("PointsBalanceLabel", true, false) as Label).text, "7,331")

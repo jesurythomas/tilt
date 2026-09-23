@@ -4,7 +4,7 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**M9 in progress:** Tasks 1–6 landed; next Task 7.
+**M9 in progress:** Tasks 1–7 landed; next Task 8.
 
 Last completed module: **M8.5 — Interface rework**, code complete
 2026-09-23 (code head `541e92c`; the exit commit is this one — `git log -1
@@ -67,23 +67,25 @@ Branch: `feat/godot-port` (no upstream; nothing pushed).
 cd /c/Users/Jesury/Documents/Personal/dread-flock
 GODOT="/c/Users/Jesury/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe"
 
-tools/run_tests.sh                        # expect: OK: 45/45 scripts (420 tests, 4559 asserts)
-gdformat --check godot/src godot/tests    # expect: 81 files would be left unchanged
+tools/run_tests.sh                        # expect: OK: 48/48 scripts (486 tests, 5462 asserts)
+gdformat --check godot/src godot/tests    # expect: 86 files would be left unchanged
 gdlint godot/src godot/tests              # expect: Success: no problems found
+grep -rn "TODO(M9)" godot/src/ godot/tests/  # expect: nothing
 grep -rniE "ff4757" godot/src/ui/         # expect: nothing (rule 01)
-grep -rn "DIVERGENCE" godot/src/ | wc -l  # expect: 154
-grep -rn "DIVERGENCE(UI-SYSTEM)" godot/src/ | wc -l   # expect: 86
+grep -rn "DIVERGENCE" godot/src/ | wc -l  # expect: 174
+grep -rn "DIVERGENCE(UI-SYSTEM)" godot/src/ | wc -l   # expect: 106
 "$GODOT" --headless --path godot --quit-after 120 2>&1 | grep -c "SCRIPT ERROR"   # expect: 0
 git checkout godot/project.godot          # headless runs strip one default-valued line; never commit that
 ```
 
-Every command above was run fresh at the M8.5 exit (2026-09-23) and passed:
-`OK: 45/45 scripts collected, all tests passed` (Tests 420, Passing 420,
-Asserts 4559; GUT also prints `Deprecated 5`, pre-existing); `81 files would
-be left unchanged`; `Success: no problems found`; the ff4757 grep printed
-nothing; DIVERGENCE `154`, UI-SYSTEM `86`; SCRIPT ERROR count `0`;
-`git status --short` empty afterwards. The module's leftover-marker grep
-(a `TODO` tagged with the module id) finds nothing under `godot/`.
+Every command above was run fresh at M9 Task 7 (2026-09-23) and passed:
+`OK: 48/48 scripts collected, all tests passed` (Tests 486, Passing 486,
+Asserts 5462; GUT also prints `Deprecated 5`, pre-existing); `86 files would
+be left unchanged`; `Success: no problems found`; the TODO(M9) grep printed
+nothing; the ff4757 grep printed nothing; DIVERGENCE `174`, UI-SYSTEM `106`;
+SCRIPT ERROR count `0`; `git status --short` empty afterwards (working tree,
+before this task's own changes were staged). The module's leftover-marker
+grep (a `TODO` tagged with the module id) finds nothing under `godot/`.
 
 `--check-only -s` on `src/meta/progression_manager.gd`, `game_options.gd`,
 `save_store.gd`, `sim/coin_system.gd` each fail with `Identifier not found:

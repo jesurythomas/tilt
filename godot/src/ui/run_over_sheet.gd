@@ -1,11 +1,16 @@
 ## run_over_sheet.gd
 ## PORTS: nothing — new file per interface spec §6.3 (RunOver.dc.html). The
 ##        game-over modal's content is TiltGame.ts:1180-1232 (markup) and
-##        :2088-2122 (population); HudController fills and wires it by name.
+##        :2088-2122 (population), :2132-2144 (earned milestones);
+##        GoalsHUD.ts:129-135 (bindGameOverClicks). HudController fills and
+##        wires it by name.
 class_name RunOverSheet
 extends Control
 ## The Run over overlay: a void scrim and a two-column Sheet, built in code so
 ## each board literal carries its citation. The Theme comes from the Hud above.
+
+## Tapping the points row or the milestones list. PORT: web/src/tilt-to-live/GoalsHUD.ts:129-135
+signal milestones_requested
 
 const CONTROL_PICKER: PackedScene = preload("res://scenes/control_picker.tscn")
 
@@ -35,6 +40,16 @@ const STEER_GAP: int = 10
 const BOTTOM_GAP: int = 8
 const SPEND_GAP: int = 4
 
+## Earned-milestone rows. DIVERGENCE(UI-SYSTEM): RunOver.dc.html — list gap 6,
+## row gap 9, the HUD toast's 14 px check, text 13 #C7CDDB, points Mono 12 flare.
+const LIST_GAP: int = 6
+const ROW_GAP: int = 9
+const ROW_POINTS_SIZE: int = 12
+
+var _ui_scale: float = 1.0
+var _points_row: HBoxContainer = null
+var _milestones: VBoxContainer = null
+var _shown_milestones: Array[GoalManager.Goal] = []
 var _sheet: PanelContainer = null
 var _columns: HBoxContainer = null
 var _left: VBoxContainer = null
@@ -72,6 +87,7 @@ func _ready() -> void:
 
 ## Scales the sheet and every board size in it.
 func set_ui_scale(scale: float) -> void:
+	_ui_scale = scale
 	_sheet.custom_minimum_size = Vector2(SHEET_WIDTH, SHEET_HEIGHT) * scale
 	_columns.add_theme_constant_override("separation", UiTheme.px(COLUMN_GAP, scale))
 	_left.add_theme_constant_override("separation", UiTheme.px(LEFT_GAP, scale))
@@ -110,6 +126,8 @@ func set_ui_scale(scale: float) -> void:
 	_spend.custom_minimum_size.y = UiTheme.TOUCH_TARGET * scale
 	_spend_row.add_theme_constant_override("separation", UiTheme.px(SPEND_GAP, scale))
 	_picker.set_ui_scale(scale)
+	_milestones.add_theme_constant_override("separation", UiTheme.px(LIST_GAP, scale))
+	_fill_milestones(_shown_milestones)
 
 
 ## Fills every figure. PORT: web/src/tilt-to-live/TiltGame.ts:2093-2122
@@ -124,6 +142,7 @@ func show_result(result: RunResult) -> void:
 	_earned.text = "+%s" % UiTheme.group_digits(result.earned)  # PORT: :2121
 	_balance.text = UiTheme.group_digits(result.balance)  # PORT: :2121
 	_spend_value.text = UiTheme.group_digits(result.balance)  # PORT: :2122
+	_fill_milestones(result.milestones)  # PORT: :2132-2144
 
 
 ## "Swarmed at 1:42 — Standard, 1.0×". PORT: web/src/tilt-to-live/TiltGame.ts:2095
@@ -185,32 +204,41 @@ func _build_left() -> VBoxContainer:
 
 func _build_right() -> VBoxContainer:
 	_right = UiTheme.sheet_column("RightColumn")
-	var points_row: HBoxContainer = HBoxContainer.new()
-	points_row.name = "PointsRow"
+	_points_row = HBoxContainer.new()
+	_points_row.name = "PointsRow"
 	var caption: Label = UiTheme.text("Points earned", "BodyText")
 	caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	points_row.add_child(caption)
+	_points_row.add_child(caption)
 	_earned = UiTheme.text("", "PointsText")
 	_earned.name = "PointsEarnedLabel"
-	points_row.add_child(_earned)
+	_points_row.add_child(_earned)
 	var arrow: Label = UiTheme.text("→", "PointsText")
 	arrow.add_theme_color_override("font_color", UiTheme.TEXT_FAINT)
-	points_row.add_child(arrow)
+	_points_row.add_child(arrow)
 	_balance = UiTheme.text("", "PointsText")
 	_balance.name = "PointsBalanceLabel"
-	points_row.add_child(_balance)
-	# TODO(M9): tapping the points row or the milestones list opens the
-	# Milestones screen (interface spec §6.3, R1; GoalsHUD.ts:129-135).
-	_right.add_child(points_row)
+	_points_row.add_child(_balance)
+	# PORT: web/src/tilt-to-live/GoalsHUD.ts:133-134 (.gameover-points-box opens the screen)
+	_points_row.mouse_filter = Control.MOUSE_FILTER_STOP
+	_points_row.gui_input.connect(_on_rows_gui_input)
+	_right.add_child(_points_row)
 
-	var milestones: VBoxContainer = VBoxContainer.new()
-	milestones.name = "MilestonesList"
-	# TODO(M9): the goals completed this run (TiltGame.ts:2128-2135).
-	milestones.visible = false
-	_right.add_child(milestones)
-	var fill: Control = Control.new()
-	fill.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_right.add_child(fill)
+	# M9 plan R9: the list sits in the board's flex gap (RunOver.dc.html's
+	# flex-grow spacer) and clips there, so a long list never grows the sheet.
+	var clip: Control = Control.new()
+	clip.name = "MilestonesClip"
+	clip.clip_contents = true
+	clip.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_milestones = VBoxContainer.new()
+	_milestones.name = "MilestonesList"
+	_milestones.visible = false
+	# PORT: web/src/tilt-to-live/GoalsHUD.ts:131-132 (the list opens the screen)
+	_milestones.mouse_filter = Control.MOUSE_FILTER_STOP
+	_milestones.gui_input.connect(_on_rows_gui_input)
+	clip.add_child(_milestones)
+	_milestones.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	_right.add_child(clip)
 
 	_steer_row = HBoxContainer.new()
 	_steer_caption = UiTheme.caps("Steer")
@@ -277,6 +305,55 @@ func _stat_cell(grid: HBoxContainer, value_name: String, caption: String) -> Lab
 	return value
 
 
+## PORT: web/src/tilt-to-live/TiltGame.ts:2132-2144
+func _fill_milestones(goals: Array[GoalManager.Goal]) -> void:
+	_shown_milestones = goals
+	for child: Node in _milestones.get_children():
+		_milestones.remove_child(child)
+		child.queue_free()
+	for goal: GoalManager.Goal in goals:
+		_milestones.add_child(_milestone_row(goal))
+	_milestones.visible = not goals.is_empty()
+
+
+## One earned milestone. PORT: web/src/tilt-to-live/TiltGame.ts:2133-2139
+## DIVERGENCE(UI-SYSTEM): RunOver.dc.html — row styles (M9 plan R6 is superseded).
+func _milestone_row(goal: GoalManager.Goal) -> HBoxContainer:
+	var row: HBoxContainer = HBoxContainer.new()
+	row.name = "MilestoneRow_" + goal.id
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_theme_constant_override("separation", UiTheme.px(ROW_GAP, _ui_scale))
+	var check: TextureRect = TextureRect.new()
+	check.texture = UiTheme.svg_texture(UiTheme.ICON_CHECK, _ui_scale)
+	check.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+	check.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(check)
+	var text: Label = UiTheme.text("%s — %s" % [goal.title, goal.description], "BodyText")
+	text.name = "MilestoneText"
+	text.add_theme_color_override("font_color", UiTheme.TEXT_SECONDARY)
+	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	text.clip_text = true
+	text.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	text.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(text)
+	var pts: Label = UiTheme.text("+%d" % goal.reward_points, "PointsText")
+	pts.name = "MilestonePoints"
+	pts.add_theme_font_override("font", UiTheme.mono(UiTheme.Weight.REGULAR))
+	pts.add_theme_font_size_override("font_size", UiTheme.px(ROW_POINTS_SIZE, _ui_scale))
+	pts.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(pts)
+	return row
+
+
+## bindGameOverClicks' handler. PORT: web/src/tilt-to-live/GoalsHUD.ts:131-134
+func _on_rows_gui_input(event: InputEvent) -> void:
+	if not (event is InputEventMouseButton):
+		return
+	var click: InputEventMouseButton = event
+	if click.pressed and click.button_index == MOUSE_BUTTON_LEFT:
+		milestones_requested.emit()
+
+
 ## What the sheet shows, gathered by HudController.run_result_for().
 class RunResult:
 	extends RefCounted
@@ -290,3 +367,5 @@ class RunResult:
 	var best_diff: int = 0
 	var earned: int = 0
 	var balance: int = 0
+	## The goals evaluateRun completed. PORT: web/src/tilt-to-live/TiltGame.ts:2086
+	var milestones: Array[GoalManager.Goal] = []

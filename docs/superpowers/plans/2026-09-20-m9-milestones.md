@@ -3050,7 +3050,7 @@ git log -1 --format=%B
 - Consumes: `RunController.run_completed_goals/points_earned_this_run/coins.points_from_coins` (Task 4), `GoalsHUD.open_all_goals_modal()` (Task 5), `UiTheme.ICON_CHECK`.
 - Produces: `RunOverSheet.milestones_requested` signal; `RunOverSheet.RunResult.milestones: Array[GoalManager.Goal]`; node names `PointsRow` (now tappable), `MilestonesClip`, `MilestonesList`, rows `MilestoneRow_<goal id>` containing `MilestoneText`, `MilestonePoints`; `GameRoot.open_all_goals_modal() -> void`.
 
-- [ ] **Step 1: Write the failing tests.** In `godot/tests/test_run_over_sheet.gd`:
+- [x] **Step 1: Write the failing tests.** In `godot/tests/test_run_over_sheet.gd`:
   - In `test_sheet_carries_the_board_controls`, change the last assertion's message from `"hidden until M9 fills it"` to `"hidden until a result lists milestones"`, and add `"MilestonesClip"` to the name list.
   - Append:
 
@@ -3183,9 +3183,9 @@ func test_run_over_hides_an_empty_milestones_list() -> void:
 	assert_eq((root.find_child("PointsBalanceLabel", true, false) as Label).text, "7,331")
 ```
 
-- [ ] **Step 2: Run to verify they fail** — `tools/run_tests.sh` → `collected 47 of 48` (`test_run_over_sheet.gd` does not parse: `RunResult.milestones` unknown); the two new `test_main_scene.gd` tests fail (the list stays hidden).
+- [x] **Step 2: Run to verify they fail** — `tools/run_tests.sh` → `collected 47 of 48` (`test_run_over_sheet.gd` does not parse: `RunResult.milestones` unknown); the two new `test_main_scene.gd` tests fail (the list stays hidden).
 
-- [ ] **Step 3: `RunOverSheet`** (`godot/src/ui/run_over_sheet.gd`):
+- [x] **Step 3: `RunOverSheet`** (`godot/src/ui/run_over_sheet.gd`):
   - Header `## PORTS:` block: after `:2088-2122 (population)` add `, :2132-2144 (earned milestones);` and a line `##        GoalsHUD.ts:129-135 (bindGameOverClicks).`
   - **Before** `const CONTROL_PICKER ...` (gdlint's class-definitions-order puts signals ahead of constants): `## Tapping the points row or the milestones list. PORT: web/src/tilt-to-live/GoalsHUD.ts:129-135` / `signal milestones_requested`, then a blank line.
   - Constants after `SPEND_GAP`:
@@ -3284,7 +3284,7 @@ func _on_rows_gui_input(event: InputEvent) -> void:
 
   - `RunResult` gains, after `balance`: `## The goals evaluateRun completed. PORT: web/src/tilt-to-live/TiltGame.ts:2086` / `var milestones: Array[GoalManager.Goal] = []`.
 
-- [ ] **Step 4: `HudController`** (`godot/src/ui/hud_controller.gd`):
+- [x] **Step 4: `HudController`** (`godot/src/ui/hud_controller.gd`):
   - In `run_result_for`, replace the two lines from `# TODO(M9): + Math.max(...)` through `result.earned = run.coins.points_from_coins  # PORT: :2118` with:
 
 ```gdscript
@@ -3309,7 +3309,7 @@ func _on_milestones_requested() -> void:
 		root.open_all_goals_modal()
 ```
 
-- [ ] **Step 5: `GameRoot`** — after `is_armory_open()` (M8: `get_run_controller()` was dropped there in Task 5):
+- [x] **Step 5: `GameRoot`** — after `is_armory_open()` (M8: `get_run_controller()` was dropped there in Task 5):
 
 ```gdscript
 ## Opens the full Milestones screen (the Run over rows, the M key; the menu link is M11's).
@@ -3320,9 +3320,9 @@ func open_all_goals_modal() -> void:
 
   In `godot/src/sim/run_controller.gd`, if a `TODO(M11)` comment still says the game-over reads `points_from_coins` (step 5.5), edit it to `# TODO(M11): the coins row reads coins.coins_collected (TiltGame.ts:2108, :2123-2130); points_from_coins already feeds the Run over total (M9).` — otherwise leave the file alone and drop it from `git add`.
 
-- [ ] **Step 6: Verify** — `tools/run_tests.sh` → `OK: 48/48 scripts (486 tests)`; `gdformat --check` (`86 files would be left unchanged`), `gdlint` clean; `grep -rn "TODO(M9)" godot/src/ godot/tests/` prints nothing; `grep -rniE "ff4757" godot/src/ui/` prints nothing; headless boot `grep -c "SCRIPT ERROR"` → `0`. Record `grep -rn "DIVERGENCE" godot/src/ | wc -l` and `grep -rn "DIVERGENCE(UI-SYSTEM)" godot/src/ | wc -l` in `HANDOFF.md`'s verify block — Task 9 checks against them.
+- [x] **Step 6: Verify** — `tools/run_tests.sh` → `OK: 48/48 scripts (486 tests)`; `gdformat --check` (`86 files would be left unchanged`), `gdlint` clean; `grep -rn "TODO(M9)" godot/src/ godot/tests/` prints nothing; `grep -rniE "ff4757" godot/src/ui/` prints nothing; headless boot `grep -c "SCRIPT ERROR"` → `0`. Record `grep -rn "DIVERGENCE" godot/src/ | wc -l` and `grep -rn "DIVERGENCE(UI-SYSTEM)" godot/src/ | wc -l` in `HANDOFF.md`'s verify block — Task 9 checks against them.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git checkout godot/project.godot

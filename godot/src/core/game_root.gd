@@ -347,6 +347,12 @@ func is_armory_open() -> bool:
 	return _armory.is_open()
 
 
+## Opens the full Milestones screen (the Run over rows, the M key; the menu link is M11's).
+## PORT: web/src/tilt-to-live/TiltGame.ts:195
+func open_all_goals_modal() -> void:
+	_goals_hud.open_all_goals_modal()
+
+
 ## Calculates the arena scale factor for a viewport dimension.
 ## PORT: web/src/tilt-to-live/TiltGame.ts:2422-2431
 static func arena_scale(width: float, height: float) -> float:
