@@ -485,6 +485,7 @@ func _weapon_list(perks: Dictionary, selected: WeaponConfig) -> Control:
 		dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(dot)
 		var name_label: Label = _one_line(w.name, "LabelText")  # PORT: :437
+		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		name_label.add_theme_font_override("font", UiTheme.sans(UiTheme.Weight.MEDIUM))
 		if is_selected:
 			name_label.add_theme_color_override("font_color", UiTheme.COLOR_TEXT)
@@ -1284,6 +1285,9 @@ func _pad(top: int, right: int, bottom: int, left: int) -> MarginContainer:
 
 
 ## One idea per line: a Label that clips with an ellipsis (System.dc.html rule 03).
+## Clipping floors the minimum width at 1 px; a caller placing it in an HBox
+## alongside other content (as _weapon_list does) must also set
+## size_flags_horizontal = Control.SIZE_EXPAND_FILL or it collapses to 1 px.
 func _one_line(content: String, variation: String) -> Label:
 	var label: Label = UiTheme.text(content, variation)
 	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS

@@ -538,6 +538,27 @@ func test_weapons_tab_fits_the_a55() -> void:
 	await _assert_tab_fits("weapons", Vector2(2340, 1080), 1080.0 / 390.0)
 
 
+func test_weapon_list_names_are_not_squeezed_to_one_pixel() -> void:
+	# The list row's name label must expand to fill its HBox, or clip_text's
+	# 1 px floor collapses it and the rank label rides up against the dot.
+	var armory: ArmoryUI = _hosted(Vector2(844, 390), 1.0)
+	armory.open("weapons")
+	await get_tree().process_frame
+	var row: Button = armory.find_child("Weapon_blackhole", true, false) as Button
+	var rank_label: Label = armory.find_child("WeaponRank_blackhole", true, false) as Label
+	var name_label: Label = null
+	for node: Node in row.find_children("*", "Label", true, false):
+		if node != rank_label:
+			name_label = node as Label
+			break
+	assert_not_null(name_label, "the weapon name label must exist")
+	assert_true(name_label.size.x > 1.0, "name label width %s must exceed 1 px" % name_label.size.x)
+	assert_true(
+		rank_label.global_position.x > name_label.global_position.x + name_label.size.x - 0.5,
+		"WeaponRank_blackhole must sit to the right of the name label"
+	)
+
+
 func _slider(name: String) -> HSlider:
 	var s: HSlider = _armory.find_child(name, true, false) as HSlider
 	assert_not_null(s, "%s must exist" % name)
