@@ -372,11 +372,11 @@ func test_arena_tab_shows_both_catalogs_with_counts() -> void:
 	assert_eq(_label("ThemesPill").text, "Arena Themes · 1 of 6 unlocked")
 	assert_eq(_label("EnemiesPill").text, "Enemy Variations · 1 of 6 unlocked")
 	assert_true(_button("EquippedArena_void").disabled)
-	assert_eq(_button("BuyArena_synthwave").text, "400 pts")
-	assert_eq(_label("ArenaCost_void").text, "FREE", "price 0 reads FREE (:709)")
-	assert_eq(_label("ArenaCost_synthwave").text, "400 pts")
+	assert_eq(_label("ArenaState_void").text, "✓ Equipped")
+	assert_eq(_label("ArenaState_synthwave").text, "400 pts")
+	assert_false(_button("BuyArena_synthwave").disabled)
 	assert_true(_button("EquippedEnemy_classic").disabled)
-	assert_eq(_button("BuyEnemy_gold").text, "1,500 pts")
+	assert_eq(_label("EnemyState_gold").text, "1,500 pts")
 
 
 func test_buy_then_equip_arena_theme() -> void:
@@ -385,10 +385,11 @@ func test_buy_then_equip_arena_theme() -> void:
 	assert_true(_progression.data.unlocked_arena_themes.has("synthwave"))
 	assert_eq(_progression.data.points, 7331 - 400)
 	assert_eq(
-		_button("EquippedArena_synthwave").text,
-		"Equipped",
+		_label("ArenaState_synthwave").text,
+		"✓ Equipped",
 		"buying equips (ProgressionManager.ts:768-777)"
 	)
+	assert_true(_button("EquippedArena_synthwave").disabled)
 	_button("BuyArena_nebula").pressed.emit()
 	watch_signals(_armory)
 	_button("EquipArena_synthwave").pressed.emit()
@@ -629,3 +630,56 @@ func test_leaving_the_handling_tab_stops_the_preview() -> void:
 	)
 	_armory.close()
 	assert_false(preview.is_running(), "close() → stopHandlingPreview (:318)")
+
+
+func test_ship_meter_fraction() -> void:
+	# Interface spec §6.4 (ruled): value ÷ the catalog's largest value of that stat.
+	var values: Array[float] = [1.0, 1.2, 0.4, 1.9]
+	assert_almost_eq(ArmoryUI.ship_meter_fraction(1.9, values), 1.0, 0.0001)
+	assert_almost_eq(ArmoryUI.ship_meter_fraction(0.95, values), 0.5, 0.0001)
+	var none: Array[float] = []
+	assert_eq(ArmoryUI.ship_meter_fraction(1.0, none), 0.0)
+
+
+func test_ship_cards_carry_normalised_meters() -> void:
+	_armory.open("ships")
+	var top_hitbox: float = 0.0
+	for s: ProgressionManager.ShipSkinConfig in _progression.ship_catalog:
+		top_hitbox = maxf(top_hitbox, s.hitbox_scale)
+	var meter: ProgressBar = _armory.find_child("HitboxMeter_classic", true, false) as ProgressBar
+	assert_almost_eq(meter.value, 1.0 / top_hitbox, 0.0001, "classic hitbox_scale 1.0")
+	assert_not_null(_armory.find_child("TurnMeter_classic", true, false))
+
+
+func test_ship_and_arena_rows_scroll_sideways() -> void:
+	_armory.open("ships")
+	var ships: ScrollContainer = _armory.find_child("ShipsRow", true, false) as ScrollContainer
+	assert_eq(ships.vertical_scroll_mode, ScrollContainer.SCROLL_MODE_DISABLED)
+	_armory.open("arena")
+	for row: String in ["ThemesRow", "EnemiesRow"]:
+		var scroll: ScrollContainer = _armory.find_child(row, true, false) as ScrollContainer
+		assert_eq(scroll.vertical_scroll_mode, ScrollContainer.SCROLL_MODE_DISABLED, row)
+
+
+func test_owned_theme_reads_owned() -> void:
+	_armory.open("arena")
+	_button("BuyArena_synthwave").pressed.emit()
+	_button("BuyArena_nebula").pressed.emit()
+	assert_eq(_label("ArenaState_synthwave").text, "Owned")
+	assert_false(_button("EquipArena_synthwave").disabled)
+
+
+func test_ships_tab_fits_the_board_frame() -> void:
+	await _assert_tab_fits("ships", Vector2(844, 390), 1.0)
+
+
+func test_ships_tab_fits_the_a55() -> void:
+	await _assert_tab_fits("ships", Vector2(2340, 1080), 1080.0 / 390.0)
+
+
+func test_arena_tab_fits_the_board_frame() -> void:
+	await _assert_tab_fits("arena", Vector2(844, 390), 1.0)
+
+
+func test_arena_tab_fits_the_a55() -> void:
+	await _assert_tab_fits("arena", Vector2(2340, 1080), 1080.0 / 390.0)
