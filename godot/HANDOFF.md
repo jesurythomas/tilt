@@ -36,7 +36,9 @@ Hud board, arena frame, lives, weapon timer. Task 3 landed: Pause is a
 `ControlPicker`). Task 4 landed: Run over is a `RunOverSheet`. Task 5 landed:
 the Armory shell and Weapons tab are on the `ArmoryWeapons` board. Task 6
 landed: Ships and Arena on their boards. Task 7 landed: Handling + Boosts on
-their boards, legacy tokens gone. Task 8 (device pass or its hand-off) is next. Then M9, whose plan exists but
+their boards, legacy tokens gone. Task 8: device pass **pending** (A55
+absent 2026-09-23; checklist appended to `VERIFY-ME.md` §M8.5; debug APK
+31,561,743 bytes). Task 9 (module exit) is next. Then M9, whose plan exists but
 has Tasks 5–7 superseded. See `## Next`. The A55 "Mobile scale split" pass
 was skipped for now by the user (phone still absent from adb) — its checks
 stay unticked in `VERIFY-ME.md`.
@@ -796,12 +798,18 @@ it inline. `tools/run_tests.sh` → `OK: 45/45 scripts collected, all tests
 passed` (420 tests, 4559 asserts). gdformat/gdlint clean; ff4757 grep empty;
 headless → 0 `SCRIPT ERROR`; `DIVERGENCE` count 154.
 
-**Now: M8.5 Task 8 (Device pass, or its hand-off)** — read the plan's Task 8.
-Step 1 checks `adb devices` for `RRCXB04L8EJ` (absent since 2026-09-20); if
-absent, skip to Step 3 and append the unrun checklist to `godot/VERIFY-ME.md`
-under `## M8.5 — Interface rework` (never recreate the file; never report
-device results that were not observed). Task 8 includes the nested-scroll
-drag check and the new Handling tilt slider/Calibrate. The SDD ledger is
+**Done 2026-09-23: M8.5 Task 8 (device pass hand-off)** — `adb devices`
+returned an empty list, so nothing ran on the A55 and no device result is
+recorded. The debug APK exported cleanly at **31,561,743 bytes** (+1,030,646
+over M8's 30,531,097). The unrun checklist, which includes M8's Armory pass,
+the nested-scroll drag check and the Handling tilt slider/Calibrate, is in
+`godot/VERIFY-ME.md` under `## M8.5 — Interface rework`.
+
+**Now: M8.5 Task 9 (Module exit, CONVENTIONS §9)** — read the plan's Task 9.
+Step 1 re-runs every check fresh (expect 45/45 scripts; record
+tests/asserts, DIVERGENCE counts); then PORT-PROGRESS gets the M8.5 entry
+(device pass pending, APK 31,561,743 bytes), the index and M9 plans are
+updated, HANDOFF is rewritten, and the work is committed. The SDD ledger is
 `.superpowers/sdd/2026-09-23-m8.5-interface-rework/progress.md`.
 
 **After M8.5:** rewrite Tasks 5–7 of

@@ -386,3 +386,47 @@ Both constants are guesses until you look at them.
       transform. Fine or distracting?
 - [ ] Frame time under a mass explosion is unchanged:
       `adb -s RRCXB04L8EJ shell dumpsys gfxinfo com.jtg.perilpoint | grep -A3 50th`.
+
+## M8.5 — Interface rework (device pass, plan Task 8; interface spec §7)
+
+Folds in M8's pending Armory pass: the Armory it described is rebuilt, so
+tick M8's section only through this one (spec §7). Build and install per
+§0. Compare every screen with its board in `peril-point-mobile-redesign/`
+(open the `.dc.html` in a browser at 844×390).
+
+**Type and scale**
+- [ ] Titles render in Archivo (wide, bold); labels in IBM Plex Sans; every number in IBM Plex Mono. The score does not jitter as it counts.
+- [ ] Nothing reads smaller than the board suggests (ui_scale ≈ 2.77 on the A55). Nothing is clipped at a screen edge or under the camera cutout.
+
+**HUD** (`Hud.dc.html`)
+- [ ] A thin ion outline marks the playfield, inside the bezel and gesture bar.
+- [ ] Score top-centre, BEST under it, multiplier chip from 2× in its tier colour (yellow 2–4, orange 5–9, magenta 10–19, cyan 20+); the kill pulse still fires.
+- [ ] Buy **Extra Life** in the Armory, start a run: ship icons top-left, one greys out per life lost. A one-life run shows none (TS behaviour).
+- [ ] Pick up a timed weapon: "NAME n.ns" and a thin meter at bottom centre in the weapon's colour; the shield after a lost life shows "SHIELD".
+- [ ] Pause is a 48 px square top-right, inside the outline, easy to hit.
+
+**Pause** (`Pause.dc.html`)
+- [ ] Sheet centred over a dark scrim; "Paused", then "score · m:ss · mode".
+- [ ] Resume (tall, blue) resumes; **Restart run** starts a fresh run.
+- [ ] Steer: Touch | Tilt segmented; the calibrate button beside it appears **only** in Tilt, and tapping it re-zeroes tilt (no toast until M9).
+- [ ] Sound and Music switches flip, and survive an app restart.
+- [ ] Armory opens the Armory; closing it returns to this sheet.
+- [ ] No Quit or Settings button (M11).
+
+**Run over** (`RunOver.dc.html`)
+- [ ] Big score, "Swarmed at m:ss — mode, 1.0×"; Kills · Best chain · Alive.
+- [ ] Beat your best: the flare "New best — up N" banner appears; otherwise it does not.
+- [ ] "Points earned +X → Y" matches the coins picked up; **Spend Y** opens the Armory.
+- [ ] Retry (tall, blue, right column) starts a run. No Menu button (M11).
+
+**Armory** (`ArmoryWeapons/Ships/Arena/Handling/Boosts.dc.html`)
+- [ ] Full-screen dark shell; 64 px header: back, "Armory", five tabs, points "N PTS" in flare, blue **Play**. Back and Play both close.
+- [ ] Weapons: list on the left scrolls (fade at its foot); detail with tinted icon box, INVESTED; tracks with pips and cost buttons; keystones in plasma, dimmed with a lock when unaffordable. Buying still works and persists.
+- [ ] Ships: cards scroll sideways; Hitbox/Turn meters differ per ship; Equip/Buy work.
+- [ ] Arena: themes and enemies rows scroll sideways; tapping a card buys or equips it; the arena changes in a run.
+- [ ] Nested scrolls (Task 6 review): a sideways drag that **starts on a card** scrolls its row (Ships, Arena themes, enemies) instead of being eaten as a tap; a vertical drag starting on a row still scrolls the tab body.
+- [ ] Handling: Turn rate and Tilt sensitivity sliders; the preview ship responds to tilt; **Calibrate tilt** re-zeroes; Reset restores both.
+- [ ] Boosts: 2×N cards with pips; cost buttons; "Max" when maxed.
+
+**Findings** (fill in; one line each: screen — what differs from the board)
+- (none — not run: A55 absent from adb on 2026-09-23; debug APK exports at 31,561,743 bytes, +1,030,646 over M8's 30,531,097)
