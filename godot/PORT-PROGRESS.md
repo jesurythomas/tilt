@@ -223,9 +223,27 @@ Dependency map and resume instructions:
           (86 UI-SYSTEM); headless `--quit-after 120` 0 SCRIPT ERROR
       --  A55 absent — see `VERIFY-ME.md` §M8.5
 
-- [ ] **M9 — Milestones**  deps: M7
-      -- GUT specs cover goal evaluation for every category
-      -- rail updates live during a run; toasts fire on completion
+- [x] **M9 — Milestones**  deps: M7   *(2026-09-24, commit `cd77de6`; DEVICE PASS PENDING)*
+      plan  `docs/superpowers/plans/2026-09-20-m9-milestones.md`
+      **tick this box only after `godot/VERIFY-ME.md` §M9 is run on the A55**
+      ok  `meta/goal_manager.gd` — full port of `GoalManager.ts` (all 57
+          goals, `CumulativeStats`, `RunTracker`, `evaluate_run`,
+          `evaluate_live_total_goals`, `evaluate_unlock_goals`); rulings
+          R1–R11 (plan) plus B1–B5/I1–I5/M1–M15 (pre-flight) and the final
+          review's I-1/M-1..M-4 (I-2 parked, Open question 6).
+      ok  `ui/goals_hud.gd` — rail on the HUD arena frame's top edge, toast
+          in the HUD `ToastSlot`, full-screen three-column Milestones screen
+          (`UiTheme`, interface spec §6.5).
+      ok  `RunOverSheet` fills "Points earned" and the earned-milestones list
+          450 ms after `run_ended` (final review I-1,
+          `TiltGame.ts:2084-2151`), so a death-tick total-goal completion
+          reaches the sheet.
+      ok  48/48 GUT scripts (487 tests, 5467 asserts); gdformat 86 files
+          unchanged; gdlint clean; `TODO(M9)` grep empty; `ff4757` grep
+          empty (rule 01); 174 `DIVERGENCE` tags (106 `UI-SYSTEM`); headless
+          `--quit-after 120` 0 SCRIPT ERROR.
+      --  A55 absent from `adb` on 2026-09-23 — device pass pending;
+          `VERIFY-ME.md` §M9 has 7 unticked hand-held checks.
 
 - [ ] **M10 — Modes**  deps: M3
       -- all 3 modes playable start to death

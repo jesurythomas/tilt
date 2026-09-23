@@ -4,31 +4,36 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**M9 in progress:** Tasks 1–8 landed (device half unrun, A55 absent); final
-review's I-1 fixed 2026-09-24 (see below); next Task 9.
+**M9 — Milestones is code-complete, device pass pending.** Exit protocol
+(CONVENTIONS §9) run 2026-09-24; final commit `cd77de6` (the parent of this
+handoff's own exit commit — `git log -1 --format=%H` on the exit commit,
+`git log -2 --format=%H` shows both). `PORT-PROGRESS.md`'s M9 box is ticked
+with "DEVICE PASS PENDING"; `VERIFY-ME.md` §M9 has 7 unticked hand-held
+checks (rail, toast, Run over list, Milestones screen, boot unlocks,
+persistence, frame time) — the A55 was absent from `adb` on 2026-09-23.
 
 **Final review fixes** (`.superpowers/sdd/2026-09-20-m9-milestones/final-review.md`,
-`final-fix-report.md`): **I-1** — Run over now fills/shows 450 ms after
-`run_ended`, ported from `TiltGame.ts:2089-2151` (`HudController._on_run_ended`
+`final-fix-report.md`, commit `cd77de6`): **I-1** — Run over now fills/shows 450 ms after
+`run_ended`, ported from `TiltGame.ts:2084-2151` (`HudController._on_run_ended`
 starts a one-shot `Timer`; stopped on Retry or any phase change so a stale
 fill cannot reopen the sheet), so a total-goal completion on the death tick
 (step 8, `run_controller.gd:227`) now reaches "Points earned" and the
-balance. **M-1, M-3, M-4** — PORT-NOTE added at `goals_hud.gd`'s Escape
+balance. One script-level regression test pins the death-tick order (487th
+test, +1 over Task 7's 486). **M-1, M-3, M-4** — PORT-NOTE added at `goals_hud.gd`'s Escape
 handling; `VERIFY-ME.md`'s M9 Toast line reworded (Armory-close/mid-run total,
 calibrate marked pending I-2); `goal_manager.gd:24`'s stale process-note
 replaced. **I-2** (toast under Pause/Armory) is parked for the user — plan
-Open question 6.
+Open question 6. Full section: "## M9 — what landed" below.
 
-Last completed module: **M8.5 — Interface rework**, code complete
-2026-09-23 (code head `541e92c`; the exit commit is this one — `git log -1
---format=%H`). **Device pass pending**: the A55 has been absent from `adb`
-since 2026-09-20 (`adb devices` empty again on 2026-09-23).
-Code-complete, **device pass pending** (none ticked in `PORT-PROGRESS.md`):
+Last completed module before M9: **M8.5 — Interface rework**, code complete
+2026-09-23 (head `541e92c`).
+Code-complete, **device pass pending** (none ticked but M9 in `PORT-PROGRESS.md`):
 **M2.5 — Mobile feel** (head `37f9fd4` + the user's tuning `c023e09`),
 **M3 — Enemy roster** (head `5bb5cc9`), **M4 — Weapons** (head `0b7fccf`),
 **M7 — Persistence and economy** (head `dba9126`),
 **M8 — Armory UI** (head `f0cac03`; its device pass is folded into M8.5's),
-**M8.5 — Interface rework** (head `541e92c`).
+**M8.5 — Interface rework** (head `541e92c`),
+**M9 — Milestones** (head `cd77de6`; its device pass is its own, `VERIFY-ME.md` §M9).
 Also landed after M4/M8, still device-unchecked: **HUD score feedback**
 (`9cc3e8f..31bf2ce`) and the **mobile scale split** (2026-09-22, see its
 section below; the user skipped its A55 pass while the phone is absent).
@@ -100,10 +105,15 @@ SCRIPT ERROR count `0`; `git status --short` empty afterwards (working tree,
 before this task's own changes were staged). The module's leftover-marker
 grep (a `TODO` tagged with the module id) finds nothing under `godot/`.
 
-Re-run after the final review's I-1 fix (2026-09-24, before Task 9): `OK:
-48/48 scripts collected, all tests passed` (Tests 487, Passing 487, Asserts
-5467 — +1 script-level regression test for the death-tick order, `# gdlint`
-clean, `SCRIPT ERROR` count `0`). See "Final review fixes" below.
+Re-run after the final review's I-1 fix and again fresh at Task 9's exit
+(2026-09-24, commit `cd77de6`): `OK: 48/48 scripts collected, all tests
+passed` (Tests 487, Passing 487, Asserts 5467 — +1 script-level regression
+test for the death-tick order over Task 7's 486); `86 files would be left
+unchanged`; `Success: no problems found`; TODO(M9) grep empty; ff4757 grep
+empty; DIVERGENCE `174`, UI-SYSTEM `106` (unchanged from Task 7 — the I-1 fix
+added no new UI literals); SCRIPT ERROR count `0`; `git status --short` empty
+before and after. See "Final review fixes" above and "## M9 — what landed"
+below.
 
 `--check-only -s` on `src/meta/progression_manager.gd`, `game_options.gd`,
 `save_store.gd`, `sim/coin_system.gd` each fail with `Identifier not found:
@@ -738,23 +748,184 @@ are deliberate.
   state should restart it at the target `wait_time` instead of writing
   `time_left`.
 
+## M9 — what landed
+
+Plan `docs/superpowers/plans/2026-09-20-m9-milestones.md` (9 tasks); ledger
+`.superpowers/sdd/2026-09-20-m9-milestones/progress.md` (git-ignored — every
+`Ruling:` line was copied verbatim, in order, into the plan's new
+"## Execution rulings (SDD ledger, 2026-09-23)" section before this handoff,
+since the ledger itself will be deleted). 9 commits (Task 1 through the final
+fix), `b119229..cd77de6`.
+
+| Area | Files |
+|---|---|
+| Full `GoalManager.ts` port — all 57 goals, `CumulativeStats`, `RunTracker`, `evaluate_run`, `evaluate_live_total_goals`, `evaluate_unlock_goals` | `src/meta/goal_manager.gd` (`gdlint:disable=max-file-lines` line 1, LAW 3 — 1002 lines, plan defect #30) |
+| Full `GoalsHUD.ts` port — rail, toast, full-screen Milestones screen, built to the interface boards | `src/ui/goals_hud.gd` |
+| Run tracker wired at frame-order step 10; `evaluate_run`/`evaluate_live_total_goals` calls | `src/sim/run_controller.gd` |
+| Rail hosted on the HUD arena frame, toast in the HUD `ToastSlot` (R8) | `src/ui/hud_controller.gd` |
+| "Points earned" total, earned-milestones list, screen opener; I-1's 450 ms post-`run_ended` fill timer | `src/ui/run_over_sheet.gd` |
+| Bare-array save shape (R3) | `src/meta/save_store.gd` (`load_string_list`/`save_string_list`) |
+| Tests | `tests/test_goal_manager.gd`, `test_goal_parity.gd`, `test_goals_hud.gd` (the three new scripts); additions to `test_run_controller.gd`, `test_run_over_sheet.gd`, `test_hud_controller.gd`, `test_save_store.gd`, `test_main_scene.gd` |
+
+**Rulings R1–R11** (plan, recorded 2026-09-23 before execution; full text in
+the plan's Rulings section):
+- **R1** — Run over's "Points earned" total and earned-milestones list are
+  ported into `RunOverSheet`; tapping either opens the Milestones screen. The
+  rail replaces the old tappable-rail plan (R11); the coins row stays dropped.
+- **R2** — `TiltGame.ts`'s second, always-hidden `railProgress` rail is not
+  ported (PORT-NOTE; the stale `TODO(M9): railProgress` removed).
+- **R3** — completed-goal ids keep the TS's bare-array JSON shape.
+- **R4** — callback wiring order matches the TS: `GoalsHud.bind()` installs
+  its own callbacks and runs `check_unlock_goals()` before `GameRoot`
+  overrides them.
+- **R5** — `GameEvents.goal_completed` is emitted by `GameRoot._on_goal_completed`.
+- **R6** — Run over row styles come from `TiltGame.ts:855-874`'s injected
+  sheet (superseded by `RunOver.dc.html`, interface spec §2).
+- **R7/I3** — the run is double-counted at every `evaluate_run` (not only the
+  death tick); preserved (LAW 2), PORT-NOTEs added — Open question 1.
+- **R8** — rail and toast live in the HUD (`%Frame`/`%ToastSlot` hosts); the
+  Milestones screen is `GoalsHud`'s own child between `Hud` and `Armory`.
+- **R9** — a 4+ row milestones list clips in Run over rather than scrolling —
+  Open question 2, confirm at the device pass.
+- **R10** — open run goals show no progress bar (spec §6.5 wins over the
+  TS's empty bar) — Open question 3.
+- **R11** — the rail is not tappable and there is no backdrop-click close;
+  openers are Run over's rows, the `M` key, and (M11) the menu link.
+
+**Pre-flight rulings** (dispatched in parallel with Task 1, scan found 5
+Blocking/5 Important/15 Minor, folded into the task text before execution —
+full text in the plan's "Execution rulings" section): B1 fixed two Task-3
+tests instead of `evaluate_run` (LAW 2); B2 compares the sorted cumulative
+key set; B3 keeps the TS's render-before-listeners bind order so pre-owned
+unlocks complete silently (Open question 4); B4/B5 are test-only; I1
+region-scoped a `gdlint` disable on `get_metric_value`; I2 disabled
+`max-public-methods` on four test scripts; I3 is R7 (both double-count sites
+covered by one PORT-NOTE + Open question 1); I4 moved the ion ring SVG into
+`UiTheme.ICON_RING`; I5 put `next: M9 Task N` in commit messages; M1–M15 were
+mechanical fixes (wrapped lines, citations, a rename, a doc string); M8
+dropped `GameRoot.get_run_controller()`; M10 accepted GUT orphan-node
+warnings from rebuilt children; M14 kept `CapsText` on the header points unit
+pending the device pass.
+
+**Plan defects found this module (implementers stopping to ask, #29–31 —
+thirty-one across eight modules now, three found here):**
+- **#29** (Task 3): the brief's mode-isolation test assumed `survive_*` goals
+  check the mode, but `run_survival` (`:930-932`) does not — fixed the
+  expected id arrays with a citing comment; the test still proves mode goals
+  count only in their mode.
+- **#30** (Task 3): `goal_manager.gd` came in at 1002 lines, over gdlint's
+  `max-file-lines` — `# gdlint:disable=max-file-lines` at line 1, same
+  precedent as `armory_ui.gd`/`entity_layer.gd`/`progression_manager.gd`.
+- **#31** (Task 5): `Timer.time_left` has no setter in Godot 4.7.2 — a
+  brief-specified test tried `timer.time_left = 0.4`; fixed to
+  `timer.start(0.4)`, the same state by another route (see the M9 Task 5
+  process-lesson above — this is that defect, restated as the module total).
+
+**Final whole-module review** (`.superpowers/sdd/2026-09-20-m9-milestones/final-review.md`,
+opus, over `b119229..4179296`): **Ready with fixes** — 0 Critical, 2
+Important, 7 Minor.
+- **I-1 — fixed in `cd77de6`.** Run over now fills 450 ms after `run_ended`
+  (`TiltGame.ts:2084-2151`, `HudController._on_run_ended` starts a one-shot
+  `Timer`, stopped on Retry/any phase change), so a death-tick goal
+  completion (step 8's `evaluate_live_total_goals`, which runs after
+  `run_ended` in the same frame per R7) now reaches "Points earned" and the
+  balance instead of a stale, already-filled sheet.
+- **I-2 — parked, plan Open question 6.** The calibrate toast sits in the HUD
+  `ToastSlot`, under Pause's scrim and the Armory, so calibration currently
+  gives no visible feedback while either overlay is up. LAW 5: stop, don't
+  guess — the user rules on where that toast should draw.
+- **M-1 through M-4 — fixed in `cd77de6`** (PORT-NOTE on the shared-Escape
+  handling that can close both Armory and Milestones; `VERIFY-ME.md`'s M9
+  toast line reworded; `goal_manager.gd:24`'s stale process-note replaced).
+  **M-5, M-7** — pre-existing patterns outside M9's scope, recorded, not
+  fixed. **M-6** — already accepted (belongs to M10).
+- One deferred item from the fix pass: the I-1 regression test calls
+  `evaluate_live_total_goals` directly rather than driving a real `update()`
+  tick; accepted (the re-reviewer verified `run_controller.gd:190-227` has no
+  early return between death and step 8), but a future reorder of step 8
+  would not be caught by this test.
+
+## Open questions (M9; for the user — copied from the plan's own Open questions section)
+
+1. **R7/I3 — the run is double-counted at every `evaluate_run`, not only the
+   death tick.** `evaluate_run` commits the run into `cumulative` (step 1)
+   and then, while evaluating that call's own total goals,
+   `get_metric_value`'s `total_*` arms add the same tracker a second time
+   (`:955-962`) — every game over double-counts a cumulative goal's progress
+   by one run's worth, not just the extra death-tick call from
+   `evaluate_live_total_goals` (it can complete e.g. *Century of Destruction*
+   at 30 lifetime + 40 this run, twice over on death). The plan preserves it
+   (LAW 2). Fixing it is a spec change to `evaluate_run`'s step 2/3 ordering,
+   not a one-line skip.
+2. **R9 — a long Run over list clips** rather than scrolling or growing the
+   sheet. Confirm at the device pass, or choose another treatment.
+3. **R10 — open run goals show no progress bar** (spec §6.5), where the TS
+   draws an empty one. Confirm.
+4. **B3 — pre-owned unlocks at bind complete without paying spendable points
+   or showing a toast**, as in the TS (`bind()` runs `_init_dom()`, which
+   calls `check_unlock_goals()` before `_setup_listeners()` installs the
+   callbacks). Only `cumulative.totalPointsEarned` moves;
+   `ProgressionManager.data.points` and the toast are untouched. Confirm this
+   is kept (LAW 2), or rule that owned unlocks at boot should pay out like a
+   normal completion.
+5. **Toast slide-in** (`game.css:595`) is not ported; the boards draw no
+   motion. Say if it should be.
+6. **I-2 — the calibrate message toast sits in the HUD `ToastSlot`, under the
+   Pause scrim/Armory, so calibration gives no visible feedback.** Interface
+   spec §5 wants both Calibrate controls (Pause's `CalibrateButton`, the
+   Armory's Handling "Calibrate tilt") to give "an immediate calibrate +
+   toast"; spec §6.5 fixes the toast's position under the lives icons, where
+   Pause's sheet and the Armory both draw over it. Where should the toast
+   draw while an overlay is up — a host above the overlays (e.g. a slot in
+   `GoalsHud`, a top-level layer above the Armory), or an inline confirmation
+   in Pause/Handling instead of the shared toast? (final-review.md I-2,
+   parked per LAW 5.)
+
+## Process lessons carried forward (M9 addition)
+
+- **Three more plan defects this module (#29–31, all found by an implementer
+  stopping to ask) — thirty-one across eight modules now.** #29 (mode
+  isolation) and #31 (`Timer.time_left` read-only) are the kind machine
+  checks can't catch — a failing brief-specified test was, again, evidence
+  the brief was wrong, not the implementation.
+- **The pre-flight scan (dispatched in parallel with Task 1) found 5
+  Blocking/5 Important/15 Minor issues before any task but Task 1 ran** —
+  cheaper than finding them piecemeal across nine tasks. Worth repeating for
+  a plan of this size (9 tasks, two behaviour rulings R7/R9 flagged for the
+  user at plan time).
+- **A ledger `Ruling:` line is load-bearing and the ledger is git-ignored.**
+  Every ruling that isn't restated in the plan or `HANDOFF.md` is lost at
+  session end. This module's exit copied all of them into the plan verbatim
+  (`## Execution rulings`) specifically so a future session (or the user)
+  can still see the reasoning behind R1–R11, B1–B5, I1–I5, M1–M15, I-1/I-2,
+  M-1–M-7 without the ledger.
+- Docs-only task steps (Task 8's VERIFY-ME append) don't always need a
+  reviewer seat — the controller reading the diff in place of one is a
+  legitimate ruling, but log it as a ruling, not a silent skip, and let the
+  final review cover the gap explicitly.
+
 ## Next
 
-**M8.5 is closed (device pass pending).** Next module: **M9 — Milestones**
-(deps M7 + M8.5). Its plan,
-`docs/superpowers/plans/2026-09-20-m9-milestones.md`, is ready to execute:
-Tasks 5–7 were rewritten 2026-09-23 to interface spec §6.3/§6.5 on `UiTheme`
-(rail on the arena frame's top edge, toast in the HUD's `ToastSlot`,
-full-screen three-column Milestones screen, Run over list + tap opener), with
-new rulings R8–R11 and a Review Focus section; Tasks 1–4's test counts were
-rebased onto 45 scripts / 420 tests (the plan ends at 48 / 486).
+**M9 is closed (device pass pending).** Next module: **M5 — Audio bake +
+SFX** (deps M2, open) or **M10 — Modes** (deps M3, open) — the user's choice;
+M11 needs everything and is not next. Neither has a plan written yet.
 
-First step, literally: read the M9 plan's header, Rulings, Global Constraints
-and Review Focus, then execute it from **Task 1** (subagent-driven, as M8.5
-was, unless the user chooses otherwise). Open questions 2–3 (R9 list
-clipping, R10 no bar on open run goals) are for the user at the device pass.
+**If M5:** first step, literally: read `web/src/tilt-to-live/TiltAudio.ts` in
+full, then `docs/superpowers/specs/2026-09-20-peril-point-godot-port-design.md`
+§8 Module 5's acceptance lines (`every play* method has a baked .ogg`, `a
+missing file logs and continues`), then write
+`docs/superpowers/plans/2026-09-20-m5-audio-bake-and-sfx.md` before touching
+code (as every prior module plan was written first).
 
-Before starting: `git status --short` must be clean under `godot/` (the user
-may leave device tuning uncommitted — never stash or revert it), and read
-`godot/VERIFY-ME.md` for the outstanding M2.5/M3/M4/M7/M8.5 and "Mobile scale
-split" device checks. If the A55 is back on `adb`, offer the device pass first.
+**If M10:** first step, literally: read `web/src/tilt-to-live/GameStateMachine.ts`
+and the `TODO(M10)` markers already left across the tree (`grep -rn
+"TODO(M10)" godot/src/`) — `enemy_swarm.gd`'s gauntlet/code-red director
+branches, `weapon_system.gd`'s mode-multiplier hookup, `run_controller.gd`'s
+two `options.settings.mode` reads — then write
+`docs/superpowers/plans/2026-09-20-m10-modes.md` before touching code.
+
+Before starting either: `git status --short` must be clean under `godot/`
+(the user may leave device tuning uncommitted — never stash or revert it),
+and read `godot/VERIFY-ME.md` for the outstanding M2.5/M3/M4/M7/M8.5/M9 and
+"Mobile scale split" device checks. If the A55 is back on `adb`, offer the
+device pass first — it would clear six modules' pending boxes in one session.

@@ -28,7 +28,7 @@
 
 ## Rulings (recorded 2026-09-23, before execution)
 
-Pre-flight rulings (2026-09-23): see the SDD ledger; folded into the task text below.
+Pre-flight rulings (2026-09-23): see "## Execution rulings (SDD ledger, 2026-09-23)" at the end of this file; folded into the task text below.
 
 - **R1 — Modal opener on touch (user ruling; amended 2026-09-23 by interface spec §6.3/§6.5).** Port `TiltGame.ts:2111-2144`'s "Points earned" total and earned-milestones list into M8.5's `RunOverSheet` (its `PointsRow` and hidden `MilestonesList` slot); tapping either opens the Milestones screen (`GoalsHUD.ts:129-135`'s `bindGameOverClicks`). The rail is now the board's 3 px top-edge line and is not tappable (R11). The coins row stays dropped (interface spec §6.3).
 - **R2 — TiltGame's second left rail is not ported (user ruling).** `TiltGame.ts:1058-1078` + `:2217-2225` (`railProgress`) draw a rail in the same rect as GoalsHUD's (`TiltGame.ts:507-515` vs `game.css:3600-3611`), z-index 12 under GoalsHUD's 40, and GoalsHUD's rail background is opaque — it is never visible. `goals_hud.gd`'s header carries the PORT-NOTE; the `TODO(M9): railProgress` in `game_state_machine.gd` is removed pointing there.
@@ -3371,7 +3371,7 @@ git log -1 --format=%B
 
 ### Task 9: Exit protocol (CONVENTIONS §9)
 
-- [ ] **Step 1: Verify** — fresh, and read every output:
+- [x] **Step 1: Verify** — fresh, and read every output:
 
 ```bash
 tools/run_tests.sh                        # expect: OK: 48/48 scripts (486 tests)
@@ -3386,13 +3386,13 @@ git checkout godot/project.godot
 
   (`86` = 81 at the M8.5 exit + `goal_manager.gd`, `goals_hud.gd` + `test_goal_manager.gd`, `test_goal_parity.gd`, `test_goals_hud.gd`.)
 
-- [ ] **Step 2: Tick `godot/PORT-PROGRESS.md`** — `- [x] **M9 — Milestones**` with the date, the final commit SHA (the parent of the exit commit, as M8 did) and "device pass pending" if Task 8 had no phone.
+- [x] **Step 2: Tick `godot/PORT-PROGRESS.md`** — `- [x] **M9 — Milestones**` with the date, the final commit SHA (the parent of the exit commit, as M8 did) and "device pass pending" if Task 8 had no phone.
 
-- [ ] **Step 3: Rewrite `godot/HANDOFF.md`** for a zero-context session: `## State` (M9 code-complete, device pass pending), `## How to verify right now` (the Step 1 block with the real numbers), a `## M9 — what landed` section (files, rulings R1–R11, the three new test scripts), Open questions (below), and `## Next`: **M5 (Audio bake + SFX) or M10 (Modes)** — M5 deps M2, M10 deps M3, both open; M11 needs all. Literal first step for each, in the style of the current `## Next`.
+- [x] **Step 3: Rewrite `godot/HANDOFF.md`** for a zero-context session: `## State` (M9 code-complete, device pass pending), `## How to verify right now` (the Step 1 block with the real numbers), a `## M9 — what landed` section (files, rulings R1–R11, the three new test scripts), Open questions (below), and `## Next`: **M5 (Audio bake + SFX) or M10 (Modes)** — M5 deps M2, M10 deps M3, both open; M11 needs all. Literal first step for each, in the style of the current `## Next`.
 
-- [ ] **Step 4: Index plan** — in `docs/superpowers/plans/2026-09-20-peril-point-godot-port-index.md`, mark M9 done exactly as M8's row/line was marked.
+- [x] **Step 4: Index plan** — in `docs/superpowers/plans/2026-09-20-peril-point-godot-port-index.md`, mark M9 done exactly as M8's row/line was marked.
 
-- [ ] **Step 5: Commit and stop**
+- [x] **Step 5: Commit and stop**
 
 ```bash
 git checkout godot/project.godot
@@ -3413,3 +3413,33 @@ Then **stop and report to the user** (CONVENTIONS §9 step 5). Do not begin M5 o
 4. **B3 — pre-owned unlocks at bind complete without paying spendable points or showing a toast**, as in the TS (`bind()` runs `_init_dom()`, which calls `check_unlock_goals()` before `_setup_listeners()` installs the callbacks). Only `cumulative.totalPointsEarned` moves; `ProgressionManager.data.points` and the toast are untouched. Confirm this is kept (LAW 2), or rule that owned unlocks at boot should pay out like a normal completion.
 5. **Toast slide-in** (`game.css:595`) is not ported; the boards draw no motion. Say if it should be.
 6. **I-2 — the calibrate message toast sits in the HUD `ToastSlot`, under the Pause scrim/Armory, so calibration gives no visible feedback.** Interface spec §5 wants both Calibrate controls (Pause's `CalibrateButton`, the Armory's Handling "Calibrate tilt") to give "an immediate calibrate + toast"; spec §6.5 fixes the toast's position under the lives icons, where Pause's sheet and the Armory both draw over it. Where should the toast draw while an overlay is up — a host above the overlays (e.g. a slot in `GoalsHud`, a top-level layer above the Armory), or an inline confirmation in Pause/Handling instead of the shared toast? (final-review.md I-2, parked per LAW 5.)
+
+---
+
+## Execution rulings (SDD ledger, 2026-09-23)
+
+Copied verbatim, in order, from `.superpowers/sdd/2026-09-20-m9-milestones/progress.md`
+(the SDD ledger — git-ignored and will be deleted) before that ledger is lost.
+
+Ruling: B1 — fix the two Task 3 tests, not evaluate_run (LAW 2): caps test asserts the non-total ids only (filter out total goals, keep the 3-cap assertion); mode test uses a fresh GoalManager per tracker — costs a re-edit if the user later removes the double count.
+Ruling: B2 — cumulative-shape test compares the sorted key set (JSON objects are unordered; save_dict sorts) — none.
+Ruling: B3 — keep TS order (render before listeners at bind => pre-owned unlocks complete with no points/toast); PORT-NOTE on bind/_init_dom; test asserts completed, points 7331, toast hidden, cumulative.total_points_earned == 2; fix Review Focus 5 and Task 8 VERIFY-ME text; add Open question 4 for the user — if wrong, pre-owned unlocks keep paying nothing until the user rules.
+Ruling: B4 — the two host tests look nodes up under their external host (frame/slot.find_child) — none.
+Ruling: B5 — drag-scroll test walks from TierCards down, not the ScrollContainer's internal scrollbars — none.
+Ruling: I1 — gdlint:disable/enable=max-returns around get_metric_value with a LAW 3 note (progression_manager.gd precedent) — none.
+Ruling: I2 — `# gdlint:disable=max-public-methods` line 1 of test_goal_manager, test_run_controller, test_main_scene, test_goals_hud in the task that crosses 20 (test_armory_ui.gd precedent) — none.
+Ruling: I3 — double count happens at every evaluate_run, not only the death tick: LAW 2 PORT-NOTE on evaluate_run; rewrite R7 + Open question 1 to cover both sites — none (behaviour unchanged).
+Ruling: I4 — move the ion ring SVG to UiTheme.ICON_RING (spec §4.1) — none.
+Ruling: I5 — Task 2-9 commit messages carry `next: M9 Task N` (shortened to ≤72); Task 1 landed without it, left as is (HANDOFF State names the next task) — none.
+Ruling: M1 wrap the 103-char line; M2 stage .gd.uid twins; M3 cite TiltGame.ts:66; M4 delete stale sentence; M5 correct the PanelContainer constraint; M6 cite the 100.0s; M7 rename size->font_size; M9 assert ToastTimer.time_left restarted; M11 remove corrupt twins in parity test; M12 tag DIVERGENCE(UI-SYSTEM); M13 point Task 8 at VERIFY-ME §0; M15 doc CUMULATIVE_SAVE_PATH — mechanical, none.
+Ruling: M8 — drop GameRoot.get_run_controller(); tests read root._run_controller (LAW 4, existing test precedent) — none.
+Ruling: M10 — accept GUT orphan warnings from queue_free'd rebuilt children (warning only; TS rebuilds innerHTML) — noisy test output if wrong.
+Ruling: M14 — header points unit keeps CapsText; check against the board at the device pass — a small visual mismatch.
+Ruling: I-1 — port TiltGame.ts:2084-2151's 450 ms setTimeout: HudController fills/shows Run over 450 ms after run_ended (one-shot timer, PORT cite), so death-tick completions reach the sheet; tests await it + a death-tick regression test — the sheet now appears 450 ms after death (TS-faithful); if the user prefers instant, revert to a call_deferred fill.
+Ruling: I-2 — parked for the user (LAW 5: interface spec §5 "calibrate + toast" vs §6.5 toast position): add plan Open question 5; the calibrate toast stays in ToastSlot for now — cost: calibration gives no visible feedback under Pause until ruled.
+Ruling: M-1 — add PORT-NOTE that one Escape can close Armory and Milestones as in the TS — none.
+Ruling: M-2 — park (M pressed under the Armory; TS-equivalent layering, M11 owns menu mode) — Milestones may open hidden behind the Armory on desktop.
+Ruling: M-3 — reword the VERIFY-ME M9 toast line (close the Armory within 3 s / mid-run total) and mark calibrate as pending I-2 — none.
+Ruling: M-4 — replace goal_manager.gd:24 doc with a real description — none.
+Ruling: M-5, M-7 — pre-existing patterns, out of M9 scope; recorded in HANDOFF — none now.
+Ruling: M-6 — already accepted (M10).
