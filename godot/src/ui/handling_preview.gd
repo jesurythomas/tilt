@@ -115,7 +115,7 @@ func start(p: ProgressionManager) -> void:
 	# Path2D(equippedShip.svgPath) filled with tint, stroked white (:1088-1093),
 	# as one rasterised 48x48 SVG (the path's own coordinate space, :1087).
 	var ship: ProgressionManager.ShipSkinConfig = progression.get_equipped_ship()
-	_ship_texture = ArmoryUI.svg_texture(
+	_ship_texture = UiTheme.svg_texture(
 		(
 			"<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'>"
 			+ (

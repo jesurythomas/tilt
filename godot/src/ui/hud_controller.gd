@@ -13,12 +13,14 @@ extends Control
 const BASE_SCORE_FONT: int = 44
 const BASE_BEST_FONT: int = 22
 const BASE_MULTIPLIER_FONT: int = 26
-## Viewport minimum dimension at which ui_scale is 1.0.
-const UI_SCALE_REFERENCE: float = 720.0
-# Per spec §7.2: provisional clamp bounds on ui_scale, pending measurement in
-# the M2.5 device pass.
+## The boards' landscape reference frame. DIVERGENCE(UI-SYSTEM): System.dc.html — 844 × 390
+const UI_REFERENCE_HEIGHT: float = 390.0
+const UI_REFERENCE_WIDTH: float = 844.0
+# DIVERGENCE(UI-SYSTEM): clamp bounds re-derived in M8.5 (interface spec §4.3).
+# 0.75 keeps a 640×360 window legible (the M2.5 floor); 3.0 admits a
+# 1170-px-tall phone (1170 / 390) and stops tablets inflating the chrome.
 const MIN_UI_SCALE: float = 0.75
-const MAX_UI_SCALE: float = 2.0
+const MAX_UI_SCALE: float = 3.0
 
 # Multiplier tiers for the score pulse and multiplier label (D3).
 # DIVERGENCE(HUD-FEEDBACK §4): thresholds and colours are spec constants, not
@@ -174,9 +176,17 @@ func set_pause_panel_visible(is_visible: bool) -> void:
 			_sync_pickers()
 
 
-## The ui_scale implied by a viewport size.
+## The ui_scale implied by a viewport size: the short side against 390 and the
+## long side against 844, whichever is smaller — width can shrink the chrome,
+## never grow it (interface spec §4.3, ruled 2026-09-23).
 static func ui_scale_for(viewport: Vector2) -> float:
-	return clampf(minf(viewport.x, viewport.y) / UI_SCALE_REFERENCE, MIN_UI_SCALE, MAX_UI_SCALE)
+	var short_side: float = minf(viewport.x, viewport.y)
+	var long_side: float = maxf(viewport.x, viewport.y)
+	return clampf(
+		minf(short_side / UI_REFERENCE_HEIGHT, long_side / UI_REFERENCE_WIDTH),
+		MIN_UI_SCALE,
+		MAX_UI_SCALE
+	)
 
 
 ## Tier colour for a multiplier, per D3's five-tier neon palette.

@@ -252,6 +252,8 @@ The glow decision carries real risk: Godot's 2D glow is a fullscreen GPU pass
 and is genuinely expensive on mid-range phones. It is measured on hardware in
 Module 11, with a documented per-draw fallback if it does not hold 60 fps.
 
+**Amended 2026-09-23:** UI surfaces follow `docs/superpowers/specs/2026-09-23-mobile-interface-system-design.md` (boards are the visual authority; `DIVERGENCE(UI-SYSTEM)` citations).
+
 ### 4.6 Persistence
 
 The `localStorage` keys become JSON files under `user://`, **keeping the exact
@@ -458,6 +460,8 @@ Summary of the enforcement tiers:
 6. **Forbidden constructs** — untyped `var`, string-based `call`/`get`/`set`,
    `has_method` duck-typing, `Dictionary` entities, autoloaded sim systems,
    bare `print()`, `await` in `_physics_process`, scattered `get_node("path")`.
+
+**Amended 2026-09-23:** UI surfaces follow `docs/superpowers/specs/2026-09-23-mobile-interface-system-design.md` (boards are the visual authority; `DIVERGENCE(UI-SYSTEM)` citations).
 
 ---
 

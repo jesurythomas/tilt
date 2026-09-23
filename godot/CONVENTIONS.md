@@ -267,6 +267,19 @@ why:
 # accidental; preserved deliberately — it is part of the tuned feel.
 ```
 
+**`# DIVERGENCE(UI-SYSTEM):` for visual literals from the mobile boards.**
+Since M8.5, `peril-point-mobile-redesign/*.dc.html` is the visual authority for
+every UI surface (interface spec `docs/superpowers/specs/2026-09-23-mobile-interface-system-design.md`
+§2–§3). A layout, colour, type or size literal taken from a board cites it:
+
+```gdscript
+const SHEET_WIDTH: int = 620  # DIVERGENCE(UI-SYSTEM): Pause.dc.html
+```
+
+Token constants in `UiTheme` cite `System.dc.html` once per group. Behaviour
+keeps `# PORT:`. A `game.css` citation stays valid only for a value no board
+defines; when a board defines it, the board's citation replaces the old one.
+
 **Module-tagged TODOs only.** Never a bare `TODO`:
 
 ```gdscript

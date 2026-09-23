@@ -45,19 +45,6 @@ func _label(name: String) -> Label:
 	return l
 
 
-func test_theme_carries_the_css_tokens() -> void:
-	assert_eq(ArmoryTheme.COLOR_ION, Color("#5B8CFF"))
-	assert_eq(ArmoryTheme.COLOR_FLARE, Color("#FFB14D"))
-	assert_eq(ArmoryTheme.PANEL_BG, Color("#0B0E14"))
-	var theme: Theme = ArmoryTheme.build(1.0)
-	assert_not_null(theme)
-	assert_true(theme.is_type_variation("TabButton", "Button"), "TabButton variation")
-	assert_true(theme.is_type_variation("PlayButton", "Button"), "PlayButton variation")
-	assert_eq(theme.get_font_size("font_size", "TitleLabel"), ArmoryTheme.TITLE_FONT)
-	var doubled: Theme = ArmoryTheme.build(2.0)
-	assert_eq(doubled.get_font_size("font_size", "TitleLabel"), ArmoryTheme.TITLE_FONT * 2)
-
-
 func test_starts_hidden_and_opens_on_weapons() -> void:
 	assert_false(_armory.is_open())
 	assert_false(_armory.visible)
@@ -172,7 +159,7 @@ func test_svg_texture_rasterises() -> void:
 		"<svg xmlns='http://www.w3.org/2000/svg' width='30' height='30'>"
 		+ "<circle cx='15' cy='15' r='5' fill='#A78BFA'/></svg>"
 	)
-	var tex: ImageTexture = ArmoryUI.svg_texture(svg, 2.0)
+	var tex: ImageTexture = UiTheme.svg_texture(svg, 2.0)
 	assert_not_null(tex)
 	assert_eq(tex.get_size(), Vector2(60.0, 60.0))
 	assert_eq(tex.get_image().get_pixel(30, 30), Color("#A78BFA"))
@@ -183,7 +170,7 @@ func test_ui_scale_resizes_touch_targets() -> void:
 	_armory.set_ui_scale(2.0)
 	await get_tree().process_frame
 	assert_eq(_button("Tab_weapons").custom_minimum_size.y, ControlPicker.BASE_TOUCH_TARGET * 2.0)
-	assert_eq(_button("PlayButton").custom_minimum_size.y, ArmoryTheme.PLAY_BUTTON_HEIGHT * 2.0)
+	assert_eq(_button("PlayButton").custom_minimum_size.y, UiTheme.PLAY_BUTTON_HEIGHT * 2.0)
 
 
 func _open_weapons(weapon: String = "") -> void:

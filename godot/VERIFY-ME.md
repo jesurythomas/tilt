@@ -73,8 +73,9 @@ Rebuild, launch, then `"$ADB" -s RRCXB04L8EJ logcat -d | grep M2.5-T8`.
 - [ ] 6. Score block centred at the top, BEST beneath, multiplier beneath that;
       legible at arm's length. `ScoreMargin.offset_bottom = 140` in
       `scenes/main.tscn` is a fixed height and may be short at large
-      `ui_scale`; `MIN_UI_SCALE 0.75` / `MAX_UI_SCALE 2.0` /
-      `UI_SCALE_REFERENCE 720` in `src/ui/hud_controller.gd`.
+      `ui_scale`; `MIN_UI_SCALE 0.75` / `MAX_UI_SCALE 3.0` /
+      `UI_REFERENCE_HEIGHT 390` / `UI_REFERENCE_WIDTH 844` in
+      `src/ui/hud_controller.gd` (M8.5).
 - [ ] 7. Arena border clears the bezel and cutout on all four sides, no
       letterbox (`MIN_INSET_X 8.0`, `MIN_INSET_Y 12.0`, `MAX_INSET_RATIO 0.04`
       in `src/core/game_root.gd`). Entities read as larger without the game

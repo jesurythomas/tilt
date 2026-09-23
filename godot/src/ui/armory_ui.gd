@@ -214,7 +214,7 @@ var _preview: HandlingPreview = null
 
 func _ready() -> void:
 	visible = false
-	_overlay.color = ArmoryTheme.OVERLAY_BG
+	_overlay.color = UiTheme.OVERLAY_BG
 	var is_mobile: bool = OS.has_feature("mobile")
 	# DIVERGENCE(spec §8 M8): see the class doc. PORT: game.css:2836, :2840, :2908
 	_back_button.visible = is_mobile
@@ -311,7 +311,7 @@ func render() -> void:
 ## it stays inside the safe area; desktop keeps the fixed 20px pad.
 func set_ui_scale(scale: float, inset: Vector2 = Vector2.ZERO) -> void:
 	_ui_scale = scale
-	theme = ArmoryTheme.build(scale)
+	theme = UiTheme.build(scale)
 	var is_mobile: bool = OS.has_feature("mobile")
 	# PORT: game.css:1609 (20px) and :2819 (0 on mobile — the panel is inset
 	# by arena_origin instead; see GameRoot.resize_canvas).
@@ -326,19 +326,19 @@ func set_ui_scale(scale: float, inset: Vector2 = Vector2.ZERO) -> void:
 		_panel_margin.add_theme_constant_override("margin_top", pad)
 		_panel_margin.add_theme_constant_override("margin_right", pad)
 		_panel_margin.add_theme_constant_override("margin_bottom", pad)
-	var pad_y: int = ArmoryTheme.HEADER_PAD_Y_MOBILE if is_mobile else ArmoryTheme.HEADER_PAD_Y
-	var pad_x: int = ArmoryTheme.HEADER_PAD_X_MOBILE if is_mobile else ArmoryTheme.HEADER_PAD_X
+	var pad_y: int = UiTheme.HEADER_PAD_Y_MOBILE if is_mobile else UiTheme.HEADER_PAD_Y
+	var pad_x: int = UiTheme.HEADER_PAD_X_MOBILE if is_mobile else UiTheme.HEADER_PAD_X
 	_header_margin.add_theme_constant_override("margin_left", int(pad_x * scale))
 	_header_margin.add_theme_constant_override("margin_top", int(pad_y * scale))
 	_header_margin.add_theme_constant_override("margin_right", int(pad_x * scale))
 	_header_margin.add_theme_constant_override("margin_bottom", int(pad_y * scale))
-	var icon: float = ArmoryTheme.ICON_BUTTON * scale
+	var icon: float = UiTheme.ICON_BUTTON * scale
 	_back_button.custom_minimum_size = Vector2(icon, icon)
 	_close_button.custom_minimum_size = Vector2(icon, icon)
 	for button: Button in _tab_buttons:
 		# The M2.5 §4.3 48dp touch target (ControlPicker.BASE_TOUCH_TARGET).
 		button.custom_minimum_size.y = ControlPicker.BASE_TOUCH_TARGET * scale
-	_play_button.custom_minimum_size.y = ArmoryTheme.PLAY_BUTTON_HEIGHT * scale
+	_play_button.custom_minimum_size.y = UiTheme.PLAY_BUTTON_HEIGHT * scale
 	if is_open():
 		render()
 
@@ -355,28 +355,8 @@ static func format_tuning_value(value: float, unit: Tuning.TuningUnit) -> String
 
 
 ## "1 pt" / "400 pts" with thousands grouping. PORT: web/src/tilt-to-live/ArmoryUI.ts:70-72
-# PORT-NOTE: toLocaleString() groups by the browser locale; en-US commas are
-# fixed here — Godot has no locale-aware number formatter.
 static func format_points(n: int) -> String:
-	var digits: String = str(n)
-	var grouped: String = ""
-	var count: int = 0
-	for i: int in range(digits.length() - 1, -1, -1):
-		grouped = digits[i] + grouped
-		count += 1
-		if count % 3 == 0 and i > 0:
-			grouped = "," + grouped
-	return "%s %s" % [grouped, "pt" if n == 1 else "pts"]
-
-
-## Rasterises one of the TS's SVG strings (Image.load_svg_from_string, 4.7.2).
-static func svg_texture(svg: String, scale: float) -> ImageTexture:
-	var image: Image = Image.new()
-	var err: int = image.load_svg_from_string(svg, scale)
-	if err != OK:
-		Log.warn("ArmoryUI: svg rasterisation failed (%d)" % err)
-		return ImageTexture.new()
-	return ImageTexture.create_from_image(image)
+	return "%s %s" % [UiTheme.group_digits(n), "pt" if n == 1 else "pts"]
 
 
 ## PORT: web/src/tilt-to-live/ArmoryUI.ts:397-410
@@ -456,7 +436,7 @@ func _render_weapons_tab() -> Control:
 	header.add_child(title_group)
 	var badge: VBoxContainer = VBoxContainer.new()  # PORT: :548-551
 	badge.add_child(_label_of("Invested", "FaintLabel"))
-	var invested: Label = _label_of(_group_digits(invested_points), "FlareLabel")
+	var invested: Label = _label_of(UiTheme.group_digits(invested_points), "FlareLabel")
 	invested.name = "InvestedValue"
 	invested.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	badge.add_child(invested)
@@ -507,8 +487,7 @@ func _render_weapons_tab() -> Control:
 		var buy: Button = Button.new()  # PORT: :486-494
 		buy.name = "Track_" + track.key
 		buy.custom_minimum_size = Vector2(
-			ArmoryTheme.ACTION_BUTTON_WIDTH * _ui_scale,
-			ArmoryTheme.ACTION_BUTTON_HEIGHT * _ui_scale
+			UiTheme.ACTION_BUTTON_WIDTH * _ui_scale, UiTheme.ACTION_BUTTON_HEIGHT * _ui_scale
 		)
 		buy.disabled = is_maxed or not can_afford
 		buy.text = "Maxed ✓" if is_maxed else format_points(cost)
@@ -535,14 +514,10 @@ func _render_weapons_tab() -> Control:
 		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		card.add_theme_stylebox_override(
 			"panel",
-			ArmoryTheme.flat(
-				ArmoryTheme.KEYSTONE_UNLOCKED_FILL if is_unlocked else ArmoryTheme.KEYSTONE_FILL,
-				(
-					ArmoryTheme.KEYSTONE_UNLOCKED_BORDER
-					if is_unlocked
-					else ArmoryTheme.KEYSTONE_BORDER
-				),
-				ArmoryTheme.CARD_RADIUS
+			UiTheme.flat(
+				UiTheme.KEYSTONE_UNLOCKED_FILL if is_unlocked else UiTheme.KEYSTONE_FILL,
+				UiTheme.KEYSTONE_UNLOCKED_BORDER if is_unlocked else UiTheme.KEYSTONE_BORDER,
+				UiTheme.CARD_RADIUS
 			)
 		)
 		var inner: MarginContainer = _margin(CARD_PAD_Y, CARD_PAD_X)
@@ -558,7 +533,7 @@ func _render_weapons_tab() -> Control:
 		var buy: Button = Button.new()  # PORT: :516-524
 		buy.name = "Keystone_" + k.key
 		buy.theme_type_variation = "EquippedButton" if is_unlocked else "KeystoneButton"
-		buy.custom_minimum_size.y = ArmoryTheme.ACTION_BUTTON_HEIGHT * _ui_scale
+		buy.custom_minimum_size.y = UiTheme.ACTION_BUTTON_HEIGHT * _ui_scale
 		buy.disabled = is_unlocked or not can_afford
 		buy.text = "Unlocked ✓" if is_unlocked else format_points(cost)
 		buy.pressed.connect(_on_keystone_pressed.bind(selected.id, k.key))
@@ -629,10 +604,10 @@ func _render_ships_tab() -> Control:
 		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		card.add_theme_stylebox_override(
 			"panel",
-			ArmoryTheme.flat(
-				ArmoryTheme.COLOR_PANEL,
-				ArmoryTheme.COLOR_SUCCESS if is_equipped else ArmoryTheme.COLOR_BORDER,  # PORT: game.css:2307
-				ArmoryTheme.PANEL_RADIUS
+			UiTheme.flat(
+				UiTheme.COLOR_PANEL,
+				UiTheme.COLOR_SUCCESS if is_equipped else UiTheme.COLOR_BORDER,  # PORT: game.css:2307
+				UiTheme.PANEL_RADIUS
 			)
 		)
 		var card_column: VBoxContainer = VBoxContainer.new()
@@ -642,10 +617,10 @@ func _render_ships_tab() -> Control:
 		var preview: PanelContainer = PanelContainer.new()
 		preview.custom_minimum_size.y = SHIP_PREVIEW_HEIGHT * _ui_scale
 		preview.add_theme_stylebox_override(
-			"panel", ArmoryTheme.flat(ArmoryTheme.COLOR_ARENA, Color.TRANSPARENT, 0)
+			"panel", UiTheme.flat(UiTheme.COLOR_ARENA, Color.TRANSPARENT, 0)
 		)
 		var hull: TextureRect = TextureRect.new()
-		hull.texture = svg_texture(
+		hull.texture = UiTheme.svg_texture(
 			progression.get_ship_svg_preview(ship.id), SVG_OVERSAMPLE * _ui_scale
 		)
 		hull.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
@@ -678,7 +653,7 @@ func _render_ships_tab() -> Control:
 			starts_with.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			loadout.add_child(starts_with)
 			var icon: TextureRect = TextureRect.new()
-			icon.texture = svg_texture(starting.icon_svg, SVG_OVERSAMPLE * _ui_scale)
+			icon.texture = UiTheme.svg_texture(starting.icon_svg, SVG_OVERSAMPLE * _ui_scale)
 			icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 			icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			icon.custom_minimum_size = Vector2(LOADOUT_ICON * _ui_scale, LOADOUT_ICON * _ui_scale)
@@ -750,7 +725,7 @@ func _render_arena_tab() -> Control:
 		var preview: PanelContainer = PanelContainer.new()
 		preview.custom_minimum_size.y = ARENA_PREVIEW_HEIGHT * _ui_scale
 		preview.add_theme_stylebox_override(
-			"panel", ArmoryTheme.flat(theme_config.bg_gradient[1], theme_config.boundary_color, 0)
+			"panel", UiTheme.flat(theme_config.bg_gradient[1], theme_config.boundary_color, 0)
 		)
 		var lines: Control = _grid_lines(theme_config.grid_color)
 		preview.add_child(lines)
@@ -813,14 +788,14 @@ func _render_arena_tab() -> Control:
 		var preview: PanelContainer = PanelContainer.new()
 		preview.custom_minimum_size.y = ARENA_PREVIEW_HEIGHT * _ui_scale
 		preview.add_theme_stylebox_override(
-			"panel", ArmoryTheme.flat(ArmoryTheme.COLOR_ARENA, Color.TRANSPARENT, 0)
+			"panel", UiTheme.flat(UiTheme.COLOR_ARENA, Color.TRANSPARENT, 0)
 		)
 		var dot_center: CenterContainer = CenterContainer.new()
 		var dot: Panel = Panel.new()
 		dot.custom_minimum_size = Vector2(ENEMY_DOT * _ui_scale, ENEMY_DOT * _ui_scale)
 		dot.add_theme_stylebox_override(
 			"panel",
-			ArmoryTheme.flat(
+			UiTheme.flat(
 				skin.body_gradient[1],
 				skin.border_color,
 				int(ENEMY_DOT * _ui_scale / 2.0),
@@ -891,7 +866,7 @@ func _render_handling_tab() -> Control:
 	)
 	controls.add_child(turn_field)
 	var divider: ColorRect = ColorRect.new()  # PORT: :834; game.css:2693-2695
-	divider.color = ArmoryTheme.COLOR_BORDER
+	divider.color = UiTheme.COLOR_BORDER
 	divider.custom_minimum_size.y = 1.0
 	controls.add_child(divider)
 	var deadzone_field: VBoxContainer = _handling_field(
@@ -916,7 +891,7 @@ func _render_handling_tab() -> Control:
 	reset.name = "ResetButton"
 	reset.text = "Reset"
 	reset.theme_type_variation = "GhostButton"
-	reset.custom_minimum_size.y = ArmoryTheme.ACTION_BUTTON_HEIGHT * _ui_scale
+	reset.custom_minimum_size.y = UiTheme.ACTION_BUTTON_HEIGHT * _ui_scale
 	reset.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	reset.pressed.connect(_on_handling_reset_pressed)
 	controls.add_child(reset)
@@ -931,10 +906,7 @@ func _render_handling_tab() -> Control:
 	var box: PanelContainer = PanelContainer.new()  # PORT: :865; game.css:2734-2743
 	box.custom_minimum_size.y = HANDLING_BOX_MIN_HEIGHT * _ui_scale
 	box.add_theme_stylebox_override(
-		"panel",
-		ArmoryTheme.flat(
-			ArmoryTheme.COLOR_ARENA, ArmoryTheme.COLOR_BORDER, ArmoryTheme.PANEL_RADIUS
-		)
+		"panel", UiTheme.flat(UiTheme.COLOR_ARENA, UiTheme.COLOR_BORDER, UiTheme.PANEL_RADIUS)
 	)
 	# PORT-NOTE: render() rebuilds the whole tab, so a new HandlingPreview is
 	# instanced every time this tab is (re)rendered — on tab return and on a
@@ -1020,8 +992,7 @@ func _render_boosts_tab() -> Control:
 		var buy: Button = Button.new()  # PORT: :913-920
 		buy.name = "Boost_" + boost.id
 		buy.custom_minimum_size = Vector2(
-			ArmoryTheme.ACTION_BUTTON_WIDTH * _ui_scale,
-			ArmoryTheme.ACTION_BUTTON_HEIGHT * _ui_scale
+			UiTheme.ACTION_BUTTON_WIDTH * _ui_scale, UiTheme.ACTION_BUTTON_HEIGHT * _ui_scale
 		)
 		buy.disabled = is_maxed or not can_afford
 		buy.text = "Maxed ✓" if is_maxed else format_points(cost)
@@ -1162,12 +1133,6 @@ func _on_handling_reset_pressed() -> void:
 	render()
 
 
-## `${n.toLocaleString()}` without the unit (ArmoryUI.ts:550).
-static func _group_digits(n: int) -> String:
-	var with_unit: String = format_points(n)
-	return with_unit.substr(0, with_unit.find(" "))
-
-
 func _label_of(text: String, variation: String) -> Label:
 	var label: Label = Label.new()
 	label.text = text
@@ -1198,7 +1163,7 @@ func _handling_field(
 	header.add_child(name_label)
 	var pill: Label = _label_of(value_text, "FlareLabel")  # PORT: game.css:2660-2665 (15px mono, ion)
 	pill.name = value_name
-	pill.add_theme_color_override("font_color", ArmoryTheme.COLOR_ION)
+	pill.add_theme_color_override("font_color", UiTheme.COLOR_ION)
 	header.add_child(pill)
 	field.add_child(header)
 	field.add_child(_label_of(hint, "MutedLabel"))  # PORT: game.css:2670-2672
@@ -1241,7 +1206,7 @@ func _legend_item(color: Color, text: String) -> HBoxContainer:
 	var glyph: Panel = Panel.new()
 	glyph.custom_minimum_size = Vector2(LEGEND_GLYPH * _ui_scale, LEGEND_GLYPH * _ui_scale)
 	glyph.add_theme_stylebox_override(
-		"panel", ArmoryTheme.flat(Color.TRANSPARENT, color, int(LEGEND_GLYPH * _ui_scale / 2.0))
+		"panel", UiTheme.flat(Color.TRANSPARENT, color, int(LEGEND_GLYPH * _ui_scale / 2.0))
 	)
 	item.add_child(glyph)
 	item.add_child(_label_of(text, "FaintLabel"))
@@ -1270,7 +1235,7 @@ func _action_button(name: String, variation: String, text: String, disabled: boo
 		button.theme_type_variation = variation
 	button.text = text
 	button.disabled = disabled
-	button.custom_minimum_size.y = ArmoryTheme.ACTION_BUTTON_HEIGHT * _ui_scale
+	button.custom_minimum_size.y = UiTheme.ACTION_BUTTON_HEIGHT * _ui_scale
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	return button
 
@@ -1312,10 +1277,10 @@ func _arena_card(
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	card.add_theme_stylebox_override(
 		"panel",
-		ArmoryTheme.flat(
-			ArmoryTheme.COLOR_PANEL,
-			ArmoryTheme.COLOR_SUCCESS if is_equipped else ArmoryTheme.COLOR_BORDER,  # PORT: game.css:2490
-			ArmoryTheme.PANEL_RADIUS
+		UiTheme.flat(
+			UiTheme.COLOR_PANEL,
+			UiTheme.COLOR_SUCCESS if is_equipped else UiTheme.COLOR_BORDER,  # PORT: game.css:2490
+			UiTheme.PANEL_RADIUS
 		)
 	)
 	var card_column: VBoxContainer = VBoxContainer.new()
@@ -1332,7 +1297,7 @@ func _arena_card(
 	var cost: Label = _label_of("FREE" if price == 0 else format_points(price), "FlareLabel")
 	cost.name = cost_name
 	# PORT: game.css:2565
-	cost.add_theme_font_size_override("font_size", int(ArmoryTheme.FAINT_FONT * _ui_scale))
+	cost.add_theme_font_size_override("font_size", int(UiTheme.FAINT_FONT * _ui_scale))
 	header.add_child(cost)
 	body_column.add_child(header)
 	var desc: Label = _label_of(description, "MutedLabel")  # PORT: :711
@@ -1348,7 +1313,7 @@ func _arena_card(
 ## A 1 px vertical rule in COLOR_BORDER.
 func _vrule() -> ColorRect:
 	var rule: ColorRect = ColorRect.new()
-	rule.color = ArmoryTheme.COLOR_BORDER
+	rule.color = UiTheme.COLOR_BORDER
 	rule.custom_minimum_size.x = 1.0
 	return rule
 
@@ -1357,7 +1322,7 @@ func _vrule() -> ColorRect:
 func _swatch(color: Color, size: int, radius: int) -> Panel:
 	var swatch: Panel = Panel.new()
 	swatch.custom_minimum_size = Vector2(size * _ui_scale, size * _ui_scale)
-	swatch.add_theme_stylebox_override("panel", ArmoryTheme.flat(color, Color.TRANSPARENT, radius))
+	swatch.add_theme_stylebox_override("panel", UiTheme.flat(color, Color.TRANSPARENT, radius))
 	return swatch
 
 
@@ -1397,11 +1362,9 @@ func _pips(filled: int, total: int) -> HBoxContainer:
 		pip.custom_minimum_size = Vector2(PIP_MAX_WIDTH * _ui_scale, PIP_HEIGHT * _ui_scale)
 		pip.size_flags_horizontal = Control.SIZE_FILL
 		var style: StyleBoxFlat = (
-			ArmoryTheme.flat(ArmoryTheme.COLOR_ION, Color.TRANSPARENT, PIP_RADIUS)
+			UiTheme.flat(UiTheme.COLOR_ION, Color.TRANSPARENT, PIP_RADIUS)
 			if i < filled
-			else ArmoryTheme.flat(
-				ArmoryTheme.COLOR_RAISED, ArmoryTheme.COLOR_BORDER_ACTIVE, PIP_RADIUS
-			)
+			else UiTheme.flat(UiTheme.COLOR_RAISED, UiTheme.COLOR_BORDER_ACTIVE, PIP_RADIUS)
 		)
 		pip.add_theme_stylebox_override("panel", style)
 		bar.add_child(pip)
@@ -1415,12 +1378,10 @@ func _icon_box(config: WeaponConfig) -> PanelContainer:
 	fill.a = ICON_BOX_FILL_ALPHA
 	var border: Color = config.dot
 	border.a = ICON_BOX_BORDER_ALPHA
-	box.add_theme_stylebox_override(
-		"panel", ArmoryTheme.flat(fill, border, ArmoryTheme.CARD_RADIUS)
-	)
+	box.add_theme_stylebox_override("panel", UiTheme.flat(fill, border, UiTheme.CARD_RADIUS))
 	box.custom_minimum_size = Vector2(ICON_BOX * _ui_scale, ICON_BOX * _ui_scale)
 	var icon: TextureRect = TextureRect.new()
-	icon.texture = svg_texture(config.icon_svg, SVG_OVERSAMPLE * _ui_scale)
+	icon.texture = UiTheme.svg_texture(config.icon_svg, SVG_OVERSAMPLE * _ui_scale)
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.custom_minimum_size = Vector2(30.0 * _ui_scale, 30.0 * _ui_scale)  # PORT: :102 (svg 30x30)

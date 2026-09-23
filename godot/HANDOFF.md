@@ -29,10 +29,11 @@ callouts removed; the score pulses in a multiplier-tier colour instead.
 Next module: **M8.5 (Interface rework)** — new, from the mobile redesign
 (`peril-point-mobile-redesign/`, spec
 `docs/superpowers/specs/2026-09-23-mobile-interface-system-design.md`, plan
-`docs/superpowers/plans/2026-09-23-m8.5-interface-rework.md`, not started); then
-M9, whose plan exists but has Tasks 5–7 superseded. See `## Next`. The A55
-"Mobile scale split" pass was skipped for now by the user (phone still absent
-from adb) — its checks stay unticked in `VERIFY-ME.md`.
+`docs/superpowers/plans/2026-09-23-m8.5-interface-rework.md`). Task 1 landed
+(fonts, `UiTheme`, `ui_scale` = min(h/390, w/844)). Then M9, whose plan
+exists but has Tasks 5–7 superseded. See `## Next`. The A55 "Mobile scale
+split" pass was skipped for now by the user (phone still absent from adb) —
+its checks stay unticked in `VERIFY-ME.md`.
 Branch: `feat/godot-port` (no upstream; nothing pushed).
 
 > ### ⚠ Read `godot/VERIFY-ME.md`
@@ -408,7 +409,7 @@ of `b8567e2` itself = 16).
 
 | Area | Files |
 |---|---|
-| Theme tokens from `game.css`, built at runtime, no `.tres` (OQ 7) | `src/ui/armory_theme.gd` (241 lines) |
+| Theme tokens from `game.css`, built at runtime, no `.tres` (OQ 7) | `src/ui/ui_theme.gd` (241 lines) |
 | Shell scene: overlay, panel, header, tab row, balance, close, sticky Play footer | `scenes/armory.tscn` |
 | Full port of `ArmoryUI.ts` (20 methods/handlers) — five tabs (Weapons, Ships, Arena, Handling, Boosts) | `src/ui/armory_ui.gd` (1833 lines) |
 | `getShipSvgPreview` (`ProgressionManager.ts:873-939`) ported for the ship-card hull previews | `src/meta/progression_manager.gd` (Task 3) |
@@ -462,7 +463,7 @@ LAW 2 forbids silent improvement):**
    the layers must stay dumb (spec §5.2, M11's backdrop needs `null`).
 7. **The `Theme` lives in code, not a `.tres`.** A `.tres` cannot carry
    `# PORT:` citations and would duplicate every colour already needed as a
-   typed constant. **Ruling:** `ArmoryTheme.build(scale)` returns a `Theme`
+   typed constant. **Ruling:** `UiTheme.build(scale)` returns a `Theme`
    at runtime; the tokens are cited constants; nothing is saved to disk.
 8. **Fonts.** `game.css:53-55` specifies Archivo / IBM Plex Sans / IBM Plex
    Mono; no font asset exists in the project. **Ruling:** Godot's default
@@ -493,7 +494,7 @@ gauntlet) precede the theme override (`TiltRenderer.ts:64-74`); `TODO(M11)`
 — `game_root.gd:147` `p`/Escape pause toggle, `game_root.gd:373`
 `menu.render()` (`:2384`), `handling_preview.gd:16` the preview ship's tint
 glow (OQ 9), and font assets (OQ 8, no literal tag — noted in
-`armory_theme.gd:16`).
+`ui_theme.gd:16`).
 
 **Member reconciliation:** `ArmoryUI.ts` has 20 methods/handlers → all
 ported (`initHandlingPreview`/`stopHandlingPreview` as
@@ -547,11 +548,11 @@ implementer stopping to ask or a reviewer checking a claim):
   the sim stops ticking after death (the death explosion freezes in place),
   matching the web game's own loop, which has no game-over branch.
 
-**Accepted gaps (deferred minors from the ledger):** several `ArmoryTheme`
+**Accepted gaps (deferred minors from the ledger):** several `UiTheme`
 tokens sat unused between Tasks 1-6, confirmed all used by Task 6's close —
 the final review found one that had regressed, `OVERLAY_BG` (read nowhere,
 `armory.tscn`'s Overlay duplicated the literal); fixed by wiring
-`%Overlay.color = ArmoryTheme.OVERLAY_BG` into `ArmoryUI._ready()`, so the
+`%Overlay.color = UiTheme.OVERLAY_BG` into `ArmoryUI._ready()`, so the
 claim is true again;
 `_open_weapons` test helper has no PORT tag (test scaffolding); locked ship
 cards keep `COLOR_PANEL` where `game.css:2306/2315` darkens further
@@ -667,10 +668,10 @@ window (1.52) from overflowing the 700-px Run over sheet. The plan's
 "Rulings" table (A–P) lists every TS/spec call it applies; font sources,
 sizes and SHA-256s are pinned in Task 1 Step 1.
 
-**Now: execute the M8.5 plan from Task 1**, with
+**Now: M8.5 Task 2 (HUD)**, with
 superpowers:subagent-driven-development (or executing-plans). Literal first
 step: `git status --short` (must be clean under `godot/`), then read the
-plan's header, Global Constraints and Rulings, then Task 1.
+plan's header, Global Constraints and Rulings, then Task 2.
 
 **After M8.5:** rewrite Tasks 5–7 of
 `docs/superpowers/plans/2026-09-20-m9-milestones.md` to spec §6.5 (Tasks 1–4
