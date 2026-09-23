@@ -10,7 +10,6 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 0
 script = ExtResource("1")
 
 [node name="Overlay" type="ColorRect" parent="."]
@@ -21,7 +20,6 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.0314, 0.0353, 0.0549, 0.88)
 
 [node name="PanelMargin" type="MarginContainer" parent="."]
 unique_name_in_owner = true
@@ -31,86 +29,72 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 20
-theme_override_constants/margin_top = 20
-theme_override_constants/margin_right = 20
-theme_override_constants/margin_bottom = 20
 
-[node name="Panel" type="PanelContainer" parent="PanelMargin"]
-layout_mode = 2
-
-[node name="Column" type="VBoxContainer" parent="PanelMargin/Panel"]
+[node name="Column" type="VBoxContainer" parent="PanelMargin"]
 layout_mode = 2
 theme_override_constants/separation = 0
 
-[node name="HeaderMargin" type="MarginContainer" parent="PanelMargin/Panel/Column"]
+[node name="HeaderMargin" type="MarginContainer" parent="PanelMargin/Column"]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="Header" type="HBoxContainer" parent="PanelMargin/Panel/Column/HeaderMargin"]
-layout_mode = 2
-theme_override_constants/separation = 20
-
-[node name="BackButton" type="Button" parent="PanelMargin/Panel/Column/HeaderMargin/Header"]
+[node name="Header" type="HBoxContainer" parent="PanelMargin/Column/HeaderMargin"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_type_variation = &"IconButton"
-text = "<"
 
-[node name="TitleLabel" type="Label" parent="PanelMargin/Panel/Column/HeaderMargin/Header"]
+[node name="BackButton" type="Button" parent="PanelMargin/Column/HeaderMargin/Header"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_type_variation = &"TitleLabel"
+theme_type_variation = &"FlatIconButton"
+icon_alignment = 1
+
+[node name="TitleLabel" type="Label" parent="PanelMargin/Column/HeaderMargin/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"TitleText"
 text = "Armory"
+vertical_alignment = 1
 
-[node name="TabsScroll" type="ScrollContainer" parent="PanelMargin/Panel/Column/HeaderMargin/Header"]
+[node name="Tabs" type="HBoxContainer" parent="PanelMargin/Column/HeaderMargin/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="HeaderFill" type="Control" parent="PanelMargin/Column/HeaderMargin/Header"]
 layout_mode = 2
 size_flags_horizontal = 3
-horizontal_scroll_mode = 3
-vertical_scroll_mode = 0
+mouse_filter = 2
 
-[node name="Tabs" type="HBoxContainer" parent="PanelMargin/Panel/Column/HeaderMargin/Header/TabsScroll"]
+[node name="Balance" type="HBoxContainer" parent="PanelMargin/Column/HeaderMargin/Header"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_constants/separation = 4
 
-[node name="HeaderRight" type="HBoxContainer" parent="PanelMargin/Panel/Column/HeaderMargin/Header"]
-layout_mode = 2
-theme_override_constants/separation = 16
-
-[node name="BalanceLabel" type="Label" parent="PanelMargin/Panel/Column/HeaderMargin/Header/HeaderRight"]
+[node name="BalanceLabel" type="Label" parent="PanelMargin/Column/HeaderMargin/Header/Balance"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_type_variation = &"FlareLabel"
-text = "0 pts"
+theme_type_variation = &"PointsText"
+text = "0"
+vertical_alignment = 1
 
-[node name="CloseButton" type="Button" parent="PanelMargin/Panel/Column/HeaderMargin/Header/HeaderRight"]
+[node name="BalanceUnit" type="Label" parent="PanelMargin/Column/HeaderMargin/Header/Balance"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_type_variation = &"IconButton"
-text = "X"
+theme_type_variation = &"CapsText"
+text = "PTS"
+vertical_alignment = 1
 
-[node name="HeaderRule" type="ColorRect" parent="PanelMargin/Panel/Column"]
+[node name="PlayButton" type="Button" parent="PanelMargin/Column/HeaderMargin/Header"]
+unique_name_in_owner = true
 layout_mode = 2
+theme_type_variation = &"PrimaryButton"
+text = "Play"
+
+[node name="HeaderRule" type="ColorRect" parent="PanelMargin/Column"]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 1)
-color = Color(0.149, 0.173, 0.22, 1)
+layout_mode = 2
+mouse_filter = 2
 
-[node name="Body" type="MarginContainer" parent="PanelMargin/Panel/Column"]
+[node name="Body" type="MarginContainer" parent="PanelMargin/Column"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
-
-[node name="StickyFooter" type="MarginContainer" parent="PanelMargin/Panel/Column"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 12
-theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 20
-
-[node name="PlayButton" type="Button" parent="PanelMargin/Panel/Column/StickyFooter"]
-unique_name_in_owner = true
-layout_mode = 2
-custom_minimum_size = Vector2(0, 50)
-theme_type_variation = &"PlayButton"
-text = "Play"

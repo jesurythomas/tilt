@@ -102,10 +102,12 @@ func test_tab_row_has_five_buttons_and_switches() -> void:
 
 func test_balance_shows_formatted_points() -> void:
 	_armory.open()
-	assert_eq(_label("BalanceLabel").text, "7,331 pts")
+	assert_eq(_label("BalanceLabel").text, "7,331")
+	assert_eq(_label("BalanceUnit").text, "PTS")
 	_progression.data.points = 1
 	_armory.render()
-	assert_eq(_label("BalanceLabel").text, "1 pt")
+	assert_eq(_label("BalanceLabel").text, "1")
+	assert_eq(_label("BalanceUnit").text, "PT", "singular at 1 (ArmoryUI.ts:70-72)")
 
 
 func test_close_hides_and_emits() -> void:
@@ -117,23 +119,24 @@ func test_close_hides_and_emits() -> void:
 	assert_signal_emitted(_armory, "closed")
 
 
-func test_close_and_back_and_play_buttons_close() -> void:
+func test_back_and_play_buttons_close() -> void:
 	# PORT: web/src/tilt-to-live/ArmoryUI.ts:1123-1131
-	for name: String in ["CloseButton", "BackButton", "PlayButton"]:
+	for name: String in ["BackButton", "PlayButton"]:
 		_armory.open()
 		_button(name).pressed.emit()
 		assert_false(_armory.is_open(), name)
 
 
-func test_mobile_chrome_is_platform_gated() -> void:
+func test_shell_matches_the_board_on_every_platform() -> void:
+	# DIVERGENCE(UI-SYSTEM): ArmoryWeapons.dc.html — Back and Play live in the
+	# header on every platform; the ✕ and the sticky footer are gone (spec §6.4).
 	_armory.open()
-	var is_mobile: bool = OS.has_feature("mobile")
-	assert_eq(
-		_button("BackButton").visible, is_mobile, "back button only on mobile (game.css:2836)"
-	)
-	assert_eq(_button("CloseButton").visible, not is_mobile, "close hidden on mobile (:2840)")
-	var footer: Control = _armory.find_child("StickyFooter", true, false) as Control
-	assert_eq(footer.visible, is_mobile, "sticky Play footer only on mobile (:2908)")
+	assert_true(_button("BackButton").visible)
+	assert_true(_button("PlayButton").visible)
+	assert_null(_armory.find_child("CloseButton", true, false))
+	assert_null(_armory.find_child("StickyFooter", true, false))
+	var overlay: ColorRect = _armory.find_child("Overlay", true, false) as ColorRect
+	assert_eq(overlay.color, UiTheme.COLOR_SHELL, "full-screen shell colour")
 
 
 func test_format_points() -> void:
@@ -170,7 +173,11 @@ func test_ui_scale_resizes_touch_targets() -> void:
 	_armory.set_ui_scale(2.0)
 	await get_tree().process_frame
 	assert_eq(_button("Tab_weapons").custom_minimum_size.y, UiTheme.TOUCH_TARGET * 2.0)
-	assert_eq(_button("PlayButton").custom_minimum_size.y, UiTheme.PLAY_BUTTON_HEIGHT * 2.0)
+	assert_eq(
+		_button("PlayButton").custom_minimum_size,
+		Vector2(ArmoryUI.PLAY_WIDTH * 2.0, UiTheme.TOUCH_TARGET * 2.0),
+		"Play is 92×48 in the header (ArmoryWeapons.dc.html)"
+	)
 
 
 func _open_weapons(weapon: String = "") -> void:
@@ -219,22 +226,10 @@ func test_weapons_tab_lists_seven_weapons_with_primary_rank() -> void:
 	_open_weapons()
 	await get_tree().process_frame
 	# PORT: web/src/tilt-to-live/ArmoryUI.ts:429-431 — duration, else count, else radius, else 0
-	assert_eq(
-		_button("Weapon_blackhole").text.ends_with("3/5"),
-		true,
-		"blackhole.duration = 3 at defaults"
-	)
-	assert_eq(_button("Weapon_missiles").text.ends_with("5/5"), true, "missiles.count = 5")
-	assert_eq(
-		_button("Weapon_nuke").text.ends_with("1/5"),
-		true,
-		"nuke has no duration/count → radius = 1"
-	)
-	assert_eq(
-		_button("Weapon_lightning").text.ends_with("0/5"),
-		true,
-		"lightning has none of the three → 0"
-	)
+	assert_eq(_label("WeaponRank_blackhole").text, "3/5", "blackhole.duration = 3 at defaults")
+	assert_eq(_label("WeaponRank_missiles").text, "5/5", "missiles.count = 5")
+	assert_eq(_label("WeaponRank_nuke").text, "1/5", "nuke has no duration/count → radius = 1")
+	assert_eq(_label("WeaponRank_lightning").text, "0/5", "lightning has none of the three → 0")
 	assert_true(_button("Weapon_blackhole").button_pressed, "selected item is active")
 
 
@@ -255,7 +250,7 @@ func test_track_readout_shows_current_and_next_value() -> void:
 	_open_weapons("blackhole")
 	# PORT: web/src/tilt-to-live/ArmoryUI.ts:459-472 — duration rank 3: 4.8 + 0.5*3 → 6.3s → 6.8s
 	assert_eq(_label("TrackValue_duration").text, "6.3s → 6.8s")
-	assert_eq(_button("Track_duration").text, "1,800 pts", "rank 3 costs costs[3] (:450, :558)")
+	assert_eq(_button("Track_duration").text, "1,800", "rank 3 costs costs[3] (:450, :558)")
 	assert_false(_button("Track_duration").disabled)
 
 
@@ -266,9 +261,7 @@ func test_buying_a_track_rank_charges_saves_and_emits() -> void:
 	assert_eq(_progression.data.perks.blackhole.duration, 4)
 	assert_eq(_progression.data.points, 7331 - 1800)
 	assert_signal_emitted(_armory, "state_changed")
-	assert_eq(
-		_label("BalanceLabel").text, ArmoryUI.format_points(7331 - 1800), "re-rendered (:1164)"
-	)
+	assert_eq(_label("BalanceLabel").text, UiTheme.group_digits(7331 - 1800), "re-rendered (:1164)")
 	var reloaded: ProgressionManager = ProgressionManager.new()
 	assert_eq(
 		reloaded.data.perks.blackhole.duration, 4, "upgrade_perk saved (spec §8 M8 acceptance)"
@@ -280,7 +273,7 @@ func test_maxed_track_is_disabled_and_labelled() -> void:
 	_open_weapons("missiles")
 	var btn: Button = _button("Track_count")
 	assert_true(btn.disabled)
-	assert_eq(btn.text, "Maxed ✓")
+	assert_eq(btn.text, "Max")
 	assert_eq(_label("TrackValue_count").text, "13", "no arrow when maxed (:470-471)")
 
 
@@ -296,7 +289,7 @@ func test_unaffordable_track_is_disabled() -> void:
 func test_keystone_shows_its_keystone_cost_and_unlocks() -> void:
 	_open_weapons("laser")
 	var btn: Button = _button("Keystone_crossBeam")
-	assert_eq(btn.text, "3,500 pts", "KEYSTONE_COSTS.crossBeam (:507)")
+	assert_eq(btn.text, "3,500", "KEYSTONE_COSTS.crossBeam (:507)")
 	watch_signals(_armory)
 	btn.pressed.emit()
 	assert_true(_progression.data.perks.laser.cross_beam)
@@ -488,6 +481,61 @@ func test_unaffordable_boost_is_disabled() -> void:
 	_armory.open("boosts")
 	assert_true(_button("Boost_extraLives").disabled)
 	assert_false(_button("Boost_hullCompact").disabled, "1,500 is affordable")
+
+
+func test_locked_keystone_is_dimmed_with_a_lock() -> void:
+	# Ruling L: not unlocked and not affordable → LockedCard, lock glyph, disabled.
+	_progression.data.points = 10
+	_open_weapons("laser")
+	var btn: Button = _button("Keystone_crossBeam")
+	assert_true(btn.disabled)
+	assert_not_null(btn.icon, "lock glyph (ArmoryWeapons.dc.html)")
+	var card: PanelContainer = (
+		_armory.find_child("KeystoneCard_crossBeam", true, false) as PanelContainer
+	)
+	assert_eq(card.theme_type_variation, &"LockedCard")
+
+
+func test_track_row_carries_pips_for_its_rank() -> void:
+	_open_weapons("blackhole")
+	var card: Control = _armory.find_child("TrackCard_duration", true, false) as Control
+	var filled: int = 0
+	for node: Node in card.find_children("*", "ColorRect", true, false):
+		if (node as ColorRect).color == UiTheme.COLOR_ION:
+			filled += 1
+	assert_eq(filled, 3, "duration rank 3 of 5 (ArmoryUI.ts:453-457)")
+
+
+func _hosted(size: Vector2, scale: float) -> ArmoryUI:
+	var host: Control = Control.new()
+	host.size = size
+	add_child_autofree(host)
+	var armory: ArmoryUI = ARMORY_SCENE.instantiate() as ArmoryUI
+	host.add_child(armory)
+	armory.bind(_progression)
+	armory.set_ui_scale(scale)
+	return armory
+
+
+func _assert_tab_fits(tab: String, size: Vector2, scale: float) -> void:
+	var armory: ArmoryUI = _hosted(size, scale)
+	armory.open(tab)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var outside: Array[String] = UiChecks.outside(armory, armory.get_global_rect())
+	assert_true(outside.is_empty(), "%s fits %s: %s" % [tab, size, outside])
+	var short: Array[String] = UiChecks.short_buttons(armory, UiTheme.TOUCH_TARGET * scale)
+	assert_true(short.is_empty(), "%s rule 05 at %s: %s" % [tab, size, short])
+	var header: Node = armory.find_child("Header", true, false)
+	assert_true(UiChecks.overlapping_siblings(header).is_empty(), "header")
+
+
+func test_weapons_tab_fits_the_board_frame() -> void:
+	await _assert_tab_fits("weapons", Vector2(844, 390), 1.0)
+
+
+func test_weapons_tab_fits_the_a55() -> void:
+	await _assert_tab_fits("weapons", Vector2(2340, 1080), 1080.0 / 390.0)
 
 
 func _slider(name: String) -> HSlider:

@@ -20,20 +20,14 @@ extends Control
 ## src/ui/handling_preview.gd, a `_draw()` Control, per spec §4.2/D4 — the
 ## relocation M3/M4/M7 made for render() bodies.
 ##
-## PORT-NOTE: scenes/armory.tscn carries the layout the TS expresses in
-## game.css; a .tscn cannot hold comments, so its literals are cited here:
-## overlay rgba(8,9,14,0.88) :1607 and 20px padding :1609; header gap 20 :1631;
-## tab gap 4 :1676; header-right gap 16 :1714; header rule #262C38 :1633;
-## footer padding 12/16/20 :2790; Play height 50 :2801; hidden tab scrollbar
-## :1679-1684.
-##
-## DIVERGENCE(spec §8 M8): game.css:2817-2911 switches to the mobile chrome
-## (edge-to-edge panel, back button instead of close, sticky Play footer) at
-## an 820 CSS-px width. There is no CSS px here; the switch is gated on
-## OS.has_feature("mobile"). The overlay (Overlay ColorRect) always covers the
-## whole screen — only the panel (%PanelMargin) is inset, by
-## GameRoot.arena_origin, so it stays inside the landscape safe area (spec §8
-## M8 acceptance); see set_ui_scale.
+## DIVERGENCE(UI-SYSTEM): ArmoryWeapons/Ships/Arena/Handling/Boosts.dc.html lay
+## the Armory out (interface spec §6.4): a full-screen shell, a 64 px header
+## (back, title, five tabs, points, Play) over the tab body. The close ✕ and
+## the mobile sticky Play footer are gone, and with them spec §8 M8's
+## mobile-chrome gate. scenes/armory.tscn holds the node tree only; every
+## board literal is a constant below. On mobile the content is still inset by
+## GameRoot.arena_origin so it stays inside the safe area (spec §8 M8
+## acceptance); the Overlay behind it always covers the screen.
 
 ## onStateChanged (ArmoryUI.ts:76): after every successful purchase, equip or
 ## tuning change.
@@ -82,41 +76,68 @@ const STARTING_WEAPON_IDS: Dictionary[int, String] = {
 const TRACK_PIPS: int = 5  # PORT: web/src/tilt-to-live/ArmoryUI.ts:454
 const RANK_DENOMINATOR: int = 5  # PORT: web/src/tilt-to-live/ArmoryUI.ts:431, :485
 const DEFAULT_KEYSTONE_COST: int = 2500  # PORT: web/src/tilt-to-live/ArmoryUI.ts:507
-## Weapons layout. PORT: web/src/styles/game.css:1782 (sidebar 280), :1784 (pad 20),
-## :1788 (gap 6), :1848 (detail pad 28/36), :1851 (gap 22), :1860 (header gap 20),
-## :1864-1865 (icon box 64), :1926 (tracks gap 8), :1933-1934 (card gap 18, pad 16/18),
-## :1940 (info width 150), :1943 (info gap 3), :1974 (pips bar gap 5),
-## :1979-1982 (pip h 5, r 2, max 44), :1998 (rank width 40), :2174-2175
-## (keystone grid 2 cols, gap 10), :2182-2183 (keystone gap 14, pad 16/18),
-## :1817-1819 (dot 8, r 2)
-const SIDEBAR_WIDTH: int = 280
-const SIDEBAR_PAD: int = 20
-const SIDEBAR_GAP: int = 6
-const DETAIL_PAD_Y: int = 28
-const DETAIL_PAD_X: int = 36
-const DETAIL_GAP: int = 22
-const HEADER_GAP: int = 20
-const ICON_BOX: int = 64
+## Shell header. DIVERGENCE(UI-SYSTEM): ArmoryWeapons.dc.html — 64 px tall
+## (padding 8/28/8/24 around 48 px targets), gap 12, tabs gap 2, Play 92×48,
+## the space between the points figure and its unit.
+const HEADER_PAD_Y: int = 8
+const HEADER_PAD_RIGHT: int = 28
+const HEADER_PAD_LEFT: int = 24
+const SHELL_GAP: int = 12
+const TABS_GAP: int = 2
+const PLAY_WIDTH: int = 92
+const BALANCE_GAP: int = 4
+## Weapons layout. DIVERGENCE(UI-SYSTEM): ArmoryWeapons.dc.html — list 196 wide,
+## padding 10/10/0/24, row gap 2, row inner gap 10, dot 8, foot fade 36; detail
+## padding 16/28/16/20, gap 14; header gap 14, icon box 44 (tint 10% / 35%) with
+## a 22 px icon, title gap 2; tracks | keystones 1.65fr | 1fr, gap 12, stacks
+## gap 8; track row 62 tall, padding 0/7/0/14, gap 12, info 104 wide, info gap
+## 2, cost 88 wide; keystone padding 8/7/8/13, gap 10, plasma 7% fill / 30% border.
+const LIST_WIDTH: int = 196
+const LIST_PAD_TOP: int = 10
+const LIST_PAD_RIGHT: int = 10
+const LIST_PAD_LEFT: int = 24
+const LIST_GAP: int = 2
+const LIST_ROW_GAP: int = 10
+const DOT_SIZE: int = 8
+const FADE_HEIGHT: int = 36
+const DETAIL_PAD_TOP: int = 16
+const DETAIL_PAD_RIGHT: int = 28
+const DETAIL_PAD_BOTTOM: int = 16
+const DETAIL_PAD_LEFT: int = 20
+const DETAIL_GAP: int = 14
+const DETAIL_HEADER_GAP: int = 14
+const ICON_BOX: int = 44
+const ICON_SIZE: int = 22
+const ICON_BOX_FILL_ALPHA: float = 0.1
+const ICON_BOX_BORDER_ALPHA: float = 0.35
+const TITLE_GROUP_GAP: int = 2
+const TRACKS_RATIO: float = 1.65
+const DETAIL_GRID_GAP: int = 12
 const TRACKS_GAP: int = 8
-const CARD_GAP: int = 18
-const CARD_PAD_Y: int = 16
-const CARD_PAD_X: int = 18
-const TRACK_INFO_WIDTH: int = 150
-const TRACK_INFO_GAP: int = 3  # PORT: web/src/styles/game.css:1943
+const TRACK_ROW_HEIGHT: int = 62
+const TRACK_PAD_RIGHT: int = 7
+const TRACK_PAD_LEFT: int = 14
+const TRACK_GAP: int = 12
+const TRACK_INFO_WIDTH: int = 104
+const TRACK_INFO_GAP: int = 2
+const COST_WIDTH: int = 88
+const KEYSTONE_PAD_Y: int = 8
+const KEYSTONE_PAD_RIGHT: int = 7
+const KEYSTONE_PAD_LEFT: int = 13
+const KEYSTONE_GAP: int = 10
+const KEYSTONE_FILL_ALPHA: float = 0.07
+const KEYSTONE_BORDER_ALPHA: float = 0.3
+# TODO(M8.5): the four constants below serve the Ships/Arena/Boosts bodies
+# until Tasks 6-7 rebuild them; Task 7 deletes them.
+const DETAIL_PAD_Y: int = 28  # PORT: web/src/styles/game.css:1848
+const DETAIL_PAD_X: int = 36  # PORT: web/src/styles/game.css:1848
+const CARD_PAD_Y: int = 16  # PORT: web/src/styles/game.css:1934
+const CARD_PAD_X: int = 18  # PORT: web/src/styles/game.css:1934
 const PIP_GAP: int = 5  # PORT: web/src/styles/game.css:1974
+## Legacy pips. PORT: web/src/styles/game.css:1979-1982. TODO(M8.5): Task 7 deletes.
 const PIP_HEIGHT: int = 5
 const PIP_RADIUS: int = 2
 const PIP_MAX_WIDTH: int = 44
-const RANK_WIDTH: int = 40
-const KEYSTONE_COLUMNS: int = 2
-const KEYSTONE_GAP: int = 10
-const KEYSTONE_CARD_GAP: int = 14
-const DOT_SIZE: int = 8
-const DOT_RADIUS: int = 2
-## Icon-box tint alphas. PORT: web/src/tilt-to-live/ArmoryUI.ts:541 (`${dot}18`, `${dot}55`)
-const ICON_BOX_FILL_ALPHA: float = 0x18 / 255.0
-const ICON_BOX_BORDER_ALPHA: float = 0x55 / 255.0
-## Empty pip. PORT: web/src/styles/game.css:1990-1991
 
 ## Ships layout. PORT: web/src/styles/game.css:2291-2293 (3 cols, gap 16), :2316
 ## (preview h 130), :2320 (preview bg #0D1016), :2324 (locked opacity 0.45), :2333
@@ -202,27 +223,25 @@ var _preview: HandlingPreview = null
 @onready var _overlay: ColorRect = %Overlay
 @onready var _panel_margin: MarginContainer = %PanelMargin
 @onready var _header_margin: MarginContainer = %HeaderMargin
+@onready var _header: HBoxContainer = %Header
 @onready var _back_button: Button = %BackButton
 @onready var _title_label: Label = %TitleLabel
 @onready var _tabs: HBoxContainer = %Tabs
+@onready var _balance: HBoxContainer = %Balance
 @onready var _balance_label: Label = %BalanceLabel
-@onready var _close_button: Button = %CloseButton
-@onready var _body: MarginContainer = %Body
-@onready var _sticky_footer: MarginContainer = %StickyFooter
+@onready var _balance_unit: Label = %BalanceUnit
 @onready var _play_button: Button = %PlayButton
+@onready var _header_rule: ColorRect = %HeaderRule
+@onready var _body: MarginContainer = %Body
 
 
 func _ready() -> void:
 	visible = false
-	_overlay.color = UiTheme.OVERLAY_BG
-	var is_mobile: bool = OS.has_feature("mobile")
-	# DIVERGENCE(spec §8 M8): see the class doc. PORT: game.css:2836, :2840, :2908
-	_back_button.visible = is_mobile
-	_close_button.visible = not is_mobile
-	_sticky_footer.visible = is_mobile
+	_overlay.color = UiTheme.COLOR_SHELL
+	_header_rule.color = UiTheme.COLOR_RAISED  # DIVERGENCE(UI-SYSTEM): ArmoryWeapons.dc.html
+	_balance_unit.add_theme_color_override("font_color", UiTheme.POINTS_UNIT)
 
-	# PORT: web/src/tilt-to-live/ArmoryUI.ts:1123-1131
-	_close_button.pressed.connect(close)
+	# PORT: web/src/tilt-to-live/ArmoryUI.ts:1123-1131 — back and Play both close.
 	_back_button.pressed.connect(close)
 	_play_button.pressed.connect(close)
 
@@ -288,9 +307,17 @@ func render() -> void:
 	var prev_scroll_top: int = prev_scroll.scroll_vertical if prev_scroll != null else 0
 
 	var points: int = progression.data.points
-	_balance_label.text = format_points(points)  # PORT: :363
+	# PORT: :363 (formatPoints, singular at 1 per :70-72). DIVERGENCE(UI-SYSTEM):
+	# ArmoryWeapons.dc.html splits the figure (Mono 15, flare) from its unit (caps).
+	_balance_label.text = UiTheme.group_digits(points)
+	_balance_unit.text = "PT" if points == 1 else "PTS"
 	for i: int in range(_tab_buttons.size()):
-		_tab_buttons[i].button_pressed = (i as Tab) == active_tab  # PORT: :353-357
+		var is_active: bool = (i as Tab) == active_tab
+		_tab_buttons[i].button_pressed = is_active  # PORT: :353-357
+		# DIVERGENCE(UI-SYSTEM): ArmoryWeapons.dc.html — the selected tab is 600.
+		_tab_buttons[i].add_theme_font_override(
+			"font", UiTheme.sans(UiTheme.Weight.SEMIBOLD if is_active else UiTheme.Weight.MEDIUM)
+		)
 
 	for child: Node in _body.get_children():
 		_body.remove_child(child)
@@ -305,40 +332,30 @@ func render() -> void:
 		new_scroll.set_deferred("scroll_vertical", prev_scroll_top)  # PORT: :391-394
 
 
-## Scales fonts, paddings and touch targets to the viewport (HudController's
-## ui_scale). `inset` is GameRoot.arena_origin: on mobile the panel (not the
-## root — the overlay always covers the whole screen) is pulled in by it so
-## it stays inside the safe area; desktop keeps the fixed 20px pad.
+## Scales the Theme and every board size to the viewport (HudController's
+## ui_scale). `inset` is GameRoot.arena_origin: on mobile the content is pulled
+## in by it so it stays inside the safe area; desktop runs edge to edge.
 func set_ui_scale(scale: float, inset: Vector2 = Vector2.ZERO) -> void:
 	_ui_scale = scale
 	theme = UiTheme.build(scale)
-	var is_mobile: bool = OS.has_feature("mobile")
-	# PORT: game.css:1609 (20px) and :2819 (0 on mobile — the panel is inset
-	# by arena_origin instead; see GameRoot.resize_canvas).
-	if is_mobile:
-		_panel_margin.add_theme_constant_override("margin_left", int(inset.x))
-		_panel_margin.add_theme_constant_override("margin_right", int(inset.x))
-		_panel_margin.add_theme_constant_override("margin_top", int(inset.y))
-		_panel_margin.add_theme_constant_override("margin_bottom", int(inset.y))
-	else:
-		var pad: int = int(20 * scale)
-		_panel_margin.add_theme_constant_override("margin_left", pad)
-		_panel_margin.add_theme_constant_override("margin_top", pad)
-		_panel_margin.add_theme_constant_override("margin_right", pad)
-		_panel_margin.add_theme_constant_override("margin_bottom", pad)
-	var pad_y: int = UiTheme.HEADER_PAD_Y_MOBILE if is_mobile else UiTheme.HEADER_PAD_Y
-	var pad_x: int = UiTheme.HEADER_PAD_X_MOBILE if is_mobile else UiTheme.HEADER_PAD_X
-	_header_margin.add_theme_constant_override("margin_left", int(pad_x * scale))
-	_header_margin.add_theme_constant_override("margin_top", int(pad_y * scale))
-	_header_margin.add_theme_constant_override("margin_right", int(pad_x * scale))
-	_header_margin.add_theme_constant_override("margin_bottom", int(pad_y * scale))
-	var icon: float = UiTheme.ICON_BUTTON * scale
-	_back_button.custom_minimum_size = Vector2(icon, icon)
-	_close_button.custom_minimum_size = Vector2(icon, icon)
+	var pad: Vector2 = inset if OS.has_feature("mobile") else Vector2.ZERO
+	_panel_margin.add_theme_constant_override("margin_left", int(pad.x))
+	_panel_margin.add_theme_constant_override("margin_right", int(pad.x))
+	_panel_margin.add_theme_constant_override("margin_top", int(pad.y))
+	_panel_margin.add_theme_constant_override("margin_bottom", int(pad.y))
+	_header_margin.add_theme_constant_override("margin_left", _px(HEADER_PAD_LEFT))
+	_header_margin.add_theme_constant_override("margin_top", _px(HEADER_PAD_Y))
+	_header_margin.add_theme_constant_override("margin_right", _px(HEADER_PAD_RIGHT))
+	_header_margin.add_theme_constant_override("margin_bottom", _px(HEADER_PAD_Y))
+	_header.add_theme_constant_override("separation", _px(SHELL_GAP))
+	_tabs.add_theme_constant_override("separation", _px(TABS_GAP))
+	_balance.add_theme_constant_override("separation", _px(BALANCE_GAP))
+	var side: float = UiTheme.TOUCH_TARGET * scale
+	_back_button.custom_minimum_size = Vector2(side, side)
+	_back_button.icon = UiTheme.svg_texture(UiTheme.ICON_BACK, scale)
 	for button: Button in _tab_buttons:
-		# The M2.5 §4.3 48dp touch target, now UiTheme.TOUCH_TARGET (M8.5 ruling M10).
-		button.custom_minimum_size.y = UiTheme.TOUCH_TARGET * scale
-	_play_button.custom_minimum_size.y = UiTheme.PLAY_BUTTON_HEIGHT * scale
+		button.custom_minimum_size.y = side
+	_play_button.custom_minimum_size = Vector2(PLAY_WIDTH * scale, side)
 	if is_open():
 		render()
 
@@ -375,6 +392,7 @@ func _render_tab_content() -> Control:
 
 
 ## PORT: web/src/tilt-to-live/ArmoryUI.ts:416-569
+## DIVERGENCE(UI-SYSTEM): laid out to ArmoryWeapons.dc.html (interface spec §6.4).
 func _render_weapons_tab() -> Control:
 	var perks: Dictionary = progression.data.perks.to_dict()  # PORT: :417, :429
 	var points: int = progression.data.points
@@ -388,15 +406,57 @@ func _render_weapons_tab() -> Control:
 	var layout: HBoxContainer = HBoxContainer.new()
 	layout.name = "WeaponsTab"
 	layout.add_theme_constant_override("separation", 0)
+	layout.add_child(_weapon_list(perks, selected))  # PORT: :427-442, :533-535
+	layout.add_child(_vrule())
 
-	# Left column: weapon list (Board 09). PORT: :427-442, :533-535
-	var sidebar_scroll: ScrollContainer = ScrollContainer.new()
-	sidebar_scroll.custom_minimum_size.x = SIDEBAR_WIDTH * _ui_scale
-	sidebar_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	var sidebar_margin: MarginContainer = _margin(SIDEBAR_PAD, SIDEBAR_PAD)
-	sidebar_margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var sidebar: VBoxContainer = VBoxContainer.new()
-	sidebar.add_theme_constant_override("separation", int(SIDEBAR_GAP * _ui_scale))
+	# Right panel: detail, upgrades, keystones. PORT: :538-566
+	var detail: VBoxContainer = VBoxContainer.new()
+	detail.add_theme_constant_override("separation", _px(DETAIL_GAP))
+	detail.add_child(_weapon_header(selected, invested_points))
+	var grid: HBoxContainer = HBoxContainer.new()
+	grid.add_theme_constant_override("separation", _px(DETAIL_GRID_GAP))
+	var weapon_data: Dictionary = SaveStore.read_dict(perks, selected.id)
+	# Upgrade tracks with five discrete pips. PORT: :445-498
+	var tracks: VBoxContainer = VBoxContainer.new()
+	tracks.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tracks.size_flags_stretch_ratio = TRACKS_RATIO
+	tracks.add_theme_constant_override("separation", _px(TRACKS_GAP))
+	for track: WeaponTrack in selected.tracks:
+		tracks.add_child(_track_card(selected, track, weapon_data, points))
+	grid.add_child(tracks)
+	# One-off unlocks (Aegis, Supernova, ...). PORT: :501-528, :560-565
+	var keystones: VBoxContainer = VBoxContainer.new()
+	keystones.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	keystones.add_theme_constant_override("separation", _px(TRACKS_GAP))
+	for k: WeaponKeystone in selected.keystones:
+		keystones.add_child(_keystone_card(selected, k, weapon_data, points))
+	grid.add_child(keystones)
+	detail.add_child(grid)
+
+	var detail_margin: MarginContainer = _pad(
+		DETAIL_PAD_TOP, DETAIL_PAD_RIGHT, DETAIL_PAD_BOTTOM, DETAIL_PAD_LEFT
+	)
+	detail_margin.add_child(detail)
+	var detail_scroll: ScrollContainer = _scroll_body(detail_margin)
+	detail_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	layout.add_child(detail_scroll)
+	return layout
+
+
+## The weapon list (Board 09). PORT: web/src/tilt-to-live/ArmoryUI.ts:427-442
+func _weapon_list(perks: Dictionary, selected: WeaponConfig) -> Control:
+	var box: Control = Control.new()
+	box.name = "WeaponList"
+	box.custom_minimum_size.x = _px(LIST_WIDTH)
+	box.clip_contents = true
+	var scroll: ScrollContainer = ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	box.add_child(scroll)
+	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var pad: MarginContainer = _pad(LIST_PAD_TOP, LIST_PAD_RIGHT, 0, LIST_PAD_LEFT)
+	pad.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var rows: VBoxContainer = VBoxContainer.new()
+	rows.add_theme_constant_override("separation", _px(LIST_GAP))
 	for w: WeaponConfig in weapons_catalog:
 		var p: Dictionary = SaveStore.read_dict(perks, w.id)
 		# PORT: :430 — duration, else count, else radius, else 0
@@ -407,150 +467,209 @@ func _render_weapons_tab() -> Control:
 			primary_val = p["count"]
 		elif p.get("radius") is int:
 			primary_val = p["radius"]
+		var is_selected: bool = w.id == selected.id
 		var item: Button = Button.new()
 		item.name = "Weapon_" + w.id
 		item.toggle_mode = true
-		item.button_pressed = w.id == selected.id
-		item.theme_type_variation = "WeaponItem"
-		item.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		item.text = "%s    %d/%d" % [w.name, primary_val, RANK_DENOMINATOR]  # PORT: :431, :437-438
-		item.add_child(_swatch(w.dot, DOT_SIZE, DOT_RADIUS))  # PORT: :436
+		item.button_pressed = is_selected
+		item.theme_type_variation = "ListItemButton"
+		item.custom_minimum_size.y = _px(UiTheme.TOUCH_TARGET)
 		item.pressed.connect(_on_weapon_item_pressed.bind(w.id))
-		sidebar.add_child(item)
-	sidebar_margin.add_child(sidebar)
-	sidebar_scroll.add_child(sidebar_margin)
-	layout.add_child(sidebar_scroll)
-	layout.add_child(_vrule())  # PORT: game.css:1785 (border-right)
+		var row: HBoxContainer = HBoxContainer.new()
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_theme_constant_override("separation", _px(LIST_ROW_GAP))
+		var dot: ColorRect = ColorRect.new()  # PORT: :436
+		dot.color = w.dot
+		dot.custom_minimum_size = Vector2.ONE * _px(DOT_SIZE)
+		dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(dot)
+		var name_label: Label = _one_line(w.name, "LabelText")  # PORT: :437
+		name_label.add_theme_font_override("font", UiTheme.sans(UiTheme.Weight.MEDIUM))
+		if is_selected:
+			name_label.add_theme_color_override("font_color", UiTheme.COLOR_TEXT)
+		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(name_label)
+		# PORT: :431, :438
+		var rank: Label = UiTheme.text("%d/%d" % [primary_val, RANK_DENOMINATOR], "MonoFaintText")
+		rank.name = "WeaponRank_" + w.id
+		rank.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		rank.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(rank)
+		item.add_child(row)
+		row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		row.offset_left = _px(UiTheme.TAB_PAD_X)
+		row.offset_right = -_px(UiTheme.TAB_PAD_X)
+		rows.add_child(item)
+	pad.add_child(rows)
+	scroll.add_child(pad)
+	# The shell-coloured fade over the list's foot. DIVERGENCE(UI-SYSTEM): ArmoryWeapons.dc.html
+	var gradient: Gradient = Gradient.new()
+	gradient.set_color(0, UiTheme.tint(UiTheme.COLOR_SHELL, 0.0))
+	gradient.set_color(1, UiTheme.COLOR_SHELL)
+	var fade_texture: GradientTexture2D = GradientTexture2D.new()
+	fade_texture.gradient = gradient
+	fade_texture.fill_to = Vector2(0.0, 1.0)
+	var fade: TextureRect = TextureRect.new()
+	fade.texture = fade_texture
+	fade.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	fade.stretch_mode = TextureRect.STRETCH_SCALE
+	fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(fade)
+	fade.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	fade.offset_top = -_px(FADE_HEIGHT)
+	return box
 
-	# Right panel: detail, upgrades, keystones. PORT: :538-566
-	var detail: VBoxContainer = VBoxContainer.new()
-	detail.add_theme_constant_override("separation", int(DETAIL_GAP * _ui_scale))
 
+## Icon, title, description and invested points. PORT: web/src/tilt-to-live/ArmoryUI.ts:540-552
+func _weapon_header(selected: WeaponConfig, invested_points: int) -> HBoxContainer:
 	var header: HBoxContainer = HBoxContainer.new()
-	header.add_theme_constant_override("separation", int(HEADER_GAP * _ui_scale))
+	header.add_theme_constant_override("separation", _px(DETAIL_HEADER_GAP))
 	header.add_child(_icon_box(selected))  # PORT: :541-543
 	var title_group: VBoxContainer = VBoxContainer.new()
 	title_group.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title_group.add_child(_label_of(selected.name, "TitleLabel"))  # PORT: :545
-	title_group.add_child(_label_of(selected.description, "MutedLabel"))  # PORT: :546
+	title_group.alignment = BoxContainer.ALIGNMENT_CENTER
+	title_group.add_theme_constant_override("separation", _px(TITLE_GROUP_GAP))
+	title_group.add_child(_one_line(selected.name, "TitleText"))  # PORT: :545
+	title_group.add_child(_one_line(selected.description, "BodyText"))  # PORT: :546
 	header.add_child(title_group)
 	var badge: VBoxContainer = VBoxContainer.new()  # PORT: :548-551
-	badge.add_child(_label_of("Invested", "FaintLabel"))
-	var invested: Label = _label_of(UiTheme.group_digits(invested_points), "FlareLabel")
+	badge.alignment = BoxContainer.ALIGNMENT_CENTER
+	badge.add_theme_constant_override("separation", _px(TITLE_GROUP_GAP))
+	var caption: Label = UiTheme.caps("Invested")
+	caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	badge.add_child(caption)
+	var invested: Label = UiTheme.text(UiTheme.group_digits(invested_points), "PointsText")
 	invested.name = "InvestedValue"
 	invested.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	badge.add_child(invested)
 	header.add_child(badge)
-	detail.add_child(header)
+	return header
 
-	# Upgrade tracks with five discrete pips. PORT: :445-498
-	var tracks: VBoxContainer = VBoxContainer.new()
-	tracks.add_theme_constant_override("separation", int(TRACKS_GAP * _ui_scale))
-	var weapon_data: Dictionary = SaveStore.read_dict(perks, selected.id)
-	for track: WeaponTrack in selected.tracks:
-		var current_rank: int = SaveStore.read_int(weapon_data, track.key, 0)  # PORT: :448
-		var is_maxed: bool = current_rank >= track.max_rank
-		var cost: int = progression.get_perk_cost(current_rank, false)  # PORT: :450
-		var can_afford: bool = points >= cost and not is_maxed
 
-		var card: PanelContainer = _card()
-		var card_inner: MarginContainer = card.get_child(0) as MarginContainer
-		var row: HBoxContainer = HBoxContainer.new()
-		row.add_theme_constant_override("separation", int(CARD_GAP * _ui_scale))
-		var info: VBoxContainer = VBoxContainer.new()
-		info.custom_minimum_size.x = TRACK_INFO_WIDTH * _ui_scale
-		info.add_theme_constant_override("separation", int(TRACK_INFO_GAP * _ui_scale))
-		info.add_child(_label_of(track.name, "HeadingLabel"))
-		info.add_child(_label_of(track.effect, "MutedLabel"))
-		# Current (and, unless maxed, next-rank) value straight from WEAPON_TUNING (:459-473)
-		var tuning_tracks: Dictionary = Tuning.weapon_tuning.get(selected.id, {})
-		if tuning_tracks.has(track.key):
-			var entry: Tuning.TuningEntry = tuning_tracks[track.key]
-			var current_text: String = format_tuning_value(
-				Tuning.get_tuned_value(selected.id, track.key, current_rank), entry.unit
-			)
-			var value_text: String = current_text
-			if not is_maxed:
-				var next_text: String = format_tuning_value(
-					Tuning.get_tuned_value(selected.id, track.key, current_rank + 1), entry.unit
-				)
-				value_text = "%s → %s" % [current_text, next_text]  # PORT: :469 (&rarr;)
-			var value_label: Label = _label_of(value_text, "FaintLabel")
-			value_label.name = "TrackValue_" + track.key
-			info.add_child(value_label)
-		row.add_child(info)
-		row.add_child(_pips(current_rank, TRACK_PIPS))  # PORT: :453-457
-		var rank: Label = _label_of("%d/%d" % [current_rank, RANK_DENOMINATOR], "MonoLabel")  # PORT: :485
-		rank.custom_minimum_size.x = RANK_WIDTH * _ui_scale
-		rank.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		row.add_child(rank)
-		var buy: Button = Button.new()  # PORT: :486-494
-		buy.name = "Track_" + track.key
-		buy.custom_minimum_size = Vector2(
-			UiTheme.ACTION_BUTTON_WIDTH * _ui_scale, UiTheme.ACTION_BUTTON_HEIGHT * _ui_scale
+## One upgrade-track row. PORT: web/src/tilt-to-live/ArmoryUI.ts:447-495
+func _track_card(
+	selected: WeaponConfig, track: WeaponTrack, weapon_data: Dictionary, points: int
+) -> PanelContainer:
+	var current_rank: int = SaveStore.read_int(weapon_data, track.key, 0)  # PORT: :448
+	var is_maxed: bool = current_rank >= track.max_rank
+	var cost: int = progression.get_perk_cost(current_rank, false)  # PORT: :450
+	var can_afford: bool = points >= cost and not is_maxed
+
+	var card: PanelContainer = PanelContainer.new()
+	card.name = "TrackCard_" + track.key
+	card.theme_type_variation = "Card"
+	card.custom_minimum_size.y = _px(TRACK_ROW_HEIGHT)
+	var inner: MarginContainer = _pad(0, TRACK_PAD_RIGHT, 0, TRACK_PAD_LEFT)
+	var row: HBoxContainer = HBoxContainer.new()
+	row.add_theme_constant_override("separation", _px(TRACK_GAP))
+	var info: VBoxContainer = VBoxContainer.new()
+	info.custom_minimum_size.x = _px(TRACK_INFO_WIDTH)
+	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info.alignment = BoxContainer.ALIGNMENT_CENTER
+	info.add_theme_constant_override("separation", _px(TRACK_INFO_GAP))
+	info.add_child(_one_line(track.name, "StrongText"))
+	info.add_child(_one_line(track.effect, "MonoText"))
+	# Current (and, unless maxed, next-rank) value straight from WEAPON_TUNING (:459-473).
+	# Ruling N: kept as the row's second Mono line.
+	var tuning_tracks: Dictionary = Tuning.weapon_tuning.get(selected.id, {})
+	if tuning_tracks.has(track.key):
+		var entry: Tuning.TuningEntry = tuning_tracks[track.key]
+		var current_text: String = format_tuning_value(
+			Tuning.get_tuned_value(selected.id, track.key, current_rank), entry.unit
 		)
-		buy.disabled = is_maxed or not can_afford
-		buy.text = "Maxed ✓" if is_maxed else format_points(cost)
-		buy.pressed.connect(_on_track_pressed.bind(selected.id, track.key))
-		row.add_child(buy)
-		card_inner.add_child(row)
-		tracks.add_child(card)
-	detail.add_child(tracks)
+		var value_text: String = current_text
+		if not is_maxed:
+			var next_text: String = format_tuning_value(
+				Tuning.get_tuned_value(selected.id, track.key, current_rank + 1), entry.unit
+			)
+			value_text = "%s → %s" % [current_text, next_text]  # PORT: :469 (&rarr;)
+		var value_label: Label = _one_line(value_text, "MonoFaintText")
+		value_label.name = "TrackValue_" + track.key
+		info.add_child(value_label)
+	row.add_child(info)
+	var pips: HBoxContainer = UiTheme.pips(current_rank, TRACK_PIPS, _ui_scale)  # PORT: :453-457
+	pips.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pips.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(pips)
+	var buy: Button = Button.new()  # PORT: :486-494
+	buy.name = "Track_" + track.key
+	buy.theme_type_variation = "CostButton"
+	buy.custom_minimum_size = Vector2(_px(COST_WIDTH), _px(UiTheme.TOUCH_TARGET))
+	buy.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	buy.disabled = is_maxed or not can_afford
+	buy.text = "Max" if is_maxed else UiTheme.group_digits(cost)  # Ruling K
+	buy.pressed.connect(_on_track_pressed.bind(selected.id, track.key))
+	row.add_child(buy)
+	inner.add_child(row)
+	card.add_child(inner)
+	return card
 
-	# One-off unlocks (Aegis, Supernova, ...). PORT: :501-528, :560-565
-	var keystones_section: VBoxContainer = VBoxContainer.new()
-	keystones_section.add_child(_label_of("One-off unlocks", "FaintLabel"))  # PORT: :561
-	var grid: GridContainer = GridContainer.new()
-	grid.columns = KEYSTONE_COLUMNS
-	grid.add_theme_constant_override("h_separation", int(KEYSTONE_GAP * _ui_scale))
-	grid.add_theme_constant_override("v_separation", int(KEYSTONE_GAP * _ui_scale))
-	for k: WeaponKeystone in selected.keystones:
-		var is_unlocked: bool = SaveStore.read_bool(weapon_data, k.key, false)  # PORT: :504
-		# KEYSTONE_COSTS is the same table get_perk_cost() charges from (:505-507)
-		var cost: int = Tuning.KEYSTONE_COSTS.get(k.key, DEFAULT_KEYSTONE_COST)
-		var can_afford: bool = points >= cost and not is_unlocked
 
-		var card: PanelContainer = PanelContainer.new()
-		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+## One keystone card. PORT: web/src/tilt-to-live/ArmoryUI.ts:502-526
+func _keystone_card(
+	selected: WeaponConfig, k: WeaponKeystone, weapon_data: Dictionary, points: int
+) -> PanelContainer:
+	var is_unlocked: bool = SaveStore.read_bool(weapon_data, k.key, false)  # PORT: :504
+	# KEYSTONE_COSTS is the same table get_perk_cost() charges from (:505-507)
+	var cost: int = Tuning.KEYSTONE_COSTS.get(k.key, DEFAULT_KEYSTONE_COST)
+	var can_afford: bool = points >= cost and not is_unlocked
+	var is_locked: bool = not is_unlocked and not can_afford  # Ruling L
+
+	var card: PanelContainer = PanelContainer.new()
+	card.name = "KeystoneCard_" + k.key
+	card.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	if is_locked:
+		card.theme_type_variation = "LockedCard"
+	elif is_unlocked:
+		card.theme_type_variation = "Card"
+	else:
 		card.add_theme_stylebox_override(
 			"panel",
 			UiTheme.flat(
-				UiTheme.KEYSTONE_UNLOCKED_FILL if is_unlocked else UiTheme.KEYSTONE_FILL,
-				UiTheme.KEYSTONE_UNLOCKED_BORDER if is_unlocked else UiTheme.KEYSTONE_BORDER,
-				UiTheme.CARD_RADIUS
+				UiTheme.tint(UiTheme.COLOR_PLASMA, KEYSTONE_FILL_ALPHA),
+				UiTheme.tint(UiTheme.COLOR_PLASMA, KEYSTONE_BORDER_ALPHA),
+				_px(UiTheme.CARD_RADIUS)
 			)
 		)
-		var inner: MarginContainer = _margin(CARD_PAD_Y, CARD_PAD_X)
-		var row: HBoxContainer = HBoxContainer.new()
-		row.add_theme_constant_override("separation", int(KEYSTONE_CARD_GAP * _ui_scale))
-		var info: VBoxContainer = VBoxContainer.new()
-		info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		info.add_child(_label_of(k.name, "HeadingLabel"))
-		var desc: Label = _label_of(k.description, "MutedLabel")
-		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		info.add_child(desc)
-		row.add_child(info)
-		var buy: Button = Button.new()  # PORT: :516-524
-		buy.name = "Keystone_" + k.key
-		buy.theme_type_variation = "EquippedButton" if is_unlocked else "KeystoneButton"
-		buy.custom_minimum_size.y = UiTheme.ACTION_BUTTON_HEIGHT * _ui_scale
-		buy.disabled = is_unlocked or not can_afford
-		buy.text = "Unlocked ✓" if is_unlocked else format_points(cost)
-		buy.pressed.connect(_on_keystone_pressed.bind(selected.id, k.key))
-		row.add_child(buy)
-		inner.add_child(row)
-		card.add_child(inner)
-		grid.add_child(card)
-	keystones_section.add_child(grid)
-	detail.add_child(keystones_section)
-
-	var detail_margin: MarginContainer = _margin(DETAIL_PAD_Y, DETAIL_PAD_X)
-	detail_margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	detail_margin.add_child(detail)
-	var detail_scroll: ScrollContainer = _scroll_body(detail_margin)
-	detail_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	layout.add_child(detail_scroll)
-	return layout
+	var inner: MarginContainer = _pad(
+		KEYSTONE_PAD_Y, KEYSTONE_PAD_RIGHT, KEYSTONE_PAD_Y, KEYSTONE_PAD_LEFT
+	)
+	var row: HBoxContainer = HBoxContainer.new()
+	row.add_theme_constant_override("separation", _px(KEYSTONE_GAP))
+	var info: VBoxContainer = VBoxContainer.new()
+	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info.alignment = BoxContainer.ALIGNMENT_CENTER
+	info.add_theme_constant_override("separation", _px(TITLE_GROUP_GAP))
+	var title: Label = _one_line(k.name, "StrongText")
+	var desc: Label = UiTheme.text(k.description, "HintText")
+	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	if is_locked:
+		title.add_theme_color_override("font_color", UiTheme.COLOR_TEXT_MUTED)
+		desc.add_theme_color_override("font_color", UiTheme.TEXT_FAINT)
+	info.add_child(title)
+	info.add_child(desc)
+	row.add_child(info)
+	var buy: Button = Button.new()  # PORT: :516-524
+	buy.name = "Keystone_" + k.key
+	buy.custom_minimum_size.y = _px(UiTheme.TOUCH_TARGET)
+	buy.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	if is_unlocked:
+		buy.theme_type_variation = "EquippedButton"
+		buy.text = "Unlocked ✓"
+		buy.disabled = true
+	else:
+		buy.theme_type_variation = "PlasmaCostButton"
+		buy.text = UiTheme.group_digits(cost)  # Ruling K
+		buy.disabled = not can_afford
+		if is_locked:
+			buy.icon = UiTheme.svg_texture(UiTheme.ICON_LOCK, _ui_scale)
+	buy.pressed.connect(_on_keystone_pressed.bind(selected.id, k.key))
+	row.add_child(buy)
+	inner.add_child(row)
+	card.add_child(inner)
+	return card
 
 
 ## PORT: web/src/tilt-to-live/ArmoryUI.ts:575-656
@@ -1149,6 +1268,29 @@ func _margin(pad_y: int, pad_x: int) -> MarginContainer:
 	return m
 
 
+## A base size at the current ui_scale.
+func _px(base: float) -> int:
+	return UiTheme.px(base, _ui_scale)
+
+
+## A MarginContainer with per-side board padding, in CSS order.
+func _pad(top: int, right: int, bottom: int, left: int) -> MarginContainer:
+	var m: MarginContainer = MarginContainer.new()
+	m.add_theme_constant_override("margin_top", _px(top))
+	m.add_theme_constant_override("margin_right", _px(right))
+	m.add_theme_constant_override("margin_bottom", _px(bottom))
+	m.add_theme_constant_override("margin_left", _px(left))
+	return m
+
+
+## One idea per line: a Label that clips with an ellipsis (System.dc.html rule 03).
+func _one_line(content: String, variation: String) -> Label:
+	var label: Label = UiTheme.text(content, variation)
+	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	label.clip_text = true
+	return label
+
+
 ## One slider field's header (label + value pill) and hint.
 ## PORT: web/src/tilt-to-live/ArmoryUI.ts:813-819, :821-822
 func _handling_field(
@@ -1310,12 +1452,10 @@ func _arena_card(
 	return card
 
 
-## A 1 px vertical rule in COLOR_BORDER.
+## A 1 px vertical rule in raised (the list's border-right).
+## DIVERGENCE(UI-SYSTEM): ArmoryWeapons.dc.html
 func _vrule() -> ColorRect:
-	var rule: ColorRect = ColorRect.new()
-	rule.color = UiTheme.COLOR_BORDER
-	rule.custom_minimum_size.x = 1.0
-	return rule
+	return UiTheme.hairline(true, UiTheme.COLOR_RAISED)
 
 
 ## A rounded colour swatch (.weapon-color-dot, pips, dust dot).
@@ -1372,19 +1512,29 @@ func _pips(filled: int, total: int) -> HBoxContainer:
 
 
 ## .weapon-icon-box tinted by the weapon's dot. PORT: web/src/tilt-to-live/ArmoryUI.ts:541-543
+## DIVERGENCE(UI-SYSTEM): ArmoryWeapons.dc.html — 44 box, 10% / 35% tint, 22 icon.
 func _icon_box(config: WeaponConfig) -> PanelContainer:
 	var box: PanelContainer = PanelContainer.new()
-	var fill: Color = config.dot
-	fill.a = ICON_BOX_FILL_ALPHA
-	var border: Color = config.dot
-	border.a = ICON_BOX_BORDER_ALPHA
-	box.add_theme_stylebox_override("panel", UiTheme.flat(fill, border, UiTheme.CARD_RADIUS))
-	box.custom_minimum_size = Vector2(ICON_BOX * _ui_scale, ICON_BOX * _ui_scale)
+	var inset: float = _px(ICON_BOX - ICON_SIZE) / 2.0  # PORT-NOTE: half the size — radius / centring
+	box.add_theme_stylebox_override(
+		"panel",
+		UiTheme.padded(
+			UiTheme.flat(
+				UiTheme.tint(config.dot, ICON_BOX_FILL_ALPHA),
+				UiTheme.tint(config.dot, ICON_BOX_BORDER_ALPHA),
+				_px(UiTheme.CARD_RADIUS)
+			),
+			inset,
+			inset
+		)
+	)
+	box.custom_minimum_size = Vector2.ONE * _px(ICON_BOX)
+	box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var icon: TextureRect = TextureRect.new()
 	icon.texture = UiTheme.svg_texture(config.icon_svg, SVG_OVERSAMPLE * _ui_scale)
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon.custom_minimum_size = Vector2(30.0 * _ui_scale, 30.0 * _ui_scale)  # PORT: :102 (svg 30x30)
+	icon.custom_minimum_size = Vector2.ONE * _px(ICON_SIZE)
 	box.add_child(icon)
 	return box
 
