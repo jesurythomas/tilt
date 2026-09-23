@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://src/core/game_root.gd" id="1"]
 [ext_resource type="Script" path="res://src/render/grid_layer.gd" id="2"]
@@ -6,25 +6,9 @@
 [ext_resource type="Script" path="res://src/render/effect_layer.gd" id="4"]
 [ext_resource type="Script" path="res://src/ui/hud_controller.gd" id="5"]
 [ext_resource type="Script" path="res://src/render/joystick_layer.gd" id="6"]
-[ext_resource type="PackedScene" path="res://scenes/control_picker.tscn" id="7"]
 [ext_resource type="PackedScene" path="res://scenes/armory.tscn" id="8"]
 [ext_resource type="Script" path="res://src/ui/pause_sheet.gd" id="9"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_gameover"]
-bg_color = Color(0.063, 0.047, 0.118, 0.94)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.357, 0.549, 1.0, 0.45)
-corner_radius_top_left = 12
-corner_radius_top_right = 12
-corner_radius_bottom_right = 12
-corner_radius_bottom_left = 12
-expand_margin_left = 0.0
-expand_margin_top = 0.0
-expand_margin_right = 0.0
-expand_margin_bottom = 0.0
+[ext_resource type="Script" path="res://src/ui/run_over_sheet.gd" id="10"]
 
 [node name="GameRoot" type="Node2D"]
 script = ExtResource("1")
@@ -157,7 +141,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("9")
 
-[node name="GameOverPanel" type="CenterContainer" parent="CanvasLayer/Hud"]
+[node name="GameOverPanel" type="Control" parent="CanvasLayer/Hud"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 1
@@ -166,83 +150,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-
-[node name="Panel" type="PanelContainer" parent="CanvasLayer/Hud/GameOverPanel"]
-custom_minimum_size = Vector2(340, 320)
-layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_gameover")
-
-[node name="Margin" type="MarginContainer" parent="CanvasLayer/Hud/GameOverPanel/Panel"]
-layout_mode = 2
-theme_override_constants/margin_left = 24
-theme_override_constants/margin_top = 24
-theme_override_constants/margin_right = 24
-theme_override_constants/margin_bottom = 24
-
-[node name="VBox" type="VBoxContainer" parent="CanvasLayer/Hud/GameOverPanel/Panel/Margin"]
-layout_mode = 2
-theme_override_constants/separation = 12
-
-[node name="Title" type="Label" parent="CanvasLayer/Hud/GameOverPanel/Panel/Margin/VBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.2, 0.35, 1)
-theme_override_font_sizes/font_size = 36
-text = "GAME OVER"
-horizontal_alignment = 1
-
-[node name="NewBestLabel" type="Label" parent="CanvasLayer/Hud/GameOverPanel/Panel/Margin/VBox"]
-unique_name_in_owner = true
-visible = false
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.85, 0.2, 1)
-theme_override_font_sizes/font_size = 22
-text = "NEW RECORD!"
-horizontal_alignment = 1
-
-[node name="FinalScoreLabel" type="Label" parent="CanvasLayer/Hud/GameOverPanel/Panel/Margin/VBox"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_font_sizes/font_size = 24
-text = "SCORE: 0"
-horizontal_alignment = 1
-
-[node name="FinalKillsLabel" type="Label" parent="CanvasLayer/Hud/GameOverPanel/Panel/Margin/VBox"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_font_sizes/font_size = 18
-text = "KILLS: 0"
-horizontal_alignment = 1
-
-[node name="FinalTimeLabel" type="Label" parent="CanvasLayer/Hud/GameOverPanel/Panel/Margin/VBox"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_font_sizes/font_size = 18
-text = "TIME: 0:00"
-horizontal_alignment = 1
-
-[node name="ControlsLabel" type="Label" parent="CanvasLayer/Hud/GameOverPanel/Panel/Margin/VBox"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 14
-theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
-text = "CONTROLS"
-horizontal_alignment = 1
-
-[node name="ControlPicker" parent="CanvasLayer/Hud/GameOverPanel/Panel/Margin/VBox" instance=ExtResource("7")]
-layout_mode = 2
-
-[node name="GameOverArmoryButton" type="Button" parent="CanvasLayer/Hud/GameOverPanel/Panel/Margin/VBox"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 48)
-layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "ARMORY"
-
-[node name="RestartButton" type="Button" parent="CanvasLayer/Hud/GameOverPanel/Panel/Margin/VBox"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 48)
-layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "PLAY AGAIN"
+script = ExtResource("10")
 
 [node name="Armory" parent="CanvasLayer" instance=ExtResource("8")]
 unique_name_in_owner = true

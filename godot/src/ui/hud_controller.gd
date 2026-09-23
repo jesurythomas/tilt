@@ -97,6 +97,7 @@ var _timer_type: int = -1
 var _pause_button: Button = null
 var _pause_panel: Control = null
 var _pause_sheet: PauseSheet = null
+var _run_over: RunOverSheet = null
 var _resume_button: Button = null
 var _pause_armory_button: Button = null
 var _game_over_armory_button: Button = null
@@ -110,10 +111,6 @@ var _score_pulse_tween: Tween = null
 @onready var _best_label: Label = get_node_or_null("%BestLabel")
 @onready var _multiplier_label: Label = get_node_or_null("%MultiplierLabel")
 @onready var _game_over_panel: Control = get_node_or_null("%GameOverPanel")
-@onready var _final_score_label: Label = get_node_or_null("%FinalScoreLabel")
-@onready var _final_kills_label: Label = get_node_or_null("%FinalKillsLabel")
-@onready var _final_time_label: Label = get_node_or_null("%FinalTimeLabel")
-@onready var _new_best_label: Label = get_node_or_null("%NewBestLabel")
 @onready var _restart_button: Button = get_node_or_null("%RestartButton")
 
 
@@ -136,14 +133,7 @@ func _ready() -> void:
 		_multiplier_label.theme_type_variation = "ChipText"
 	if _game_over_panel == null:
 		_game_over_panel = find_child("GameOverPanel", true, false) as Control
-	if _final_score_label == null:
-		_final_score_label = find_child("FinalScoreLabel", true, false) as Label
-	if _final_kills_label == null:
-		_final_kills_label = find_child("FinalKillsLabel", true, false) as Label
-	if _final_time_label == null:
-		_final_time_label = find_child("FinalTimeLabel", true, false) as Label
-	if _new_best_label == null:
-		_new_best_label = find_child("NewBestLabel", true, false) as Label
+	_run_over = _game_over_panel as RunOverSheet
 	if _restart_button == null:
 		_restart_button = find_child("RestartButton", true, false) as Button
 
@@ -283,6 +273,8 @@ func set_ui_scale(scale: float) -> void:
 		_style_multiplier()
 	if _pause_sheet != null:
 		_pause_sheet.set_ui_scale(scale)
+	if _run_over != null:
+		_run_over.set_ui_scale(scale)
 	for picker: ControlPicker in _pickers:
 		picker.set_ui_scale(scale)
 	for button: Button in [_pause_armory_button, _game_over_armory_button]:
@@ -363,6 +355,32 @@ static func weapon_timer_for(
 ## DIVERGENCE(UI-SYSTEM): Hud.dc.html — the name is a caps label.
 static func weapon_timer_text(reading: WeaponTimer) -> String:
 	return "%s %.1fs" % [WEAPON_TIMER_NAMES[reading.weapon_type].to_upper(), reading.remaining]
+
+
+## Gathers what gameOverModal shows. PORT: web/src/tilt-to-live/TiltGame.ts:2088-2122
+## `run` may be null (tests build the HUD alone); the run-dependent figures then
+## keep RunResult's defaults.
+static func run_result_for(
+	final_score: int, stats: Types.GameStats, run: RunController
+) -> RunOverSheet.RunResult:
+	var result: RunOverSheet.RunResult = RunOverSheet.RunResult.new()
+	result.score = final_score
+	if stats != null:
+		result.kills = stats.kills  # PORT: :2104
+		result.best_chain = int(maxf(1.0, stats.max_multiplier))  # PORT: :2105
+		result.time_text = GameStateMachine.format_time(stats.survival_time)  # PORT: :2090
+	if run != null:
+		var mode: GameOptionsManager.ModeConfig = run.options.get_mode_config(
+			run.options.settings.mode
+		)  # PORT: :2091-2092
+		result.mode_name = mode.name
+		result.mode_multiplier = mode.score_multiplier
+		if run.scores.is_new_best and run.scores.best_score_diff > 0:  # PORT: :2097
+			result.best_diff = run.scores.best_score_diff
+		# TODO(M9): + Math.max(pointsEarnedThisRun, earnedMilestonesPts) (:2118).
+		result.earned = run.coins.points_from_coins  # PORT: :2118
+		result.balance = run.progression.data.points  # PORT: :2119
+	return result
 
 
 func _on_score_changed(score: int, multiplier: int, best_score: int) -> void:
@@ -458,29 +476,14 @@ func _show_weapon_timer(reading: WeaponTimer) -> void:
 func _on_run_ended(final_score: int, stats: Types.GameStats) -> void:
 	if _game_over_panel == null:
 		return
-
 	# I1: GameRoot._ready() (and its `settings`) has not necessarily run before
 	# HudController._ready() calls _sync_pickers() the first time — HudController
 	# is GameRoot's descendant, so the ancestor's _ready() runs after this
 	# node's — so the death screen's picker shows no active scheme until the
 	# player changes it. Re-syncing whenever this surface opens covers it.
 	_sync_pickers()
-
-	if _final_score_label != null:
-		_final_score_label.text = "SCORE: %d" % final_score
-	if _final_kills_label != null:
-		_final_kills_label.text = "KILLS: %d" % (stats.kills if stats != null else 0)
-	if _final_time_label != null:
-		var t: float = stats.survival_time if stats != null else 0.0
-		var m: int = floori(t / 60.0)
-		var s: int = floori(fmod(t, 60.0))
-		_final_time_label.text = "TIME: %d:%02d" % [m, s]
-	if _new_best_label != null:
-		var is_best: bool = (
-			final_score > 0 and final_score >= (stats.best_score if stats != null else 0)
-		)
-		_new_best_label.visible = is_best
-
+	if _run_over != null:
+		_run_over.show_result(run_result_for(final_score, stats, _run))
 	_game_over_panel.visible = true
 
 

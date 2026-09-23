@@ -356,3 +356,27 @@ func test_pause_stats_show_score_time_and_mode() -> void:
 	var stats: Label = root.find_child("PauseStats", true, false) as Label
 	var mode: String = root.options.get_mode_config(root.options.settings.mode).name
 	assert_true(stats.text.ends_with(" · " + mode), stats.text)
+
+
+func test_run_over_shows_points_and_spend() -> void:
+	# PORT: web/src/tilt-to-live/TiltGame.ts:2118-2122
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	var balance: int = root.progression.data.points
+	GameEvents.run_ended.emit(0, Types.GameStats.new())
+	var panel: Control = root.find_child("GameOverPanel", true, false) as Control
+	assert_true(panel.visible)
+	assert_eq(
+		(panel.find_child("PointsBalanceLabel", true, false) as Label).text,
+		UiTheme.group_digits(balance)
+	)
+	assert_eq(
+		(panel.find_child("SpendValueLabel", true, false) as Label).text,
+		UiTheme.group_digits(balance),
+		"Spend N reads the balance (:2122)"
+	)
+	assert_false(
+		(panel.find_child("NewBestBanner", true, false) as Control).visible,
+		"a zero-score run is not a new best (:2097)"
+	)

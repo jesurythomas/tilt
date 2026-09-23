@@ -255,6 +255,46 @@ static func chip_style(tint_color: Color, scale: float) -> StyleBoxFlat:
 	)
 
 
+## Builds the void scrim and a centred Sheet panel, parented under `parent`.
+## Shared by every modal sheet (Pause, Run over); returns the Sheet for the
+## caller to fill. Node names `Scrim`/`Sheet` are the interface spec's.
+static func build_sheet(parent: Control, scrim_alpha: float) -> PanelContainer:
+	var scrim: ColorRect = ColorRect.new()
+	scrim.name = "Scrim"
+	scrim.color = tint(COLOR_VOID, scrim_alpha)
+	parent.add_child(scrim)
+	scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var center: CenterContainer = CenterContainer.new()
+	parent.add_child(center)
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var sheet: PanelContainer = PanelContainer.new()
+	sheet.name = "Sheet"
+	sheet.theme_type_variation = "Sheet"
+	center.add_child(sheet)
+	return sheet
+
+
+## A fill-width column of a sheet's two-column layout, named for `find_child`.
+static func sheet_column(column_name: String) -> VBoxContainer:
+	var column: VBoxContainer = VBoxContainer.new()
+	column.name = column_name
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	return column
+
+
+## A 1 px hairline rule (vertical between columns, horizontal between rows),
+## ignoring the mouse. Never scaled (Global Constraints).
+static func hairline(is_vertical: bool, color: Color) -> ColorRect:
+	var rule: ColorRect = ColorRect.new()
+	rule.color = color
+	if is_vertical:
+		rule.custom_minimum_size.x = 1.0
+	else:
+		rule.custom_minimum_size.y = 1.0
+	rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return rule
+
+
 ## Rasterises an SVG string (Image.load_svg_from_string, 4.7.2) at `scale`.
 static func svg_texture(svg: String, scale: float) -> ImageTexture:
 	var image: Image = Image.new()

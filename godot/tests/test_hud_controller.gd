@@ -24,36 +24,28 @@ func test_hud_score_changed_updates_labels() -> void:
 	assert_eq(best_lbl.text, "BEST 3,000")
 
 
-func test_hud_run_ended_shows_game_over() -> void:
+func test_hud_run_ended_shows_the_run_over_sheet() -> void:
 	var hud: HudController = HudController.new()
-	var panel: PanelContainer = PanelContainer.new()
-	panel.name = "GameOverPanel"
-	var final_score_lbl: Label = Label.new()
-	final_score_lbl.name = "FinalScoreLabel"
-	var final_kills_lbl: Label = Label.new()
-	final_kills_lbl.name = "FinalKillsLabel"
-	var final_time_lbl: Label = Label.new()
-	final_time_lbl.name = "FinalTimeLabel"
-
-	hud.add_child(panel)
-	hud.add_child(final_score_lbl)
-	hud.add_child(final_kills_lbl)
-	hud.add_child(final_time_lbl)
+	var sheet: RunOverSheet = RunOverSheet.new()
+	sheet.name = "GameOverPanel"
+	hud.add_child(sheet)
 	add_child_autofree(hud)
 
 	var stats: Types.GameStats = Types.GameStats.new()
 	stats.kills = 25
 	stats.survival_time = 75.0
 	stats.best_score = 5000
+	stats.max_multiplier = 12.0
 
 	GameEvents.run_ended.emit(4200, stats)
-	assert_true(panel.visible, "GameOverPanel must be visible on run_ended")
-	assert_eq(final_score_lbl.text, "SCORE: 4200")
-	assert_eq(final_kills_lbl.text, "KILLS: 25")
-	assert_eq(final_time_lbl.text, "TIME: 1:15")
+	assert_true(sheet.visible, "GameOverPanel must be visible on run_ended")
+	assert_eq((sheet.find_child("FinalScoreLabel", true, false) as Label).text, "4,200")
+	assert_eq((sheet.find_child("FinalKillsLabel", true, false) as Label).text, "25")
+	assert_eq((sheet.find_child("FinalTimeLabel", true, false) as Label).text, "1:15")
+	assert_eq((sheet.find_child("FinalChainLabel", true, false) as Label).text, "12×")
 
 	GameEvents.phase_changed.emit(Types.GamePhase.PLAYING)
-	assert_false(panel.visible, "GameOverPanel hidden on return to playing")
+	assert_false(sheet.visible, "GameOverPanel hidden on return to playing")
 
 
 func test_control_picker_emits_the_chosen_scheme() -> void:

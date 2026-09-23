@@ -94,22 +94,11 @@ func set_switches(sfx_on: bool, music_on: bool) -> void:
 
 
 func _build() -> void:
-	var scrim: ColorRect = ColorRect.new()
-	scrim.name = "Scrim"
-	scrim.color = UiTheme.tint(UiTheme.COLOR_VOID, SCRIM_ALPHA)
-	add_child(scrim)
-	scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var center: CenterContainer = CenterContainer.new()
-	add_child(center)
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_sheet = PanelContainer.new()
-	_sheet.name = "Sheet"
-	_sheet.theme_type_variation = "Sheet"
-	center.add_child(_sheet)
+	_sheet = UiTheme.build_sheet(self, SCRIM_ALPHA)
 	_columns = HBoxContainer.new()
 	_sheet.add_child(_columns)
 
-	_left = _column("LeftColumn")
+	_left = UiTheme.sheet_column("LeftColumn")
 	_title_block = VBoxContainer.new()
 	_title_block.add_child(UiTheme.text("Paused", "SheetTitleText"))
 	_stats = UiTheme.text("", "MonoFaintText")
@@ -124,9 +113,9 @@ func _build() -> void:
 	_left.add_child(_restart)
 	# TODO(M11): "Quit to menu" (Pause.dc.html) — no menu until M11 (interface spec §5).
 	_columns.add_child(_left)
-	_columns.add_child(_rule(true))
+	_columns.add_child(UiTheme.hairline(true, UiTheme.COLOR_LINE))
 
-	_right = _column("RightColumn")
+	_right = UiTheme.sheet_column("RightColumn")
 	_right.add_child(UiTheme.caps("Steer"))
 	_steer_row = HBoxContainer.new()
 	_picker = CONTROL_PICKER.instantiate() as ControlPicker
@@ -141,7 +130,7 @@ func _build() -> void:
 	switches.add_theme_constant_override("separation", 0)
 	_sound = _switch("SoundSwitch", "Sound")
 	switches.add_child(_sound)
-	switches.add_child(_rule(false))
+	switches.add_child(UiTheme.hairline(false, UiTheme.COLOR_RAISED))
 	_music = _switch("MusicSwitch", "Music")
 	switches.add_child(_music)
 	_right.add_child(switches)
@@ -155,13 +144,6 @@ func _build() -> void:
 	# TODO(M11): "Settings" (Pause.dc.html) — no settings screen until M11 (interface spec §5).
 	_right.add_child(_bottom)
 	_columns.add_child(_right)
-
-
-func _column(column_name: String) -> VBoxContainer:
-	var column: VBoxContainer = VBoxContainer.new()
-	column.name = column_name
-	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	return column
 
 
 func _button(button_name: String, variation: String, label: String) -> Button:
@@ -179,16 +161,3 @@ func _switch(switch_name: String, label: String) -> CheckButton:
 	switch.text = label
 	switch.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	return switch
-
-
-## A 1 px hairline: vertical in `line` between the columns, horizontal in
-## `raised` between switch rows. DIVERGENCE(UI-SYSTEM): Pause.dc.html
-func _rule(is_vertical: bool) -> ColorRect:
-	var rule: ColorRect = ColorRect.new()
-	rule.color = UiTheme.COLOR_LINE if is_vertical else UiTheme.COLOR_RAISED
-	if is_vertical:
-		rule.custom_minimum_size.x = 1.0
-	else:
-		rule.custom_minimum_size.y = 1.0
-	rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return rule

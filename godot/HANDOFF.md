@@ -713,13 +713,28 @@ tests passed` (393 tests, 4438 asserts). gdformat/gdlint clean; ff4757 grep
 empty; `DIVERGENCE` count 124 (unchanged: three new UI-SYSTEM citations
 replaced three M2.5 ones); headless → 0 `SCRIPT ERROR`.
 
-**Now: M8.5 Task 4 (Run over)**, with
-superpowers:subagent-driven-development. Per ruling I4, Task 4 also moves the
-shared scrim/centre/sheet build, `_column()` and the hairline rule from
-`pause_sheet.gd` into static `UiTheme` helpers, and `test_pause_sheet.gd` must
-stay green. Literal first step: `git status --short` (must be clean under
-`godot/`), then read the plan's header, Global Constraints and Rulings, then
-Task 4.
+**Done 2026-09-23: M8.5 Task 4 (Run over)** — `GameOverPanel` in `main.tscn` is
+now one scripted `RunOverSheet` node (`src/ui/run_over_sheet.gd`,
+`RunOver.dc.html`): a big score with a "Swarmed at <time> — <mode>, <mult>×"
+subtitle, a New best banner (star icon, hidden when `best_diff` is 0), a
+3-cell Kills/Best chain/Alive stat grid, the points-earned → balance row,
+a hidden `MilestonesList` (M9's), the segmented `ControlPicker`, the hero
+Retry button and a two-colour "Spend <balance>" Armory button. No Menu button
+(`TODO(M11)`). `HudController.run_result_for` gathers the figures from
+`RunController.scores`/`.coins`/`.progression`/`.options` (`run` may be null,
+tests build the HUD alone); `_on_run_ended` now just calls
+`_run_over.show_result(...)`. Per ruling I4, the shared scrim/centre/sheet
+build, the column builder and the hairline rule moved off `pause_sheet.gd`
+into static `UiTheme.build_sheet`/`.sheet_column`/`.hairline`; both sheets
+call them now, and `test_pause_sheet.gd` stays green unchanged.
+`tools/run_tests.sh` → `OK: 45/45 scripts collected, all tests passed` (400
+tests, 4492 asserts). gdformat/gdlint clean; ff4757 grep empty; headless
+`--quit-after 120` → 0 `SCRIPT ERROR`.
+
+**Now: M8.5 Task 5 (Armory shell + Weapons)**, with
+superpowers:subagent-driven-development. Literal first step: `git status
+--short` (must be clean under `godot/`), then read the plan's header, Global
+Constraints and Rulings, then Task 5.
 
 **After M8.5:** rewrite Tasks 5–7 of
 `docs/superpowers/plans/2026-09-20-m9-milestones.md` to spec §6.5 (Tasks 1–4
