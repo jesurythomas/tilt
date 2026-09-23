@@ -113,6 +113,7 @@ func _build() -> void:
 	_left.add_child(_restart)
 	# TODO(M11): "Quit to menu" (Pause.dc.html) — no menu until M11 (interface spec §5).
 	_columns.add_child(_left)
+	# DIVERGENCE(UI-SYSTEM): Pause.dc.html — column rule in line
 	_columns.add_child(UiTheme.hairline(true, UiTheme.COLOR_LINE))
 
 	_right = UiTheme.sheet_column("RightColumn")
@@ -130,6 +131,7 @@ func _build() -> void:
 	switches.add_theme_constant_override("separation", 0)
 	_sound = _switch("SoundSwitch", "Sound")
 	switches.add_child(_sound)
+	# DIVERGENCE(UI-SYSTEM): Pause.dc.html — switch divider in raised
 	switches.add_child(UiTheme.hairline(false, UiTheme.COLOR_RAISED))
 	_music = _switch("MusicSwitch", "Music")
 	switches.add_child(_music)
