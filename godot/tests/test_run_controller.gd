@@ -1,3 +1,4 @@
+# gdlint:disable=max-public-methods
 ## test_run_controller.gd
 ## Unit tests for in-run coordinator RunController.
 extends GutTest
@@ -27,6 +28,10 @@ func before_each() -> void:
 	_remove(SaveStore.corrupt_path_for(ProgressionManager.SAVE_PATH))
 	_remove(GameOptionsManager.SAVE_PATH)
 	_remove(SaveStore.corrupt_path_for(GameOptionsManager.SAVE_PATH))
+	_remove(GoalManager.SAVE_PATH)
+	_remove(SaveStore.corrupt_path_for(GoalManager.SAVE_PATH))
+	_remove(GoalManager.CUMULATIVE_SAVE_PATH)
+	_remove(SaveStore.corrupt_path_for(GoalManager.CUMULATIVE_SAVE_PATH))
 	_player = PlayerShip.new(_bounds.x * 0.5, _bounds.y * 0.5)
 	_swarm = EnemySwarm.new()
 	_weapons = WeaponSystem.new()
@@ -49,6 +54,7 @@ func before_each() -> void:
 		_options,
 		_coins
 	)
+	_rc.goals = GoalManager.new(_progression)
 
 
 func after_each() -> void:
@@ -56,6 +62,10 @@ func after_each() -> void:
 	_remove(SaveStore.corrupt_path_for(ProgressionManager.SAVE_PATH))
 	_remove(GameOptionsManager.SAVE_PATH)
 	_remove(SaveStore.corrupt_path_for(GameOptionsManager.SAVE_PATH))
+	_remove(GoalManager.SAVE_PATH)
+	_remove(SaveStore.corrupt_path_for(GoalManager.SAVE_PATH))
+	_remove(GoalManager.CUMULATIVE_SAVE_PATH)
+	_remove(SaveStore.corrupt_path_for(GoalManager.CUMULATIVE_SAVE_PATH))
 
 
 func test_reset_run_initializes_state_and_spawns_orb() -> void:
@@ -232,3 +242,79 @@ func test_player_update_reads_tuning_and_the_equipped_ship() -> void:
 	assert_almost_eq(
 		_player.radius, classic_radius * 1.90, 0.0001, "the Aegis hitboxScale (:199) via :1889"
 	)
+
+
+func test_reset_run_starts_a_fresh_tracker_in_the_active_mode() -> void:
+	_rc.run_tracker.kills = 9
+	_rc.points_earned_this_run = 4
+	_options.settings.mode = Types.GameMode.CODE_RED
+	_rc.reset_run(_bounds)
+	assert_eq(_rc.run_tracker.kills, 0, "TiltGame.ts:1578-1591")
+	assert_eq(_rc.run_tracker.multiplier, 1.0)
+	assert_eq(_rc.run_tracker.mode, "code-red", "options.settings.mode (:1579)")
+	assert_eq(_rc.points_earned_this_run, 0, ":1566")
+
+
+func test_weapon_kills_bump_their_tracker_counters() -> void:
+	_rc.reset_run(_bounds)
+	var kinds: Array[Types.WeaponType] = [
+		Types.WeaponType.VORTEX,
+		Types.WeaponType.LASER,
+		Types.WeaponType.MISSILES,
+		Types.WeaponType.FREEZE,
+		Types.WeaponType.SHIELD,
+		Types.WeaponType.NUKE,
+		Types.WeaponType.LIGHTNING,
+	]
+	for kind: Types.WeaponType in kinds:
+		var e: Types.Enemy = Types.Enemy.new()
+		e.x = 100.0
+		e.y = 100.0
+		_rc.handle_enemy_killed(e, kind)
+	var t: GoalManager.RunTracker = _rc.run_tracker
+	assert_eq(t.vortex_absorbs, 1, "TiltGame.ts:1988-1990")
+	assert_eq(t.laser_slices, 1, ":1991-1993")
+	assert_eq(t.missiles_fired, 1, ":1994-1996")
+	assert_eq(t.freeze_shatters, 1, ":1997-1999")
+	assert_eq(t.shield_rams, 1, ":2000-2002")
+	assert_eq(t.nukes_detonated, 0, "nuke kills are not counted — only activations")
+
+
+func test_weapon_activation_counts_nukes_and_sixteen_missiles() -> void:
+	_rc.reset_run(_bounds)
+	_weapons.on_weapon_activated.call(Types.WeaponType.NUKE)
+	_weapons.on_weapon_activated.call(Types.WeaponType.MISSILES)
+	_weapons.on_weapon_activated.call(Types.WeaponType.LASER)
+	assert_eq(_rc.run_tracker.nukes_detonated, 1, "TiltGame.ts:213-214")
+	assert_eq(_rc.run_tracker.missiles_fired, 16, "a fixed 16 per pickup (:216)")
+
+
+func test_update_syncs_the_tracker_from_scores_and_elapsed() -> void:
+	_rc.reset_run(_bounds)
+	_scores.stats.score = 1234
+	_scores.stats.kills = 7
+	_rc.update(1.0 / 120.0, Types.ControlMode.MOUSE, Vector2(200, 200), Vector2.ZERO, Vector2.ZERO)
+	assert_eq(_rc.run_tracker.score, _scores.stats.score, "TiltGame.ts:1949")
+	assert_eq(_rc.run_tracker.kills, _scores.stats.kills, ":1950")
+	assert_eq(_rc.run_tracker.multiplier, _scores.stats.multiplier, ":1951")
+	assert_eq(_rc.run_tracker.survival_time, _rc.elapsed, ":1952")
+	assert_eq(_rc.run_tracker.close_calls, _scores.stats.close_calls, ":1953")
+
+
+func test_update_completes_live_total_goals() -> void:
+	_rc.reset_run(_bounds)
+	_rc.goals.cumulative.total_kills = 99
+	_scores.stats.kills = 1
+	_rc.update(1.0 / 120.0, Types.ControlMode.MOUSE, Vector2(200, 200), Vector2.ZERO, Vector2.ZERO)
+	assert_true(_rc.goals.is_completed("total_kills_100"), "TiltGame.ts:1954 → GoalsHUD.ts:244")
+
+
+func test_death_evaluates_the_run_and_keeps_the_result() -> void:
+	_rc.reset_run(_bounds)
+	_rc.run_tracker.score = 1000
+	_rc.trigger_player_death()
+	var ids: Array[String] = []
+	for g: GoalManager.Goal in _rc.run_completed_goals:
+		ids.append(g.id)
+	assert_eq(ids, ["score_1k"] as Array[String], "TiltGame.ts:2086")
+	assert_true(_rc.goals.is_completed("score_1k"))

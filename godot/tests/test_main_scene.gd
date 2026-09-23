@@ -18,6 +18,10 @@ func before_each() -> void:
 	_remove(SaveStore.corrupt_path_for(ProgressionManager.SAVE_PATH))
 	_remove(ControlSettings.SETTINGS_PATH)
 	_remove(GameOptionsManager.SAVE_PATH)
+	_remove(GoalManager.SAVE_PATH)
+	_remove(SaveStore.corrupt_path_for(GoalManager.SAVE_PATH))
+	_remove(GoalManager.CUMULATIVE_SAVE_PATH)
+	_remove(SaveStore.corrupt_path_for(GoalManager.CUMULATIVE_SAVE_PATH))
 
 
 func after_each() -> void:
@@ -25,6 +29,10 @@ func after_each() -> void:
 	_remove(SaveStore.corrupt_path_for(ProgressionManager.SAVE_PATH))
 	_remove(ControlSettings.SETTINGS_PATH)
 	_remove(GameOptionsManager.SAVE_PATH)
+	_remove(GoalManager.SAVE_PATH)
+	_remove(SaveStore.corrupt_path_for(GoalManager.SAVE_PATH))
+	_remove(GoalManager.CUMULATIVE_SAVE_PATH)
+	_remove(SaveStore.corrupt_path_for(GoalManager.CUMULATIVE_SAVE_PATH))
 
 
 func test_main_scene_exposes_required_hud_nodes() -> void:

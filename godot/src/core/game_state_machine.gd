@@ -134,8 +134,9 @@ func reset_run(new_mode: Types.GameMode) -> void:
 	# rAF-loop accumulator driving fixed updates. Godot's fixed physics step
 	# replaces that accumulator entirely, so there is nothing to port here.
 	# PORT-NOTE: lives, maxLivesThisRun and setHitboxMultiplier (:1567-1570) are
-	# ported in run_controller.gd::reset_run. TODO(M9): pointsEarnedThisRun.
-	# TODO(M9): railProgress and the run tracker.
+	# ported in run_controller.gd::reset_run, as are pointsEarnedThisRun (:1566)
+	# and the run tracker (:1578-1591); railProgress (:1575-1576) is not ported
+	# (goals_hud.gd header).
 
 	_player.reset(_bounds.x / 2.0, _bounds.y / 2.0)
 	_router.mouse_pos = Vector2(_bounds.x / 2.0, _bounds.y / 2.0)
@@ -150,7 +151,7 @@ func reset_run(new_mode: Types.GameMode) -> void:
 	# TODO(M5): audio.setMuted/setSfxVolume/setMusicVolume.
 	# TODO(M2): updateHUD().
 	# TODO(M11): hide the pause and game-over modals (TiltGame.ts:1612-1613).
-	# TODO(M9): goalsHUD.updateLive(runTracker) (TiltGame.ts:1615).
+	# PORT-NOTE: goalsHUD.updateLive (:1615) is ported in run_controller.gd::reset_run.
 	# TODO(M11): updateCursor() (TiltGame.ts:1616).
 
 

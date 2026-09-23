@@ -1401,7 +1401,7 @@ git log -1 --format=%B
 - Consumes: `GoalManager` (Tasks 2–3), `GameOptionsManager.MODE_IDS`.
 - Produces: `RunController.goals: GoalManager` (assigned after construction), `run_tracker: GoalManager.RunTracker`, `points_earned_this_run: int`, `run_completed_goals: Array[GoalManager.Goal]`.
 
-- [ ] **Step 1: Write the failing tests.** In `godot/tests/test_run_controller.gd`:
+- [x] **Step 1: Write the failing tests.** In `godot/tests/test_run_controller.gd`:
   - I2: this task's six new tests take the file from 16 to 22 public methods, over gdlint's
     `max-public-methods: 20`. Add `# gdlint:disable=max-public-methods` as line 1 of the file
     (`test_armory_ui.gd:1` precedent).
@@ -1494,9 +1494,9 @@ func test_death_evaluates_the_run_and_keeps_the_result() -> void:
 
 If `_scores.stats.score = 1234` is overwritten inside `update()` before step 8 (it is not — `scores.update(dt)` decays combos, it does not reset score), the sync assertion still holds because it compares against `_scores.stats` after the call. If `Types.Enemy.new()` needs other fields for `handle_enemy_killed` → `swarm.on_enemy_killed`, copy the enemy set-up the existing shield-ram test (`:92`) uses.
 
-- [ ] **Step 2: Run to verify they fail** — `collected 46 of 47` (`goals` not a member).
+- [x] **Step 2: Run to verify they fail** — `collected 46 of 47` (`goals` not a member).
 
-- [ ] **Step 3: Implement in `godot/src/sim/run_controller.gd`:**
+- [x] **Step 3: Implement in `godot/src/sim/run_controller.gd`:**
 
   a. Members — after `var coins: CoinSystem = null`:
 
@@ -1620,9 +1620,9 @@ func _on_weapon_activated(type: Types.WeaponType) -> void:
 
   and the member `## Milestones. PORT: web/src/tilt-to-live/TiltGame.ts:66` / `var goals: GoalManager = null` after `var options`. Add the four goal-save removals to `test_main_scene.gd`'s `before_each`/`after_each` now (every main-scene spec now writes goal files on boot's `reset_run` only if a goal completes — none does with defaults, but the removal is the constraint).
 
-- [ ] **Step 4: Verify** — `tools/run_tests.sh` → `OK: 47/47 scripts (453 tests)`; `gdformat --check`, `gdlint` clean; `grep -rn "TODO(M9)" godot/src/sim godot/src/core/game_state_machine.gd` prints nothing (the two in `game_root.gd` remain for Task 5; `hud_controller.gd`'s and `run_over_sheet.gd`'s for Task 7).
+- [x] **Step 4: Verify** — `tools/run_tests.sh` → `OK: 47/47 scripts (453 tests)`; `gdformat --check`, `gdlint` clean; `grep -rn "TODO(M9)" godot/src/sim godot/src/core/game_state_machine.gd` prints nothing (the two in `game_root.gd` remain for Task 5; `hud_controller.gd`'s and `run_over_sheet.gd`'s for Task 7).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git checkout godot/project.godot

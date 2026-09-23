@@ -26,6 +26,19 @@ var options: GameOptionsManager = null
 ## Coin pickups. PORT: web/src/tilt-to-live/TiltGame.ts:51
 var coins: CoinSystem = null
 
+## Milestones. PORT: web/src/tilt-to-live/TiltGame.ts:66 (this.goals)
+# PORT-NOTE: assigned after construction (GameRoot._ready) — an eleventh
+# constructor parameter would pass gdlint's function-arguments-number: 10.
+var goals: GoalManager = null
+## Run Milestone Tracker. PORT: web/src/tilt-to-live/TiltGame.ts:83-96
+var run_tracker: GoalManager.RunTracker = GoalManager.RunTracker.new()
+## PORT: web/src/tilt-to-live/TiltGame.ts:97
+var points_earned_this_run: int = 0
+## triggerPlayerDeath's `newlyCompleted` (TiltGame.ts:2086).
+# PORT-NOTE: a local in the TS, read by the game-over setTimeout closure
+# (:2111-2144); kept here so HudController's run_ended handler can read it.
+var run_completed_goals: Array[GoalManager.Goal] = []
+
 
 # PORT-NOTE: ten parameters is gdlint's limit and exactly the systems
 # TiltGame.update()/resetRun() touch that this class owns.
@@ -66,6 +79,7 @@ func reset_run(arena_bounds: Vector2) -> void:
 	scores.set_mode_multiplier(mode_config.score_multiplier)
 	scores.set_progression_multiplier(progression.get_score_multiplier())
 	elapsed = 0.0
+	points_earned_this_run = 0  # PORT: web/src/tilt-to-live/TiltGame.ts:1566
 	# PORT: web/src/tilt-to-live/TiltGame.ts:1567-1568
 	max_lives = progression.get_starting_lives()
 	lives = max_lives
@@ -80,6 +94,10 @@ func reset_run(arena_bounds: Vector2) -> void:
 	player.set_shield_radius(
 		Tuning.get_tuned_value("shield", "radius", progression.data.perks.shield.radius)
 	)
+	# PORT-NOTE: railProgress (:1575-1576) is not ported — see goals_hud.gd's header.
+	# PORT: web/src/tilt-to-live/TiltGame.ts:1578-1591
+	run_tracker = GoalManager.RunTracker.new()
+	run_tracker.mode = GameOptionsManager.MODE_IDS[options.settings.mode]
 	swarm.reset()
 	swarm.set_speed_scale(progression.get_enemy_speed_multiplier())  # PORT: :1599
 	weapons.reset()
@@ -90,6 +108,9 @@ func reset_run(arena_bounds: Vector2) -> void:
 
 	spawn_starting_weapon_orb(bounds)
 	GameEvents.score_changed.emit(0, 1, scores.stats.best_score)
+	# PORT: web/src/tilt-to-live/TiltGame.ts:1615 — goalsHUD.updateLive's
+	# evaluation half; see step 8 in update() for the split.
+	goals.evaluate_live_total_goals(run_tracker)
 
 
 ## Spawns the equipped ship's starting weapon orb offset from the spawn point.
@@ -187,7 +208,25 @@ func update(
 	# 7. Check Collisions & Near-Misses
 	check_collisions()
 
-	# 8. Emit HUD signal
+	# 8. Update Run Tracker & Goals HUD
+	# PORT: web/src/tilt-to-live/TiltGame.ts:1949-1954
+	run_tracker.score = scores.stats.score
+	run_tracker.kills = scores.stats.kills
+	run_tracker.multiplier = scores.stats.multiplier
+	run_tracker.survival_time = elapsed
+	run_tracker.close_calls = scores.stats.close_calls
+	# PORT-NOTE: goalsHUD.updateLive (:1954, GoalsHUD.ts:242-255) is the
+	# evaluation below plus a rail-height write. The height changes only when a
+	# goal completes, and every completion reaches GoalsHUD.render() through
+	# GameRoot's callbacks, so the sim keeps only the evaluation (spec §5.3).
+	# PORT-NOTE: on the death tick this runs after trigger_player_death's
+	# evaluate_run has committed the run into goals.cumulative, so total_*
+	# metrics count this run twice for this one call and can complete a
+	# cumulative goal early. TiltGame.update() does the same (:2086 then :1954).
+	# Preserved deliberately (LAW 2); raised in HANDOFF open questions.
+	goals.evaluate_live_total_goals(run_tracker)
+
+	# 9. Emit HUD signal
 	GameEvents.score_changed.emit(
 		scores.stats.score, scores.stats.multiplier, scores.stats.best_score
 	)
@@ -233,11 +272,22 @@ func check_collisions() -> void:
 
 ## Handles enemy destruction by weapons or shield.
 ## PORT: web/src/tilt-to-live/TiltGame.ts:1981-2004
-# TODO(M9): runTracker weapon-kill counters (TiltGame.ts:1986-2003)
 func handle_enemy_killed(enemy: Types.Enemy, weapon_type: Types.WeaponType) -> void:
 	scores.register_kill(enemy.x, enemy.y, weapon_type, audio)
 	grid.apply_explosion(enemy.x, enemy.y, 4.5, 60.0)
 	swarm.on_enemy_killed(enemy, particles)
+	# Update weapon kill statistics for milestones. PORT: web/src/tilt-to-live/TiltGame.ts:1986-2003
+	match weapon_type:
+		Types.WeaponType.VORTEX:
+			run_tracker.vortex_absorbs += 1
+		Types.WeaponType.LASER:
+			run_tracker.laser_slices += 1
+		Types.WeaponType.MISSILES:
+			run_tracker.missiles_fired += 1
+		Types.WeaponType.FREEZE:
+			run_tracker.freeze_shatters += 1
+		Types.WeaponType.SHIELD:
+			run_tracker.shield_rams += 1
 	GameEvents.enemy_killed.emit(enemy, weapon_type)
 
 
@@ -274,15 +324,20 @@ func trigger_player_death() -> void:
 	grid.apply_explosion(player.x, player.y, 22.0, 380.0)
 
 	scores.finalize_game()
+	# Finalize run goals check (capped at 3 run milestones, plus any cumulative
+	# total milestones). PORT: web/src/tilt-to-live/TiltGame.ts:2085-2086
+	run_completed_goals = goals.evaluate_run(run_tracker)
 	GameEvents.run_ended.emit(scores.stats.score, scores.stats)
 	GameEvents.phase_changed.emit(Types.GamePhase.GAME_OVER)
 
 
-## Relays a weapon pickup to the UI bus. PORT: web/src/tilt-to-live/TiltGame.ts:212-218
-# PORT-NOTE: the TS callback only bumps runTracker.nukesDetonated and
-# runTracker.missilesFired (+16 per pickup, TiltGame.ts:216 — a fixed 16, not
-# the launched count; preserved for M9). The HUD/goal side is the
-# weapon_activated signal per spec §5.3.
-# TODO(M9): runTracker counters (nukesDetonated, missilesFired += 16).
+## Tracks superweapon activation, then relays the pickup to the UI bus.
+## PORT: web/src/tilt-to-live/TiltGame.ts:212-218
+# PORT-NOTE: missiles count a fixed 16 per pickup (:216), not the launched
+# salvo size — preserved deliberately.
 func _on_weapon_activated(type: Types.WeaponType) -> void:
+	if type == Types.WeaponType.NUKE:
+		run_tracker.nukes_detonated += 1
+	elif type == Types.WeaponType.MISSILES:
+		run_tracker.missiles_fired += 16  # PORT: :216
 	GameEvents.weapon_activated.emit(type)

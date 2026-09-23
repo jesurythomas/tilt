@@ -51,6 +51,8 @@ var settings: ControlSettings = null
 var progression: ProgressionManager = null
 ## Mode and settings. PORT: web/src/tilt-to-live/TiltGame.ts:65
 var options: GameOptionsManager = null
+## Milestones. PORT: web/src/tilt-to-live/TiltGame.ts:66
+var goals: GoalManager = null
 
 var _grid: VectorGrid = null
 var _particles: ParticleEngine = null
@@ -92,6 +94,8 @@ func _ready() -> void:
 	_run_controller = RunController.new(
 		_player, _swarm, _weapons, _particles, _grid, _scores, _audio, progression, options, _coins
 	)
+	goals = GoalManager.new()  # PORT: web/src/tilt-to-live/TiltGame.ts:66
+	_run_controller.goals = goals
 	_router = InputRouter.new()
 	_touch = TouchInput.new()
 	_tilt = TiltInput.new()
