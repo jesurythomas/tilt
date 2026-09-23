@@ -1,7 +1,7 @@
 # Peril Point — Mobile Interface System: Design
 
 **Date:** 2026-09-23
-**Status:** approved in brainstorming 2026-09-23, awaiting written-spec review
+**Status:** approved 2026-09-23 (brainstorming + written-spec review)
 **Amends:** `docs/superpowers/specs/2026-09-20-peril-point-godot-port-design.md`
 (§4.5, §7, §8 Modules 8/9/11) and `godot/CONVENTIONS.md` §5
 **Design source:** `peril-point-mobile-redesign/` (14 boards + `canvas.json`),
@@ -274,7 +274,9 @@ All purchase/equip/tuning behaviour and M8's tests unchanged.
   "LIVE PREVIEW — TILT OR DRAG", the `HandlingPreview` box (arena, 34px grid,
   line border, r8) with its "still" / "top speed" legend.
   **Ruled:** the second slider is `ControlSettings.tilt_sensitivity`
-  (range 0.5–2.0×, as the board), replacing Deadzone. The deadzone value
+  (slider range 0.5–2.0×, as the board; the stored clamp stays
+  `ControlSettings` 0.4–2.5 so older saves still load — user ruling
+  2026-09-23), replacing Deadzone. The deadzone value
   keeps its saved setting and stays in effect; it leaves the UI (candidate
   for M11 Settings). Reset restores both sliders' defaults.
 - **Boosts:** caps "BOOSTS" + "Permanent. They stack into every run."; 2-col

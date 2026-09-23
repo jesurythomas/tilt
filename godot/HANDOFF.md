@@ -653,12 +653,12 @@ Both constants are provisional; the VERIFY-ME section says which to move.
 
 ## Next
 
-**First: the user reviews the interface-system spec**
+**Done 2026-09-23: the user approved the interface-system spec**
 `docs/superpowers/specs/2026-09-23-mobile-interface-system-design.md`
-(written 2026-09-23 from `peril-point-mobile-redesign/`; every decision in it
-was ruled on in brainstorming). Apply any requested changes to the spec.
+(one ruling added at review: the Tilt sensitivity slider spans 0.5–2.0× while
+the stored clamp stays 0.4–2.5).
 
-**Then: write the M8.5 plan** —
+**Now: write the M8.5 plan** —
 `docs/superpowers/plans/2026-09-23-m8.5-interface-rework.md`, using
 superpowers:writing-plans, with the task order in spec §8. Literal first
 step: read the spec in full, the boards `System`, `Hud`, `Pause`, `RunOver`
