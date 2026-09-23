@@ -4,51 +4,60 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-Last completed module: **M8 — Armory UI (+ cosmetics in the renderer)**,
-final-review fix wave landed 2026-09-22 (head is this commit — `git log -1
---format=%H` — a commit cannot cite its own hash inside its own tree).
+Last completed module: **M8.5 — Interface rework**, code complete
+2026-09-23 (code head `541e92c`; the exit commit is this one — `git log -1
+--format=%H`). **Device pass pending**: the A55 has been absent from `adb`
+since 2026-09-20 (`adb devices` empty again on 2026-09-23).
 Code-complete, **device pass pending** (none ticked in `PORT-PROGRESS.md`):
 **M2.5 — Mobile feel** (head `37f9fd4` + the user's tuning `c023e09`),
 **M3 — Enemy roster** (head `5bb5cc9`), **M4 — Weapons** (head `0b7fccf`),
 **M7 — Persistence and economy** (head `dba9126`),
-**M8 — Armory UI** (head is this commit, see above).
-Landed after M8 (2026-09-22): **mobile scale split** — on mobile only, the
-arena scale is capped (`GameRoot.MOBILE_ARENA_SCALE_CEILING`) and entities
-are drawn larger (`GameRoot.MOBILE_MODEL_SCALE`, applied by
-`EntityLayer.set_model_scale()`); the orb glyph scales with its bubble
-everywhere. Desktop unchanged; device checks in `VERIFY-ME.md` under
-"Mobile scale split".
-Nothing since M2 has run on a phone: the A55 dropped off adb on 2026-09-20 and
-did not return; the user then ran their own pass and committed tuning as
-`c023e09` (gyro feel + FPS under mass explosions). It was still absent from
-adb on 2026-09-21 during M7 and **remains absent on 2026-09-22** during M8
-(`adb devices` returns an empty list).
-Also landed after M4: **HUD score feedback** (`9cc3e8f..31bf2ce`, spec
-`docs/superpowers/specs/2026-09-21-hud-score-feedback-design.md`) — kill-site
-callouts removed; the score pulses in a multiplier-tier colour instead.
-Next module: **M8.5 (Interface rework)** — new, from the mobile redesign
-(`peril-point-mobile-redesign/`, spec
+**M8 — Armory UI** (head `f0cac03`; its device pass is folded into M8.5's),
+**M8.5 — Interface rework** (head `541e92c`).
+Also landed after M4/M8, still device-unchecked: **HUD score feedback**
+(`9cc3e8f..31bf2ce`) and the **mobile scale split** (2026-09-22, see its
+section below; the user skipped its A55 pass while the phone is absent).
+
+What M8.5 did: the mobile-redesign boards (`peril-point-mobile-redesign/*.dc.html`)
+became the visual authority for every screen (spec
 `docs/superpowers/specs/2026-09-23-mobile-interface-system-design.md`, plan
-`docs/superpowers/plans/2026-09-23-m8.5-interface-rework.md`). Task 1 landed
-(fonts, `UiTheme`, `ui_scale` = min(h/390, w/844)). Task 2 landed: HUD on the
-Hud board, arena frame, lives, weapon timer. Task 3 landed: Pause is a
-`PauseSheet` on the Pause board (Sound/Music switches, Calibrate, segmented
-`ControlPicker`). Task 4 landed: Run over is a `RunOverSheet`. Task 5 landed:
-the Armory shell and Weapons tab are on the `ArmoryWeapons` board. Task 6
-landed: Ships and Arena on their boards. Task 7 landed: Handling + Boosts on
-their boards, legacy tokens gone. Task 8: device pass **pending** (A55
-absent 2026-09-23; checklist appended to `VERIFY-ME.md` §M8.5; debug APK
-31,561,743 bytes). Task 9 (module exit) is next. Then M9, whose plan exists but
-has Tasks 5–7 superseded. See `## Next`. The A55 "Mobile scale split" pass
-was skipped for now by the user (phone still absent from adb) — its checks
-stay unticked in `VERIFY-ME.md`.
+`docs/superpowers/plans/2026-09-23-m8.5-interface-rework.md`). Fonts
+(Archivo, IBM Plex Sans/Mono, OFL) are bundled; `ui/ui_theme.gd` replaces
+`armory_theme.gd` with the System board's tokens and variations; HUD, Pause,
+Run over and all five Armory tabs are rebuilt on it. Table in
+`## M8.5 — what landed`.
+
+**ui_scale ruling** (spec §4.3, plan time): `ui_scale = min(short/390,
+long/844)`, clamped 0.75–3.0 — the width term keeps a 1280×720 window (1.52)
+from overflowing the 700-px Run over sheet.
+
+**Rulings A–P** (the plan's "Rulings" table has the citations):
+- A — HUD lives hidden for a one-life run; count = `maxLivesThisRun`.
+- B — weapon timer: shield wins, else the longest-remaining timed weapon.
+- C — multiplier `"n×"` Chip tinted by `tier_color_for`, hidden at 1×.
+- D — Pause stats `"<score> · <m:ss> · <mode>"`.
+- E — Pause Calibrate shown only for the GYRO scheme.
+- F — Calibrate = request permission, then calibrate; the toast is `TODO(M9)`.
+- G — Sound/Music switches write and save options; music only while PLAYING.
+- H — New best banner iff `is_new_best and best_score_diff > 0`.
+- I — Run over earned = coin points (+ milestones, `TODO(M9)`); Spend = balance.
+- J — Best chain `"%d×"` of `max(1, max_multiplier)`.
+- K — cost buttons: grouped digits, no unit; ship buy `"600 pts"`; `"Max"` disabled.
+- L — keystone locked = not unlocked and not affordable → LockedCard + lock glyph.
+- M — Armory captions keep the TS strings in caps; preview caption/legend use spec strings.
+- N — TS content with no board slot kept in board style (`TrackValue_*`, `LoadoutName`).
+- O — Handling: tilt slider 0.5–2.0 (stored clamp 0.4–2.5); Reset still resets deadzone to 4.0.
+- P — `ControlPicker` is Segmented, Touch | Tilt (+ Keyboard off-mobile), no `ButtonGroup`.
+- Pre-flight M14 (applied in Tasks 6–7): spec-quoted explain lines win over TS strings.
+
 Branch: `feat/godot-port` (no upstream; nothing pushed).
 
 > ### ⚠ Read `godot/VERIFY-ME.md`
 > Every check that needs a hand on the phone or a decision from the user is
 > collected there, per module. M2.5's constants are all provisional until its
-> section is run. M3, M4, M7 and M8 each append their own section; **M7's
-> device checks and M8's eleven device checks (below) are unrun.**
+> section is run. **M7, M8 (folded into M8.5), M8.5 and "Mobile scale split"
+> device checks are all unrun.** The M8.5 debug APK exported at 31,561,743
+> bytes (+1,030,646 over M8, mostly fonts).
 
 ## How to verify right now
 
@@ -56,28 +65,23 @@ Branch: `feat/godot-port` (no upstream; nothing pushed).
 cd /c/Users/Jesury/Documents/Personal/dread-flock
 GODOT="/c/Users/Jesury/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe"
 
-tools/run_tests.sh                        # expect: OK: 42/42 scripts (367 tests, 4299 asserts)
-gdformat --check godot/src godot/tests    # expect: 75 files would be left unchanged
+tools/run_tests.sh                        # expect: OK: 45/45 scripts (420 tests, 4559 asserts)
+gdformat --check godot/src godot/tests    # expect: 81 files would be left unchanged
 gdlint godot/src godot/tests              # expect: Success: no problems found
-grep -rn "DIVERGENCE" godot/src/ | wc -l  # expect: 74
-"$GODOT" --headless --path godot --quit-after 120   # expect: exit 0, no SCRIPT ERROR
+grep -rniE "ff4757" godot/src/ui/         # expect: nothing (rule 01)
+grep -rn "DIVERGENCE" godot/src/ | wc -l  # expect: 154
+grep -rn "DIVERGENCE(UI-SYSTEM)" godot/src/ | wc -l   # expect: 86
+"$GODOT" --headless --path godot --quit-after 120 2>&1 | grep -c "SCRIPT ERROR"   # expect: 0
 git checkout godot/project.godot          # headless runs strip one default-valued line; never commit that
 ```
 
-Every command above was run fresh at this commit (2026-09-22, the mobile
-scale split) and passed: `OK: 42/42 scripts collected, all tests passed`
-(Tests 367, Passing Tests 367, Asserts 4299 — five specs added by the scale
-split, four in `test_arena_scale.gd` and one in `test_render_layers.gd`);
-`gdformat --check` reported `75 files would be left unchanged`; `gdlint`
-reported `Success: no problems found`; `grep -rn "DIVERGENCE" godot/src/ |
-wc -l` printed `74` (71 before: the scale split adds three
-`DIVERGENCE(mobile-scale)` hits — `game_root.gd` and two in
-`entity_layer.gd`; the earlier count already includes the mobile-chrome gate
-cited twice in `armory_ui.gd`); the headless run's `grep -c "SCRIPT ERROR"`
-printed `0`; `git status --short` was empty before and after. `grep -rn
-"TODO(M8)" godot/src/ godot/tests/` is empty; `grep -n
-"draw_set_transform(Vector2(" godot/src/render/` is empty. `adb devices`
-returns no attached devices.
+Every command above was run fresh at the M8.5 exit (2026-09-23) and passed:
+`OK: 45/45 scripts collected, all tests passed` (Tests 420, Passing 420,
+Asserts 4559; GUT also prints `Deprecated 5`, pre-existing); `81 files would
+be left unchanged`; `Success: no problems found`; the ff4757 grep printed
+nothing; DIVERGENCE `154`, UI-SYSTEM `86`; SCRIPT ERROR count `0`;
+`git status --short` empty afterwards. The module's leftover-marker grep
+(a `TODO` tagged with the module id) finds nothing under `godot/`.
 
 `--check-only -s` on `src/meta/progression_manager.gd`, `game_options.gd`,
 `save_store.gd`, `sim/coin_system.gd` each fail with `Identifier not found:
@@ -661,162 +665,60 @@ hitboxes stay at sim size. The `effect_layer.gd` (particles, blasts, shards)
 is deliberately not model-scaled — it draws map-scale things.
 Both constants are provisional; the VERIFY-ME section says which to move.
 
+## M8.5 — what landed
+
+| File | Role |
+|---|---|
+| `assets/fonts/` | Archivo (variable), IBM Plex Sans + Mono (Regular/Medium/SemiBold), two OFL licences; 1,785,856 bytes of TTF. Sources and SHA-256s pinned in plan Task 1 Step 1 |
+| `src/ui/ui_theme.gd` | Replaces `armory_theme.gd` (`git mv`). `System.dc.html` tokens (`COLOR_*`, sizes, geometry, icons), `build(scale)` Theme with every label/button/panel variation, helpers (`px`, `tint`, `flat`, `chip_style`, `svg_texture`, `group_digits`, `text`, `caps`, `pips`, `meter`, fonts) and the shared sheet builders `build_sheet`/`sheet_column`/`hairline` (ruling I4). No `game.css` legacy block left |
+| `src/ui/hud_controller.gd` | `ui_scale_for` (new formula); HUD on the arena-frame `%Frame` (spec §4.4): score block, multiplier Chip, lives pips, weapon/shield meter, Pause `IconButton`; `run_result_for` feeds Run over |
+| `src/ui/pause_sheet.gd` | Pause board: Resume, Restart, Armory, Sound/Music switches, Calibrate (gyro only), stats line, segmented `ControlPicker`. Quit/Settings absent (`TODO(M11)`) |
+| `src/ui/run_over_sheet.gd` | Run over board: big score + subtitle, New best banner, Kills/Best chain/Alive grid, points → balance, hidden `MilestonesList` (M9's slot), picker, Retry, "Spend <balance>". No Menu (`TODO(M11)`) |
+| `src/ui/control_picker.gd` | Segmented variation (ruling P) |
+| `scenes/armory.tscn`, `src/ui/armory_ui.gd` | Shell per `ArmoryWeapons.dc.html` (64-px header: Back, title, tabs, balance, Play). Weapons list + detail; Ships cards with hitbox/turn meters; Arena theme/enemy cards; Handling sliders (turn, tilt 0.5–2.0), Calibrate, Reset, preview; Boosts 2-col pip cards. All legacy builders and orphans deleted |
+| `src/ui/handling_preview.gd` | Grid = ion at 5%, box = `COLOR_ARENA` |
+| `src/core/game_root.gd` | HUD `bind_run`, sound/music setters, `calibrate_gyro`, re-applies tilt sensitivity on Armory change |
+| `tests/ui_checks.gd` | `short_buttons`, `outside`, `overlapping_siblings` — layout rules 04/05 |
+| `tests/test_ui_theme.gd`, `test_pause_sheet.gd`, `test_run_over_sheet.gd` + extended HUD/main-scene/Armory specs | Layout specs at 844×390 and 2340×1080, hosted in explicit-size SubViewports |
+| `CONVENTIONS.md` §5, port spec | Citation model: `DIVERGENCE(UI-SYSTEM)` cites the board, not the TS |
+
+Known deferred minors (ledger `.superpowers/sdd/2026-09-23-m8.5-interface-rework/progress.md`):
+saved Sound/Music are not applied at boot (AudioBank stub — M5); the HUD
+allocates a `WeaponTimer` per frame; the Pause picker is scaled twice
+(idempotent); `_on_deadzone_changed` survives uncalled (PORT-NOTE); the
+remaining `game.css` cites (`LOADOUT_ICON`, `_scroll_body`, `ArenaGridLines`)
+are deliberate.
+
+## Process lessons carried forward (M8.5 addition)
+
+- **Six more plan defects this module — twenty-eight across seven modules
+  now.** Implementers stopped on two: the plan claimed the headless GUT root
+  is usable for layout (it snaps to 64×64 — host screens in an explicit-size
+  SubViewport), and it removed `ControlPicker.BASE_TOUCH_TARGET` without
+  listing its three callers. Reviewers found two plan-mandated bugs: weapon
+  names collapsing to 1 px in an HBox (needs `SIZE_EXPAND_FILL`) and arena
+  previews missing the board's fill. The controller caught two brief
+  contradictions at dispatch (a TS caption vs pre-flight M14; Task 7 Step 8's
+  orphan loop vs Step 4).
+- **When the brief's code and the board disagree, the board wins** (spec
+  §6.4) — rule it in the ledger, fix it, add a spec.
+- A usage limit can cut an implementer off mid-step with work uncommitted;
+  the next session reads `git status` and finishes inline rather than redoing.
+
 ## Next
 
-**Done 2026-09-23: the user approved the interface-system spec**
-`docs/superpowers/specs/2026-09-23-mobile-interface-system-design.md`
-(one ruling added at review: the Tilt sensitivity slider spans 0.5–2.0× while
-the stored clamp stays 0.4–2.5).
+**M8.5 is closed (device pass pending).** Next module: **M9 — Milestones**
+(deps M7 + M8.5). Its plan exists at
+`docs/superpowers/plans/2026-09-20-m9-milestones.md`, but **Tasks 5–7 are
+marked SUPERSEDED** — their UI predates the interface system.
 
-**Done 2026-09-23: the M8.5 plan is written** —
-`docs/superpowers/plans/2026-09-23-m8.5-interface-rework.md` (9 tasks, spec
-§8 order). One more ruling at plan time, recorded in spec §4.3:
-`ui_scale = min(short/390, long/844)` — the width term keeps a 1280×720
-window (1.52) from overflowing the 700-px Run over sheet. The plan's
-"Rulings" table (A–P) lists every TS/spec call it applies; font sources,
-sizes and SHA-256s are pinned in Task 1 Step 1.
-
-**Done 2026-09-23: M8.5 Task 2 (HUD)** — the HUD is re-laid onto an arena-
-frame `Panel` (`%Frame` under `CanvasLayer/Hud`, spec §4.4), read as the
-`Hud.dc.html` board: score block (grouped Mono numerals, "n×" Chip tinted by
-`tier_color_for`), a lives-pips row (`HudController.lives_pips`, hidden for a
-one-life run), a weapon/shield duration meter (`HudController.weapon_timer_for`
-/`weapon_timer_text`, shield wins over the longest-remaining timed weapon),
-and the Pause `IconButton`. `WEAPON_TIMER_COLORS` reads `UiTheme` tokens, no
-private hex copies (pre-flight I2). `GameRoot._ready()` now calls
-`_hud.bind_run(_run_controller, _state)` so the HUD reads the live run every
-frame instead of through scene-only lookups.
-One test-only deviation from the brief, not a value change: the brief's
-`test_hud_sits_inside_the_arena_frame` (`tests/test_main_scene.gd`) added
-`MAIN_SCENE` straight to the GUT test tree, whose root Viewport snaps to
-64×64 headless (a documented Global Constraint) — too small for the HUD's own
-base-px content, so `ScoreBlock`/`PauseButton` overflowed the tiny frame on a
-real HUD that is correct at every realistic size. Fixed by hosting the scene
-in an explicit 1280×720 `SubViewport` (the plan's own assumed headless size),
-per that same constraint's stated fix ("put a screen under a host Control of
-explicit size"). No production file or assertion value changed; see the
-task's report for detail.
-`tools/run_tests.sh` → `OK: 43/43 scripts collected, all tests passed` (384
-tests, 4401 asserts). `gdformat --check`/`gdlint` clean; `grep -rniE "ff4757"
-godot/src/ui/` empty; headless `--quit-after 120` → 0 `SCRIPT ERROR`.
-
-**Done 2026-09-23: M8.5 Task 3 (Pause)** (`ac83a93`) — `PausePanel` in
-`main.tscn` is now one scripted `PauseSheet` node (`src/ui/pause_sheet.gd`,
-`Pause.dc.html`): Resume (hero, left column per ruling M5), Restart run,
-Armory, Sound/Music switches that write through `GameRoot.set_sfx_enabled`/
-`set_music_enabled` (saved via `GameOptionsManager`; opening the sheet uses
-`set_pressed_no_signal`, so it never writes), Calibrate (shown only for the
-gyro scheme, calls `GameRoot.calibrate_gyro`), a score · time · mode stats
-line, and the segmented `ControlPicker` (`PanelContainer`, Touch | Tilt |
-Keyboard, `UiTheme.TOUCH_TARGET`). `GameStateMachine.format_time` is now
-`static`. `ControlPicker.BASE_TOUCH_TARGET` is gone, so its two uses in
-`armory_ui.gd` and one in `test_armory_ui.gd` now read `UiTheme.TOUCH_TARGET`
-(same 48.0). Quit/Settings stay absent (`TODO(M11)`). Saved Sound/Music are
-not applied at boot yet: AudioBank is still a stub, and that belongs to M5
-(ledger minor). `tools/run_tests.sh` → `OK: 44/44 scripts collected, all
-tests passed` (393 tests, 4438 asserts). gdformat/gdlint clean; ff4757 grep
-empty; `DIVERGENCE` count 124 (unchanged: three new UI-SYSTEM citations
-replaced three M2.5 ones); headless → 0 `SCRIPT ERROR`.
-
-**Done 2026-09-23: M8.5 Task 4 (Run over)** — `GameOverPanel` in `main.tscn` is
-now one scripted `RunOverSheet` node (`src/ui/run_over_sheet.gd`,
-`RunOver.dc.html`): a big score with a "Swarmed at <time> — <mode>, <mult>×"
-subtitle, a New best banner (star icon, hidden when `best_diff` is 0), a
-3-cell Kills/Best chain/Alive stat grid, the points-earned → balance row,
-a hidden `MilestonesList` (M9's), the segmented `ControlPicker`, the hero
-Retry button and a two-colour "Spend <balance>" Armory button. No Menu button
-(`TODO(M11)`). `HudController.run_result_for` gathers the figures from
-`RunController.scores`/`.coins`/`.progression`/`.options` (`run` may be null,
-tests build the HUD alone); `_on_run_ended` now just calls
-`_run_over.show_result(...)`. Per ruling I4, the shared scrim/centre/sheet
-build, the column builder and the hairline rule moved off `pause_sheet.gd`
-into static `UiTheme.build_sheet`/`.sheet_column`/`.hairline`; both sheets
-call them now, and `test_pause_sheet.gd` stays green unchanged.
-`tools/run_tests.sh` → `OK: 45/45 scripts collected, all tests passed` (400
-tests, 4492 asserts). gdformat/gdlint clean; ff4757 grep empty; headless
-`--quit-after 120` → 0 `SCRIPT ERROR`.
-
-**Done 2026-09-23: M8.5 Task 5 (Armory shell + Weapons)** (`999a815`, fix
-`48dfa7c`) — `scenes/armory.tscn` is rewritten to the `ArmoryWeapons.dc.html`
-shell: `Overlay` → `PanelMargin` → a 64-px `Header` (`BackButton`,
-`TitleLabel`, `Tabs` of `Tab_<name>`, `Balance` = `BalanceLabel` +
-`BalanceUnit`, `PlayButton`, width `ArmoryUI.PLAY_WIDTH` 92), `HeaderRule`,
-`Body`. `CloseButton`, `StickyFooter`, `TabsScroll` and `HeaderRight` are gone.
-The Weapons tab is a `WeaponList` of toggle `Weapon_<id>` rows (name +
-`WeaponRank_<id>`) beside a detail column (`InvestedValue`,
-`TrackCard_<key>`/`Track_<key>`/`TrackValue_<key>`,
-`KeystoneCard_<key>`/`Keystone_<key>`) in a `ScrollBody`. New helpers
-for Tasks 6–7: `_px`, `_pad`, `_one_line` (any HBox caller must set
-`SIZE_EXPAND_FILL` — review found the weapon names collapsing to 1 px; fixed
-and specced). `_vrule()` now reuses `UiTheme.hairline`. Ships, Arena, Handling
-and Boosts still render their legacy bodies inside the new shell until Tasks
-6–7. The 844-px header fit passed on real font metrics (ruling M18 unused).
-`tools/run_tests.sh` → `OK: 45/45 scripts collected, all tests passed` (405
-tests, 4510 asserts). gdformat/gdlint clean; headless → 0 `SCRIPT ERROR`;
-`DIVERGENCE` count 136.
-
-**Done 2026-09-23: M8.5 Task 6 (Ships + Arena)** (`de8335e`, fix
-`4b728c1`) — Ships (`ArmoryShips.dc.html`): `ShipsPill` caption (TS pill
-string, caps) + the spec's explain line "Changes hitbox and turn rate.
-Nothing else." (pre-flight M14), a sideways `ShipsRow` of 172-px `Ship_<id>`
-cards with an 82-px arena-colour preview, `HitboxMeter_<id>`/`TurnMeter_<id>`
-(`ArmoryUI.ship_meter_fraction` = value ÷ catalog max), `LoadoutName`, and the
-unchanged `EquippedShip_/EquipShip_/BuyShip_<id>` actions. Arena
-(`ArmoryArena.dc.html`): `ThemesRow`/`EnemiesRow` of 146-px
-`ArenaCard_/EnemyCard_<id>` panels, each with a 56-px preview on the arena
-colour (review fix) under a transparent `CardButton` tap target keeping the
-old `Buy/Equip/Equipped{Arena,Enemy}_<id>` names, and a state line
-`ArenaState_/EnemyState_<id>` ("✓ Equipped" / "Owned" / "N pts").
-`ArenaCost_*`/`EnemyCost_*` are gone; `_arena_card`/`_arena_grid` deleted.
-New shared helpers for Task 7: `_caption_row`, `_scroll_row`, `BODY_PAD_*`.
-`_action_button` and `_swatch` were orphaned here; Task 7 deleted them. A nested-scroll drag check was added to the plan's Task 8 checklist.
-`tools/run_tests.sh` → `OK: 45/45 scripts collected, all tests passed` (413
-tests, 4538 asserts). gdformat/gdlint clean; ff4757 grep empty; headless → 0
-`SCRIPT ERROR`.
-
-**Done 2026-09-23: M8.5 Task 7 (Handling + Boosts + legacy cleanup)**
-(`3d75503` + review minors) — Handling (`ArmoryHandling.dc.html`): `HandlingTab`
-with `TurnValue`/`TurnSlider`, `TiltValue`/`TiltSlider` (0.5–2.0 step 0.1,
-edits `ControlSettings.tilt_sensitivity`; shown only when `bind(p, s)` got
-settings), `CalibrateTiltButton` (emits `ArmoryUI.calibrate_requested` →
-`GameRoot.calibrate_gyro`), `ResetButton` (also resets tilt to 1.0), and the
-`HandlingPreview` box with a `PreviewLegend` overlay. `DeadzoneValue`/
-`DeadzoneSlider` are gone; `_on_deadzone_changed` survives uncalled (PORT-NOTE).
-`GameRoot._on_armory_state_changed` re-applies `settings.tilt_sensitivity` to
-`_tilt`. `HandlingPreview` grid is 34 px ion at 5%, box = `UiTheme.COLOR_ARENA`.
-Boosts (`ArmoryBoosts.dc.html`): `BoostsTab`, `BoostsPill` caption ("Permanent.
-They stack into every run.", M14), a 2-col grid of 76-px `BoostCard_<id>` with
-`BoostPips_<id>` (rank as pips only) and a `CostButton` `Boost_<id>` ("Max" or
-grouped digits). `BoostRank_*` is gone. The `UiTheme` legacy block,
-`_build_legacy_armory`/`_legacy_*` and `TEXT_SUBTLE` are deleted; the ArmoryUI
-orphans (`_label_of`, `_margin`, `_sub_header`, `_action_button`, `_swatch`,
-`_card`, `_pips`, 9 legacy consts) are deleted. `grep TODO(M8.5)` is empty.
-Remaining `game.css` cites are deliberate: `LOADOUT_ICON` (Ruling N),
-`_scroll_body` and the `ArenaGridLines` class (structural). The Task 7
-implementer was cut off by a usage limit mid-Step 8; the controller finished
-it inline. `tools/run_tests.sh` → `OK: 45/45 scripts collected, all tests
-passed` (420 tests, 4559 asserts). gdformat/gdlint clean; ff4757 grep empty;
-headless → 0 `SCRIPT ERROR`; `DIVERGENCE` count 154.
-
-**Done 2026-09-23: M8.5 Task 8 (device pass hand-off)** — `adb devices`
-returned an empty list, so nothing ran on the A55 and no device result is
-recorded. The debug APK exported cleanly at **31,561,743 bytes** (+1,030,646
-over M8's 30,531,097). The unrun checklist, which includes M8's Armory pass,
-the nested-scroll drag check and the Handling tilt slider/Calibrate, is in
-`godot/VERIFY-ME.md` under `## M8.5 — Interface rework`.
-
-**Now: M8.5 Task 9 (Module exit, CONVENTIONS §9)** — read the plan's Task 9.
-Step 1 re-runs every check fresh (expect 45/45 scripts; record
-tests/asserts, DIVERGENCE counts); then PORT-PROGRESS gets the M8.5 entry
-(device pass pending, APK 31,561,743 bytes), the index and M9 plans are
-updated, HANDOFF is rewritten, and the work is committed. The SDD ledger is
-`.superpowers/sdd/2026-09-23-m8.5-interface-rework/progress.md`.
-
-**After M8.5:** rewrite Tasks 5–7 of
-`docs/superpowers/plans/2026-09-20-m9-milestones.md` to spec §6.5 (Tasks 1–4
-stand), then execute M9.
+First step, literally: read the interface spec §6.5
+(`docs/superpowers/specs/2026-09-23-mobile-interface-system-design.md`), then
+`peril-point-mobile-redesign/Milestones.dc.html` and `Hud.dc.html`, then the
+M9 plan. **Rewrite Tasks 5–7 of the M9 plan to spec §6.5 on `UiTheme`**
+(Tasks 1–4 stand), commit that, then execute M9.
 
 Before starting: `git status --short` must be clean under `godot/` (the user
 may leave device tuning uncommitted — never stash or revert it), and read
-`godot/VERIFY-ME.md` for the outstanding M2.5/M3/M4/M7/M8 and "Mobile scale
-split" device checks.
+`godot/VERIFY-ME.md` for the outstanding M2.5/M3/M4/M7/M8.5 and "Mobile scale
+split" device checks. If the A55 is back on `adb`, offer the device pass first.

@@ -205,6 +205,23 @@ Dependency map and resume instructions:
       --  A55 absent from `adb` since 2026-09-20 — device pass pending.
           Headless `--quit-after 120` clean, 0 SCRIPT ERROR; debug APK
           exports 30,531,097 bytes. See `VERIFY-ME.md` §M8.
+      --  device pass folded into M8.5's (interface spec §7).
+
+- [ ] **M8.5 — Interface rework**  deps: M8   *(code complete 2026-09-23, head `541e92c`; DEVICE PASS PENDING)*
+      plan  `docs/superpowers/plans/2026-09-23-m8.5-interface-rework.md`
+      spec  `docs/superpowers/specs/2026-09-23-mobile-interface-system-design.md`
+      **tick this box only after `godot/VERIFY-ME.md` §M8.5 is run on the A55**
+      ok  fonts bundled (Archivo, IBM Plex Sans/Mono; OFL) — 1,785,856 bytes of TTF
+      ok  `ui/ui_theme.gd` replaces `armory_theme.gd` — System.dc.html tokens,
+          variations, icons; no `game.css` legacy left
+      ok  ui_scale = min(short/390, long/844), clamp 0.75–3.0
+      ok  HUD, Pause (`pause_sheet.gd`), Run over (`run_over_sheet.gd`) and all
+          five Armory tabs rebuilt to their boards; layout specs at 844×390
+          and 2340×1080 (fit, rule 04, rule 05)
+      ok  45/45 GUT scripts (420 tests, 4559 asserts); gdformat 81 files
+          unchanged; gdlint clean; rule-01 grep empty; 154 DIVERGENCE hits
+          (86 UI-SYSTEM); headless `--quit-after 120` 0 SCRIPT ERROR
+      --  A55 absent — see `VERIFY-ME.md` §M8.5
 
 - [ ] **M9 — Milestones**  deps: M7
       -- GUT specs cover goal evaluation for every category

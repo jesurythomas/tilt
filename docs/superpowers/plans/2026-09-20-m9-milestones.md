@@ -1558,6 +1558,10 @@ git log -1 --format=%B
 
 ### Task 5: `GoalsHUD` — rail, toast, unlock checks, hotkey; wired into `GameRoot`
 
+> **SUPERSEDED (2026-09-23).** The UI in this task is replaced by interface spec
+> `docs/superpowers/specs/2026-09-23-mobile-interface-system-design.md` §6.5 on
+> `UiTheme` (M8.5). Rewrite this task before executing it; Tasks 1–4 stand.
+
 **Files:**
 - Create: `godot/src/ui/goals_hud.gd`
 - Modify: `godot/scenes/main.tscn`, `godot/src/core/game_root.gd`, `godot/src/ui/armory_ui.gd` (rename only)
@@ -2231,6 +2235,10 @@ git log -1 --format=%B
 
 ### Task 6: `GoalsHUD` — the full Milestones screen (Board 13)
 
+> **SUPERSEDED (2026-09-23).** The UI in this task is replaced by interface spec
+> `docs/superpowers/specs/2026-09-23-mobile-interface-system-design.md` §6.5 on
+> `UiTheme` (M8.5). Rewrite this task before executing it; Tasks 1–4 stand.
+
 **Files:**
 - Modify: `godot/src/ui/goals_hud.gd` (replace the three `Task 6 replaces this` members; add constants and the modal node references)
 - Test: `godot/tests/test_goals_hud.gd` (append)
@@ -2776,6 +2784,10 @@ git log -1 --format=%B
 ---
 
 ### Task 7: Game-over "Points earned" row and earned-milestones list (R1)
+
+> **SUPERSEDED (2026-09-23).** The UI in this task is replaced by interface spec
+> `docs/superpowers/specs/2026-09-23-mobile-interface-system-design.md` §6.5 on
+> `UiTheme` (M8.5). Rewrite this task before executing it; Tasks 1–4 stand.
 
 **Files:**
 - Modify: `godot/scenes/main.tscn`, `godot/src/ui/hud_controller.gd`, `godot/src/core/game_root.gd`
