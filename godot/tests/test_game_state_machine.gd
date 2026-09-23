@@ -79,5 +79,5 @@ func test_return_to_menu_is_a_no_op_when_already_in_the_menu() -> void:
 
 
 func test_format_time_pads_seconds() -> void:
-	assert_eq(_machine.format_time(65.0), "1:05", "TiltGame.ts:1644-1648")
-	assert_eq(_machine.format_time(9.9), "0:09", "TiltGame.ts:1644-1648")
+	assert_eq(GameStateMachine.format_time(65.0), "1:05", "TiltGame.ts:1644-1648")
+	assert_eq(GameStateMachine.format_time(9.9), "0:09", "TiltGame.ts:1644-1648")

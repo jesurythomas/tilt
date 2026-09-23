@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://src/core/game_root.gd" id="1"]
 [ext_resource type="Script" path="res://src/render/grid_layer.gd" id="2"]
@@ -8,6 +8,7 @@
 [ext_resource type="Script" path="res://src/render/joystick_layer.gd" id="6"]
 [ext_resource type="PackedScene" path="res://scenes/control_picker.tscn" id="7"]
 [ext_resource type="PackedScene" path="res://scenes/armory.tscn" id="8"]
+[ext_resource type="Script" path="res://src/ui/pause_sheet.gd" id="9"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_gameover"]
 bg_color = Color(0.063, 0.047, 0.118, 0.94)
@@ -154,44 +155,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-
-[node name="CenterContainer" type="CenterContainer" parent="CanvasLayer/Hud/PausePanel"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="PanelContainer" type="PanelContainer" parent="CanvasLayer/Hud/PausePanel/CenterContainer"]
-custom_minimum_size = Vector2(280, 280)
-layout_mode = 2
-
-[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/Hud/PausePanel/CenterContainer/PanelContainer"]
-layout_mode = 2
-theme_override_constants/separation = 12
-
-[node name="Title" type="Label" parent="CanvasLayer/Hud/PausePanel/CenterContainer/PanelContainer/VBoxContainer"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 28
-text = "PAUSED"
-horizontal_alignment = 1
-
-[node name="ControlPicker" parent="CanvasLayer/Hud/PausePanel/CenterContainer/PanelContainer/VBoxContainer" instance=ExtResource("7")]
-layout_mode = 2
-
-[node name="PauseArmoryButton" type="Button" parent="CanvasLayer/Hud/PausePanel/CenterContainer/PanelContainer/VBoxContainer"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 48)
-layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "ARMORY"
-
-[node name="ResumeButton" type="Button" parent="CanvasLayer/Hud/PausePanel/CenterContainer/PanelContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 48)
-layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "RESUME"
+script = ExtResource("9")
 
 [node name="GameOverPanel" type="CenterContainer" parent="CanvasLayer/Hud"]
 unique_name_in_owner = true

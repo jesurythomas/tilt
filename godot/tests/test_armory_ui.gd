@@ -169,7 +169,7 @@ func test_ui_scale_resizes_touch_targets() -> void:
 	_armory.open()
 	_armory.set_ui_scale(2.0)
 	await get_tree().process_frame
-	assert_eq(_button("Tab_weapons").custom_minimum_size.y, ControlPicker.BASE_TOUCH_TARGET * 2.0)
+	assert_eq(_button("Tab_weapons").custom_minimum_size.y, UiTheme.TOUCH_TARGET * 2.0)
 	assert_eq(_button("PlayButton").custom_minimum_size.y, UiTheme.PLAY_BUTTON_HEIGHT * 2.0)
 
 

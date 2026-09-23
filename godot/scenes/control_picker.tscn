@@ -2,40 +2,36 @@
 
 [ext_resource type="Script" uid="uid://bo7vqw5a7ihya" path="res://src/ui/control_picker.gd" id="1"]
 
-[node name="ControlPicker" type="Control"]
-layout_mode = 3
-anchors_preset = 0
-offset_right = 240.0
-offset_bottom = 48.0
+[node name="ControlPicker" type="PanelContainer"]
+theme_type_variation = &"Segmented"
 script = ExtResource("1")
 
 [node name="Buttons" type="HBoxContainer" parent="."]
 layout_mode = 2
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="TiltButton" type="Button" parent="Buttons"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 48)
-layout_mode = 2
-size_flags_horizontal = 3
-toggle_mode = true
-text = "TILT"
 
 [node name="TouchButton" type="Button" parent="Buttons"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
+theme_type_variation = &"SegmentButton"
 toggle_mode = true
-text = "TOUCH"
+text = "Touch"
+
+[node name="TiltButton" type="Button" parent="Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"SegmentButton"
+toggle_mode = true
+text = "Tilt"
 
 [node name="KeyboardButton" type="Button" parent="Buttons"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
+theme_type_variation = &"SegmentButton"
 toggle_mode = true
-text = "KEYBOARD"
+text = "Keyboard"

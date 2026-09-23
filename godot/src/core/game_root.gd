@@ -284,6 +284,36 @@ func restart_run() -> void:
 	GameEvents.phase_changed.emit(Types.GamePhase.PLAYING)
 
 
+## calibrateGyro. PORT: web/src/tilt-to-live/TiltGame.ts:2331-2341
+# PORT-NOTE: the TS awaits the permission promise; request_permission_and_start()
+# is synchronous here (see _ready). TODO(M9): goalsHUD.showMessageToast
+# ('TILT CALIBRATED' / 'GYRO SENSOR', :2335/:2337) — no GoalsHUD until M9
+# (interface spec §5); updateHUD (:2339) is signal-driven here.
+func calibrate_gyro() -> bool:
+	var success: bool = _tilt.request_permission_and_start()
+	if success:
+		_tilt.calibrate_current_position()
+	return success
+
+
+## The pause sheet's Sound switch. PORT: web/src/tilt-to-live/TiltGame.ts:1396-1403
+func set_sfx_enabled(is_on: bool) -> void:
+	options.settings.sfx_enabled = is_on
+	options.save()
+	_audio.set_muted(not is_on)
+
+
+## The pause sheet's Music switch. PORT: web/src/tilt-to-live/TiltGame.ts:1405-1416
+func set_music_enabled(is_on: bool) -> void:
+	options.settings.music_enabled = is_on
+	options.save()
+	if is_on:
+		if _state.phase == Types.GamePhase.PLAYING:
+			_audio.start_music()
+	else:
+		_audio.stop_music()
+
+
 ## PORT: web/src/tilt-to-live/TiltGame.ts:2343-2350
 func open_armory(tab: String = "") -> void:
 	if _state.phase == Types.GamePhase.PLAYING:

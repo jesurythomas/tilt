@@ -336,8 +336,8 @@ func set_ui_scale(scale: float, inset: Vector2 = Vector2.ZERO) -> void:
 	_back_button.custom_minimum_size = Vector2(icon, icon)
 	_close_button.custom_minimum_size = Vector2(icon, icon)
 	for button: Button in _tab_buttons:
-		# The M2.5 §4.3 48dp touch target (ControlPicker.BASE_TOUCH_TARGET).
-		button.custom_minimum_size.y = ControlPicker.BASE_TOUCH_TARGET * scale
+		# The M2.5 §4.3 48dp touch target, now UiTheme.TOUCH_TARGET (M8.5 ruling M10).
+		button.custom_minimum_size.y = UiTheme.TOUCH_TARGET * scale
 	_play_button.custom_minimum_size.y = UiTheme.PLAY_BUTTON_HEIGHT * scale
 	if is_open():
 		render()
@@ -1189,7 +1189,7 @@ func _handling_slider(
 	slider.max_value = max_value
 	slider.step = step
 	slider.value = value
-	slider.custom_minimum_size.y = ControlPicker.BASE_TOUCH_TARGET * _ui_scale
+	slider.custom_minimum_size.y = UiTheme.TOUCH_TARGET * _ui_scale
 	slider.value_changed.connect(on_changed)
 	field.add_child(slider)
 	var bounds: HBoxContainer = HBoxContainer.new()  # PORT: :828-831

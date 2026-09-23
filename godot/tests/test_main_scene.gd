@@ -16,11 +16,15 @@ func _remove(path: String) -> void:
 func before_each() -> void:
 	_remove(ProgressionManager.SAVE_PATH)
 	_remove(SaveStore.corrupt_path_for(ProgressionManager.SAVE_PATH))
+	_remove(ControlSettings.SETTINGS_PATH)
+	_remove(GameOptionsManager.SAVE_PATH)
 
 
 func after_each() -> void:
 	_remove(ProgressionManager.SAVE_PATH)
 	_remove(SaveStore.corrupt_path_for(ProgressionManager.SAVE_PATH))
+	_remove(ControlSettings.SETTINGS_PATH)
+	_remove(GameOptionsManager.SAVE_PATH)
 
 
 func test_main_scene_exposes_required_hud_nodes() -> void:
@@ -300,3 +304,55 @@ func test_hud_shows_lives_and_the_weapon_timer_from_the_run() -> void:
 	assert_true(timer.visible)
 	var label: Label = root.find_child("WeaponTimerLabel", true, false) as Label
 	assert_eq(label.text, "SHIELD 1.6s")
+
+
+func test_pause_calibrate_shows_only_for_tilt() -> void:
+	# PORT: web/src/tilt-to-live/TiltGame.ts:2226-2244
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	var pause_panel: Control = root.find_child("PausePanel", true, false) as Control
+	var touch: Button = pause_panel.find_child("TouchButton", true, false) as Button
+	touch.pressed.emit()
+	(root.find_child("PauseButton", true, false) as Button).pressed.emit()
+	var calibrate: Button = pause_panel.find_child("CalibrateButton", true, false) as Button
+	assert_false(calibrate.visible, "hidden unless the scheme is gyro")
+	(pause_panel.find_child("TiltButton", true, false) as Button).pressed.emit()
+	assert_true(calibrate.visible, "shown once tilt is chosen")
+
+
+func test_pause_switches_write_settings_through_game_root() -> void:
+	# PORT: web/src/tilt-to-live/TiltGame.ts:1396-1416, :1626-1630
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	(root.find_child("PauseButton", true, false) as Button).pressed.emit()
+	var sound: CheckButton = root.find_child("SoundSwitch", true, false) as CheckButton
+	assert_eq(sound.button_pressed, root.options.settings.sfx_enabled, "mirrors the save on open")
+	sound.button_pressed = false
+	assert_false(root.options.settings.sfx_enabled)
+	assert_false(GameOptionsManager.new().settings.sfx_enabled, "options.save() (:1399)")
+	var music: CheckButton = root.find_child("MusicSwitch", true, false) as CheckButton
+	music.button_pressed = false
+	assert_false(root.options.settings.music_enabled)
+
+
+func test_pause_restart_run_starts_a_fresh_run() -> void:
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	(root.find_child("PauseButton", true, false) as Button).pressed.emit()
+	assert_true(root.is_paused())
+	(root.find_child("RestartRunButton", true, false) as Button).pressed.emit()
+	assert_false(root.is_paused(), "GameRoot.restart_run() → PLAYING (interface spec §5)")
+	assert_false((root.find_child("PausePanel", true, false) as Control).visible)
+
+
+func test_pause_stats_show_score_time_and_mode() -> void:
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	(root.find_child("PauseButton", true, false) as Button).pressed.emit()
+	var stats: Label = root.find_child("PauseStats", true, false) as Label
+	var mode: String = root.options.get_mode_config(root.options.settings.mode).name
+	assert_true(stats.text.ends_with(" · " + mode), stats.text)

@@ -96,6 +96,7 @@ var _is_lives_dirty: bool = true
 var _timer_type: int = -1
 var _pause_button: Button = null
 var _pause_panel: Control = null
+var _pause_sheet: PauseSheet = null
 var _resume_button: Button = null
 var _pause_armory_button: Button = null
 var _game_over_armory_button: Button = null
@@ -173,6 +174,20 @@ func _ready() -> void:
 	_pause_panel = find_child("PausePanel", true, false) as Control
 	if _pause_panel != null:
 		_pause_panel.visible = false
+
+	_pause_sheet = _pause_panel as PauseSheet
+	var restart_run: Button = find_child("RestartRunButton", true, false) as Button
+	if restart_run != null:
+		restart_run.pressed.connect(_on_restart_run_pressed)
+	var calibrate: Button = find_child("CalibrateButton", true, false) as Button
+	if calibrate != null:
+		calibrate.pressed.connect(_on_calibrate_pressed)
+	var sound: CheckButton = find_child("SoundSwitch", true, false) as CheckButton
+	if sound != null:
+		sound.toggled.connect(_on_sound_toggled)
+	var music: CheckButton = find_child("MusicSwitch", true, false) as CheckButton
+	if music != null:
+		music.toggled.connect(_on_music_toggled)
 
 	_resume_button = find_child("ResumeButton", true, false) as Button
 	if _resume_button != null:
@@ -266,6 +281,8 @@ func set_ui_scale(scale: float) -> void:
 	_timer_type = -1
 	if _multiplier_label != null:
 		_style_multiplier()
+	if _pause_sheet != null:
+		_pause_sheet.set_ui_scale(scale)
 	for picker: ControlPicker in _pickers:
 		picker.set_ui_scale(scale)
 	for button: Button in [_pause_armory_button, _game_over_armory_button]:
@@ -279,7 +296,7 @@ func set_pause_panel_visible(is_visible: bool) -> void:
 	if _pause_panel != null:
 		_pause_panel.visible = is_visible
 		if is_visible:
-			_sync_pickers()
+			_refresh_pause_sheet()
 
 
 ## The ui_scale implied by a viewport size: the short side against 390 and the
@@ -468,8 +485,12 @@ func _on_run_ended(final_score: int, stats: Types.GameStats) -> void:
 
 
 func _on_phase_changed(phase: Types.GamePhase) -> void:
-	if phase == Types.GamePhase.PLAYING and _game_over_panel != null:
+	if phase != Types.GamePhase.PLAYING:
+		return
+	if _game_over_panel != null:
 		_game_over_panel.visible = false
+	if _pause_panel != null:
+		_pause_panel.visible = false
 
 
 func _on_restart_pressed() -> void:
@@ -517,7 +538,7 @@ func _on_pause_pressed() -> void:
 		# I1: see the comment in _on_run_ended — the same _ready() ordering
 		# gap leaves the pause overlay's picker unmarked until this surface
 		# opens.
-		_sync_pickers()
+		_refresh_pause_sheet()
 
 
 ## PORT: web/src/tilt-to-live/TiltGame.ts:1436-1438, :1457-1459
@@ -526,6 +547,54 @@ func _on_armory_pressed() -> void:
 	if root == null:
 		return
 	root.open_armory()
+
+
+# PORT: web/src/tilt-to-live/TiltGame.ts:1619-1630 — the modal is populated as it opens.
+func _refresh_pause_sheet() -> void:
+	_sync_pickers()
+	var root: GameRoot = get_tree().get_first_node_in_group("game_root") as GameRoot
+	if _pause_sheet == null or root == null:
+		return
+	if _run != null and _state != null:
+		var mode: GameOptionsManager.ModeConfig = _run.options.get_mode_config(
+			_run.options.settings.mode
+		)
+		_pause_sheet.set_stats(
+			_run.scores.stats.score, GameStateMachine.format_time(_state.elapsed), mode.name
+		)
+	_pause_sheet.set_switches(
+		root.options.settings.sfx_enabled, root.options.settings.music_enabled
+	)
+
+
+## Restart run (Pause.dc.html; interface spec §5 — backed by GameRoot.restart_run()).
+func _on_restart_run_pressed() -> void:
+	if _pause_panel != null:
+		_pause_panel.visible = false
+	var root: GameRoot = get_tree().get_first_node_in_group("game_root") as GameRoot
+	if root != null:
+		root.restart_run()
+
+
+## PORT: web/src/tilt-to-live/TiltGame.ts:1465-1467 (btn-tilt-calibrate-pause)
+func _on_calibrate_pressed() -> void:
+	var root: GameRoot = get_tree().get_first_node_in_group("game_root") as GameRoot
+	if root != null:
+		root.calibrate_gyro()
+
+
+## PORT: web/src/tilt-to-live/TiltGame.ts:1396-1403
+func _on_sound_toggled(is_on: bool) -> void:
+	var root: GameRoot = get_tree().get_first_node_in_group("game_root") as GameRoot
+	if root != null:
+		root.set_sfx_enabled(is_on)
+
+
+## PORT: web/src/tilt-to-live/TiltGame.ts:1405-1416
+func _on_music_toggled(is_on: bool) -> void:
+	var root: GameRoot = get_tree().get_first_node_in_group("game_root") as GameRoot
+	if root != null:
+		root.set_music_enabled(is_on)
 
 
 func _on_scheme_chosen(scheme: Types.ControlScheme) -> void:
@@ -542,6 +611,9 @@ func _sync_pickers() -> void:
 		return
 	for picker: ControlPicker in _pickers:
 		picker.set_active_scheme(root.settings.scheme)
+	if _pause_sheet != null:
+		# PORT: web/src/tilt-to-live/TiltGame.ts:2239-2244
+		_pause_sheet.set_calibrate_shown(root.settings.scheme == Types.ControlScheme.GYRO)
 
 
 ## One reading of the duration indicator (TiltGame.ts:2187-2214's locals).

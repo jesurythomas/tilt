@@ -169,7 +169,7 @@ func toggle_pause() -> void:
 
 ## Formats elapsed seconds as `m:ss`.
 ## PORT: web/src/tilt-to-live/TiltGame.ts:1644-1648
-func format_time(secs: float) -> String:
+static func format_time(secs: float) -> String:
 	var m: int = floori(secs / 60.0)  # PORT: web/src/tilt-to-live/TiltGame.ts:1645-1646
 	var s: int = floori(fmod(secs, 60.0))  # PORT: web/src/tilt-to-live/TiltGame.ts:1645-1646
 	return "%d:%02d" % [m, s]

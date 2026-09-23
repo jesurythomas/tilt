@@ -1,9 +1,10 @@
 ## control_picker.gd
-## NO TS COUNTERPART — authorised by M2.5 spec §4.3.
+## NO TS COUNTERPART — authorised by M2.5 spec §4.3; restyled as the Segmented
+## control by the interface spec §6.2 (System.dc.html, Pause.dc.html).
 class_name ControlPicker
-extends Control
-## Three-button control-scheme picker, instanced on both the Game Over panel
-## and the pause overlay.
+extends PanelContainer
+## Segmented control-scheme picker — Touch | Tilt, plus Keyboard off-mobile —
+## instanced on the Pause and Run over sheets.
 ##
 ## HYBRID is deliberately not offered (M2.5 spec D2): it remains in
 ## Types.ControlScheme as a cited port of GameOptions.ts:21, but "whichever
@@ -12,9 +13,10 @@ extends Control
 ## Emitted when the player picks a scheme.
 signal scheme_chosen(scheme: Types.ControlScheme)
 
-# DIVERGENCE(M2.5 §4.3): 48dp minimum touch target, provisional until the
-# device pass.
-const BASE_TOUCH_TARGET: float = 48.0
+## Gap between segments. DIVERGENCE(UI-SYSTEM): System.dc.html — Segmented gap 3
+const SEGMENT_GAP: int = 3
+
+var _row: HBoxContainer = null
 
 @onready var _tilt_button: Button = get_node_or_null("%TiltButton")
 @onready var _touch_button: Button = get_node_or_null("%TouchButton")
@@ -22,6 +24,8 @@ const BASE_TOUCH_TARGET: float = 48.0
 
 
 func _ready() -> void:
+	theme_type_variation = "Segmented"
+	_row = find_child("Buttons", false, false) as HBoxContainer
 	if _tilt_button == null:
 		_tilt_button = find_child("TiltButton", true, false) as Button
 	if _touch_button == null:
@@ -32,26 +36,22 @@ func _ready() -> void:
 	if _tilt_button != null:
 		# button_pressed is ignored unless toggle_mode is true.
 		_tilt_button.toggle_mode = true
+		_tilt_button.theme_type_variation = "SegmentButton"
 		_tilt_button.pressed.connect(_on_scheme_button_pressed.bind(Types.ControlScheme.GYRO))
 	if _touch_button != null:
 		# button_pressed is ignored unless toggle_mode is true.
 		_touch_button.toggle_mode = true
+		_touch_button.theme_type_variation = "SegmentButton"
 		_touch_button.pressed.connect(_on_scheme_button_pressed.bind(Types.ControlScheme.MOUSE))
 	if _keyboard_button != null:
 		# button_pressed is ignored unless toggle_mode is true.
 		_keyboard_button.toggle_mode = true
+		_keyboard_button.theme_type_variation = "SegmentButton"
 		_keyboard_button.pressed.connect(
 			_on_scheme_button_pressed.bind(Types.ControlScheme.KEYBOARD)
 		)
 		# A phone has no keyboard; offering one is a dead option.
 		_keyboard_button.visible = not OS.has_feature("mobile")
-
-	# DIVERGENCE(M2.5 §4.3): a plain Control with no minimum size collapses to
-	# 0px inside the VBoxContainers on both the pause and game over panels,
-	# which overflows the HBox onto RESUME / PLAY AGAIN. Node _ready() runs
-	# child-first, so this fallback covers the first layout pass before
-	# HudController._ready() calls set_ui_scale() with the viewport-derived
-	# scale.
 	set_ui_scale(1.0)
 
 
@@ -65,20 +65,13 @@ func set_active_scheme(scheme: Types.ControlScheme) -> void:
 		_keyboard_button.button_pressed = scheme == Types.ControlScheme.KEYBOARD
 
 
-## Scales each button's minimum touch target to the viewport.
+## Scales each segment's touch target and the gap between segments.
 func set_ui_scale(scale: float) -> void:
-	# DIVERGENCE(M2.5 §4.3): the scene root is a plain Control with no minimum
-	# size, so the pause/game-over VBoxContainers allocate it 0px and the
-	# HBox of buttons overflows onto the next sibling (RESUME / PLAY AGAIN).
-	# Reporting the same minimum height here keeps the picker's layout slot
-	# in step with its buttons.
-	custom_minimum_size.y = BASE_TOUCH_TARGET * scale
-	if _tilt_button != null:
-		_tilt_button.custom_minimum_size.y = BASE_TOUCH_TARGET * scale
-	if _touch_button != null:
-		_touch_button.custom_minimum_size.y = BASE_TOUCH_TARGET * scale
-	if _keyboard_button != null:
-		_keyboard_button.custom_minimum_size.y = BASE_TOUCH_TARGET * scale
+	if _row != null:
+		_row.add_theme_constant_override("separation", UiTheme.px(SEGMENT_GAP, scale))
+	for button: Button in [_tilt_button, _touch_button, _keyboard_button]:
+		if button != null:
+			button.custom_minimum_size.y = UiTheme.TOUCH_TARGET * scale
 
 
 func _on_scheme_button_pressed(scheme: Types.ControlScheme) -> void:
