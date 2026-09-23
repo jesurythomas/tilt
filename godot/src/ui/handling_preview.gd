@@ -18,9 +18,11 @@ extends Control
 ## Canvas minimums. PORT: web/src/tilt-to-live/ArmoryUI.ts:954-955
 const MIN_WIDTH: float = 280.0
 const MIN_HEIGHT: float = 260.0
-## Background grid. PORT: web/src/tilt-to-live/ArmoryUI.ts:995, :998, :1002
-const GRID_COLOR: Color = Color(38.0 / 255.0, 44.0 / 255.0, 56.0 / 255.0, 0.4)
-const GRID_STEP: float = 40.0
+## Background grid. DIVERGENCE(UI-SYSTEM): ArmoryHandling.dc.html — 34 px, ion at
+## 5% (the TS's 40 px / rgba(38,44,56,0.4) at ArmoryUI.ts:995-1002 is superseded,
+## interface spec §6.4).
+const GRID_COLOR: Color = Color(UiTheme.COLOR_ION, 0.05)
+const GRID_STEP: float = 34.0
 ## Rings. PORT: web/src/tilt-to-live/ArmoryUI.ts:1009-1010, :1014-1016, :1024-1025
 const TOP_SPEED_RADIUS: float = 110.0
 const DEADZONE_MIN_RADIUS: float = 4.0
@@ -56,8 +58,8 @@ const INITIAL_ANGLE: float = -PI / 4.0
 const INITIAL_MOUSE_OFFSET: Vector2 = Vector2(70.0, -35.0)
 ## Raster density of the ship silhouette. PORT-NOTE: as ArmoryUI.SVG_OVERSAMPLE.
 const SHIP_OVERSAMPLE: float = 2.0
-## Box background. PORT: web/src/styles/game.css:2738
-const BOX_COLOR: Color = Color("#0D1016")
+## Box background: the arena token (interface spec §4.1 — no private token hexes).
+const BOX_COLOR: Color = UiTheme.COLOR_ARENA
 
 ## The tuning source. PORT: web/src/tilt-to-live/ArmoryUI.ts:1008
 var progression: ProgressionManager = null

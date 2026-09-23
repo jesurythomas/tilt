@@ -1,7 +1,6 @@
 ## ui_theme.gd
 ## PORTS: nothing — new file per docs/superpowers/specs/2026-09-23-mobile-interface-system-design.md
-##        §4.1. Replaces armory_theme.gd (web/src/styles/game.css:9-67); that file's
-##        tokens survive in the legacy block below only until M8.5 Task 7.
+##        §4.1 (replaced armory_theme.gd)
 class_name UiTheme
 extends RefCounted
 ## Colour tokens, fonts, icons and component variations of the mobile
@@ -10,7 +9,7 @@ extends RefCounted
 ## DIVERGENCE(UI-SYSTEM): System.dc.html is the visual authority (interface
 ## spec §2). Every size is a base px on the 844×390 board frame; build(scale)
 ## multiplies it. Tokens live in code rather than a .tres so every literal
-## carries its citation (the ArmoryTheme precedent).
+## carries its citation (as the pre-M8.5 Armory theme did).
 ##
 ## Never instantiated: every member is static (port design spec §5.2 — not a singleton).
 
@@ -161,54 +160,6 @@ const SWITCH_OFF: String = (
 	+ '<rect x="0.5" y="0.5" width="47" height="27" rx="13.5" fill="#1B2029" stroke="#3A4252"/>'
 	+ '<circle cx="14" cy="14" r="10" fill="#626B7E"/></svg>'
 )
-
-# --- Legacy Armory tokens (game.css). TODO(M8.5): Task 7 deletes this block,
-# --- _build_legacy_armory and the two _legacy_* helpers.
-## Overlay and panel. PORT: web/src/styles/game.css:1607, :1621-1623
-const OVERLAY_BG: Color = Color(8.0 / 255.0, 9.0 / 255.0, 14.0 / 255.0, 0.88)
-const PANEL_BG: Color = Color("#0B0E14")
-const PANEL_RADIUS: int = 8
-## Border and accent tokens. PORT: web/src/styles/game.css:19-21, :24-38
-const COLOR_BORDER: Color = Color("#262C38")
-const COLOR_BORDER_ACTIVE: Color = Color("#3A4252")
-const COLOR_ION_HOVER: Color = Color("#8FB0FF")
-const COLOR_ION_FILL: Color = Color(91.0 / 255.0, 140.0 / 255.0, 1.0, 0.12)
-const COLOR_SUCCESS: Color = Color("#3DDC97")
-const COLOR_SUCCESS_FILL: Color = Color(61.0 / 255.0, 220.0 / 255.0, 151.0 / 255.0, 0.10)
-## Text tokens. PORT: web/src/styles/game.css:45-50
-const TEXT_PRIMARY: Color = Color("#E6E9F0")
-const TEXT_MUTED: Color = Color("#99A1B3")
-## Header padding. PORT: web/src/styles/game.css:1632 (desktop), :2831 (mobile)
-const HEADER_PAD_Y: int = 18
-const HEADER_PAD_X: int = 32
-const HEADER_PAD_Y_MOBILE: int = 12
-const HEADER_PAD_X_MOBILE: int = 16
-const TITLE_FONT: int = 26  # PORT: web/src/styles/game.css:1663
-const TAB_FONT: int = 14  # PORT: web/src/styles/game.css:1693
-const BALANCE_FONT: int = 15  # PORT: web/src/styles/game.css:1721
-const ICON_BUTTON: int = 38  # PORT: web/src/styles/game.css:1738-1741
-const ICON_BUTTON_RADIUS: int = 4  # PORT: web/src/styles/game.css:1741
-const BODY_FONT: int = 13  # PORT: web/src/styles/game.css:2012
-## Action buttons. PORT: web/src/styles/game.css:2005-2008
-const ACTION_BUTTON_WIDTH: int = 130
-const ACTION_BUTTON_HEIGHT: int = 40
-const ACTION_RADIUS: int = 4
-## Sticky Play. PORT: web/src/styles/game.css:2801-2806
-const PLAY_BUTTON_HEIGHT: int = 50
-const PLAY_RADIUS: int = 6
-const PLAY_FONT: int = 16
-## Keystone surfaces. PORT: web/src/styles/game.css:2183-2184, :2190-2191, :2229-2230
-const KEYSTONE_FILL: Color = Color(167.0 / 255.0, 139.0 / 255.0, 250.0 / 255.0, 0.07)
-const KEYSTONE_BORDER: Color = Color(167.0 / 255.0, 139.0 / 255.0, 250.0 / 255.0, 0.28)
-const KEYSTONE_UNLOCKED_FILL: Color = Color(61.0 / 255.0, 220.0 / 255.0, 151.0 / 255.0, 0.08)
-const KEYSTONE_UNLOCKED_BORDER: Color = Color(61.0 / 255.0, 220.0 / 255.0, 151.0 / 255.0, 0.35)
-const KEYSTONE_BUTTON_FILL: Color = Color(167.0 / 255.0, 139.0 / 255.0, 250.0 / 255.0, 0.12)
-## Secondary text sizes. PORT: web/src/styles/game.css:1948, :1954, :1964, :1795
-const HEADING_FONT: int = 15
-const MUTED_FONT: int = 12
-const FAINT_FONT: int = 11
-const WEAPON_ITEM_RADIUS: int = 5
-# --- end legacy block
 
 
 ## A base size at `scale`, rounded to whole pixels.
@@ -413,7 +364,6 @@ static func archivo(width: float) -> FontVariation:
 ## The interface-system Theme at `scale` (HudController.ui_scale_for's value).
 static func build(scale: float) -> Theme:
 	var theme: Theme = Theme.new()
-	_build_legacy_armory(theme, scale)  # TODO(M8.5): deleted by Task 7.
 	theme.default_font = sans(Weight.REGULAR)
 	theme.default_font_size = px(BODY_SIZE, scale)
 	theme.set_color("font_color", "Label", COLOR_TEXT)
@@ -672,97 +622,3 @@ static func _button(
 
 static func _tag(name: String) -> int:
 	return TextServerManager.get_primary_interface().name_to_tag(name)
-
-
-# TODO(M8.5): Task 7 deletes this function — the pre-redesign Armory variations.
-static func _build_legacy_armory(theme: Theme, scale: float) -> void:
-	theme.set_stylebox("panel", "Panel", flat(PANEL_BG, COLOR_BORDER, PANEL_RADIUS))
-	theme.set_stylebox("panel", "PanelContainer", flat(PANEL_BG, COLOR_BORDER, PANEL_RADIUS))
-	# Default Button = .track-cost-btn / .boost-cost-btn. PORT: game.css:2004-2036
-	theme.set_font_size("font_size", "Button", int(BODY_FONT * scale))
-	theme.set_color("font_color", "Button", COLOR_ION_HOVER)
-	theme.set_color("font_hover_color", "Button", COLOR_ION_HOVER)
-	theme.set_color("font_pressed_color", "Button", COLOR_ION_HOVER)
-	theme.set_color("font_disabled_color", "Button", TEXT_SUBTLE)
-	theme.set_stylebox("normal", "Button", flat(COLOR_ION_FILL, COLOR_ION, ACTION_RADIUS))
-	theme.set_stylebox("hover", "Button", flat(COLOR_ION_FILL, COLOR_ION_HOVER, ACTION_RADIUS))
-	theme.set_stylebox("pressed", "Button", flat(COLOR_ION_FILL, COLOR_ION_HOVER, ACTION_RADIUS))
-	theme.set_stylebox("disabled", "Button", flat(Color.TRANSPARENT, COLOR_BORDER, ACTION_RADIUS))
-	theme.set_stylebox("focus", "Button", StyleBoxEmpty.new())
-	_legacy_label(theme, "TitleLabel", TEXT_PRIMARY, int(TITLE_FONT * scale))
-	_legacy_label(theme, "HeadingLabel", TEXT_PRIMARY, int(HEADING_FONT * scale))
-	_legacy_label(theme, "MutedLabel", TEXT_MUTED, int(MUTED_FONT * scale))
-	_legacy_label(theme, "FaintLabel", TEXT_FAINT, int(FAINT_FONT * scale))
-	_legacy_label(theme, "SubtleLabel", TEXT_SUBTLE, int(BODY_FONT * scale))
-	_legacy_label(theme, "MonoLabel", TEXT_FAINT, int(MUTED_FONT * scale))
-	_legacy_label(theme, "FlareLabel", COLOR_FLARE, int(BALANCE_FONT * scale))
-	_legacy_label(theme, "PillLabel", TEXT_FAINT, int(FAINT_FONT * scale))
-	# .weapon-list-item / .active. PORT: game.css:1793-1813
-	_legacy_button(
-		theme,
-		"WeaponItem",
-		int(HEADING_FONT * scale),
-		TEXT_SECONDARY,
-		flat(Color.TRANSPARENT, Color.TRANSPARENT, WEAPON_ITEM_RADIUS),
-		flat(COLOR_RAISED, COLOR_BORDER_ACTIVE, WEAPON_ITEM_RADIUS)
-	)
-	# .armory-mobile-play-btn. PORT: game.css:2796-2810
-	_legacy_button(
-		theme,
-		"PlayButton",
-		int(PLAY_FONT * scale),
-		COLOR_VOID,
-		flat(COLOR_ION, Color.TRANSPARENT, PLAY_RADIUS),
-		flat(COLOR_ION_HOVER, Color.TRANSPARENT, PLAY_RADIUS)
-	)
-	# .ship-action-btn.is-equip. PORT: game.css:2445-2456
-	_legacy_button(
-		theme,
-		"EquipButton",
-		int(BODY_FONT * scale),
-		TEXT_MUTED,
-		flat(Color.TRANSPARENT, COLOR_BORDER_ACTIVE, ACTION_RADIUS),
-		flat(COLOR_ION_FILL, COLOR_ION, ACTION_RADIUS)
-	)
-	# .keystone-cost-btn. PORT: game.css:2224-2232
-	_legacy_button(
-		theme,
-		"KeystoneButton",
-		int(BODY_FONT * scale),
-		PLASMA_TEXT,
-		flat(KEYSTONE_BUTTON_FILL, COLOR_PLASMA, ACTION_RADIUS),
-		flat(KEYSTONE_BUTTON_FILL, COLOR_PLASMA, ACTION_RADIUS)
-	)
-	# .handling-reset-btn. PORT: game.css:2698-2707
-	_legacy_button(
-		theme,
-		"GhostButton",
-		int(BODY_FONT * scale),
-		TEXT_MUTED,
-		flat(Color.TRANSPARENT, COLOR_BORDER_ACTIVE, ACTION_RADIUS),
-		flat(COLOR_RAISED, COLOR_BORDER_ACTIVE, ACTION_RADIUS)
-	)
-	# .upgrade-track-card / .boost-card. PORT: game.css:1935-1937
-	theme.set_type_variation("CardPanel", "PanelContainer")
-	theme.set_stylebox("panel", "CardPanel", flat(COLOR_PANEL, COLOR_BORDER, CARD_RADIUS))
-
-
-static func _legacy_label(theme: Theme, name: String, color: Color, size: int) -> void:
-	theme.set_type_variation(name, "Label")
-	theme.set_color("font_color", name, color)
-	theme.set_font_size("font_size", name, size)
-
-
-static func _legacy_button(
-	theme: Theme, name: String, size: int, color: Color, normal: StyleBoxFlat, active: StyleBoxFlat
-) -> void:
-	theme.set_type_variation(name, "Button")
-	theme.set_font_size("font_size", name, size)
-	theme.set_color("font_color", name, color)
-	theme.set_color("font_hover_color", name, color)
-	theme.set_color("font_pressed_color", name, color)
-	theme.set_stylebox("normal", name, normal)
-	theme.set_stylebox("hover", name, active)
-	theme.set_stylebox("pressed", name, active)
-	theme.set_stylebox("hover_pressed", name, active)
-	theme.set_stylebox("focus", name, StyleBoxEmpty.new())

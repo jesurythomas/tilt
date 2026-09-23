@@ -10,6 +10,7 @@ const ARMORY_SCENE: PackedScene = preload("res://scenes/armory.tscn")
 
 var _armory: ArmoryUI = null
 var _progression: ProgressionManager = null
+var _settings: ControlSettings = null
 
 
 func _remove(path: String) -> void:
@@ -21,16 +22,19 @@ func _remove(path: String) -> void:
 func before_each() -> void:
 	_remove(ProgressionManager.SAVE_PATH)
 	_remove(SaveStore.corrupt_path_for(ProgressionManager.SAVE_PATH))
+	_remove(ControlSettings.SETTINGS_PATH)
 	_progression = ProgressionManager.new()
+	_settings = ControlSettings.new()
 	_armory = ARMORY_SCENE.instantiate() as ArmoryUI
 	add_child_autofree(_armory)
-	_armory.bind(_progression)
+	_armory.bind(_progression, _settings)
 	await get_tree().process_frame
 
 
 func after_each() -> void:
 	_remove(ProgressionManager.SAVE_PATH)
 	_remove(SaveStore.corrupt_path_for(ProgressionManager.SAVE_PATH))
+	_remove(ControlSettings.SETTINGS_PATH)
 
 
 func _button(name: String) -> Button:
@@ -43,6 +47,16 @@ func _label(name: String) -> Label:
 	var l: Label = _armory.find_child(name, true, false) as Label
 	assert_not_null(l, "%s must exist" % name)
 	return l
+
+
+func _filled_pips(name: String) -> int:
+	var bar: Node = _armory.find_child(name, true, false)
+	assert_not_null(bar, "%s must exist" % name)
+	var filled: int = 0
+	for pip: Node in bar.get_children():
+		if (pip as ColorRect).color == UiTheme.COLOR_ION:
+			filled += 1
+	return filled
 
 
 func test_starts_hidden_and_opens_on_weapons() -> void:
@@ -449,9 +463,10 @@ func test_boosts_catalog_matches_the_ts() -> void:
 func test_boosts_tab_shows_rank_and_cost() -> void:
 	_armory.open("boosts")
 	await get_tree().process_frame
-	assert_eq(_label("BoostRank_extraLives").text, "0/2")
-	assert_eq(_button("Boost_extraLives").text, "4,000 pts")
-	assert_eq(_button("Boost_pointsMultiplier").text, "2,500 pts")
+	assert_eq(_filled_pips("BoostPips_extraLives"), 0)
+	assert_eq(_armory.find_child("BoostPips_extraLives", true, false).get_child_count(), 2)
+	assert_eq(_button("Boost_extraLives").text, "4,000")
+	assert_eq(_button("Boost_pointsMultiplier").text, "2,500")
 	assert_false(_button("Boost_hullCompact").disabled)
 
 
@@ -462,8 +477,8 @@ func test_buying_a_boost_charges_saves_and_emits() -> void:
 	assert_eq(_progression.data.hull_compact, 1)
 	assert_eq(_progression.data.points, 7331 - 1500)
 	assert_signal_emitted(_armory, "state_changed")
-	assert_eq(_label("BoostRank_hullCompact").text, "1/3")
-	assert_eq(_button("Boost_hullCompact").text, "3,000 pts", "next rung of HULL_COMPACT_COSTS")
+	assert_eq(_filled_pips("BoostPips_hullCompact"), 1)
+	assert_eq(_button("Boost_hullCompact").text, "3,000", "next rung of HULL_COMPACT_COSTS")
 	assert_eq(ProgressionManager.new().data.hull_compact, 1, "persisted")
 
 
@@ -473,8 +488,8 @@ func test_maxed_boost_reads_maxed() -> void:
 	# PORT: web/src/tilt-to-live/ArmoryUI.ts:896 — cost === null ⇔ Types.ABSENT
 	var btn: Button = _button("Boost_extraLives")
 	assert_true(btn.disabled)
-	assert_eq(btn.text, "Maxed ✓")
-	assert_eq(_label("BoostRank_extraLives").text, "2/2")
+	assert_eq(btn.text, "Max")
+	assert_eq(_filled_pips("BoostPips_extraLives"), 2)
 
 
 func test_unaffordable_boost_is_disabled() -> void:
@@ -513,7 +528,7 @@ func _hosted(size: Vector2, scale: float) -> ArmoryUI:
 	add_child_autofree(host)
 	var armory: ArmoryUI = ARMORY_SCENE.instantiate() as ArmoryUI
 	host.add_child(armory)
-	armory.bind(_progression)
+	armory.bind(_progression, _settings)
 	armory.set_ui_scale(scale)
 	return armory
 
@@ -569,17 +584,19 @@ func _slider(name: String) -> HSlider:
 func test_handling_tab_shows_the_tuning_and_starts_the_preview() -> void:
 	_armory.open("handling")
 	await get_tree().process_frame
-	# PORT: web/src/tilt-to-live/ArmoryUI.ts:816, :840
+	# PORT: web/src/tilt-to-live/ArmoryUI.ts:816
 	assert_eq(_label("TurnValue").text, "1.0×")
-	assert_eq(_label("DeadzoneValue").text, "4px")
+	assert_eq(_label("TiltValue").text, "1.0×")
 	var turn: HSlider = _slider("TurnSlider")
 	assert_eq(turn.min_value, 0.5)
 	assert_eq(turn.max_value, 2.0)
 	assert_eq(turn.step, 0.1)
-	var dead: HSlider = _slider("DeadzoneSlider")
-	assert_eq(dead.min_value, 0.0)
-	assert_eq(dead.max_value, 16.0)
-	assert_eq(dead.step, 1.0)
+	# Interface spec §6.4 + 2026-09-23 ruling: 0.5–2.0 slider, stored clamp 0.4–2.5.
+	var tilt: HSlider = _slider("TiltSlider")
+	assert_eq(tilt.min_value, 0.5)
+	assert_eq(tilt.max_value, 2.0)
+	assert_eq(tilt.step, 0.1)
+	assert_null(_armory.find_child("DeadzoneSlider", true, false), "deadzone left the UI")
 	var preview: HandlingPreview = (
 		_armory.find_child("HandlingPreview", true, false) as HandlingPreview
 	)
@@ -596,9 +613,9 @@ func test_sliders_write_through_and_emit_without_rerender() -> void:
 	_slider("TurnSlider").value = 1.7
 	assert_almost_eq(_progression.data.tuning.sensitivity, 1.7, 0.0001)
 	assert_eq(_label("TurnValue").text, "1.7×")
-	_slider("DeadzoneSlider").value = 9.0
-	assert_eq(_progression.data.tuning.deadzone, 9.0)
-	assert_eq(_label("DeadzoneValue").text, "9px")
+	_slider("TiltSlider").value = 1.4
+	assert_almost_eq(_settings.tilt_sensitivity, 1.4, 0.0001)
+	assert_eq(_label("TiltValue").text, "1.4×")
 	assert_signal_emit_count(_armory, "state_changed", 2)
 	var same: HandlingPreview = (
 		_armory.find_child("HandlingPreview", true, false) as HandlingPreview
@@ -606,21 +623,49 @@ func test_sliders_write_through_and_emit_without_rerender() -> void:
 	assert_eq(same, preview, "slider input updates the pill in place, no render() (:1264-1270)")
 	var reloaded: ProgressionManager = ProgressionManager.new()
 	assert_almost_eq(reloaded.data.tuning.sensitivity, 1.7, 0.0001, "slider write-through saved")
-	assert_eq(reloaded.data.tuning.deadzone, 9.0, "slider write-through saved")
+	assert_almost_eq(
+		ControlSettings.new().tilt_sensitivity, 1.4, 0.0001, "tilt write-through saved"
+	)
 
 
 func test_reset_restores_defaults_and_rerenders() -> void:
 	_progression.set_sensitivity(1.9)
 	_progression.set_deadzone(12.0)
+	_settings.tilt_sensitivity = 1.8
 	_armory.open("handling")
 	watch_signals(_armory)
 	_button("ResetButton").pressed.emit()
 	# PORT: web/src/tilt-to-live/ArmoryUI.ts:1286-1291
 	assert_eq(_progression.data.tuning.sensitivity, 1.0)
-	assert_eq(_progression.data.tuning.deadzone, 4.0)
+	assert_eq(_progression.data.tuning.deadzone, 4.0, "deadzone still resets (Ruling O)")
+	assert_eq(_settings.tilt_sensitivity, 1.0, "tilt resets to control_settings.gd:27")
 	assert_signal_emitted(_armory, "state_changed")
 	assert_eq(_slider("TurnSlider").value, 1.0)
-	assert_eq(_label("DeadzoneValue").text, "4px")
+	assert_eq(_label("TiltValue").text, "1.0×")
+
+
+func test_calibrate_tilt_button_requests_calibration() -> void:
+	# Interface spec §5: Calibrate tilt → GameRoot.calibrate_gyro().
+	_armory.open("handling")
+	watch_signals(_armory)
+	_button("CalibrateTiltButton").pressed.emit()
+	assert_signal_emitted(_armory, "calibrate_requested")
+
+
+func test_handling_tab_fits_the_board_frame() -> void:
+	await _assert_tab_fits("handling", Vector2(844, 390), 1.0)
+
+
+func test_handling_tab_fits_the_a55() -> void:
+	await _assert_tab_fits("handling", Vector2(2340, 1080), 1080.0 / 390.0)
+
+
+func test_boosts_tab_fits_the_board_frame() -> void:
+	await _assert_tab_fits("boosts", Vector2(844, 390), 1.0)
+
+
+func test_boosts_tab_fits_the_a55() -> void:
+	await _assert_tab_fits("boosts", Vector2(2340, 1080), 1080.0 / 390.0)
 
 
 func test_leaving_the_handling_tab_stops_the_preview() -> void:

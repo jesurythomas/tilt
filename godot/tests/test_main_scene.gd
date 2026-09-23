@@ -380,3 +380,17 @@ func test_run_over_shows_points_and_spend() -> void:
 		(panel.find_child("NewBestBanner", true, false) as Control).visible,
 		"a zero-score run is not a new best (:2097)"
 	)
+
+
+func test_armory_tilt_slider_reaches_the_tilt_input() -> void:
+	# Interface spec §6.4 (ruled): the slider is ControlSettings.tilt_sensitivity,
+	# which TiltInput reads (game_root.gd _ready); GameRoot re-applies it on
+	# state_changed.
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	root.open_armory("handling")
+	var slider: HSlider = root.find_child("TiltSlider", true, false) as HSlider
+	slider.value = 1.6
+	assert_almost_eq(root.settings.tilt_sensitivity, 1.6, 0.0001)
+	assert_almost_eq(root._tilt.tilt_sensitivity, 1.6, 0.0001)

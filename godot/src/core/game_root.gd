@@ -113,9 +113,10 @@ func _ready() -> void:
 	_hud.bind_run(_run_controller, _state)
 
 	# PORT: web/src/tilt-to-live/TiltGame.ts:180-184
-	_armory.bind(progression)
+	_armory.bind(progression, settings)
 	_armory.state_changed.connect(_on_armory_state_changed)
 	_armory.closed.connect(_on_armory_closed)
+	_armory.calibrate_requested.connect(calibrate_gyro)
 	_apply_equipped_cosmetics()
 	GameEvents.run_ended.connect(_on_run_ended)
 
@@ -420,6 +421,8 @@ func _on_run_ended(_final_score: int, _stats: Types.GameStats) -> void:
 # updateCursor (:2360) has no pointer on Android. What a purchase does change
 # on this platform is the equipped cosmetics the layers draw.
 func _on_armory_state_changed() -> void:
+	# Interface spec §6.4: the Handling tab's tilt slider edits settings.tilt_sensitivity.
+	_tilt.tilt_sensitivity = settings.tilt_sensitivity
 	_apply_equipped_cosmetics()
 
 
