@@ -1,18 +1,15 @@
 ## hud_controller.gd
-## PORTS: web/src/tilt-to-live/TiltGame.ts:1956-1958 (updateHUD), 2088-2115 (gameOverModal)
-##        per spec §5.3
+## PORTS: web/src/tilt-to-live/TiltGame.ts:1956-1958 (updateHUD), 2088-2115 (gameOverModal),
+##        2173-2214 (lives pips, duration indicator) per spec §5.3
 class_name HudController
 extends Control
-## Controller for the in-game HUD, Game Over overlay and pause overlay.
+## Controller for the in-game HUD, the Run over sheet and the Pause sheet.
+##
+## DIVERGENCE(UI-SYSTEM): Hud.dc.html is the HUD's visual authority (interface
+## spec §6.1). scenes/main.tscn holds only the node tree; every board literal is
+## a constant here, applied by set_ui_scale(). Every HUD control anchors to
+## %Frame, the arena outline drawn at GameRoot.arena_origin (spec §4.4).
 
-# Per spec §7.2: main.tscn hardcoded 32/24/20px font sizes with no viewport
-# response, which the parent spec's global constraints forbid. These are the
-# base sizes; set_ui_scale() multiplies them. This is a bug fix, not a
-# divergence from the TypeScript — the web game's HUD is CSS-scaled. Carries
-# no DIVERGENCE tag: spec §7.2 says this fix is not a divergence.
-const BASE_SCORE_FONT: int = 44
-const BASE_BEST_FONT: int = 22
-const BASE_MULTIPLIER_FONT: int = 26
 ## The boards' landscape reference frame. DIVERGENCE(UI-SYSTEM): System.dc.html — 844 × 390
 const UI_REFERENCE_HEIGHT: float = 390.0
 const UI_REFERENCE_WIDTH: float = 844.0
@@ -22,7 +19,50 @@ const UI_REFERENCE_WIDTH: float = 844.0
 const MIN_UI_SCALE: float = 0.75
 const MAX_UI_SCALE: float = 3.0
 
-# Multiplier tiers for the score pulse and multiplier label (D3).
+## HUD layout, base px measured from the arena frame (the board draws the frame
+## at left 20, top 12). DIVERGENCE(UI-SYSTEM): Hud.dc.html
+const FRAME_ALPHA: float = 0.28  # outline rgba(91,140,255,0.28)
+const FRAME_RADIUS: int = 2
+const SCORE_TOP: int = 10  # score block top 22 − 12
+const SCORE_GAP: int = 4
+const LEFT_COLUMN_X: int = 16  # lives column left 36 − 20
+const LEFT_COLUMN_Y: int = 14  # top 26 − 12
+const LEFT_COLUMN_GAP: int = 10
+const LIFE_GAP: int = 6
+const LIFE_GLYPH: int = 16
+const PAUSE_INSET_X: int = 14  # pause right 34 − 20
+const PAUSE_INSET_Y: int = 12  # top 24 − 12
+const TIMER_BOTTOM: int = 14  # weapon timer bottom 26 − 12
+const TIMER_GAP: int = 7
+const TIMER_METER_WIDTH: int = 160
+
+## The shield's fixed total for the indicator's fraction.
+## PORT: web/src/tilt-to-live/TiltGame.ts:2190
+const SHIELD_INDICATOR_TOTAL: float = 6.0
+## The TS capitalises the WeaponType string (TiltGame.ts:2204; Types.ts:9-16).
+const WEAPON_TIMER_NAMES: Dictionary[int, String] = {
+	Types.WeaponType.NUKE: "Nuke",
+	Types.WeaponType.MISSILES: "Missiles",
+	Types.WeaponType.LIGHTNING: "Lightning",
+	Types.WeaponType.LASER: "Laser",
+	Types.WeaponType.VORTEX: "Vortex",
+	Types.WeaponType.FREEZE: "Freeze",
+	Types.WeaponType.SHIELD: "Shield",
+}
+## The timer's tint. DIVERGENCE(UI-SYSTEM): Hud.dc.html ("in the weapon's colour",
+## interface spec §6.1); the colours are the Armory catalog dots, read through
+## UiTheme's tokens (spec §4.1 — no private hex copies).
+const WEAPON_TIMER_COLORS: Dictionary[int, Color] = {
+	Types.WeaponType.VORTEX: UiTheme.COLOR_PLASMA,  # PORT: web/src/tilt-to-live/ArmoryUI.ts:100
+	Types.WeaponType.MISSILES: UiTheme.COLOR_ION,  # PORT: web/src/tilt-to-live/ArmoryUI.ts:116
+	Types.WeaponType.LASER: UiTheme.COLOR_ION,  # PORT: web/src/tilt-to-live/ArmoryUI.ts:132
+	Types.WeaponType.NUKE: UiTheme.COLOR_FLARE,  # PORT: web/src/tilt-to-live/ArmoryUI.ts:147
+	Types.WeaponType.FREEZE: UiTheme.ION_TEXT,  # PORT: web/src/tilt-to-live/ArmoryUI.ts:162
+	Types.WeaponType.SHIELD: UiTheme.COLOR_LOCKED_IN,  # PORT: web/src/tilt-to-live/ArmoryUI.ts:176
+	Types.WeaponType.LIGHTNING: UiTheme.COLOR_FLARE,  # PORT: web/src/tilt-to-live/ArmoryUI.ts:191
+}
+
+# Multiplier tiers for the score pulse and multiplier chip (D3).
 # DIVERGENCE(HUD-FEEDBACK §4): thresholds and colours are spec constants, not
 # ported from the TS, which has no per-tier colour concept.
 const TIER_THRESHOLD_YELLOW: int = 2  # DIVERGENCE(HUD-FEEDBACK §4)
@@ -39,20 +79,29 @@ const PULSE_SCALE: float = 1.18  # DIVERGENCE(HUD-FEEDBACK §4)
 ## Duration of the kill pulse's scale and colour tween, in seconds (D2).
 const PULSE_SECONDS: float = 0.22  # DIVERGENCE(HUD-FEEDBACK §4)
 
+var _run: RunController = null
+var _state: GameStateMachine = null
+var _ui_scale: float = 1.0
+var _frame: Panel = null
+var _score_block: VBoxContainer = null
+var _left_column: VBoxContainer = null
+var _lives_row: HBoxContainer = null
+var _weapon_timer: VBoxContainer = null
+var _weapon_timer_label: Label = null
+var _weapon_timer_meter: ProgressBar = null
+var _life_on: ImageTexture = null
+var _life_off: ImageTexture = null
+var _shown_pips: Array[bool] = []
+var _is_lives_dirty: bool = true
+var _timer_type: int = -1
 var _pause_button: Button = null
 var _pause_panel: Control = null
 var _resume_button: Button = null
 var _pause_armory_button: Button = null
 var _game_over_armory_button: Button = null
 var _pickers: Array[ControlPicker] = []
-var _score_margin: MarginContainer = null
-# I3: the scene-authored offsets, captured before _apply_arena_origin() ever
-# runs. Used verbatim when no GameRoot is present (tests build the HUD alone).
-var _fallback_score_top: float = 0.0
-var _fallback_pause_right: float = 0.0
-var _fallback_pause_top: float = 0.0
 # DIVERGENCE(HUD-FEEDBACK §4): last multiplier seen from score_changed, so the
-# kill pulse's tier agrees with the multiplier label's tier.
+# kill pulse's tier agrees with the multiplier chip's tier.
 var _current_multiplier: int = 1
 var _score_pulse_tween: Tween = null
 
@@ -71,14 +120,19 @@ func _ready() -> void:
 	if _score_label == null:
 		_score_label = find_child("ScoreLabel", true, false) as Label
 	if _score_label != null:
+		_score_label.theme_type_variation = "ScoreText"
 		# DIVERGENCE(HUD-FEEDBACK §4): resized is the source of truth for the
 		# pulse's pivot — size changes with digit count and font size, not
 		# only on viewport resize.
 		_score_label.resized.connect(_on_score_label_resized)
 	if _best_label == null:
 		_best_label = find_child("BestLabel", true, false) as Label
+	if _best_label != null:
+		_best_label.theme_type_variation = "MonoFaintText"
 	if _multiplier_label == null:
 		_multiplier_label = find_child("MultiplierLabel", true, false) as Label
+	if _multiplier_label != null:
+		_multiplier_label.theme_type_variation = "ChipText"
 	if _game_over_panel == null:
 		_game_over_panel = find_child("GameOverPanel", true, false) as Control
 	if _final_score_label == null:
@@ -92,6 +146,14 @@ func _ready() -> void:
 	if _restart_button == null:
 		_restart_button = find_child("RestartButton", true, false) as Button
 
+	_frame = find_child("Frame", true, false) as Panel
+	_score_block = find_child("ScoreBlock", true, false) as VBoxContainer
+	_left_column = find_child("LeftColumn", true, false) as VBoxContainer
+	_lives_row = find_child("LivesRow", true, false) as HBoxContainer
+	_weapon_timer = find_child("WeaponTimer", true, false) as VBoxContainer
+	_weapon_timer_label = find_child("WeaponTimerLabel", true, false) as Label
+	_weapon_timer_meter = find_child("WeaponTimerMeter", true, false) as ProgressBar
+
 	if _game_over_panel != null:
 		_game_over_panel.visible = false
 
@@ -104,15 +166,9 @@ func _ready() -> void:
 	GameEvents.run_ended.connect(_on_run_ended)
 	GameEvents.phase_changed.connect(_on_phase_changed)
 
-	_score_margin = find_child("ScoreMargin", true, false) as MarginContainer
-	if _score_margin != null:
-		_fallback_score_top = _score_margin.offset_top
-
 	_pause_button = find_child("PauseButton", true, false) as Button
 	if _pause_button != null:
 		_pause_button.pressed.connect(_on_pause_pressed)
-		_fallback_pause_right = _pause_button.offset_right
-		_fallback_pause_top = _pause_button.offset_top
 
 	_pause_panel = find_child("PausePanel", true, false) as Control
 	if _pause_panel != null:
@@ -146,25 +202,75 @@ func _ready() -> void:
 	_apply_arena_origin.call_deferred()
 
 
-## Scales HUD text and touch targets to the viewport.
+func _process(_delta: float) -> void:
+	if _run == null:
+		return
+	_show_lives(lives_pips(_run.lives, _run.max_lives))
+	_show_weapon_timer(weapon_timer_for(_run.player, _run.weapons.active_weapons))
+
+
+## Binds the live run the HUD reads each frame. PORT: web/src/tilt-to-live/TiltGame.ts:2173-2214
+## — updateHUD reads this.lives, this.player and this.weapons directly; the port
+## hands the HUD the same objects once, from GameRoot._ready().
+func bind_run(run: RunController, state: GameStateMachine) -> void:
+	_run = run
+	_state = state
+
+
+## Scales the HUD to the viewport: the Theme, the frame and every board offset.
 func set_ui_scale(scale: float) -> void:
-	if _score_label != null:
-		_score_label.add_theme_font_size_override("font_size", int(BASE_SCORE_FONT * scale))
-	if _best_label != null:
-		_best_label.add_theme_font_size_override("font_size", int(BASE_BEST_FONT * scale))
-	if _multiplier_label != null:
-		_multiplier_label.add_theme_font_size_override(
-			"font_size", int(BASE_MULTIPLIER_FONT * scale)
+	_ui_scale = scale
+	theme = UiTheme.build(scale)
+	if _frame != null:
+		_frame.add_theme_stylebox_override(
+			"panel",
+			UiTheme.flat(
+				Color.TRANSPARENT,
+				UiTheme.tint(UiTheme.COLOR_ION, FRAME_ALPHA),
+				UiTheme.px(FRAME_RADIUS, scale)
+			)
 		)
+	if _score_block != null:
+		_score_block.offset_top = SCORE_TOP * scale
+		_score_block.offset_bottom = _score_block.offset_top
+		_score_block.add_theme_constant_override("separation", UiTheme.px(SCORE_GAP, scale))
+	if _left_column != null:
+		_left_column.offset_left = LEFT_COLUMN_X * scale
+		_left_column.offset_top = LEFT_COLUMN_Y * scale
+		_left_column.add_theme_constant_override("separation", UiTheme.px(LEFT_COLUMN_GAP, scale))
+	if _lives_row != null:
+		_lives_row.add_theme_constant_override("separation", UiTheme.px(LIFE_GAP, scale))
+	_life_on = UiTheme.svg_texture(
+		UiTheme.ship_glyph_svg(UiTheme.TEXT_SECONDARY, LIFE_GLYPH), scale
+	)
+	_life_off = UiTheme.svg_texture(
+		UiTheme.ship_glyph_svg(UiTheme.COLOR_LINE_STRONG, LIFE_GLYPH), scale
+	)
+	_is_lives_dirty = true
 	if _pause_button != null:
-		_pause_button.custom_minimum_size = Vector2(
-			ControlPicker.BASE_TOUCH_TARGET * scale, ControlPicker.BASE_TOUCH_TARGET * scale
+		var side: float = UiTheme.TOUCH_TARGET * scale
+		_pause_button.custom_minimum_size = Vector2(side, side)
+		_pause_button.offset_right = -PAUSE_INSET_X * scale
+		_pause_button.offset_left = _pause_button.offset_right - side
+		_pause_button.offset_top = PAUSE_INSET_Y * scale
+		_pause_button.offset_bottom = _pause_button.offset_top + side
+		_pause_button.icon = UiTheme.svg_texture(UiTheme.ICON_PAUSE, scale)
+	if _weapon_timer != null:
+		_weapon_timer.offset_bottom = -TIMER_BOTTOM * scale
+		_weapon_timer.offset_top = _weapon_timer.offset_bottom
+		_weapon_timer.add_theme_constant_override("separation", UiTheme.px(TIMER_GAP, scale))
+	if _weapon_timer_meter != null:
+		_weapon_timer_meter.custom_minimum_size = Vector2(
+			TIMER_METER_WIDTH * scale, UiTheme.px(UiTheme.METER_HEIGHT, scale)
 		)
+	_timer_type = -1
+	if _multiplier_label != null:
+		_style_multiplier()
 	for picker: ControlPicker in _pickers:
 		picker.set_ui_scale(scale)
 	for button: Button in [_pause_armory_button, _game_over_armory_button]:
 		if button != null:
-			button.custom_minimum_size.y = ControlPicker.BASE_TOUCH_TARGET * scale
+			button.custom_minimum_size.y = UiTheme.TOUCH_TARGET * scale
 
 
 ## Shows or hides the pause overlay without changing the phase.
@@ -202,17 +308,65 @@ static func tier_color_for(multiplier: int) -> Color:
 	return TIER_WHITE
 
 
+## One entry per life slot, true = remaining; empty for a one-life run.
+## PORT: web/src/tilt-to-live/TiltGame.ts:2173-2185
+static func lives_pips(lives: int, max_lives: int) -> Array[bool]:
+	var pips: Array[bool] = []
+	if max_lives > 1:
+		for i: int in range(max_lives):
+			pips.append(i < lives)
+	return pips
+
+
+## The duration indicator: the shield if up, else the timed weapon with the
+## most time left. PORT: web/src/tilt-to-live/TiltGame.ts:2187-2214
+static func weapon_timer_for(
+	player: PlayerShip, active_weapons: Array[Types.ActiveWeapon]
+) -> WeaponTimer:
+	var reading: WeaponTimer = WeaponTimer.new()
+	if player.has_shield():
+		reading.is_shown = true
+		reading.weapon_type = Types.WeaponType.SHIELD
+		reading.remaining = maxf(0.0, player.shield_timer)
+		reading.fraction = clampf(reading.remaining / SHIELD_INDICATOR_TOTAL, 0.0, 1.0)
+		return reading
+	var active: Types.ActiveWeapon = null
+	for w: Types.ActiveWeapon in active_weapons:
+		if w.duration > 0.0 and (active == null or w.duration > active.duration):
+			active = w
+	if active != null and active.max_duration > 0.0:
+		reading.is_shown = true
+		reading.weapon_type = active.type
+		reading.remaining = maxf(0.0, active.duration)
+		reading.fraction = clampf(reading.remaining / active.max_duration, 0.0, 1.0)
+	return reading
+
+
+## "SHIELD 1.6s". PORT: web/src/tilt-to-live/TiltGame.ts:2192, :2205
+## DIVERGENCE(UI-SYSTEM): Hud.dc.html — the name is a caps label.
+static func weapon_timer_text(reading: WeaponTimer) -> String:
+	return "%s %.1fs" % [WEAPON_TIMER_NAMES[reading.weapon_type].to_upper(), reading.remaining]
+
+
 func _on_score_changed(score: int, multiplier: int, best_score: int) -> void:
+	# DIVERGENCE(UI-SYSTEM): Hud.dc.html — grouped Mono numerals, "7×" Chip.
 	if _score_label != null:
-		_score_label.text = str(score)
-	if _multiplier_label != null:
-		_multiplier_label.text = "%dx" % multiplier
-		_multiplier_label.visible = multiplier > 1
-		# DIVERGENCE(HUD-FEEDBACK §4): multiplier label sits permanently in its tier colour (D2).
-		_multiplier_label.modulate = tier_color_for(multiplier)
-	if _best_label != null:
-		_best_label.text = "BEST %d" % best_score
+		_score_label.text = UiTheme.group_digits(score)
 	_current_multiplier = multiplier
+	if _multiplier_label != null:
+		_multiplier_label.text = "%d×" % multiplier
+		_multiplier_label.visible = multiplier > 1
+		_style_multiplier()
+	if _best_label != null:
+		_best_label.text = "BEST %s" % UiTheme.group_digits(best_score)
+
+
+# DIVERGENCE(HUD-FEEDBACK §4): the multiplier sits permanently in its tier
+# colour (D2), now as a Chip: tier text, 12% fill, 45% border (System.dc.html).
+func _style_multiplier() -> void:
+	var tier: Color = tier_color_for(_current_multiplier)
+	_multiplier_label.add_theme_color_override("font_color", tier)
+	_multiplier_label.add_theme_stylebox_override("normal", UiTheme.chip_style(tier, _ui_scale))
 
 
 # DIVERGENCE(HUD-FEEDBACK §4): the score label pulses and flashes the tier
@@ -248,6 +402,40 @@ func _on_enemy_killed(_enemy: Types.Enemy, _weapon_type: Types.WeaponType) -> vo
 # as its size changes with digit count or font size, not only on resize.
 func _on_score_label_resized() -> void:
 	_score_label.pivot_offset = _score_label.size / 2.0
+
+
+func _show_lives(pips: Array[bool]) -> void:
+	if _lives_row == null or (not _is_lives_dirty and pips == _shown_pips):
+		return
+	_is_lives_dirty = false
+	_shown_pips = pips
+	for child: Node in _lives_row.get_children():
+		_lives_row.remove_child(child)
+		child.queue_free()
+	for is_filled: bool in pips:
+		var icon: TextureRect = TextureRect.new()
+		icon.texture = _life_on if is_filled else _life_off
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_lives_row.add_child(icon)
+	_lives_row.visible = not pips.is_empty()
+
+
+func _show_weapon_timer(reading: WeaponTimer) -> void:
+	if _weapon_timer == null:
+		return
+	_weapon_timer.visible = reading.is_shown
+	if not reading.is_shown:
+		return
+	_weapon_timer_label.text = weapon_timer_text(reading)
+	_weapon_timer_meter.value = reading.fraction
+	if int(reading.weapon_type) == _timer_type:
+		return
+	_timer_type = reading.weapon_type
+	var tint: Color = WEAPON_TIMER_COLORS.get(reading.weapon_type, UiTheme.COLOR_ION)
+	_weapon_timer_label.add_theme_color_override("font_color", tint)
+	_weapon_timer_meter.add_theme_stylebox_override(
+		"fill", UiTheme.flat(tint, Color.TRANSPARENT, UiTheme.px(UiTheme.METER_RADIUS, _ui_scale))
+	)
 
 
 func _on_run_ended(final_score: int, stats: Types.GameStats) -> void:
@@ -304,20 +492,18 @@ func _on_viewport_resized() -> void:
 	_apply_arena_origin()
 
 
-# I3 (DIVERGENCE M2.5 §6.1): main.tscn anchors ScoreMargin and PauseButton to
-# the viewport edge with fixed offsets, but GameRoot insets the playfield from
-# the edge for phone bezels, camera cutouts and gesture bars (arena_origin).
-# Null-tolerant: tests build the HUD without a GameRoot and keep the scene's
-# authored offsets.
+# I3 (DIVERGENCE M2.5 §6.1), now interface spec §4.4: the frame is the
+# playfield, inset by GameRoot.arena_origin; every HUD control is its child.
+# Null-tolerant: tests build the HUD without a GameRoot and keep a full-rect frame.
 func _apply_arena_origin() -> void:
+	if _frame == null:
+		return
 	var root: GameRoot = get_tree().get_first_node_in_group("game_root") as GameRoot
-	if _score_margin != null:
-		_score_margin.offset_top = root.arena_origin.y if root != null else _fallback_score_top
-	if _pause_button != null:
-		_pause_button.offset_right = (
-			-root.arena_origin.x if root != null else _fallback_pause_right
-		)
-		_pause_button.offset_top = root.arena_origin.y if root != null else _fallback_pause_top
+	var origin: Vector2 = root.arena_origin if root != null else Vector2.ZERO
+	_frame.offset_left = origin.x
+	_frame.offset_top = origin.y
+	_frame.offset_right = -origin.x
+	_frame.offset_bottom = -origin.y
 
 
 func _on_pause_pressed() -> void:
@@ -356,3 +542,12 @@ func _sync_pickers() -> void:
 		return
 	for picker: ControlPicker in _pickers:
 		picker.set_active_scheme(root.settings.scheme)
+
+
+## One reading of the duration indicator (TiltGame.ts:2187-2214's locals).
+class WeaponTimer:
+	extends RefCounted
+	var is_shown: bool = false
+	var weapon_type: Types.WeaponType = Types.WeaponType.SHIELD
+	var remaining: float = 0.0
+	var fraction: float = 0.0

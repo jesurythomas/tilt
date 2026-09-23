@@ -110,6 +110,7 @@ func _ready() -> void:
 	_entity_layer.bind_entities(_player, _swarm, _weapons, _coins)
 	_effect_layer.bind(_particles, _scores, _weapons)
 	_joystick_layer.bind(_joystick)
+	_hud.bind_run(_run_controller, _state)
 
 	# PORT: web/src/tilt-to-live/TiltGame.ts:180-184
 	_armory.bind(progression)

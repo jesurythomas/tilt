@@ -30,10 +30,11 @@ Next module: **M8.5 (Interface rework)** — new, from the mobile redesign
 (`peril-point-mobile-redesign/`, spec
 `docs/superpowers/specs/2026-09-23-mobile-interface-system-design.md`, plan
 `docs/superpowers/plans/2026-09-23-m8.5-interface-rework.md`). Task 1 landed
-(fonts, `UiTheme`, `ui_scale` = min(h/390, w/844)). Then M9, whose plan
-exists but has Tasks 5–7 superseded. See `## Next`. The A55 "Mobile scale
-split" pass was skipped for now by the user (phone still absent from adb) —
-its checks stay unticked in `VERIFY-ME.md`.
+(fonts, `UiTheme`, `ui_scale` = min(h/390, w/844)). Task 2 landed: HUD on the
+Hud board, arena frame, lives, weapon timer. Then M9, whose plan exists but
+has Tasks 5–7 superseded. See `## Next`. The A55 "Mobile scale split" pass
+was skipped for now by the user (phone still absent from adb) — its checks
+stay unticked in `VERIFY-ME.md`.
 Branch: `feat/godot-port` (no upstream; nothing pushed).
 
 > ### ⚠ Read `godot/VERIFY-ME.md`
@@ -668,10 +669,34 @@ window (1.52) from overflowing the 700-px Run over sheet. The plan's
 "Rulings" table (A–P) lists every TS/spec call it applies; font sources,
 sizes and SHA-256s are pinned in Task 1 Step 1.
 
-**Now: M8.5 Task 2 (HUD)**, with
+**Done 2026-09-23: M8.5 Task 2 (HUD)** — the HUD is re-laid onto an arena-
+frame `Panel` (`%Frame` under `CanvasLayer/Hud`, spec §4.4), read as the
+`Hud.dc.html` board: score block (grouped Mono numerals, "n×" Chip tinted by
+`tier_color_for`), a lives-pips row (`HudController.lives_pips`, hidden for a
+one-life run), a weapon/shield duration meter (`HudController.weapon_timer_for`
+/`weapon_timer_text`, shield wins over the longest-remaining timed weapon),
+and the Pause `IconButton`. `WEAPON_TIMER_COLORS` reads `UiTheme` tokens, no
+private hex copies (pre-flight I2). `GameRoot._ready()` now calls
+`_hud.bind_run(_run_controller, _state)` so the HUD reads the live run every
+frame instead of through scene-only lookups.
+One test-only deviation from the brief, not a value change: the brief's
+`test_hud_sits_inside_the_arena_frame` (`tests/test_main_scene.gd`) added
+`MAIN_SCENE` straight to the GUT test tree, whose root Viewport snaps to
+64×64 headless (a documented Global Constraint) — too small for the HUD's own
+base-px content, so `ScoreBlock`/`PauseButton` overflowed the tiny frame on a
+real HUD that is correct at every realistic size. Fixed by hosting the scene
+in an explicit 1280×720 `SubViewport` (the plan's own assumed headless size),
+per that same constraint's stated fix ("put a screen under a host Control of
+explicit size"). No production file or assertion value changed; see the
+task's report for detail.
+`tools/run_tests.sh` → `OK: 43/43 scripts collected, all tests passed` (384
+tests, 4401 asserts). `gdformat --check`/`gdlint` clean; `grep -rniE "ff4757"
+godot/src/ui/` empty; headless `--quit-after 120` → 0 `SCRIPT ERROR`.
+
+**Now: M8.5 Task 3 (Pause)**, with
 superpowers:subagent-driven-development (or executing-plans). Literal first
 step: `git status --short` (must be clean under `godot/`), then read the
-plan's header, Global Constraints and Rulings, then Task 2.
+plan's header, Global Constraints and Rulings, then Task 3.
 
 **After M8.5:** rewrite Tasks 5–7 of
 `docs/superpowers/plans/2026-09-20-m9-milestones.md` to spec §6.5 (Tasks 1–4

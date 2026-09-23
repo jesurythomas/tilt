@@ -247,3 +247,56 @@ func test_armory_state_change_pushes_cosmetics_to_the_layers() -> void:
 	)
 	var grid_layer: GridLayer = root.find_child("GridLayer", true, false) as GridLayer
 	assert_eq(grid_layer.get_arena_theme().id, "void")
+
+
+func test_hud_sits_inside_the_arena_frame() -> void:
+	# Interface spec §4.4: every HUD control anchors to the frame, never the edge.
+	# DEVIATION(brief): the brief's version adds MAIN_SCENE straight to the GUT
+	# test tree, whose root Viewport snaps to 64×64 headless (Global Constraints:
+	# "Resizing get_tree().root headless does not give a usable size"). At that
+	# size the frame is smaller than the HUD's own base-px content, so ScoreBlock
+	# and PauseButton overflow it — not a HUD defect. Per that same constraint's
+	# fix ("put a screen under a host Control of explicit size"), this test hosts
+	# the scene in an explicitly-sized SubViewport (1280×720, the plan's own
+	# assumed headless size, interface spec §4.3) instead. No production file or
+	# assertion value changed.
+	var host: SubViewport = SubViewport.new()
+	host.size = Vector2i(1280, 720)
+	add_child_autofree(host)
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	host.add_child(root)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var frame: Control = root.find_child("Frame", true, false) as Control
+	assert_not_null(frame, "Frame must exist")
+	var rect: Rect2 = frame.get_global_rect()
+	assert_almost_eq(
+		rect.position, root.arena_origin, Vector2(0.5, 0.5), "frame starts at the inset"
+	)
+	var viewport: Vector2 = root.get_viewport().get_visible_rect().size
+	assert_almost_eq(
+		rect.size, viewport - root.arena_origin * 2.0, Vector2(0.5, 0.5), "frame is the playfield"
+	)
+	for name: String in ["ScoreBlock", "LeftColumn", "PauseButton"]:
+		var control: Control = frame.find_child(name, true, false) as Control
+		assert_true(rect.encloses(control.get_global_rect()), name + " sits inside the frame")
+	var scale: float = HudController.ui_scale_for(viewport)
+	assert_true(UiChecks.short_buttons(frame, UiTheme.TOUCH_TARGET * scale).is_empty(), "rule 05")
+
+
+func test_hud_shows_lives_and_the_weapon_timer_from_the_run() -> void:
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	root.toggle_pause()  # the sim stops ticking, so the shield timer holds still
+	root._run_controller.max_lives = 3
+	root._run_controller.lives = 2
+	root._run_controller.player.shield_timer = 1.6
+	await get_tree().process_frame
+	var lives: HBoxContainer = root.find_child("LivesRow", true, false) as HBoxContainer
+	assert_true(lives.visible, "a 3-life run shows its icons (TiltGame.ts:2176)")
+	assert_eq(lives.get_child_count(), 3)
+	var timer: Control = root.find_child("WeaponTimer", true, false) as Control
+	assert_true(timer.visible)
+	var label: Label = root.find_child("WeaponTimerLabel", true, false) as Label
+	assert_eq(label.text, "SHIELD 1.6s")

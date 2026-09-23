@@ -18,10 +18,10 @@ func test_hud_score_changed_updates_labels() -> void:
 	add_child_autofree(hud)
 
 	GameEvents.score_changed.emit(1500, 4, 3000)
-	assert_eq(score_lbl.text, "1500")
-	assert_eq(mult_lbl.text, "4x")
+	assert_eq(score_lbl.text, "1,500")
+	assert_eq(mult_lbl.text, "4×")
 	assert_true(mult_lbl.visible)
-	assert_eq(best_lbl.text, "BEST 3000")
+	assert_eq(best_lbl.text, "BEST 3,000")
 
 
 func test_hud_run_ended_shows_game_over() -> void:
@@ -135,7 +135,17 @@ func test_multiplier_label_sits_in_its_tier_colour() -> void:
 	add_child_autofree(hud)
 
 	GameEvents.score_changed.emit(700, 7, 3000)
-	assert_eq(mult_lbl.modulate, HudController.TIER_ORANGE, "7x multiplier label is orange")
+	assert_eq(
+		mult_lbl.get_theme_color("font_color"),
+		HudController.TIER_ORANGE,
+		"7x multiplier chip text is orange"
+	)
+	var chip: StyleBoxFlat = mult_lbl.get_theme_stylebox("normal") as StyleBoxFlat
+	assert_eq(
+		chip.border_color,
+		UiTheme.tint(HudController.TIER_ORANGE, UiTheme.CHIP_BORDER_ALPHA),
+		"the Chip border carries the tier at 45% (System.dc.html)"
+	)
 
 
 func test_enemy_killed_pulses_the_score_label_then_settles() -> void:
@@ -195,3 +205,56 @@ func test_control_picker_ui_scale_grows_the_touch_targets() -> void:
 	assert_almost_eq(tilt_button.custom_minimum_size.y, 72.0, 0.001)
 	assert_almost_eq(touch_button.custom_minimum_size.y, 72.0, 0.001)
 	assert_almost_eq(keyboard_button.custom_minimum_size.y, 72.0, 0.001)
+
+
+func test_lives_pips_hide_a_single_life_run() -> void:
+	# PORT: web/src/tilt-to-live/TiltGame.ts:2176-2185
+	assert_true(HudController.lives_pips(1, 1).is_empty(), "one-life runs show no pips")
+	var pips: Array[bool] = HudController.lives_pips(2, 3)
+	assert_eq(pips.size(), 3, "one icon per starting life")
+	assert_true(pips[0] and pips[1], "remaining lives are filled")
+	assert_false(pips[2], "the lost life is empty")
+
+
+func test_weapon_timer_prefers_the_shield() -> void:
+	# PORT: web/src/tilt-to-live/TiltGame.ts:2188-2194
+	var player: PlayerShip = PlayerShip.new(0.0, 0.0)
+	player.shield_timer = 3.0
+	var laser: Types.ActiveWeapon = Types.ActiveWeapon.new()
+	laser.type = Types.WeaponType.LASER
+	laser.duration = 5.0
+	laser.max_duration = 8.0
+	var weapons: Array[Types.ActiveWeapon] = [laser]
+	var reading: HudController.WeaponTimer = HudController.weapon_timer_for(player, weapons)
+	assert_true(reading.is_shown)
+	assert_eq(reading.weapon_type, Types.WeaponType.SHIELD)
+	assert_almost_eq(reading.fraction, 0.5, 0.0001, "3.0 of the TS's fixed 6.0 (:2190)")
+	assert_eq(HudController.weapon_timer_text(reading), "SHIELD 3.0s")
+
+
+func test_weapon_timer_picks_the_longest_remaining_timed_weapon() -> void:
+	# PORT: web/src/tilt-to-live/TiltGame.ts:2195-2210
+	var player: PlayerShip = PlayerShip.new(0.0, 0.0)
+	player.shield_timer = 0.0
+	var vortex: Types.ActiveWeapon = Types.ActiveWeapon.new()
+	vortex.type = Types.WeaponType.VORTEX
+	vortex.duration = 1.0
+	vortex.max_duration = 4.0
+	var freeze: Types.ActiveWeapon = Types.ActiveWeapon.new()
+	freeze.type = Types.WeaponType.FREEZE
+	freeze.duration = 2.0
+	freeze.max_duration = 8.0
+	var nuke: Types.ActiveWeapon = Types.ActiveWeapon.new()
+	nuke.type = Types.WeaponType.NUKE
+	var weapons: Array[Types.ActiveWeapon] = [vortex, freeze, nuke]
+	var reading: HudController.WeaponTimer = HudController.weapon_timer_for(player, weapons)
+	assert_eq(reading.weapon_type, Types.WeaponType.FREEZE)
+	assert_almost_eq(reading.fraction, 0.25, 0.0001)
+	assert_eq(HudController.weapon_timer_text(reading), "FREEZE 2.0s")
+
+
+func test_weapon_timer_hidden_without_a_timed_weapon() -> void:
+	var player: PlayerShip = PlayerShip.new(0.0, 0.0)
+	player.shield_timer = 0.0
+	var none: Array[Types.ActiveWeapon] = []
+	assert_false(HudController.weapon_timer_for(player, none).is_shown, "TiltGame.ts:2212-2213")
