@@ -28,7 +28,8 @@ Also landed after M4: **HUD score feedback** (`9cc3e8f..31bf2ce`, spec
 callouts removed; the score pulses in a multiplier-tier colour instead.
 Next module: **M8.5 (Interface rework)** — new, from the mobile redesign
 (`peril-point-mobile-redesign/`, spec
-`docs/superpowers/specs/2026-09-23-mobile-interface-system-design.md`); then
+`docs/superpowers/specs/2026-09-23-mobile-interface-system-design.md`, plan
+`docs/superpowers/plans/2026-09-23-m8.5-interface-rework.md`, not started); then
 M9, whose plan exists but has Tasks 5–7 superseded. See `## Next`. The A55
 "Mobile scale split" pass was skipped for now by the user (phone still absent
 from adb) — its checks stay unticked in `VERIFY-ME.md`.
@@ -658,13 +659,18 @@ Both constants are provisional; the VERIFY-ME section says which to move.
 (one ruling added at review: the Tilt sensitivity slider spans 0.5–2.0× while
 the stored clamp stays 0.4–2.5).
 
-**Now: write the M8.5 plan** —
-`docs/superpowers/plans/2026-09-23-m8.5-interface-rework.md`, using
-superpowers:writing-plans, with the task order in spec §8. Literal first
-step: read the spec in full, the boards `System`, `Hud`, `Pause`, `RunOver`
-and the five `Armory*.dc.html`, then `src/ui/armory_theme.gd`,
-`hud_controller.gd`, `armory_ui.gd`, `handling_preview.gd`,
-`control_picker.gd` and `scenes/main.tscn`, `scenes/armory.tscn`.
+**Done 2026-09-23: the M8.5 plan is written** —
+`docs/superpowers/plans/2026-09-23-m8.5-interface-rework.md` (9 tasks, spec
+§8 order). One more ruling at plan time, recorded in spec §4.3:
+`ui_scale = min(short/390, long/844)` — the width term keeps a 1280×720
+window (1.52) from overflowing the 700-px Run over sheet. The plan's
+"Rulings" table (A–P) lists every TS/spec call it applies; font sources,
+sizes and SHA-256s are pinned in Task 1 Step 1.
+
+**Now: execute the M8.5 plan from Task 1**, with
+superpowers:subagent-driven-development (or executing-plans). Literal first
+step: `git status --short` (must be clean under `godot/`), then read the
+plan's header, Global Constraints and Rulings, then Task 1.
 
 **After M8.5:** rewrite Tasks 5–7 of
 `docs/superpowers/plans/2026-09-20-m9-milestones.md` to spec §6.5 (Tasks 1–4

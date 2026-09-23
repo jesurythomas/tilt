@@ -128,20 +128,23 @@ versions and sizes; the APK grows by roughly 1–2 MB.
 
 ### 4.3 Scale reference
 
-All board sizes are base values × `ui_scale`. The boards are drawn at a
-390-px landscape height, so:
+All board sizes are base values × `ui_scale`. The boards are drawn on an
+844×390 landscape frame, so:
 
 ```
-ui_scale = min(viewport.x, viewport.y) / 390
+ui_scale = min(short_side / 390, long_side / 844)
 ```
 
 replacing `HudController.UI_SCALE_REFERENCE = 720`. On the A55 (≈2340×1080
 physical) this is ≈2.77, up from 1.5 — every existing HUD element grows
-≈1.85×, which is the intent (48 base px ≈ a 48 dp touch target). Width never
-drives scale: extra width on longer phones goes to the arena and to
-scrolling rows, never to bigger chrome (`System.dc.html`). The clamp bounds
-are re-derived in M8.5 so a 1280×720 desktop window stays usable (it yields
-≈1.85, which the plan checks fits every screen).
+≈1.85×, which is the intent (48 base px ≈ a 48 dp touch target). Width can
+only shrink the scale, never grow it: extra width on longer phones goes to
+the arena and to scrolling rows, never to bigger chrome (`System.dc.html`).
+**Ruled 2026-09-23 (plan review):** the width term was added because
+`short_side / 390` alone gives ≈1.85 on a 1280×720 desktop window, which
+makes the 700-px Run over sheet 1,292 px wide; with the width term that
+window gets ≈1.52 and every sheet fits. The clamp bounds are re-derived in
+M8.5.
 
 ### 4.4 Arena frame
 
