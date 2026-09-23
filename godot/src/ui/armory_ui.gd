@@ -1051,13 +1051,19 @@ func _arena_card_button(
 	var stack: VBoxContainer = VBoxContainer.new()
 	stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	stack.add_theme_constant_override("separation", 0)
-	preview.custom_minimum_size.y = _px(ARENA_PREVIEW_HEIGHT)
-	stack.add_child(preview)
-	var rule: ColorRect = ColorRect.new()
-	rule.color = UiTheme.COLOR_RAISED
-	rule.custom_minimum_size.y = 1.0
-	rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	stack.add_child(rule)
+	# Preview fill + bottom hairline. DIVERGENCE(UI-SYSTEM): ArmoryArena.dc.html:30,:40
+	var preview_panel: PanelContainer = PanelContainer.new()
+	preview_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	preview_panel.custom_minimum_size.y = _px(ARENA_PREVIEW_HEIGHT)
+	var preview_box: StyleBoxFlat = UiTheme.flat(UiTheme.COLOR_ARENA, UiTheme.COLOR_RAISED, 0)
+	preview_box.set_border_width_all(0)
+	preview_box.border_width_bottom = 1
+	var card_radius: int = _px(UiTheme.CARD_RADIUS)
+	preview_box.corner_radius_top_left = card_radius
+	preview_box.corner_radius_top_right = card_radius
+	preview_panel.add_theme_stylebox_override("panel", preview_box)
+	preview_panel.add_child(preview)
+	stack.add_child(preview_panel)
 	var body: MarginContainer = _pad(
 		ARENA_BODY_PAD_TOP, ARENA_BODY_PAD_X, ARENA_BODY_PAD_BOTTOM, ARENA_BODY_PAD_X
 	)
