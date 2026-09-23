@@ -135,6 +135,12 @@ const ICON_CHECK: String = (
 	+ '<path d="M2 7.5 L5.5 11 L12 3.5" stroke="#3DDC97" stroke-width="1.8" '
 	+ 'stroke-linecap="round" stroke-linejoin="round"/></svg>'
 )
+## DIVERGENCE(UI-SYSTEM): Milestones.dc.html — done mark check (void stroke)
+const ICON_MARK: String = (
+	'<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 11 11" fill="none">'
+	+ '<path d="M1.5 5.8 L4.2 8.5 L9.5 2.8" stroke="#08090E" stroke-width="1.9" '
+	+ 'stroke-linecap="round" stroke-linejoin="round"/></svg>'
+)
 ## DIVERGENCE(UI-SYSTEM): Hud.dc.html — message toast ring.
 ## PORT: web/src/tilt-to-live/GoalsHUD.ts:217-220
 const ICON_RING: String = (

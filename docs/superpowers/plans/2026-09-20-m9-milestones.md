@@ -2353,7 +2353,7 @@ git log -1 --format=%B
 - Consumes: Task 5's `_ui_scale`, `_inset`, `_label`; `GoalManager.is_completed/is_unlock_goal/is_total_goal/get_metric_value/catalog`; `UiTheme` (`text`, `caps`, `group_digits`, `px`, `flat`, `padded`, `tint`, `svg_texture`, `sans`, `mono`, `ICON_BACK`, `COLOR_*`, `TEXT_FAINT`, `POINTS_UNIT`, `DONE_CARD`, `CARD_RADIUS`, `TOUCH_TARGET`; variations `TitleText`, `BodyText`, `MonoFaintText`, `MonoText`, `PointsText`, `CapsText`, `FlatIconButton`).
 - Produces: `UiTheme.ICON_MARK`. Node names `ScreenMargin`, `HeaderMargin`, `Header`, `BackButton`, `TitleLabel`, `CounterLabel`, `CounterDenomLabel`, `ProgressTrack`, `ProgressFill`, `HeaderPointsLabel`, `HeaderPointsUnit`, `HeaderRule`, `BodyMargin`, `TierColumns`, `Tier_Score|Combat|Mastery` each with `TierName`, `TierCount`, `TierScroll`, `TierCards`, `TierFade`; cards `MilestoneCard_<goal id>` containing `MarkBox`, `NameLabel`, `GoalLabel`, optional `BarTrack`/`BarFill`, `PointsLabel`.
 
-- [ ] **Step 1: Write the failing tests.** I2: this task's 14 new tests take `test_goals_hud.gd`
+- [x] **Step 1: Write the failing tests.** I2: this task's 14 new tests take `test_goals_hud.gd`
   from 12 to 26 public methods, over gdlint's `max-public-methods: 20`. Add
   `# gdlint:disable=max-public-methods` as line 1 of the file (`test_armory_ui.gd:1` precedent).
   Then append:
@@ -2534,9 +2534,9 @@ func test_screen_blocks_taps_but_lets_columns_scroll() -> void:
 		assert_ne(control.mouse_filter, Control.MOUSE_FILTER_STOP, "%s must pass drags" % node.name)
 ```
 
-- [ ] **Step 2: Run to verify they fail** — `tools/run_tests.sh` does not print `OK`; the 14 new tests fail on missing nodes (`TitleLabel` null, etc.).
+- [x] **Step 2: Run to verify they fail** — `tools/run_tests.sh` does not print `OK`; the 14 new tests fail on missing nodes (`TitleLabel` null, etc.).
 
-- [ ] **Step 3: Add the mark icon to `godot/src/ui/ui_theme.gd`**, after `ICON_CHECK`:
+- [x] **Step 3: Add the mark icon to `godot/src/ui/ui_theme.gd`**, after `ICON_CHECK`:
 
 ```gdscript
 ## DIVERGENCE(UI-SYSTEM): Milestones.dc.html — done mark check (void stroke)
@@ -2547,7 +2547,7 @@ const ICON_MARK: String = (
 )
 ```
 
-- [ ] **Step 4: Implement in `goals_hud.gd`.** Constants after `MESSAGE_TOAST_SECONDS`:
+- [x] **Step 4: Implement in `goals_hud.gd`.** Constants after `MESSAGE_TOAST_SECONDS`:
 
 ```gdscript
 ## Screen. DIVERGENCE(UI-SYSTEM): Milestones.dc.html — header padding 8/28/8/24
@@ -3024,9 +3024,9 @@ func _header_label(label_name: String, color: Color) -> Label:
 
   Notes for the implementer: every Control under `TierScroll` must be `PASS` or `IGNORE` (the drag must reach the `ScrollContainer`); `Panel` and `TextureRect` default to `STOP`/`PASS` differently, which is why each sets its filter explicitly. `open + done` concatenates two typed arrays — if the analyzer rejects the result's type, build a third `Array[GoalManager.Goal]` with `append_array` instead. If a card measures taller than 58 px in `test_long_text_stays_on_one_line`, the cause is a label's minimum width, not the style: check `clip_text` is set on both labels before changing any constant.
 
-- [ ] **Step 5: Verify** — `tools/run_tests.sh` → `OK: 48/48 scripts (480 tests)`; `gdformat --check`, `gdlint` clean; `grep -rn "Task 6 replaces" godot/src/` prints nothing; `grep -rniE "ff4757" godot/src/ui/` prints nothing.
+- [x] **Step 5: Verify** — `tools/run_tests.sh` → `OK: 48/48 scripts (480 tests)`; `gdformat --check`, `gdlint` clean; `grep -rn "Task 6 replaces" godot/src/` prints nothing; `grep -rniE "ff4757" godot/src/ui/` prints nothing.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git checkout godot/project.godot

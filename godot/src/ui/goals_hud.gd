@@ -46,6 +46,48 @@ const MESSAGE_TOAST_SECONDS: float = 2.8
 # ICON_RING, next to ICON_CHECK (interface spec §4.1 — no file keeps a
 # private copy of a token hex). See this task's UiTheme step below.
 
+## Screen. DIVERGENCE(UI-SYSTEM): Milestones.dc.html — header padding 8/28/8/24
+## and gap 12 (the Armory's), counter Mono 13, track 120×4 r2 with 8 px side
+## margins, the points figure's 4 px gap to its unit, body padding 12/28/0/24,
+## column gap 14, column stack gap 6, heading gap 10, card 58 tall with padding
+## 0 12 and gap 11, mark 20 r4, content gap 3, bar 3 r2 with a 1 px top margin,
+## points Mono 12/500, bottom fade 40.
+const HEADER_PAD_Y: int = 8
+const HEADER_PAD_RIGHT: int = 28
+const HEADER_PAD_LEFT: int = 24
+const HEADER_GAP: int = 12
+const COUNTER_SIZE: int = 13
+const TRACK_WIDTH: int = 120
+const TRACK_HEIGHT: int = 4
+const TRACK_RADIUS: int = 2
+const TRACK_MARGIN: int = 8
+const POINTS_GAP: int = 4
+const BODY_PAD_TOP: int = 12
+const BODY_PAD_RIGHT: int = 28
+const BODY_PAD_LEFT: int = 24
+const COLUMN_GAP: int = 14
+const STACK_GAP: int = 6
+const HEADING_GAP: int = 10
+const CARD_HEIGHT: int = 58
+const CARD_PAD_X: int = 12
+const CARD_GAP: int = 11
+const MARK_SIZE: int = 20
+const MARK_RADIUS: int = 4
+const CONTENT_GAP: int = 3
+const BAR_HEIGHT: int = 3
+const BAR_RADIUS: int = 2
+const BAR_TOP: int = 1
+const CARD_POINTS_SIZE: int = 12
+const FADE_HEIGHT: int = 40
+## Tier order and tints. PORT: web/src/tilt-to-live/GoalsHUD.ts:356-360 (the
+## hexes are UiTheme's ion, plasma and flare)
+const TIERS: Array[String] = ["Score", "Combat", "Mastery"]
+const TIER_TINTS: Dictionary[String, Color] = {
+	"Score": UiTheme.COLOR_ION,
+	"Combat": UiTheme.COLOR_PLASMA,
+	"Mastery": UiTheme.COLOR_FLARE,
+}
+
 ## True while the menu is up; the rail hides. PORT: web/src/tilt-to-live/GoalsHUD.ts:16
 var in_menu_mode: bool = false
 
@@ -59,6 +101,20 @@ var _toast_timer: Timer = null  # PORT: :17 (completedToastTimer)
 var _is_evaluating_unlock_goals: bool = false  # PORT: :18
 var _ui_scale: float = 1.0
 var _inset: Vector2 = Vector2.ZERO
+var _screen_margin: MarginContainer = null
+var _header_margin: MarginContainer = null
+var _header: HBoxContainer = null
+var _back_button: Button = null
+var _counter_label: Label = null
+var _denom_label: Label = null
+var _track_margin: MarginContainer = null
+var _progress_track: Panel = null
+var _progress_fill: Panel = null
+var _points_row: HBoxContainer = null
+var _points_label: Label = null
+var _points_unit: Label = null
+var _body_margin: MarginContainer = null
+var _tier_columns: HBoxContainer = null
 
 
 func _ready() -> void:
@@ -363,21 +419,408 @@ func _label(label_name: String, content: String, font: Font, font_size: int, col
 	return label
 
 
-## Task 6 replaces this. PORT: web/src/tilt-to-live/GoalsHUD.ts:95-103
+## The screen's fixed frame: shell, header and body; the tier columns are
+## rebuilt by _render_milestones_modal_content, as the TS rebuilds innerHTML.
+## PORT: web/src/tilt-to-live/GoalsHUD.ts:95-103, :362-382
+## DIVERGENCE(UI-SYSTEM): Milestones.dc.html — full screen in shell, the
+## Armory's 64 px header (interface spec §6.5).
 func _build_milestones_modal() -> Control:
 	var screen: ColorRect = ColorRect.new()
 	screen.name = "MilestonesModal"
 	screen.color = UiTheme.COLOR_SHELL
 	screen.set_anchors_preset(Control.PRESET_FULL_RECT)
+	# The screen swallows taps meant for Run over and the arena underneath.
+	screen.mouse_filter = Control.MOUSE_FILTER_STOP
 	screen.visible = false
+
+	_screen_margin = MarginContainer.new()
+	_screen_margin.name = "ScreenMargin"
+	_screen_margin.mouse_filter = Control.MOUSE_FILTER_PASS
+	screen.add_child(_screen_margin)
+	_screen_margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var column: VBoxContainer = VBoxContainer.new()
+	column.add_theme_constant_override("separation", 0)
+	_screen_margin.add_child(column)
+
+	_header_margin = MarginContainer.new()
+	_header_margin.name = "HeaderMargin"
+	column.add_child(_header_margin)
+	_header = HBoxContainer.new()
+	_header.name = "Header"
+	_header_margin.add_child(_header)
+
+	_back_button = Button.new()
+	_back_button.name = "BackButton"
+	_back_button.theme_type_variation = "FlatIconButton"
+	_back_button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	# PORT: web/src/tilt-to-live/GoalsHUD.ts:484-486 (btn-close-milestones)
+	_back_button.pressed.connect(close_all_goals_modal)
+	_header.add_child(_back_button)
+	var title: Label = UiTheme.text("Milestones", "TitleText")  # PORT: :364
+	title.name = "TitleLabel"
+	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_header.add_child(title)
+	var fill: Control = Control.new()
+	fill.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_header.add_child(fill)
+
+	var counter: HBoxContainer = HBoxContainer.new()  # PORT: :367
+	counter.add_theme_constant_override("separation", 0)
+	_counter_label = _header_label("CounterLabel", UiTheme.COLOR_TEXT_MUTED)
+	counter.add_child(_counter_label)
+	_denom_label = _header_label("CounterDenomLabel", UiTheme.TEXT_FAINT)
+	counter.add_child(_denom_label)
+	_header.add_child(counter)
+
+	_track_margin = MarginContainer.new()  # PORT: :368-370
+	_track_margin.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_progress_track = Panel.new()
+	_progress_track.name = "ProgressTrack"
+	_progress_track.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_progress_fill = Panel.new()
+	_progress_fill.name = "ProgressFill"
+	_progress_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_progress_fill.anchor_bottom = 1.0
+	_progress_track.add_child(_progress_fill)
+	_track_margin.add_child(_progress_track)
+	_header.add_child(_track_margin)
+
+	_points_row = HBoxContainer.new()  # PORT: :372
+	_points_label = UiTheme.text("", "PointsText")
+	_points_label.name = "HeaderPointsLabel"
+	_points_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_points_row.add_child(_points_label)
+	# M14: keeps the CapsText variation (Mono 600, tracking 0.14) as board-copy
+	# tolerance; the board's unit is Mono 500/10px/0.1em with margin 0 6px 0 2px
+	# on the title. Check against Milestones.dc.html at the device pass (Task 8).
+	_points_unit = UiTheme.text("", "CapsText")
+	_points_unit.name = "HeaderPointsUnit"
+	_points_unit.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_points_unit.add_theme_color_override("font_color", UiTheme.POINTS_UNIT)
+	_points_row.add_child(_points_unit)
+	_header.add_child(_points_row)
+
+	var rule: ColorRect = ColorRect.new()
+	rule.name = "HeaderRule"
+	rule.color = UiTheme.COLOR_RAISED  # DIVERGENCE(UI-SYSTEM): Milestones.dc.html — border-bottom
+	rule.custom_minimum_size.y = 1
+	rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.add_child(rule)
+
+	_body_margin = MarginContainer.new()
+	_body_margin.name = "BodyMargin"
+	_body_margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	column.add_child(_body_margin)
+	_tier_columns = HBoxContainer.new()
+	_tier_columns.name = "TierColumns"
+	_body_margin.add_child(_tier_columns)
 	return screen
 
 
-## Task 6 replaces this.
+## Scales every board size on the screen; rebuilds the columns when it is open
+## (their sizes are baked at build time), as ArmoryUI.set_ui_scale does.
 func _layout_modal() -> void:
-	pass
+	if _screen_margin == null:
+		return
+	var s: float = _ui_scale
+	var pad: Vector2 = _inset if OS.has_feature("mobile") else Vector2.ZERO
+	_screen_margin.add_theme_constant_override("margin_left", int(pad.x))
+	_screen_margin.add_theme_constant_override("margin_right", int(pad.x))
+	_screen_margin.add_theme_constant_override("margin_top", int(pad.y))
+	_screen_margin.add_theme_constant_override("margin_bottom", int(pad.y))
+	_header_margin.add_theme_constant_override("margin_left", UiTheme.px(HEADER_PAD_LEFT, s))
+	_header_margin.add_theme_constant_override("margin_top", UiTheme.px(HEADER_PAD_Y, s))
+	_header_margin.add_theme_constant_override("margin_right", UiTheme.px(HEADER_PAD_RIGHT, s))
+	_header_margin.add_theme_constant_override("margin_bottom", UiTheme.px(HEADER_PAD_Y, s))
+	_header.add_theme_constant_override("separation", UiTheme.px(HEADER_GAP, s))
+	var side: float = UiTheme.TOUCH_TARGET * s
+	_back_button.custom_minimum_size = Vector2(side, side)
+	_back_button.icon = UiTheme.svg_texture(UiTheme.ICON_BACK, s)
+	for label: Label in [_counter_label, _denom_label]:
+		label.add_theme_font_size_override("font_size", UiTheme.px(COUNTER_SIZE, s))
+	_track_margin.add_theme_constant_override("margin_left", UiTheme.px(TRACK_MARGIN, s))
+	_track_margin.add_theme_constant_override("margin_right", UiTheme.px(TRACK_MARGIN, s))
+	_progress_track.custom_minimum_size = Vector2(TRACK_WIDTH, TRACK_HEIGHT) * s
+	var r: int = UiTheme.px(TRACK_RADIUS, s)
+	_progress_track.add_theme_stylebox_override(
+		"panel", UiTheme.flat(UiTheme.COLOR_RAISED, Color.TRANSPARENT, r)
+	)
+	_progress_fill.add_theme_stylebox_override(
+		"panel", UiTheme.flat(UiTheme.COLOR_ION, Color.TRANSPARENT, r)
+	)
+	_points_row.add_theme_constant_override("separation", UiTheme.px(POINTS_GAP, s))
+	_body_margin.add_theme_constant_override("margin_left", UiTheme.px(BODY_PAD_LEFT, s))
+	_body_margin.add_theme_constant_override("margin_top", UiTheme.px(BODY_PAD_TOP, s))
+	_body_margin.add_theme_constant_override("margin_right", UiTheme.px(BODY_PAD_RIGHT, s))
+	_body_margin.add_theme_constant_override("margin_bottom", 0)
+	_tier_columns.add_theme_constant_override("separation", UiTheme.px(COLUMN_GAP, s))
+	if is_modal_open():
+		_render_milestones_modal_content()
 
 
-## Task 6 replaces this. PORT: web/src/tilt-to-live/GoalsHUD.ts:311-487
+## PORT: web/src/tilt-to-live/GoalsHUD.ts:311-487
 func _render_milestones_modal_content() -> void:
-	pass
+	if _milestones_modal == null:
+		return
+
+	var completed: int = _goal_manager.get_completed_count()
+	var total: int = _goal_manager.get_total_goals_count()
+	var points: int = _progression.data.points
+	# PORT: :317
+	var progress_pct: int = roundi(float(completed) / float(total) * 100.0) if total > 0 else 0
+
+	_counter_label.text = str(completed)  # PORT: :367
+	_denom_label.text = "/%d" % total
+	_progress_fill.anchor_right = progress_pct / 100.0  # PORT: :369
+	_points_label.text = UiTheme.group_digits(points)  # PORT: :372
+	# PORT: :372 (pt at 1). DIVERGENCE(UI-SYSTEM): Milestones.dc.html — caps unit.
+	_points_unit.text = "PT" if points == 1 else "PTS"
+
+	for child: Node in _tier_columns.get_children():
+		_tier_columns.remove_child(child)
+		child.queue_free()
+
+	# Categorize goals into the 3 tiers: Score, Combat, Mastery (:319-360)
+	for tier_name: String in TIERS:
+		var goals: Array[GoalManager.Goal] = []
+		for goal: GoalManager.Goal in _goal_manager.catalog:
+			if _get_goal_tier(goal) == tier_name:
+				goals.append(goal)
+		_tier_columns.add_child(_tier_column(tier_name, goals))
+
+
+## The TS's local getGoalTier. PORT: web/src/tilt-to-live/GoalsHUD.ts:322-354
+func _get_goal_tier(goal: GoalManager.Goal) -> String:
+	# Unlock-family goals are collection/mastery achievements (:323-329).
+	if _goal_manager.is_unlock_goal(goal):
+		return "Mastery"
+	if (
+		goal.category == "score"
+		or goal.metric == "run_score"
+		or goal.metric == "total_score"
+		or goal.metric == "total_points"
+	):
+		return "Score"
+	if (
+		goal.category == "combat"
+		or goal.category == "combo"
+		or goal.category == "weapons"
+		or goal.metric.contains("kills")
+		or goal.metric.contains("multiplier")
+		or goal.metric.contains("nuke")
+		or goal.metric.contains("vortex")
+		or goal.metric.contains("laser")
+		or goal.metric.contains("missile")
+		or goal.metric.contains("freeze")
+		or goal.metric.contains("shield")
+	):
+		return "Combat"
+	return "Mastery"
+
+
+## One tier column. PORT: web/src/tilt-to-live/GoalsHUD.ts:383-478
+## DIVERGENCE(UI-SYSTEM): Milestones.dc.html — three side-by-side columns, each
+## scrolling on its own under a 40 px shell fade (replaces game.css's grid).
+func _tier_column(tier_name: String, goals: Array[GoalManager.Goal]) -> Control:
+	var s: float = _ui_scale
+	var open: Array[GoalManager.Goal] = []
+	var done: Array[GoalManager.Goal] = []
+	for g: GoalManager.Goal in goals:
+		if _goal_manager.is_completed(g.id):
+			done.append(g)
+		else:
+			open.append(g)
+
+	var column: Control = Control.new()
+	column.name = "Tier_" + tier_name
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	column.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	column.clip_contents = true
+	column.mouse_filter = Control.MOUSE_FILTER_PASS
+	var stack: VBoxContainer = VBoxContainer.new()
+	stack.add_theme_constant_override("separation", UiTheme.px(STACK_GAP, s))
+	column.add_child(stack)
+	stack.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
+	var heading: HBoxContainer = HBoxContainer.new()
+	heading.add_theme_constant_override("separation", UiTheme.px(HEADING_GAP, s))
+	var name_label: Label = UiTheme.caps(tier_name)
+	name_label.name = "TierName"
+	name_label.add_theme_color_override("font_color", TIER_TINTS[tier_name])
+	heading.add_child(name_label)
+	# PORT: :384-391
+	var count: Label = UiTheme.text("%d of %d" % [done.size(), goals.size()], "MonoFaintText")
+	count.name = "TierCount"
+	heading.add_child(count)
+	stack.add_child(heading)
+
+	var scroll: ScrollContainer = ScrollContainer.new()
+	scroll.name = "TierScroll"
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var cards: VBoxContainer = VBoxContainer.new()
+	cards.name = "TierCards"
+	cards.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cards.add_theme_constant_override("separation", UiTheme.px(STACK_GAP, s))
+	# DIVERGENCE(UI-SYSTEM): interface spec §6.5 — open goals first, then done
+	# ones, each in catalog order (departs from GoalsHUD.ts:394's catalog order).
+	for g: GoalManager.Goal in open + done:
+		cards.add_child(_milestone_card(g))
+	scroll.add_child(cards)
+	stack.add_child(scroll)
+
+	var gradient: Gradient = Gradient.new()
+	gradient.set_color(0, UiTheme.tint(UiTheme.COLOR_SHELL, 0.0))
+	gradient.set_color(1, UiTheme.COLOR_SHELL)
+	var fade_texture: GradientTexture2D = GradientTexture2D.new()
+	fade_texture.gradient = gradient
+	fade_texture.fill_to = Vector2(0.0, 1.0)
+	var fade: TextureRect = TextureRect.new()
+	fade.name = "TierFade"
+	fade.texture = fade_texture
+	fade.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	fade.stretch_mode = TextureRect.STRETCH_SCALE
+	fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.add_child(fade)
+	fade.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	fade.offset_top = -UiTheme.px(FADE_HEIGHT, s)
+	return column
+
+
+## One card: done, open unlock or run goal, or open lifetime goal with progress.
+## PORT: web/src/tilt-to-live/GoalsHUD.ts:394-474
+## DIVERGENCE(UI-SYSTEM): Milestones.dc.html — card, mark and text styles.
+func _milestone_card(goal: GoalManager.Goal) -> PanelContainer:
+	var s: float = _ui_scale
+	var is_done: bool = _goal_manager.is_completed(goal.id)
+	var is_unlock: bool = _goal_manager.is_unlock_goal(goal)
+	var is_total: bool = not is_unlock and _goal_manager.is_total_goal(goal)
+
+	# Unlock goals have no meaningful numeric target (:398-401).
+	var current_val: float = 0.0
+	if is_total:
+		current_val = _goal_manager.get_metric_value(goal.metric, GoalManager.RunTracker.new())
+	# PORT: :419-422
+	var pct: int = 0 if is_unlock else clampi(roundi(current_val / goal.target * 100.0), 0, 100)
+
+	var card: PanelContainer = PanelContainer.new()
+	card.name = "MilestoneCard_" + goal.id
+	card.mouse_filter = Control.MOUSE_FILTER_PASS
+	card.custom_minimum_size.y = CARD_HEIGHT * s
+	card.add_theme_stylebox_override(
+		"panel",
+		UiTheme.padded(
+			UiTheme.flat(
+				UiTheme.DONE_CARD if is_done else UiTheme.COLOR_PANEL,
+				UiTheme.COLOR_RAISED if is_done else UiTheme.COLOR_LINE,
+				UiTheme.px(UiTheme.CARD_RADIUS, s)
+			),
+			UiTheme.px(CARD_PAD_X, s),
+			0.0
+		)
+	)
+	var row: HBoxContainer = HBoxContainer.new()
+	row.mouse_filter = Control.MOUSE_FILTER_PASS
+	row.add_theme_constant_override("separation", UiTheme.px(CARD_GAP, s))
+	card.add_child(row)
+
+	var mark: Panel = Panel.new()
+	mark.name = "MarkBox"
+	mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mark.custom_minimum_size = Vector2(MARK_SIZE, MARK_SIZE) * s
+	mark.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var mr: int = UiTheme.px(MARK_RADIUS, s)
+	if is_done:
+		mark.add_theme_stylebox_override(
+			"panel", UiTheme.flat(UiTheme.COLOR_LOCKED_IN, UiTheme.COLOR_LOCKED_IN, mr)
+		)
+		var check: TextureRect = TextureRect.new()
+		check.texture = UiTheme.svg_texture(UiTheme.ICON_MARK, s)
+		check.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+		check.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		mark.add_child(check)
+		check.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	else:
+		mark.add_theme_stylebox_override(
+			"panel", UiTheme.flat(Color.TRANSPARENT, UiTheme.COLOR_LINE_STRONG, mr)
+		)
+	row.add_child(mark)
+
+	var content: VBoxContainer = VBoxContainer.new()
+	content.mouse_filter = Control.MOUSE_FILTER_PASS
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	content.add_theme_constant_override("separation", UiTheme.px(CONTENT_GAP, s))
+	var name_label: Label = _one_line("NameLabel", goal.title, "BodyText")
+	name_label.add_theme_font_override("font", UiTheme.sans(UiTheme.Weight.MEDIUM))
+	name_label.add_theme_color_override(
+		"font_color", UiTheme.COLOR_TEXT_MUTED if is_done else UiTheme.COLOR_TEXT
+	)
+	content.add_child(name_label)
+
+	# Open lifetime goals show "cur / target" (:457-460); everything else its
+	# description (interface spec §6.5).
+	var subtitle: String = goal.description
+	if not is_done and is_total:
+		subtitle = (
+			"%s / %s" % [UiTheme.group_digits(int(current_val)), UiTheme.group_digits(goal.target)]
+		)
+	content.add_child(_one_line("GoalLabel", subtitle, "MonoFaintText"))
+
+	# DIVERGENCE(UI-SYSTEM): interface spec §6.5 — only open lifetime goals carry
+	# a bar; the TS also draws an empty one on open run goals (:462-470) (R10).
+	if not is_done and is_total:
+		var bar_margin: MarginContainer = MarginContainer.new()
+		bar_margin.mouse_filter = Control.MOUSE_FILTER_PASS
+		bar_margin.add_theme_constant_override("margin_top", UiTheme.px(BAR_TOP, s))
+		var bar: Panel = Panel.new()
+		bar.name = "BarTrack"
+		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bar.custom_minimum_size.y = BAR_HEIGHT * s
+		var br: int = UiTheme.px(BAR_RADIUS, s)
+		bar.add_theme_stylebox_override(
+			"panel", UiTheme.flat(UiTheme.COLOR_RAISED, Color.TRANSPARENT, br)
+		)
+		var bar_fill: Panel = Panel.new()
+		bar_fill.name = "BarFill"
+		bar_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bar_fill.anchor_bottom = 1.0
+		bar_fill.anchor_right = pct / 100.0  # PORT: :468
+		bar_fill.add_theme_stylebox_override(
+			"panel", UiTheme.flat(UiTheme.COLOR_ION, Color.TRANSPARENT, br)
+		)
+		bar.add_child(bar_fill)
+		bar_margin.add_child(bar)
+		content.add_child(bar_margin)
+	row.add_child(content)
+
+	var pts: Label = _label(
+		"PointsLabel",
+		"+%d" % goal.reward_points,
+		UiTheme.mono(UiTheme.Weight.MEDIUM),
+		CARD_POINTS_SIZE,
+		UiTheme.TEXT_FAINT if is_done else UiTheme.COLOR_FLARE
+	)
+	row.add_child(pts)
+	return card
+
+
+## A single-line label that ellipsises (rule 03) in a theme variation.
+func _one_line(label_name: String, content: String, variation: String) -> Label:
+	var label: Label = UiTheme.text(content, variation)
+	label.name = label_name
+	label.clip_text = true
+	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return label
+
+
+## A header numeral in Mono at the counter size (set in _layout_modal).
+func _header_label(label_name: String, color: Color) -> Label:
+	var label: Label = UiTheme.text("", "MonoText")
+	label.name = label_name
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_color_override("font_color", color)
+	return label

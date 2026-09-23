@@ -1,3 +1,4 @@
+# gdlint:disable=max-public-methods
 ## test_goals_hud.gd
 ## PORTS: nothing — new file, covers src/ui/goals_hud.gd (interface spec §6.5)
 extends GutTest
@@ -171,3 +172,184 @@ func test_rail_and_toast_never_eat_touches() -> void:
 	assert_eq(_hud.mouse_filter, Control.MOUSE_FILTER_IGNORE)
 	assert_eq((_node("GoalToast") as Control).mouse_filter, Control.MOUSE_FILTER_IGNORE)
 	assert_eq((_node("EdgeRailFill") as Control).mouse_filter, Control.MOUSE_FILTER_IGNORE)
+
+
+func _open() -> Control:
+	_hud.bind(_gm, _pm)
+	_hud.open_all_goals_modal()
+	await get_tree().process_frame
+	return _hud.find_child("MilestonesModal", true, false) as Control
+
+
+func _text(name: String) -> String:
+	return (_node(name) as Label).text
+
+
+func _card(id: String) -> Control:
+	return _hud.find_child("MilestoneCard_" + id, true, false) as Control
+
+
+## A GoalsHUD in an explicit-size host (the headless root snaps to 64×64 — M8.5 lesson).
+func _hosted(size: Vector2, scale: float) -> GoalsHUD:
+	var host: Control = Control.new()
+	host.size = size
+	add_child_autofree(host)
+	var hud: GoalsHUD = GoalsHUD.new()
+	host.add_child(hud)
+	hud.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	hud.bind(_gm, _pm)
+	hud.set_ui_scale(scale)
+	hud.open_all_goals_modal()
+	return hud
+
+
+func _assert_screen_fits(size: Vector2, scale: float) -> void:
+	var hud: GoalsHUD = _hosted(size, scale)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var screen: Control = hud.find_child("MilestonesModal", true, false) as Control
+	var outside: Array[String] = UiChecks.outside(screen, screen.get_global_rect())
+	assert_true(outside.is_empty(), "fits %s: %s" % [size, outside])
+	var short: Array[String] = UiChecks.short_buttons(screen, UiTheme.TOUCH_TARGET * scale)
+	assert_true(short.is_empty(), "rule 05 at %s: %s" % [size, short])
+	var header: Node = hud.find_child("Header", true, false)
+	assert_true(UiChecks.overlapping_siblings(header).is_empty(), "header at %s" % size)
+	for tier: String in ["Score", "Combat", "Mastery"]:
+		var column: Control = hud.find_child("Tier_" + tier, true, false) as Control
+		assert_gt(column.size.x, 0.0, "%s column has width at %s" % [tier, size])
+
+
+func test_header_shows_counter_progress_and_points() -> void:
+	SaveStore.save_string_list(GoalManager.SAVE_PATH, ["score_1k"] as Array[String])
+	_gm = GoalManager.new()
+	await _open()
+	assert_eq(_text("TitleLabel"), "Milestones")
+	assert_eq(_text("CounterLabel"), "1", "GoalsHUD.ts:367")
+	assert_eq(_text("CounterDenomLabel"), "/57")
+	assert_eq(_text("HeaderPointsLabel"), "7,331", ":372 toLocaleString")
+	assert_eq(_text("HeaderPointsUnit"), "PTS", "Milestones.dc.html caps unit")
+	var fill: Control = _node("ProgressFill") as Control
+	assert_almost_eq(fill.anchor_right, 0.02, 0.0001, "round(1/57*100) = 2 (:317)")
+
+
+func test_three_tier_columns_with_their_counts() -> void:
+	SaveStore.save_string_list(GoalManager.SAVE_PATH, ["kills_15"] as Array[String])
+	_gm = GoalManager.new()
+	await _open()
+	var names: Array[String] = []
+	var counts: Array[String] = []
+	for tier: String in ["Score", "Combat", "Mastery"]:
+		var group: Control = _hud.find_child("Tier_" + tier, true, false) as Control
+		assert_not_null(group, tier)
+		var tier_name: Label = group.find_child("TierName", true, false) as Label
+		assert_true(tier_name.uppercase, "caps label")
+		names.append(tier_name.text)
+		counts.append((group.find_child("TierCount", true, false) as Label).text)
+	assert_eq(names, ["Score", "Combat", "Mastery"] as Array[String], ":356-360")
+	assert_eq(counts, ["0 of 9", "1 of 17", "0 of 31"] as Array[String], ":384-391")
+	var score_name: Label = (
+		_hud.find_child("Tier_Score", true, false).find_child("TierName", true, false) as Label
+	)
+	assert_eq(score_name.get_theme_color("font_color"), UiTheme.COLOR_ION, ":357 tint")
+
+
+func test_open_goals_come_before_done_goals() -> void:
+	SaveStore.save_string_list(GoalManager.SAVE_PATH, ["score_1k"] as Array[String])
+	_gm = GoalManager.new()
+	await _open()
+	var cards: Node = _hud.find_child("Tier_Score", true, false).find_child(
+		"TierCards", true, false
+	)
+	var last: Node = cards.get_child(cards.get_child_count() - 1)
+	assert_eq(String(last.name), "MilestoneCard_score_1k", "done last (interface spec §6.5)")
+	assert_ne(String(cards.get_child(0).name), "MilestoneCard_score_1k")
+
+
+func test_done_card_shows_description_and_no_bar() -> void:
+	SaveStore.save_string_list(GoalManager.SAVE_PATH, ["score_1k"] as Array[String])
+	_gm = GoalManager.new()
+	await _open()
+	var card: Control = _card("score_1k")
+	assert_eq(
+		(card.find_child("GoalLabel", true, false) as Label).text, "Reach 1,000 score in a run"
+	)
+	assert_null(card.find_child("BarTrack", true, false), ":424-439")
+	var box: StyleBoxFlat = (card as PanelContainer).get_theme_stylebox("panel") as StyleBoxFlat
+	assert_eq(box.bg_color, UiTheme.DONE_CARD, "Milestones.dc.html done card")
+	var pts: Label = card.find_child("PointsLabel", true, false) as Label
+	assert_eq(pts.get_theme_color("font_color"), UiTheme.TEXT_FAINT, "done points are faint")
+
+
+func test_total_goal_shows_live_progress() -> void:
+	_gm.cumulative.total_kills = 40
+	await _open()
+	var card: Control = _card("total_kills_100")
+	assert_eq((card.find_child("GoalLabel", true, false) as Label).text, "40 / 100", ":458-460")
+	var fill: Control = card.find_child("BarFill", true, false) as Control
+	assert_almost_eq(fill.anchor_right, 0.40, 0.0001, ":420-422")
+
+
+func test_open_run_goal_shows_description_and_no_bar() -> void:
+	await _open()
+	var card: Control = _card("score_1k")
+	assert_eq(
+		(card.find_child("GoalLabel", true, false) as Label).text, "Reach 1,000 score in a run"
+	)
+	assert_null(card.find_child("BarTrack", true, false), "interface spec §6.5 (R10)")
+
+
+func test_unlock_card_has_no_bar() -> void:
+	await _open()
+	assert_null(_card("unlock_ship_solar").find_child("BarTrack", true, false), ":444-455")
+
+
+func test_back_button_closes_the_screen() -> void:
+	var screen: Control = await _open()
+	(_node("BackButton") as Button).pressed.emit()
+	assert_false(screen.visible, ":484-486")
+
+
+func test_render_refreshes_an_open_screen() -> void:
+	await _open()
+	_gm.cumulative.total_kills = 70
+	_hud.render()
+	var card: Control = _card("total_kills_100")
+	assert_eq((card.find_child("GoalLabel", true, false) as Label).text, "70 / 100", ":280-282")
+
+
+func test_screen_fits_the_board_frame() -> void:
+	await _assert_screen_fits(Vector2(844, 390), 1.0)
+
+
+func test_screen_fits_the_a55() -> void:
+	await _assert_screen_fits(Vector2(2340, 1080), 1080.0 / 390.0)
+
+
+func test_screen_fits_a_desktop_window() -> void:
+	await _assert_screen_fits(Vector2(1280, 720), HudController.ui_scale_for(Vector2(1280, 720)))
+
+
+func test_long_text_stays_on_one_line() -> void:
+	var hud: GoalsHUD = _hosted(Vector2(844, 390), 1.0)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	for node: Node in hud.find_children("MilestoneCard_*", "PanelContainer", true, false):
+		var card: Control = node as Control
+		assert_almost_eq(card.size.y, 58.0, 0.5, "%s stays 58 px (one line each)" % card.name)
+	var goal: Label = hud.find_child("GoalLabel", true, false) as Label
+	assert_eq(goal.text_overrun_behavior, TextServer.OVERRUN_TRIM_ELLIPSIS, "rule 03")
+
+
+func test_screen_blocks_taps_but_lets_columns_scroll() -> void:
+	var screen: Control = await _open()
+	assert_eq(screen.mouse_filter, Control.MOUSE_FILTER_STOP, "nothing under it takes the tap")
+	var scroll: Node = _hud.find_child("TierScroll", true, false)
+	# B5: ScrollContainer's own internal scrollbars (mouse_filter STOP) are also
+	# under `scroll` — walk from its content node (TierCards) down, not from the
+	# ScrollContainer itself, so the assertion never inspects them.
+	var content: Node = scroll.find_child("TierCards", false, false)
+	var nodes: Array[Node] = [content]
+	nodes.append_array(content.find_children("*", "Control", true, false))
+	for node: Node in nodes:
+		var control: Control = node as Control
+		assert_ne(control.mouse_filter, Control.MOUSE_FILTER_STOP, "%s must pass drags" % node.name)
