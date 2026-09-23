@@ -260,7 +260,7 @@ git log -1 --format=%B
   - `func get_completed_count() -> int`, `func get_total_goals_count() -> int`, `func get_active_goals(max_count: int = 3) -> Array[ActiveGoal]`
   - inner classes `Goal` (`id, category, title, description: String; target, reward_points: int; target_id, metric: String`), `CumulativeStats` (`total_kills, total_survival_time, total_points_earned, total_score: int`; `to_dict()`), `RunTracker` (`mode: String = "classic"; score, kills: int; multiplier: float = 1.0; survival_time: float; close_calls, nukes_detonated, vortex_absorbs, laser_slices, missiles_fired, freeze_shatters, shield_rams: int`), `ActiveGoal` (`goal: Goal; current: float`)
 
-- [ ] **Step 1: Check the class name is free.** Write `godot/build/class_check.gd` (`godot/build/` is gitignored):
+- [x] **Step 1: Check the class name is free.** Write `godot/build/class_check.gd` (`godot/build/` is gitignored):
 
 ```gdscript
 extends SceneTree
@@ -274,7 +274,7 @@ func _init() -> void:
 
 Run: `"$GODOT" --headless --path godot -s res://build/class_check.gd`. If `Log` is unavailable in a `-s` script (autoloads do not load), replace `Log.info` with `printerr` in this throwaway file. Expected: both `false`. If either is `true`, **stop** (LAW 5) and record it in HANDOFF.
 
-- [ ] **Step 2: Write the parity dump** — `tools/parity/dump_goals.mjs`:
+- [x] **Step 2: Write the parity dump** — `tools/parity/dump_goals.mjs`:
 
 ```js
 // Dumps GoalManager.ts's catalog to a JSON fixture the GUT specs assert
@@ -320,7 +320,7 @@ console.log(`wrote ${catalog.length} goals to godot/tests/fixtures/goals.json`);
 
 Run the two commands in its header. Expected: `wrote 57 goals to godot/tests/fixtures/goals.json`.
 
-- [ ] **Step 3: Write the failing tests.** `godot/tests/test_goal_parity.gd`:
+- [x] **Step 3: Write the failing tests.** `godot/tests/test_goal_parity.gd`:
 
 ```gdscript
 ## test_goal_parity.gd
@@ -518,11 +518,11 @@ func test_get_active_goals_returns_the_first_uncompleted() -> void:
 	assert_eq(gm.get_active_goals(1).size(), 1)
 ```
 
-- [ ] **Step 4: Run to verify they fail**
+- [x] **Step 4: Run to verify they fail**
 
 Run: `tools/run_tests.sh` → FAIL, `collected 45 of 47` (both new scripts fail to parse: `GoalManager` not declared).
 
-- [ ] **Step 5: Implement `godot/src/meta/goal_manager.gd`** — this task writes every member **except** the evaluation block (`evaluate_live_total_goals` … `reset_all_progress`), which Task 3 inserts at the marked position:
+- [x] **Step 5: Implement `godot/src/meta/goal_manager.gd`** — this task writes every member **except** the evaluation block (`evaluate_live_total_goals` … `reset_all_progress`), which Task 3 inserts at the marked position:
 
 ```gdscript
 ## goal_manager.gd
@@ -881,11 +881,11 @@ class ActiveGoal:
 
 Then run `gdformat godot/src/meta/goal_manager.gd` once (new file — it wraps the long `_goal(...)` lines to ≤100 columns). Keep each `# PORT:` comment directly above its entry after formatting; if gdformat moves a comment, put it back above the entry.
 
-- [ ] **Step 6: Run to verify they pass**
+- [x] **Step 6: Run to verify they pass**
 
 Run: `tools/run_tests.sh` → `OK: 47/47 scripts (433 tests)`. `gdformat --check` and `gdlint` clean.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git checkout godot/project.godot
