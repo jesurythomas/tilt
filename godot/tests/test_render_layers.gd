@@ -470,6 +470,98 @@ func test_stripe_polygons_stay_inside_the_segment() -> void:
 	)
 
 
+func test_stripe_polygons_match_a_brute_force_per_stroke_clip() -> void:
+	# Reference: the pre-F-1 approach, clipping every stroke individually.
+	var cases: Array[Vector3] = [
+		Vector3(10.0, 22.0 * 1.75, 0.0),
+		Vector3(100.0, 22.0 * 1.75, 0.4),
+		Vector3(1015.0, 22.0 * 1.75, 1.3),
+	]
+	for c: Vector3 in cases:
+		var seg_width: float = c.x
+		var row_height: float = c.y
+		var elapsed: float = c.z
+		var expected: Array[PackedVector2Array] = _brute_force_stripe_polygons(
+			seg_width, row_height, elapsed
+		)
+		var actual: Array[PackedVector2Array] = EntityLayer.stripe_polygons(
+			seg_width, row_height, elapsed
+		)
+		assert_eq(
+			actual.size(),
+			expected.size(),
+			(
+				"same piece count (seg_width=%s, row_height=%s, elapsed=%s)"
+				% [seg_width, row_height, elapsed]
+			)
+		)
+		for exp_piece: PackedVector2Array in expected:
+			var found: bool = false
+			for act_piece: PackedVector2Array in actual:
+				if _point_sets_match(exp_piece, act_piece):
+					found = true
+					break
+			assert_true(
+				found,
+				(
+					"F-1: shared clip must match the brute-force per-stroke clip (seg_width=%s)"
+					% seg_width
+				)
+			)
+
+
+## Brute-force reference for the F-1 test: clips every stroke individually,
+## as EntityLayer.stripe_polygons did before the shared-clip restructure.
+func _brute_force_stripe_polygons(
+	seg_width: float, row_height: float, elapsed: float
+) -> Array[PackedVector2Array]:
+	var out: Array[PackedVector2Array] = []
+	var half_width: float = 6.0 / 2.0
+	var stripe_spacing: float = 16.0
+	var stripe_offset: float = fmod(elapsed * 20.0, stripe_spacing)
+	var normal: Vector2 = Vector2(-1.0, 1.0).normalized() * half_width
+	var clip: PackedVector2Array = PackedVector2Array(
+		[
+			Vector2.ZERO,
+			Vector2(seg_width, 0.0),
+			Vector2(seg_width, row_height),
+			Vector2(0.0, row_height)
+		]
+	)
+	var sx: float = -row_height + stripe_offset
+	while sx < seg_width + row_height:
+		var from: Vector2 = Vector2(sx, 0.0)
+		var to: Vector2 = Vector2(sx + row_height, row_height)
+		var stroke: PackedVector2Array = PackedVector2Array(
+			[from + normal, from - normal, to - normal, to + normal]
+		)
+		for piece: PackedVector2Array in Geometry2D.intersect_polygons(stroke, clip):
+			out.append(piece)
+		sx += stripe_spacing
+	return out
+
+
+## True when two point sets contain the same points within 0.001, regardless
+## of start vertex or winding order (F-1: intersect_polygons may rotate the
+## first vertex it returns).
+func _point_sets_match(a: PackedVector2Array, b: PackedVector2Array) -> bool:
+	if a.size() != b.size():
+		return false
+	var remaining: Array[Vector2] = []
+	for p: Vector2 in b:
+		remaining.append(p)
+	for pa: Vector2 in a:
+		var match_index: int = -1
+		for i: int in range(remaining.size()):
+			if pa.distance_to(remaining[i]) <= 0.001:
+				match_index = i
+				break
+		if match_index == -1:
+			return false
+		remaining.remove_at(match_index)
+	return true
+
+
 func test_beacon_pulse_matches_the_ts() -> void:
 	assert_almost_eq(EntityLayer.beacon_pulse(0.0, 0), 0.6, 0.0001, "GauntletMaze.ts:353")
 	assert_almost_eq(EntityLayer.beacon_pulse(PI / 16.0, 0), 1.0, 0.0001)

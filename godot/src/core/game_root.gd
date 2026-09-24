@@ -309,6 +309,9 @@ func restart_run() -> void:
 	_joystick.reset()
 	_state.phase = Types.GamePhase.PLAYING
 	_run_controller.reset_run(_bounds)
+	# PORT-NOTE(M10 final review F-2): the machine's mode follows the run's
+	# captured mode (R4), so M11's _state.restart() does not pass a stale mode.
+	_state.mode = _run_controller.mode
 	_apply_game_mode()
 	GameEvents.phase_changed.emit(Types.GamePhase.PLAYING)
 
@@ -428,6 +431,7 @@ func resize_canvas() -> void:
 	_run_controller.bounds = _bounds
 	_entity_layer.set_elapsed(_state.elapsed)
 	_effect_layer.set_elapsed(_state.elapsed)
+	_grid_layer.set_elapsed(_state.elapsed)
 
 	_grid_layer.set_arena_origin(arena_origin)
 	_entity_layer.set_arena_origin(arena_origin)

@@ -480,5 +480,17 @@ A55 absent from `adb` on 2026-09-25; every check below is pending.
 - [ ] **Multipliers.** Run over's subtitle reads "— Gauntlet, 1.3×" /
       "— Code Red, 1.5×" / "— Standard, 1.0×"; Pause's stats line names the
       running run's mode even after a different pick.
-- [ ] **Frame time.** A 2-minute Gauntlet run holds 60 fps (the maze adds up
-      to ~6 rows × 3 segments of polygon draws per frame).
+- [ ] **Frame time.** A 2-minute Gauntlet run holds 60 fps (at 2340×1080
+      physical px a Gauntlet frame draws roughly 650 clipped stripe polygons —
+      ~130 per pattern-0 row × 4–5 rows; the clip work is shared, final review
+      F-1, and the draw count is unchanged).
+- [ ] **Early resize.** A Gauntlet run booted straight in: if the window
+      resizes just after boot (system bars hiding), the first rows keep their
+      pre-resize width until they scroll off (TS-faithful; `TiltGame.ts:2435`
+      only calls setScale). Look for an open right edge in the first ~10 s.
+- [ ] **Ship vs walls on mobile.** The ship is drawn at 1.5× (M2.5
+      `MOBILE_MODEL_SCALE`) while walls and collisions use sim size, so the
+      drawn ship overlaps a wall by ~0.5 radius before it touches. It can also
+      look as if it squeezes through gaps narrower than its body. Judge
+      whether this reads as wrong; it is a consequence of the M2.5
+      mobile-scale divergence, not an M10 change.

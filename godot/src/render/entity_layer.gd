@@ -118,6 +118,14 @@ func is_maze_drawn() -> bool:
 
 ## The hazard stripes of one segment, each stroke's rectangle clipped to the
 ## segment (M10 R8). PORT: web/src/tilt-to-live/GauntletMaze.ts:319-334
+# PORT-NOTE(M10 final review F-1): a stroke whose full x-extent lies inside
+# [0, seg_width] is only ever cut by the y=0/y=row_height edges of `clip`,
+# never by its x=0/x=seg_width edges, so its clipped shape is identical for
+# every such interior stroke up to an x translation by sx. This restructure
+# clips one reference stroke against a wide y-only band once and translates
+# it per interior stroke, instead of calling intersect_polygons per stroke;
+# only the strokes that cross x=0 or x=seg_width still take the full clip.
+# The geometry produced is unchanged (R8) — this is a performance restructure.
 static func stripe_polygons(
 	seg_width: float, row_height: float, elapsed: float
 ) -> Array[PackedVector2Array]:
@@ -136,15 +144,46 @@ static func stripe_polygons(
 			Vector2(0.0, row_height)
 		]
 	)
+	var half_span: float = absf(normal.x)
+	var y_margin: float = row_height + half_span * 2.0
+	var y_band: PackedVector2Array = PackedVector2Array(
+		[
+			Vector2(-y_margin, 0.0),
+			Vector2(y_margin, 0.0),
+			Vector2(y_margin, row_height),
+			Vector2(-y_margin, row_height)
+		]
+	)
+	var reference_stroke: PackedVector2Array = PackedVector2Array(
+		[
+			normal,
+			-normal,
+			Vector2(row_height, row_height) - normal,
+			Vector2(row_height, row_height) + normal
+		]
+	)
+	var reference_pieces: Array[PackedVector2Array] = []
+	for piece: PackedVector2Array in Geometry2D.intersect_polygons(reference_stroke, y_band):
+		reference_pieces.append(piece)
+
 	var sx: float = -row_height + stripe_offset
 	while sx < seg_width + row_height:
-		var from: Vector2 = Vector2(sx, 0.0)
-		var to: Vector2 = Vector2(sx + row_height, row_height)
-		var stroke: PackedVector2Array = PackedVector2Array(
-			[from + normal, from - normal, to - normal, to + normal]
-		)
-		for piece: PackedVector2Array in Geometry2D.intersect_polygons(stroke, clip):
-			out.append(piece)
+		var stroke_min_x: float = sx - half_span
+		var stroke_max_x: float = sx + row_height + half_span
+		if stroke_min_x >= 0.0 and stroke_max_x <= seg_width:
+			for piece: PackedVector2Array in reference_pieces:
+				var translated: PackedVector2Array = PackedVector2Array()
+				for p: Vector2 in piece:
+					translated.append(p + Vector2(sx, 0.0))
+				out.append(translated)
+		else:
+			var from: Vector2 = Vector2(sx, 0.0)
+			var to: Vector2 = Vector2(sx + row_height, row_height)
+			var stroke: PackedVector2Array = PackedVector2Array(
+				[from + normal, from - normal, to - normal, to + normal]
+			)
+			for boundary_piece: PackedVector2Array in Geometry2D.intersect_polygons(stroke, clip):
+				out.append(boundary_piece)
 		sx += stripe_spacing
 	return out
 
