@@ -906,26 +906,23 @@ Important, 7 Minor.
 
 ## Next
 
-**M9 is closed (device pass pending).** Next module: **M5 — Audio bake +
-SFX** (deps M2, open) or **M10 — Modes** (deps M3, open) — the user's choice;
-M11 needs everything and is not next. Neither has a plan written yet.
+**M9 is closed (device pass pending). M10 — Modes is planned, not started**
+(user choice 2026-09-24). Plan: `docs/superpowers/plans/2026-09-20-m10-modes.md`
+(7 tasks; rulings R1–R11 at its top — R1 temporary Pause mode picker, R2 banner
+over a run's first 2.8 s, R3 armada left for M11's cinematic, all user rulings).
+Note: `web/src/tilt-to-live/GameStateMachine.ts` does not exist; the mode code
+lives in `TiltGame.ts`, `GauntletMaze.ts` and `TiltRenderer.ts`.
 
-**If M5:** first step, literally: read `web/src/tilt-to-live/TiltAudio.ts` in
-full, then `docs/superpowers/specs/2026-09-20-peril-point-godot-port-design.md`
-§8 Module 5's acceptance lines (`every play* method has a baked .ogg`, `a
-missing file logs and continues`), then write
-`docs/superpowers/plans/2026-09-20-m5-audio-bake-and-sfx.md` before touching
-code (as every prior module plan was written first).
+**First step, literally:** the user reviews the plan and picks an execution
+method (subagent-driven or native); then execute Task 1 (`GauntletMaze` sim).
 
-**If M10:** first step, literally: read `web/src/tilt-to-live/GameStateMachine.ts`
-and the `TODO(M10)` markers already left across the tree (`grep -rn
-"TODO(M10)" godot/src/`) — `enemy_swarm.gd`'s gauntlet/code-red director
-branches, `weapon_system.gd`'s mode-multiplier hookup, `run_controller.gd`'s
-two `options.settings.mode` reads — then write
-`docs/superpowers/plans/2026-09-20-m10-modes.md` before touching code.
+After M10: **M5 — Audio bake + SFX** — read `web/src/tilt-to-live/TiltAudio.ts`
+in full, then spec §8 Module 5's acceptance lines, then write
+`docs/superpowers/plans/2026-09-20-m5-audio-bake-and-sfx.md` before touching code.
 
-Before starting either: `git status --short` must be clean under `godot/`
+Before starting: `git status --short` must be clean under `godot/`
 (the user may leave device tuning uncommitted — never stash or revert it),
 and read `godot/VERIFY-ME.md` for the outstanding M2.5/M3/M4/M7/M8.5/M9 and
 "Mobile scale split" device checks. If the A55 is back on `adb`, offer the
-device pass first — it would clear six modules' pending boxes in one session.
+device pass first — it would clear six modules' pending boxes in one session
+(absent again on 2026-09-24).
