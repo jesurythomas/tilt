@@ -541,3 +541,19 @@ func test_boot_launches_the_saved_mode() -> void:
 		1.8
 	)
 	assert_almost_eq(root._maze.scale, expected, 0.0001, "TiltGame.ts:2435")
+
+
+func test_pause_mode_pick_saves_and_applies_on_restart() -> void:
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	assert_eq(root._run_controller.mode, Types.GameMode.CLASSIC)
+	var gauntlet: Button = root.find_child("ModeGauntletButton", true, false) as Button
+	gauntlet.pressed.emit()
+	assert_eq(root.options.settings.mode, Types.GameMode.GAUNTLET)
+	assert_eq(GameOptionsManager.new().settings.mode, Types.GameMode.GAUNTLET, "saved")
+	assert_eq(root._run_controller.mode, Types.GameMode.CLASSIC, "the running run keeps its mode")
+	root.restart_run()
+	assert_eq(root._run_controller.mode, Types.GameMode.GAUNTLET, "applies on Restart run (R1)")
+	assert_almost_eq(root._scores.mode_multiplier, 1.25, 0.0001)
+	assert_true(root._entity_layer.is_maze_drawn())

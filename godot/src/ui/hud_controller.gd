@@ -182,6 +182,8 @@ func _ready() -> void:
 		_pause_panel.visible = false
 
 	_pause_sheet = _pause_panel as PauseSheet
+	if _pause_sheet != null:
+		_pause_sheet.mode_chosen.connect(_on_mode_chosen)
 	var restart_run: Button = find_child("RestartRunButton", true, false) as Button
 	if restart_run != null:
 		restart_run.pressed.connect(_on_restart_run_pressed)
@@ -613,6 +615,7 @@ func _refresh_pause_sheet() -> void:
 	_pause_sheet.set_switches(
 		root.options.settings.sfx_enabled, root.options.settings.music_enabled
 	)
+	_pause_sheet.set_mode_choices(root.options.modes, root.options.settings.mode)
 
 
 ## Restart run (Pause.dc.html; interface spec §5 — backed by GameRoot.restart_run()).
@@ -651,6 +654,13 @@ func _on_scheme_chosen(scheme: Types.ControlScheme) -> void:
 		return
 	root.set_control_scheme(scheme)
 	_sync_pickers()
+
+
+## DIVERGENCE(M10 R1): the Pause mode picker. TODO(M11): remove with it.
+func _on_mode_chosen(mode: Types.GameMode) -> void:
+	var root: GameRoot = get_tree().get_first_node_in_group("game_root") as GameRoot
+	if root != null:
+		root.set_game_mode(mode)
 
 
 func _sync_pickers() -> void:

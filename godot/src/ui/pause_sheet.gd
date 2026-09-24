@@ -7,6 +7,9 @@ extends Control
 ## The Pause overlay: a void scrim and a two-column Sheet, built in code so each
 ## board literal carries its citation. The Theme comes from the Hud above it.
 
+## Emitted when the player picks a mode on the temporary picker (M10 R1).
+signal mode_chosen(mode: Types.GameMode)
+
 const CONTROL_PICKER: PackedScene = preload("res://scenes/control_picker.tscn")
 
 ## DIVERGENCE(UI-SYSTEM): Pause.dc.html — scrim rgba(8,9,14,0.8), sheet 620×342,
@@ -41,6 +44,12 @@ var _music: CheckButton = null
 var _bottom: HBoxContainer = null
 var _armory: Button = null
 
+# DIVERGENCE(M10 R1): a stand-in for Main.dc.html's mode cards (TiltMenu.ts:140-160,
+# :217-240), user ruling 2026-09-24. TODO(M11): remove when the menu's mode cards land.
+var _mode_picker: PanelContainer = null
+var _mode_row: HBoxContainer = null
+var _mode_buttons: Dictionary[Types.GameMode, Button] = {}
+
 
 func _ready() -> void:
 	# The scrim swallows taps meant for the arena underneath.
@@ -68,6 +77,11 @@ func set_ui_scale(scale: float) -> void:
 	_calibrate.icon = UiTheme.svg_texture(UiTheme.ICON_CALIBRATE, scale)
 	for switch: CheckButton in [_sound, _music]:
 		switch.custom_minimum_size.y = SWITCH_ROW * scale
+	_mode_row.add_theme_constant_override(
+		"separation", UiTheme.px(ControlPicker.SEGMENT_GAP, scale)
+	)
+	for mode: Types.GameMode in _mode_buttons:
+		_mode_buttons[mode].custom_minimum_size.y = UiTheme.TOUCH_TARGET * scale
 	_picker.set_ui_scale(scale)
 
 
@@ -93,6 +107,13 @@ func set_switches(sfx_on: bool, music_on: bool) -> void:
 	_music.set_pressed_no_signal(music_on)
 
 
+## Labels the mode segments from the catalog and marks the saved mode (M10 R1).
+func set_mode_choices(modes: Array[GameOptionsManager.ModeConfig], active: Types.GameMode) -> void:
+	for config: GameOptionsManager.ModeConfig in modes:
+		_mode_buttons[config.id].text = config.name
+	_mark_mode(active)
+
+
 func _build() -> void:
 	_sheet = UiTheme.build_sheet(self, SCRIM_ALPHA)
 	_columns = HBoxContainer.new()
@@ -111,6 +132,18 @@ func _build() -> void:
 	_left.add_child(_resume)
 	_restart = _button("RestartRunButton", "SecondaryButton", "Restart run")
 	_left.add_child(_restart)
+	# DIVERGENCE(M10 R1): the mode picker, under Restart run.
+	_left.add_child(UiTheme.caps("Mode"))
+	_mode_picker = PanelContainer.new()
+	_mode_picker.name = "ModePicker"
+	_mode_picker.theme_type_variation = "Segmented"
+	_mode_row = HBoxContainer.new()
+	_mode_row.name = "ModeButtons"
+	_mode_picker.add_child(_mode_row)
+	_mode_row.add_child(_mode_button(Types.GameMode.CLASSIC, "ModeClassicButton"))
+	_mode_row.add_child(_mode_button(Types.GameMode.GAUNTLET, "ModeGauntletButton"))
+	_mode_row.add_child(_mode_button(Types.GameMode.CODE_RED, "ModeCodeRedButton"))
+	_left.add_child(_mode_picker)
 	# TODO(M11): "Quit to menu" (Pause.dc.html) — no menu until M11 (interface spec §5).
 	_columns.add_child(_left)
 	# DIVERGENCE(UI-SYSTEM): Pause.dc.html — column rule in line
@@ -163,3 +196,23 @@ func _switch(switch_name: String, label: String) -> CheckButton:
 	switch.text = label
 	switch.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	return switch
+
+
+func _mode_button(mode: Types.GameMode, button_name: String) -> Button:
+	var button: Button = _button(button_name, "SegmentButton", "")
+	# button_pressed is ignored unless toggle_mode is true.
+	button.toggle_mode = true
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.pressed.connect(_on_mode_button_pressed.bind(mode))
+	_mode_buttons[mode] = button
+	return button
+
+
+func _mark_mode(active: Types.GameMode) -> void:
+	for mode: Types.GameMode in _mode_buttons:
+		_mode_buttons[mode].set_pressed_no_signal(mode == active)
+
+
+func _on_mode_button_pressed(mode: Types.GameMode) -> void:
+	_mark_mode(mode)
+	mode_chosen.emit(mode)

@@ -42,6 +42,7 @@ func test_sheet_carries_the_board_controls() -> void:
 		"PauseStats",
 		"ResumeButton",
 		"RestartRunButton",
+		"ModePicker",
 		"ControlPicker",
 		"CalibrateButton",
 		"SoundSwitch",
@@ -76,3 +77,21 @@ func test_switches_mirror_without_emitting() -> void:
 	assert_false(sound.button_pressed)
 	assert_true((sheet.find_child("MusicSwitch", true, false) as CheckButton).button_pressed)
 	assert_signal_not_emitted(sound, "toggled", "opening the sheet must not write settings")
+
+
+func test_mode_picker_marks_the_active_mode_and_emits() -> void:
+	var sheet: PauseSheet = _sheet(Vector2(844, 390), 1.0)
+	var options: GameOptionsManager = GameOptionsManager.new()
+	sheet.set_mode_choices(options.modes, Types.GameMode.GAUNTLET)
+	var classic: Button = sheet.find_child("ModeClassicButton", true, false) as Button
+	var gauntlet: Button = sheet.find_child("ModeGauntletButton", true, false) as Button
+	var code_red: Button = sheet.find_child("ModeCodeRedButton", true, false) as Button
+	assert_eq(classic.text, "Standard", "names from the catalog (GameOptions.ts:37-71)")
+	assert_eq(code_red.text, "Code Red")
+	assert_true(gauntlet.button_pressed)
+	assert_false(classic.button_pressed)
+	watch_signals(sheet)
+	code_red.pressed.emit()
+	assert_signal_emitted_with_parameters(sheet, "mode_chosen", [Types.GameMode.CODE_RED])
+	assert_true(code_red.button_pressed)
+	assert_false(gauntlet.button_pressed)

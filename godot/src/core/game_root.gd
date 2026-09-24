@@ -286,6 +286,13 @@ func set_control_scheme(scheme: Types.ControlScheme) -> void:
 	_joystick.reset()
 
 
+## The temporary Pause mode picker's write (M10 R1). The choice applies at the
+## next reset_run; the running run keeps its captured mode (R4).
+## PORT: web/src/tilt-to-live/TiltMenu.ts:220-222 (options.setMode on a card click)
+func set_game_mode(mode: Types.GameMode) -> void:
+	options.set_mode(mode)
+
+
 ## Toggles the paused phase. Delegates to the ported state machine.
 func toggle_pause() -> void:
 	_state.toggle_pause()

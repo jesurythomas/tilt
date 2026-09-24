@@ -4,7 +4,7 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**M10 — Modes in progress:** Tasks 1–4 landed; next Task 5 (Pause mode picker). Plan `docs/superpowers/plans/2026-09-20-m10-modes.md`.
+**M10 — Modes in progress:** Tasks 1–5 landed; next Task 6 (device evidence). Plan `docs/superpowers/plans/2026-09-20-m10-modes.md`.
 
 **Final review fixes** (`.superpowers/sdd/2026-09-20-m9-milestones/final-review.md`,
 `final-fix-report.md`, commit `cd77de6`): **I-1** — Run over now fills/shows 450 ms after
@@ -79,13 +79,14 @@ Branch: `feat/godot-port` (no upstream; nothing pushed).
 cd /c/Users/Jesury/Documents/Personal/dread-flock
 GODOT="/c/Users/Jesury/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe"
 
-tools/run_tests.sh                        # expect: OK: 48/48 scripts (487 tests, 5467 asserts)
-gdformat --check godot/src godot/tests    # expect: 86 files would be left unchanged
+tools/run_tests.sh                        # expect: OK: 49/49 scripts (519 tests, 17277 asserts)
+gdformat --check godot/src godot/tests    # expect: 88 files would be left unchanged
 gdlint godot/src godot/tests              # expect: Success: no problems found
 grep -rn "TODO(M9)" godot/src/ godot/tests/  # expect: nothing
 grep -rniE "ff4757" godot/src/ui/         # expect: nothing (rule 01)
-grep -rn "DIVERGENCE" godot/src/ | wc -l  # expect: 174
+grep -rn "DIVERGENCE" godot/src/ | wc -l  # expect: 177
 grep -rn "DIVERGENCE(UI-SYSTEM)" godot/src/ | wc -l   # expect: 106
+grep -rn "DIVERGENCE(M10 R1)" godot/src/ | wc -l   # expect: 3
 "$GODOT" --headless --path godot --quit-after 120 2>&1 | grep -c "SCRIPT ERROR"   # expect: 0
 git checkout godot/project.godot          # headless runs strip one default-valued line; never commit that
 ```
@@ -108,6 +109,13 @@ empty; DIVERGENCE `174`, UI-SYSTEM `106` (unchanged from Task 7 — the I-1 fix
 added no new UI literals); SCRIPT ERROR count `0`; `git status --short` empty
 before and after. See "Final review fixes" above and "## M9 — what landed"
 below.
+
+Re-run fresh at **M10 Task 5's exit** (2026-09-25, temporary Pause mode
+picker, R1): `OK: 49/49 scripts collected, all tests passed` (Tests 519,
+Passing 519, Asserts 17277); `gdformat --check` — `88 files would be left
+unchanged`; `gdlint` — `Success: no problems found`; DIVERGENCE **177** total,
+`DIVERGENCE(UI-SYSTEM)` **106** (unchanged), `DIVERGENCE(M10 R1)` **3** (the
+picker's stand-in tags in `pause_sheet.gd` and `hud_controller.gd`).
 
 `--check-only -s` on `src/meta/progression_manager.gd`, `game_options.gd`,
 `save_store.gd`, `sim/coin_system.gd` each fail with `Identifier not found:
