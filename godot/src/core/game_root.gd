@@ -118,6 +118,7 @@ func _ready() -> void:
 	# PORT: web/src/tilt-to-live/TiltGame.ts:2280 (showGridlines into the renderer)
 	_grid_layer.show_gridlines = options.settings.show_gridlines
 	_entity_layer.bind_entities(_player, _swarm, _weapons, _coins)
+	_entity_layer.bind_maze(_maze)
 	_effect_layer.bind(_particles, _scores, _weapons)
 	_joystick_layer.bind(_joystick)
 	_hud.bind_run(_run_controller, _state)
@@ -150,6 +151,7 @@ func _ready() -> void:
 	# settings.mode (TiltMenu.ts:240); M11's menu replaces this boot launch.
 	_state.launch_run(options.settings.mode)
 	_run_controller.reset_run(_bounds)
+	_apply_game_mode()
 	Log.info(
 		(
 			"M2 boot: bounds=%s arena_scale=%f"
@@ -260,6 +262,7 @@ func _update(dt: float) -> void:
 	)
 
 	_entity_layer.set_elapsed(_run_controller.elapsed)
+	_grid_layer.set_elapsed(_run_controller.elapsed)
 	_effect_layer.set_elapsed(_run_controller.elapsed)
 
 
@@ -299,6 +302,7 @@ func restart_run() -> void:
 	_joystick.reset()
 	_state.phase = Types.GamePhase.PLAYING
 	_run_controller.reset_run(_bounds)
+	_apply_game_mode()
 	GameEvents.phase_changed.emit(Types.GamePhase.PLAYING)
 
 
@@ -487,3 +491,13 @@ func _apply_equipped_cosmetics() -> void:
 	_entity_layer.set_ship_skin(progression.get_equipped_ship())
 	_entity_layer.set_enemy_skin(progression.get_equipped_enemy_skin())
 	_grid_layer.set_arena_theme(progression.get_equipped_arena_theme())
+
+
+## Tells the layers which mode the run just reset into.
+## PORT: web/src/tilt-to-live/TiltGame.ts:2315-2316 (mode and maze into the renderer)
+# PORT-NOTE: pushed once per reset instead of read per frame, as the cosmetics
+# are (_apply_equipped_cosmetics) — the run's mode is fixed until the next
+# reset (M10 R4).
+func _apply_game_mode() -> void:
+	_grid_layer.set_game_mode(_run_controller.mode)
+	_entity_layer.set_game_mode(_run_controller.mode)

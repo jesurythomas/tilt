@@ -1,3 +1,4 @@
+# gdlint:disable=max-public-methods
 ## test_render_layers.gd
 ## Verifies RenderContext, EffectLayer, and EntityLayer can be bound and instantiated.
 extends GutTest
@@ -401,3 +402,94 @@ func test_entity_layer_draws_every_entity_kind_at_a_model_scale() -> void:
 	layer.queue_redraw()
 	await wait_frames(2)
 	assert_true(true, "every drawer ran under a non-unit model scale")
+
+
+func test_grid_layer_mode_colours_without_a_theme() -> void:
+	var layer: GridLayer = GridLayer.new()
+	add_child_autofree(layer)
+	layer.set_elapsed(0.0)  # alert pulse 0.5
+	layer.set_game_mode(Types.GameMode.CODE_RED)
+	var plasma: Color = Color(167.0 / 255.0, 139.0 / 255.0, 250.0 / 255.0)
+	assert_eq(layer.background_colors()[0], Color("#180e28"), "TiltRenderer.ts:67")
+	var grid: Color = layer.grid_color()
+	assert_almost_eq(grid.a, 0.28 + 0.08 * 0.5, 0.0001, ":68")
+	assert_almost_eq(grid.r, plasma.r, 0.0001)
+	assert_almost_eq(layer.boundary_color().a, 0.55 + 0.2 * 0.5, 0.0001, ":69")
+	layer.set_game_mode(Types.GameMode.GAUNTLET)
+	assert_eq(layer.background_colors()[2], Color("#060301"), ":71")
+	assert_almost_eq(layer.grid_color().a, 0.35, 0.0001, ":72")
+	assert_almost_eq(layer.boundary_color().a, 0.75, 0.0001, ":73")
+	layer.set_game_mode(Types.GameMode.CLASSIC)
+	assert_eq(layer.background_colors()[0], GridLayer.BG_INNER, ":60")
+
+
+func test_equipped_theme_overrides_the_mode_colours() -> void:
+	var layer: GridLayer = GridLayer.new()
+	add_child_autofree(layer)
+	var progression: ProgressionManager = ProgressionManager.new()
+	var theme: ProgressionManager.ArenaThemeConfig = progression.get_equipped_arena_theme()
+	layer.set_arena_theme(theme)
+	layer.set_game_mode(Types.GameMode.GAUNTLET)
+	assert_eq(layer.background_colors(), theme.bg_gradient, "TiltRenderer.ts:76-80 wins (M10 R6)")
+	assert_eq(layer.grid_color(), theme.grid_color)
+	assert_eq(layer.boundary_color(), theme.boundary_color)
+
+
+func test_alert_pulse_matches_the_ts() -> void:
+	assert_almost_eq(GridLayer.alert_pulse(0.0), 0.5, 0.0001, "TiltRenderer.ts:65")
+	assert_almost_eq(GridLayer.alert_pulse(PI / 8.0), 1.0, 0.0001)
+	assert_almost_eq(GridLayer.alert_pulse(3.0 * PI / 8.0), 0.0, 0.0001)
+
+
+func test_grid_layer_draws_every_mode_without_error() -> void:
+	var layer: GridLayer = GridLayer.new()
+	layer.bind(VectorGrid.new(400, 300))
+	add_child_autofree(layer)
+	for mode: Types.GameMode in [
+		Types.GameMode.CLASSIC, Types.GameMode.CODE_RED, Types.GameMode.GAUNTLET
+	]:
+		layer.set_game_mode(mode)
+		layer.set_elapsed(1.3)
+		layer.queue_redraw()
+		await get_tree().process_frame
+	assert_eq(layer.get_game_mode(), Types.GameMode.GAUNTLET)
+
+
+func test_stripe_polygons_stay_inside_the_segment() -> void:
+	var stripes: Array[PackedVector2Array] = EntityLayer.stripe_polygons(100.0, 22.0, 0.3)
+	assert_false(stripes.is_empty())
+	for piece: PackedVector2Array in stripes:
+		for p: Vector2 in piece:
+			assert_true(
+				p.x >= -0.001 and p.x <= 100.001 and p.y >= -0.001 and p.y <= 22.001,
+				"clipped to the segment (GauntletMaze.ts:320-322): %s" % p
+			)
+	# (elapsed * 20) % 16 (:327): the stripe cycle repeats every 0.8 s.
+	assert_eq(
+		EntityLayer.stripe_polygons(100.0, 22.0, 0.0), EntityLayer.stripe_polygons(100.0, 22.0, 0.8)
+	)
+
+
+func test_beacon_pulse_matches_the_ts() -> void:
+	assert_almost_eq(EntityLayer.beacon_pulse(0.0, 0), 0.6, 0.0001, "GauntletMaze.ts:353")
+	assert_almost_eq(EntityLayer.beacon_pulse(PI / 16.0, 0), 1.0, 0.0001)
+	assert_almost_eq(EntityLayer.beacon_pulse(0.0, 3), 0.6 + 0.4 * sin(3.0), 0.0001)
+
+
+func test_entity_layer_draws_the_maze_only_in_gauntlet() -> void:
+	var layer: EntityLayer = EntityLayer.new()
+	var maze: GauntletMaze = GauntletMaze.new()
+	maze.reset(800.0, 600.0)
+	for row: GauntletMaze.GauntletWallRow in maze.rows:
+		row.y += 400.0  # bring the seeded rows on screen
+	layer.bind_entities(PlayerShip.new(400.0, 300.0))
+	layer.bind_maze(maze)
+	add_child_autofree(layer)
+	assert_false(layer.is_maze_drawn(), "CLASSIC by default (TiltRenderer.ts:130)")
+	layer.set_game_mode(Types.GameMode.GAUNTLET)
+	assert_true(layer.is_maze_drawn())
+	layer.set_elapsed(2.0)
+	layer.queue_redraw()
+	await get_tree().process_frame
+	layer.set_game_mode(Types.GameMode.CODE_RED)
+	assert_false(layer.is_maze_drawn())

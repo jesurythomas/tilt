@@ -1,10 +1,12 @@
 # gdlint:disable=max-file-lines
-# PORT-NOTE: EntityLayer carries PlayerShip.ts, EnemySwarm.ts, WeaponSystem.ts and
-# CoinSystem.ts render() bodies (spec §4.2/D4); precedent progression_manager.gd:1-4.
+# PORT-NOTE: EntityLayer carries PlayerShip.ts, EnemySwarm.ts, WeaponSystem.ts,
+# CoinSystem.ts and GauntletMaze.ts render() bodies (spec §4.2/D4); precedent
+# progression_manager.gd:1-4.
 ## entity_layer.gd
 ## PORTS: web/src/tilt-to-live/PlayerShip.ts:271-632 (render player)
 ##        web/src/tilt-to-live/EnemySwarm.ts:1191-1648 (render)
 ##        web/src/tilt-to-live/WeaponSystem.ts:793-923 (render orbs, orb glyphs)
+##        web/src/tilt-to-live/GauntletMaze.ts:302-387 (render)
 ##        per spec §5.5 and D4
 class_name EntityLayer
 extends Node2D
@@ -27,6 +29,16 @@ const TRAIL_COLOR: Color = Color(0.0, 220.0 / 255.0, 1.0, 0.4)
 const SHIELD_STROKE: Color = Color("#00ffff")
 ## The orb radius the glyphs were drawn for. PORT: web/src/tilt-to-live/WeaponSystem.ts:593
 const BASE_ORB_RADIUS: float = 16.0
+## PORT: web/src/tilt-to-live/GauntletMaze.ts:315
+const MAZE_BODY: Color = Color("#140c04")
+## PORT: web/src/tilt-to-live/GauntletMaze.ts:324
+const MAZE_STRIPE: Color = Color(1.0, 170.0 / 255.0, 0.0, 0.22)
+## PORT: web/src/tilt-to-live/GauntletMaze.ts:337
+const MAZE_EDGE: Color = Color("#ffaa00")
+## PORT: web/src/tilt-to-live/GauntletMaze.ts:342
+const MAZE_LEADING_EDGE: Color = Color("#FFB14D")
+## PORT: web/src/tilt-to-live/GauntletMaze.ts:362
+const MAZE_BEACON: Color = Color("#3DDC97")
 
 ## The ship this layer draws. Null until bind() or bind_entities() is called.
 var _player: PlayerShip = null
@@ -36,6 +48,10 @@ var _swarm: EnemySwarm = null
 var _weapons: WeaponSystem = null
 ## The coin system this layer draws. Null until bind_entities() is called.
 var _coins: CoinSystem = null
+## The gauntlet maze this layer draws. Null until bind_maze() is called.
+var _maze: GauntletMaze = null
+## The run's mode; the maze draws only in gauntlet. PORT: web/src/tilt-to-live/TiltRenderer.ts:130
+var _game_mode: Types.GameMode = Types.GameMode.CLASSIC
 ## Run clock in seconds, driving the pulsing shield and thruster flicker.
 var _elapsed: float = 0.0
 ## Outer high contrast halo toggle. PORT: web/src/tilt-to-live/EnemySwarm.ts:1558
@@ -58,6 +74,8 @@ var _model_scale: float = 1.0
 
 func _draw() -> void:
 	draw_set_transform(_arena_origin, 0.0, Vector2.ONE)
+	if is_maze_drawn():
+		_draw_maze()
 	_draw_coins()
 	_draw_weapons()
 	_draw_enemies()
@@ -81,6 +99,59 @@ func bind_entities(
 	_swarm = swarm
 	_weapons = weapons
 	_coins = coins
+
+
+## Gives this layer the gauntlet maze it draws. Called by GameRoot.
+func bind_maze(maze: GauntletMaze) -> void:
+	_maze = maze
+
+
+## Sets the run's mode. PORT: web/src/tilt-to-live/TiltGame.ts:2315
+func set_game_mode(mode: Types.GameMode) -> void:
+	_game_mode = mode
+
+
+## True when the maze is drawn this frame. PORT: web/src/tilt-to-live/TiltRenderer.ts:130
+func is_maze_drawn() -> bool:
+	return _game_mode == Types.GameMode.GAUNTLET and _maze != null
+
+
+## The hazard stripes of one segment, each stroke's rectangle clipped to the
+## segment (M10 R8). PORT: web/src/tilt-to-live/GauntletMaze.ts:319-334
+static func stripe_polygons(
+	seg_width: float, row_height: float, elapsed: float
+) -> Array[PackedVector2Array]:
+	var out: Array[PackedVector2Array] = []
+	var half_width: float = 6.0 / 2.0  # PORT: web/src/tilt-to-live/GauntletMaze.ts:325
+	var stripe_spacing: float = 16.0  # PORT: web/src/tilt-to-live/GauntletMaze.ts:326
+	# PORT: web/src/tilt-to-live/GauntletMaze.ts:327
+	var stripe_offset: float = fmod(elapsed * 20.0, stripe_spacing)
+	# Each stroke runs (sx, 0) → (sx + h, h); butt caps are perpendicular to it.
+	var normal: Vector2 = Vector2(-1.0, 1.0).normalized() * half_width
+	var clip: PackedVector2Array = PackedVector2Array(
+		[
+			Vector2.ZERO,
+			Vector2(seg_width, 0.0),
+			Vector2(seg_width, row_height),
+			Vector2(0.0, row_height)
+		]
+	)
+	var sx: float = -row_height + stripe_offset
+	while sx < seg_width + row_height:
+		var from: Vector2 = Vector2(sx, 0.0)
+		var to: Vector2 = Vector2(sx + row_height, row_height)
+		var stroke: PackedVector2Array = PackedVector2Array(
+			[from + normal, from - normal, to - normal, to + normal]
+		)
+		for piece: PackedVector2Array in Geometry2D.intersect_polygons(stroke, clip):
+			out.append(piece)
+		sx += stripe_spacing
+	return out
+
+
+## PORT: web/src/tilt-to-live/GauntletMaze.ts:353
+static func beacon_pulse(elapsed: float, row_id: int) -> float:
+	return 0.6 + 0.4 * sin(elapsed * 8.0 + float(row_id))
 
 
 ## Run clock, for the pulsing shield and thruster flicker.
@@ -134,6 +205,57 @@ func _begin_entity(pos: Vector2, angle: float = 0.0) -> void:
 ## Restores the standing arena transform _draw() set.
 func _end_entity() -> void:
 	draw_set_transform(_arena_origin, 0.0, Vector2.ONE)
+
+
+## Gauntlet walls, the first thing this layer draws (spec §5.5).
+## PORT: web/src/tilt-to-live/GauntletMaze.ts:302-387
+# PORT-NOTE: walls are arena geometry the ship collides with, so they draw in
+# playfield space without the render-only model scale.
+# TODO(M11): the beacons' shadowColor/shadowBlur = 8 glow (:363-364) waits for
+# the glow decision (spec §4.5), as every in-arena glow has since M2. In the TS
+# that shadow state is never reset, so it also bleeds onto later rows' walls
+# (M10 R9).
+func _draw_maze() -> void:
+	var arena_height: float = get_viewport_rect().size.y - _arena_origin.y * 2.0
+	for row: GauntletMaze.GauntletWallRow in _maze.rows:
+		# Skip rows completely off-screen.
+		if row.y + row.height < 0.0 or row.y > arena_height:
+			continue
+
+		# 1. Render Solid Wall Segments.
+		for seg: GauntletMaze.WallSegment in row.segments:
+			var origin: Vector2 = Vector2(seg.x, row.y)
+			var rect: Rect2 = Rect2(origin, Vector2(seg.width, row.height))
+			draw_rect(rect, MAZE_BODY)
+			var shift: Transform2D = Transform2D(0.0, origin)
+			for stripe: PackedVector2Array in stripe_polygons(seg.width, row.height, _elapsed):
+				draw_colored_polygon(shift * stripe, MAZE_STRIPE)
+			draw_rect(rect, MAZE_EDGE, false, 2.0)  # PORT: web/src/tilt-to-live/GauntletMaze.ts:338-339
+			# PORT: web/src/tilt-to-live/GauntletMaze.ts:343-347
+			draw_line(
+				origin + Vector2(0.0, row.height),
+				origin + Vector2(seg.width, row.height),
+				MAZE_LEADING_EDGE,
+				2.5
+			)
+
+		# 2. Safe Gap Guidance Beacons.
+		var pulse: float = beacon_pulse(_elapsed, row.id)
+		var active_gaps: Array[GauntletMaze.MazeGap] = row.gaps
+		if active_gaps.is_empty():
+			# PORT-NOTE: every row has a gap (gauntlet_maze.gd's _spawn_row), so
+			# this fallback (:354) never fires — preserved deliberately.
+			active_gaps = [GauntletMaze.MazeGap.new(row.gap_x, row.gap_width)]
+		var mid_y: float = row.y + row.height / 2.0
+		for gap: GauntletMaze.MazeGap in active_gaps:
+			var left: Vector2 = Vector2(gap.x, mid_y)
+			var right: Vector2 = Vector2(gap.x + gap.width, mid_y)
+			draw_circle(left, 3.5 * pulse, MAZE_BEACON)  # PORT: web/src/tilt-to-live/GauntletMaze.ts:366
+			draw_circle(right, 3.5 * pulse, MAZE_BEACON)  # PORT: web/src/tilt-to-live/GauntletMaze.ts:371
+			# PORT: web/src/tilt-to-live/GauntletMaze.ts:375
+			var beam: Color = Color(MAZE_BEACON, 0.15 * pulse)
+			# PORT: web/src/tilt-to-live/GauntletMaze.ts:376-382 (setLineDash [4, 4])
+			_draw_dashed_line_offset(left, right, 4.0, 4.0, 0.0, beam, 1.5)
 
 
 ## Coins, under the orbs (spec §5.5). PORT: web/src/tilt-to-live/CoinSystem.ts:126-175
