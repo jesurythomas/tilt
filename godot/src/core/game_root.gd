@@ -431,8 +431,10 @@ func resize_canvas() -> void:
 	# The Armory shares the HUD's ui_scale; its root stays full-rect (the
 	# overlay must cover the whole screen), and on mobile only the panel is
 	# inset by arena_origin so it stays inside the safe area (spec §8 M8).
-	_armory.set_ui_scale(HudController.ui_scale_for(viewport), arena_origin)
-	_goals_hud.set_ui_scale(HudController.ui_scale_for(viewport), arena_origin)
+	var ui_scale: float = HudController.ui_scale_for(viewport)
+	_armory.set_ui_scale(ui_scale, arena_origin)
+	_goals_hud.set_ui_scale(ui_scale, arena_origin)
+	_effect_layer.set_ui_scale(ui_scale)
 
 
 ## PORT: web/src/tilt-to-live/TiltGame.ts:2073 (triggerPlayerDeath's phase flip)
@@ -443,6 +445,7 @@ func resize_canvas() -> void:
 # shell mirrors the sim's run_ended signal here instead.
 func _on_run_ended(_final_score: int, _stats: Types.GameStats) -> void:
 	_state.phase = Types.GamePhase.GAME_OVER
+	_effect_layer.set_banner_shown(false)
 	_goals_hud.render()  # PORT: web/src/tilt-to-live/TiltGame.ts:2146
 
 
@@ -501,3 +504,5 @@ func _apply_equipped_cosmetics() -> void:
 func _apply_game_mode() -> void:
 	_grid_layer.set_game_mode(_run_controller.mode)
 	_entity_layer.set_game_mode(_run_controller.mode)
+	_effect_layer.set_game_mode(_run_controller.mode)
+	_effect_layer.set_banner_shown(true)

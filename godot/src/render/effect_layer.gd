@@ -2,10 +2,23 @@
 ## PORTS: web/src/tilt-to-live/ParticleEngine.ts:199-236 (particles)
 ##        web/src/tilt-to-live/ScoreManager.ts:186-205 (floating text)
 ##        web/src/tilt-to-live/WeaponSystem.ts:616-790 (render active weapons, missiles, arcs)
+##        web/src/tilt-to-live/TiltRenderer.ts:513-565 (mode announcement banner)
 ##        per spec §5.5
 class_name EffectLayer
 extends Node2D
 ## Layer rendering particle explosions, shockwaves, shard debris, weapon FX, and floating texts.
+
+## PORT: web/src/tilt-to-live/TiltRenderer.ts:528-529 (classic)
+const BANNER_CLASSIC: Color = Color("#5B8CFF")
+const BANNER_CLASSIC_BG: Color = Color(20.0 / 255.0, 24.0 / 255.0, 33.0 / 255.0, 0.92)
+## PORT: web/src/tilt-to-live/TiltRenderer.ts:534-535 (code red)
+const BANNER_CODE_RED: Color = Color("#A78BFA")
+const BANNER_CODE_RED_BG: Color = Color(26.0 / 255.0, 18.0 / 255.0, 38.0 / 255.0, 0.92)
+## PORT: web/src/tilt-to-live/TiltRenderer.ts:539-540 (gauntlet)
+const BANNER_GAUNTLET: Color = Color("#FFB14D")
+const BANNER_GAUNTLET_BG: Color = Color(38.0 / 255.0, 28.0 / 255.0, 16.0 / 255.0, 0.92)
+## PORT: web/src/tilt-to-live/TiltRenderer.ts:555 (the subline)
+const BANNER_SUB: Color = Color("#99A1B3")
 
 var _particles: ParticleEngine = null
 var _scores: ScoreManager = null
@@ -16,6 +29,16 @@ var _elapsed: float = 0.0
 # DIVERGENCE(M2.5 §6.1): the playfield is inset from the viewport, so every
 # draw call in playfield-local coordinates is translated by this.
 var _arena_origin: Vector2 = Vector2.ZERO
+## The run's mode, for the banner. PORT: web/src/tilt-to-live/TiltRenderer.ts:517
+var _game_mode: Types.GameMode = Types.GameMode.CLASSIC
+## CSS px → physical px (content_scale_mode is disabled; M10 R2).
+var _ui_scale: float = 1.0
+## False once the run ends, so a death inside 2.8 s does not freeze the banner.
+var _is_banner_shown: bool = false
+## PORT: web/src/tilt-to-live/TiltRenderer.ts:551 ('700 … "Archivo"', normal width)
+var _banner_title_font: FontVariation = UiTheme.archivo(100.0)
+## PORT: web/src/tilt-to-live/TiltRenderer.ts:554 ('500 … "IBM Plex Mono"')
+var _banner_sub_font: FontVariation = UiTheme.mono(UiTheme.Weight.MEDIUM)
 
 
 ## Binds particle engine, score manager, and weapon system data sources.
@@ -35,6 +58,61 @@ func set_elapsed(elapsed: float) -> void:
 	_elapsed = elapsed
 
 
+## Sets the run's mode.
+func set_game_mode(mode: Types.GameMode) -> void:
+	_game_mode = mode
+
+
+## Sets the HUD's ui_scale, which sizes the banner.
+func set_ui_scale(scale: float) -> void:
+	_ui_scale = scale
+
+
+## Shows the banner at a run's reset; hides it when the run ends.
+func set_banner_shown(is_shown: bool) -> void:
+	_is_banner_shown = is_shown
+
+
+## True while the banner is visible this frame.
+func is_banner_drawn() -> bool:
+	return _is_banner_shown and banner_alpha(_elapsed) > 0.0
+
+
+## PORT: web/src/tilt-to-live/TiltRenderer.ts:520
+static func banner_alpha(elapsed: float) -> float:
+	if elapsed > 2.2:
+		return maxf(0.0, (2.8 - elapsed) / 0.6)
+	return minf(1.0, elapsed / 0.3)
+
+
+## [title, subline]. PORT: web/src/tilt-to-live/TiltRenderer.ts:526-541
+static func banner_copy(mode: Types.GameMode) -> PackedStringArray:
+	match mode:
+		Types.GameMode.CODE_RED:
+			return PackedStringArray(
+				["CODE RED PROTOCOL", "1.5X SCORE // INSTANT HYPER-SWARM AMBUSH"]
+			)
+		Types.GameMode.GAUNTLET:
+			return PackedStringArray(["THE GAUNTLET", "1.25X MULTIPLIER // DESCENDING WALL MAZE"])
+	return PackedStringArray(["CLASSIC SURVIVAL", "STANDARD 1.0X SCORE // THE NEON ARENA"])
+
+
+## [accent, box fill]. PORT: web/src/tilt-to-live/TiltRenderer.ts:528-541
+static func banner_colors(mode: Types.GameMode) -> PackedColorArray:
+	match mode:
+		Types.GameMode.CODE_RED:
+			return PackedColorArray([BANNER_CODE_RED, BANNER_CODE_RED_BG])
+		Types.GameMode.GAUNTLET:
+			return PackedColorArray([BANNER_GAUNTLET, BANNER_GAUNTLET_BG])
+	return PackedColorArray([BANNER_CLASSIC, BANNER_CLASSIC_BG])
+
+
+## The banner box in playfield space. PORT: web/src/tilt-to-live/TiltRenderer.ts:543-545
+static func banner_rect(arena_width: float, scale: float) -> Rect2:
+	var box_w: float = minf(460.0 * scale, arena_width - 32.0 * scale)
+	return Rect2(arena_width / 2.0 - box_w / 2.0, 88.0 * scale, box_w, 46.0 * scale)
+
+
 func _draw() -> void:
 	draw_set_transform(_arena_origin, 0.0, Vector2.ONE)
 	# PORT-NOTE: weapons draw before particles (TiltRenderer.ts:135, :141) but, per
@@ -43,6 +121,8 @@ func _draw() -> void:
 	_draw_weapon_fx()
 	_draw_particles()
 	_draw_floating_texts()
+	if is_banner_drawn():
+		_draw_mode_banner()
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
@@ -273,3 +353,67 @@ func _draw_floating_texts() -> void:
 		)
 		# Foreground text
 		draw_string(font, baseline_pos, t.text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, text_col)
+
+
+## PORT: web/src/tilt-to-live/TiltRenderer.ts:513-565
+# PORT-NOTE: renderModeAnnouncementBanner has no caller in web/src. M10 R2
+# (user ruling) draws it over each run's first 2.8 s from the run clock — the
+# window its own fade (:520) describes. The TS sizes are CSS px; every size
+# here is multiplied by the HUD's ui_scale.
+func _draw_mode_banner() -> void:
+	var alpha: float = banner_alpha(_elapsed)
+	var arena_width: float = get_viewport_rect().size.x - _arena_origin.x * 2.0
+	var box: Rect2 = banner_rect(arena_width, _ui_scale)
+	var colors: PackedColorArray = banner_colors(_game_mode)
+	var copy: PackedStringArray = banner_copy(_game_mode)
+
+	var style: StyleBoxFlat = StyleBoxFlat.new()
+	style.bg_color = Color(colors[1], colors[1].a * alpha)
+	style.border_color = Color(colors[0], alpha)
+	# PORT: web/src/tilt-to-live/TiltRenderer.ts:549
+	style.set_border_width_all(maxi(1, roundi(_ui_scale)))
+	# PORT: web/src/tilt-to-live/TiltRenderer.ts:550
+	style.set_corner_radius_all(roundi(6.0 * _ui_scale))
+	draw_style_box(style, box)
+
+	# PORT: web/src/tilt-to-live/TiltRenderer.ts:552
+	var is_narrow: bool = arena_width / _ui_scale < 480.0
+	# PORT: web/src/tilt-to-live/TiltRenderer.ts:553, :556
+	var title_size: int = UiTheme.px(12.0 if is_narrow else 14.0, _ui_scale)
+	var sub_size: int = UiTheme.px(9.5 if is_narrow else 11.0, _ui_scale)
+	var centre_x: float = box.position.x + box.size.x / 2.0
+	# PORT: web/src/tilt-to-live/TiltRenderer.ts:555 (boxY + 16)
+	_draw_middle_centred(
+		_banner_title_font,
+		copy[0],
+		Vector2(centre_x, box.position.y + 16.0 * _ui_scale),
+		title_size,
+		Color(colors[0], alpha)
+	)
+	# PORT: web/src/tilt-to-live/TiltRenderer.ts:558 (boxY + 32)
+	_draw_middle_centred(
+		_banner_sub_font,
+		copy[1],
+		Vector2(centre_x, box.position.y + 32.0 * _ui_scale),
+		sub_size,
+		Color(BANNER_SUB, alpha)
+	)
+
+
+## textAlign 'center', textBaseline 'middle'. PORT: web/src/tilt-to-live/TiltRenderer.ts:522-523
+func _draw_middle_centred(
+	font: Font, content: String, centre: Vector2, font_size: int, color: Color
+) -> void:
+	var width: float = font.get_string_size(content, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+	var baseline: float = (
+		centre.y + (font.get_ascent(font_size) - font.get_descent(font_size)) / 2.0
+	)
+	draw_string(
+		font,
+		Vector2(centre.x - width / 2.0, baseline),
+		content,
+		HORIZONTAL_ALIGNMENT_LEFT,
+		-1,
+		font_size,
+		color
+	)

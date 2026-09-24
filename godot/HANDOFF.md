@@ -4,7 +4,7 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**M10 — Modes in progress:** Tasks 1–3 landed; next Task 4 (mode banner). Plan `docs/superpowers/plans/2026-09-20-m10-modes.md`.
+**M10 — Modes in progress:** Tasks 1–4 landed; next Task 5 (Pause mode picker). Plan `docs/superpowers/plans/2026-09-20-m10-modes.md`.
 
 **Final review fixes** (`.superpowers/sdd/2026-09-20-m9-milestones/final-review.md`,
 `final-fix-report.md`, commit `cd77de6`): **I-1** — Run over now fills/shows 450 ms after

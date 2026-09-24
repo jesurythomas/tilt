@@ -493,3 +493,59 @@ func test_entity_layer_draws_the_maze_only_in_gauntlet() -> void:
 	await get_tree().process_frame
 	layer.set_game_mode(Types.GameMode.CODE_RED)
 	assert_false(layer.is_maze_drawn())
+
+
+func test_banner_alpha_fades_in_holds_and_out() -> void:
+	# PORT: TiltRenderer.ts:520
+	assert_almost_eq(EffectLayer.banner_alpha(0.0), 0.0, 0.0001)
+	assert_almost_eq(EffectLayer.banner_alpha(0.15), 0.5, 0.0001)
+	assert_almost_eq(EffectLayer.banner_alpha(1.0), 1.0, 0.0001)
+	assert_almost_eq(EffectLayer.banner_alpha(2.5), 0.5, 0.0001)
+	assert_almost_eq(EffectLayer.banner_alpha(2.8), 0.0, 0.0001)
+	assert_almost_eq(EffectLayer.banner_alpha(60.0), 0.0, 0.0001)
+
+
+func test_banner_copy_per_mode() -> void:
+	var classic: PackedStringArray = EffectLayer.banner_copy(Types.GameMode.CLASSIC)
+	assert_eq(classic[0], "CLASSIC SURVIVAL", "TiltRenderer.ts:526")
+	assert_eq(classic[1], "STANDARD 1.0X SCORE // THE NEON ARENA", ":527")
+	var red: PackedStringArray = EffectLayer.banner_copy(Types.GameMode.CODE_RED)
+	assert_eq(red[0], "CODE RED PROTOCOL", ":532")
+	assert_eq(red[1], "1.5X SCORE // INSTANT HYPER-SWARM AMBUSH", ":533")
+	var gauntlet: PackedStringArray = EffectLayer.banner_copy(Types.GameMode.GAUNTLET)
+	assert_eq(gauntlet[0], "THE GAUNTLET", ":537")
+	assert_eq(gauntlet[1], "1.25X MULTIPLIER // DESCENDING WALL MAZE", ":538")
+	assert_eq(EffectLayer.banner_colors(Types.GameMode.CODE_RED)[0], Color("#A78BFA"), ":534")
+	assert_eq(EffectLayer.banner_colors(Types.GameMode.GAUNTLET)[0], Color("#FFB14D"), ":539")
+	assert_eq(EffectLayer.banner_colors(Types.GameMode.CLASSIC)[0], Color("#5B8CFF"), ":528")
+
+
+func test_banner_box_fits_a_narrow_arena() -> void:
+	var wide: Rect2 = EffectLayer.banner_rect(780.0, 1.0)
+	assert_almost_eq(wide.size.x, 460.0, 0.0001, "min(460, w - 32) (TiltRenderer.ts:543)")
+	assert_almost_eq(wide.position.x, 160.0, 0.0001, "centred")
+	assert_almost_eq(wide.position.y, 88.0, 0.0001, ":545")
+	assert_almost_eq(wide.size.y, 46.0, 0.0001, ":544")
+	var narrow: Rect2 = EffectLayer.banner_rect(400.0, 1.0)
+	assert_almost_eq(narrow.size.x, 368.0, 0.0001)
+	assert_almost_eq(narrow.position.x, 16.0, 0.0001)
+	var scaled: Rect2 = EffectLayer.banner_rect(1560.0, 2.0)
+	assert_almost_eq(scaled.size.x, 920.0, 0.0001, "CSS px times ui_scale (R2)")
+	assert_almost_eq(scaled.position.y, 176.0, 0.0001)
+
+
+func test_banner_hides_when_the_run_ends() -> void:
+	var el: EffectLayer = EffectLayer.new()
+	el.bind(ParticleEngine.new(), ScoreManager.new())
+	add_child_autofree(el)
+	el.set_game_mode(Types.GameMode.GAUNTLET)
+	el.set_banner_shown(true)
+	el.set_elapsed(1.0)
+	assert_true(el.is_banner_drawn())
+	el.queue_redraw()
+	await get_tree().process_frame
+	el.set_banner_shown(false)
+	assert_false(el.is_banner_drawn(), "a death inside 2.8 s must not freeze it (Review Focus 4)")
+	el.set_banner_shown(true)
+	el.set_elapsed(3.0)
+	assert_false(el.is_banner_drawn(), "faded out")
