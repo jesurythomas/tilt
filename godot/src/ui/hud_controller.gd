@@ -386,9 +386,9 @@ static func run_result_for(
 		result.best_chain = int(maxf(1.0, stats.max_multiplier))  # PORT: :2105
 		result.time_text = GameStateMachine.format_time(stats.survival_time)  # PORT: :2090
 	if run != null:
-		var mode: GameOptionsManager.ModeConfig = run.options.get_mode_config(
-			run.options.settings.mode
-		)  # PORT: :2091-2092
+		# PORT-NOTE: :2091 reads settings.mode; the run's captured mode is the
+		# same value in the TS and the only correct one here (M10 R1/R4).
+		var mode: GameOptionsManager.ModeConfig = run.options.get_mode_config(run.mode)
 		result.mode_name = mode.name
 		result.mode_multiplier = mode.score_multiplier
 		if run.scores.is_new_best and run.scores.best_score_diff > 0:  # PORT: :2097
@@ -405,6 +405,8 @@ static func run_result_for(
 	return result
 
 
+# PORT-NOTE: updateHUD's mode badge (TiltGame.ts:2158-2162) is not ported —
+# Hud.dc.html draws none; Pause and Run over name the mode (M10 R10).
 func _on_score_changed(score: int, multiplier: int, best_score: int) -> void:
 	# DIVERGENCE(UI-SYSTEM): Hud.dc.html — grouped Mono numerals, "7×" Chip.
 	if _score_label != null:
@@ -604,9 +606,7 @@ func _refresh_pause_sheet() -> void:
 	if _pause_sheet == null or root == null:
 		return
 	if _run != null and _state != null:
-		var mode: GameOptionsManager.ModeConfig = _run.options.get_mode_config(
-			_run.options.settings.mode
-		)
+		var mode: GameOptionsManager.ModeConfig = _run.options.get_mode_config(_run.mode)
 		_pause_sheet.set_stats(
 			_run.scores.stats.score, GameStateMachine.format_time(_state.elapsed), mode.name
 		)

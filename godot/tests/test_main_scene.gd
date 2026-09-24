@@ -525,3 +525,19 @@ func test_run_over_includes_a_total_goal_completed_on_the_death_tick() -> void:
 		rc.progression.data.points,
 		"Run over must not under-report the real balance",
 	)
+
+
+func test_boot_launches_the_saved_mode() -> void:
+	GameOptionsManager.new().set_mode(Types.GameMode.GAUNTLET)
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	assert_eq(root._run_controller.mode, Types.GameMode.GAUNTLET, "TiltGame.ts:1486-1488")
+	assert_not_null(root._run_controller.maze)
+	assert_eq(root._run_controller.maze, root._maze)
+	var expected: float = clampf(
+		GameRoot.effective_arena_scale(root._bounds.x, root._bounds.y, OS.has_feature("mobile")),
+		0.5,
+		1.8
+	)
+	assert_almost_eq(root._maze.scale, expected, 0.0001, "TiltGame.ts:2435")

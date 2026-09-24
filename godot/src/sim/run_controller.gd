@@ -26,6 +26,15 @@ var options: GameOptionsManager = null
 ## Coin pickups. PORT: web/src/tilt-to-live/TiltGame.ts:51
 var coins: CoinSystem = null
 
+## Descending walls. PORT: web/src/tilt-to-live/TiltGame.ts:62 (this.gauntletMaze)
+# PORT-NOTE: assigned after construction (GameRoot._ready), as goals is.
+var maze: GauntletMaze = null
+## The mode this run was reset with (M10 R4).
+# PORT-NOTE: the TS reads options.settings.mode every tick (TiltGame.ts:1860),
+# in updateHUD (:2159) and at game over (:2091); nothing there can change it
+# mid-run. The Pause picker (M10 R1) can, so the run captures it at reset.
+var mode: Types.GameMode = Types.GameMode.CLASSIC
+
 ## Milestones. PORT: web/src/tilt-to-live/TiltGame.ts:66 (this.goals)
 # PORT-NOTE: assigned after construction (GameRoot._ready) — an eleventh
 # constructor parameter would pass gdlint's function-arguments-number: 10.
@@ -72,10 +81,9 @@ func _init(
 ## PORT: web/src/tilt-to-live/TiltGame.ts:1547-1610
 func reset_run(arena_bounds: Vector2) -> void:
 	bounds = arena_bounds
-	# TODO(M10): read the active mode once M10 owns modes (TiltGame.ts:1547
-	# uses this.options.settings.mode).
+	mode = options.settings.mode
 	# PORT: web/src/tilt-to-live/TiltGame.ts:1548-1551
-	var mode_config: GameOptionsManager.ModeConfig = options.get_mode_config(options.settings.mode)
+	var mode_config: GameOptionsManager.ModeConfig = options.get_mode_config(mode)
 	scores.set_mode_multiplier(mode_config.score_multiplier)
 	scores.set_progression_multiplier(progression.get_score_multiplier())
 	elapsed = 0.0
@@ -97,13 +105,14 @@ func reset_run(arena_bounds: Vector2) -> void:
 	# PORT-NOTE: railProgress (:1575-1576) is not ported — see goals_hud.gd's header.
 	# PORT: web/src/tilt-to-live/TiltGame.ts:1578-1591
 	run_tracker = GoalManager.RunTracker.new()
-	run_tracker.mode = GameOptionsManager.MODE_IDS[options.settings.mode]
+	run_tracker.mode = GameOptionsManager.MODE_IDS[mode]
 	swarm.reset()
 	swarm.set_speed_scale(progression.get_enemy_speed_multiplier())  # PORT: :1599
 	weapons.reset()
 	coins.reset()  # PORT: :1601
 	particles.reset()
 	scores.reset()
+	maze.reset(bounds.x, bounds.y)  # PORT: web/src/tilt-to-live/TiltGame.ts:1604
 	grid.resize(bounds.x, bounds.y)
 
 	spawn_starting_weapon_orb(bounds)
@@ -166,13 +175,17 @@ func update(
 		tilt_vector
 	)
 
+	# 3.5 Update Gauntlet Descending Maze Walls (blocks player, pushes downwards)
+	# PORT: web/src/tilt-to-live/TiltGame.ts:1893-1904 — spec §5.4 step 4
+	if mode == Types.GameMode.GAUNTLET:
+		maze.update(dt, bounds, player, scores.stats.score, elapsed, particles, lose_life)
+
 	# 4. Update Swarm Enemies
-	swarm.update(dt, Vector2(player.x, player.y), bounds, particles, scores.stats.score)
+	# PORT: web/src/tilt-to-live/TiltGame.ts:1906-1914
+	swarm.update(dt, Vector2(player.x, player.y), bounds, particles, scores.stats.score, mode)
 
 	# 5. Update Weapons
-	# TODO(M10): pass the active game mode as the tenth argument (TiltGame.ts:1927);
-	# CLASSIC by default until modes land.
-	# PORT: web/src/tilt-to-live/TiltGame.ts:1926
+	# PORT: web/src/tilt-to-live/TiltGame.ts:1916-1928
 	weapons.update(
 		dt,
 		player,
@@ -182,16 +195,15 @@ func update(
 		grid,
 		audio,
 		Callable(self, "handle_enemy_killed"),
-		progression.data.perks
+		progression.data.perks,
+		mode
 	)
 
 	# 5.5 Update Coin Pickups (own spawn timer, independent of weapon orbs)
 	# PORT: web/src/tilt-to-live/TiltGame.ts:1930-1940 — spec §5.4 step 7
 	# TODO(M11): the coins row reads coins.coins_collected (TiltGame.ts:2108,
 	# :2123-2130); points_from_coins already feeds the Run over total (M9).
-	# TODO(M10): read the active mode once M10 owns modes (TiltGame.ts:1931
-	# uses activeMode).
-	var mode_config: GameOptionsManager.ModeConfig = options.get_mode_config(options.settings.mode)
+	var mode_config: GameOptionsManager.ModeConfig = options.get_mode_config(mode)
 	coins.update(
 		dt,
 		player,
@@ -203,7 +215,7 @@ func update(
 	)
 
 	# 6. Update Scores and Combos
-	scores.update(dt)
+	scores.update(dt, mode)  # PORT: web/src/tilt-to-live/TiltGame.ts:1943
 
 	# 7. Check Collisions & Near-Misses
 	check_collisions()

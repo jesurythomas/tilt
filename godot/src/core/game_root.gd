@@ -60,6 +60,7 @@ var _player: PlayerShip = null
 var _swarm: EnemySwarm = null
 var _weapons: WeaponSystem = null
 var _coins: CoinSystem = null
+var _maze: GauntletMaze = null
 var _scores: ScoreManager = null
 var _audio: AudioBank = null
 var _run_controller: RunController = null
@@ -99,6 +100,8 @@ func _ready() -> void:
 	)
 	goals = GoalManager.new()  # PORT: web/src/tilt-to-live/TiltGame.ts:66
 	_run_controller.goals = goals
+	_maze = GauntletMaze.new()  # PORT: web/src/tilt-to-live/TiltGame.ts:62
+	_run_controller.maze = _maze
 	_router = InputRouter.new()
 	_touch = TouchInput.new()
 	_tilt = TiltInput.new()
@@ -143,7 +146,9 @@ func _ready() -> void:
 	# DIVERGENCE(M2.5 §5.3): this requests calibration; TiltInput now waits for
 	# a real gravity sample rather than falling back to a hardcoded pose.
 	_tilt.calibrate_current_position()
-	_state.launch_run(Types.GameMode.CLASSIC)
+	# PORT: web/src/tilt-to-live/TiltGame.ts:1486-1488 — the menu launches with
+	# settings.mode (TiltMenu.ts:240); M11's menu replaces this boot launch.
+	_state.launch_run(options.settings.mode)
 	_run_controller.reset_run(_bounds)
 	Log.info(
 		(
@@ -406,6 +411,7 @@ func resize_canvas() -> void:
 	_player.set_scale(scale)
 	_swarm.set_scale(scale)
 	_weapons.set_scale(scale)
+	_maze.set_scale(scale)  # PORT: web/src/tilt-to-live/TiltGame.ts:2435
 	_grid.resize(int(_bounds.x), int(_bounds.y))
 	_state.set_bounds(_bounds)
 	_run_controller.bounds = _bounds

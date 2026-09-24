@@ -4,7 +4,7 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**M10 — Modes in progress:** Task 1 (GauntletMaze sim) landed; next Task 2 (run wiring). Plan `docs/superpowers/plans/2026-09-20-m10-modes.md`.
+**M10 — Modes in progress:** Tasks 1–2 landed; next Task 3 (mode visuals). Plan `docs/superpowers/plans/2026-09-20-m10-modes.md`.
 
 **Final review fixes** (`.superpowers/sdd/2026-09-20-m9-milestones/final-review.md`,
 `final-fix-report.md`, commit `cd77de6`): **I-1** — Run over now fills/shows 450 ms after

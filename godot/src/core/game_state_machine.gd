@@ -146,7 +146,7 @@ func reset_run(new_mode: Types.GameMode) -> void:
 	# PORT-NOTE: swarm.setSpeedScale (:1599) and coins.reset() (:1601) are ported
 	# in run_controller.gd::reset_run.
 	_particles.reset()
-	# TODO(M10): gauntletMaze.reset().
+	# PORT-NOTE: gauntletMaze.reset (:1604) is ported in run_controller.gd::reset_run (M10 R5).
 	_grid.resize(_bounds.x, _bounds.y)
 	# TODO(M5): audio.setMuted/setSfxVolume/setMusicVolume.
 	# TODO(M2): updateHUD().

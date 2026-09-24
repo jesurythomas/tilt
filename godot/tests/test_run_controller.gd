@@ -3,6 +3,8 @@
 ## Unit tests for in-run coordinator RunController.
 extends GutTest
 
+const TICK: float = 0.75 / 120.0  # Tuning.GAME_SPEED at 120 Hz (spec §4.3 D8)
+
 var _player: PlayerShip
 var _swarm: EnemySwarm
 var _weapons: WeaponSystem
@@ -14,6 +16,7 @@ var _progression: ProgressionManager
 var _options: GameOptionsManager
 var _coins: CoinSystem
 var _rc: RunController
+var _maze: GauntletMaze
 var _bounds: Vector2 = Vector2(1000.0, 600.0)
 
 
@@ -55,6 +58,8 @@ func before_each() -> void:
 		_coins
 	)
 	_rc.goals = GoalManager.new(_progression)
+	_maze = GauntletMaze.new()
+	_rc.maze = _maze
 
 
 func after_each() -> void:
@@ -318,3 +323,103 @@ func test_death_evaluates_the_run_and_keeps_the_result() -> void:
 		ids.append(g.id)
 	assert_eq(ids, ["score_1k"] as Array[String], "TiltGame.ts:2086")
 	assert_true(_rc.goals.is_completed("score_1k"))
+
+
+func _tick() -> void:
+	_rc.update(
+		TICK, Types.ControlMode.MOUSE, Vector2(_player.x, _player.y), Vector2.ZERO, Vector2.ZERO
+	)
+
+
+func test_reset_run_captures_the_saved_mode() -> void:
+	_options.set_mode(Types.GameMode.GAUNTLET)
+	_rc.reset_run(_bounds)
+	assert_eq(_rc.mode, Types.GameMode.GAUNTLET, "M10 R4")
+	assert_almost_eq(_scores.mode_multiplier, 1.25, 0.0001, "TiltGame.ts:1549-1550")
+	assert_eq(_rc.run_tracker.mode, "gauntlet", ":1579")
+	assert_eq(_maze.rows.size(), 4, "gauntletMaze.reset (:1604)")
+
+
+func test_mode_change_waits_for_the_next_reset() -> void:
+	_rc.reset_run(_bounds)
+	_options.set_mode(Types.GameMode.CODE_RED)
+	_tick()
+	assert_eq(_rc.mode, Types.GameMode.CLASSIC, "a Pause pick never changes the running run (R1)")
+	assert_almost_eq(_scores.mode_multiplier, 1.0, 0.0001)
+	_rc.reset_run(_bounds)
+	assert_eq(_rc.mode, Types.GameMode.CODE_RED)
+	assert_almost_eq(_scores.mode_multiplier, 1.5, 0.0001)
+
+
+func test_gauntlet_tick_scrolls_the_maze_and_classic_does_not() -> void:
+	_rc.reset_run(_bounds)
+	var classic_y: float = _maze.rows[0].y
+	_tick()
+	assert_almost_eq(_maze.rows[0].y, classic_y, 0.0001, "maze only updates in gauntlet (:1894)")
+	_options.set_mode(Types.GameMode.GAUNTLET)
+	_rc.reset_run(_bounds)
+	var gauntlet_y: float = _maze.rows[0].y
+	_tick()
+	assert_gt(_maze.rows[0].y, gauntlet_y, "step 4 scrolls the walls (spec §5.4)")
+
+
+func test_gauntlet_scores_survival_each_tick() -> void:
+	_options.set_mode(Types.GameMode.GAUNTLET)
+	_rc.reset_run(_bounds)
+	_tick()
+	# round(250 * 0.00625 * 1.25 * 1.0) = round(1.953) (ScoreManager.ts:68)
+	assert_eq(_scores.stats.score, 2, "scores.update receives the mode")
+	_options.set_mode(Types.GameMode.CLASSIC)
+	_rc.reset_run(_bounds)
+	_tick()
+	assert_eq(_scores.stats.score, 0, "no survival tick in classic")
+
+
+func test_mode_multiplier_scales_kill_score() -> void:
+	_options.set_mode(Types.GameMode.CODE_RED)
+	_rc.reset_run(_bounds)
+	var enemy: Types.Enemy = _swarm.spawn_seeker(_bounds, 100.0, 100.0)
+	_rc.handle_enemy_killed(enemy, Types.WeaponType.NUKE)
+	# round(10 * 1 * 1.5 * 1.0) (ScoreManager.ts register_kill; score_manager.gd:119)
+	assert_eq(_scores.stats.score, 15)
+
+
+func test_maze_crush_costs_one_life() -> void:
+	_options.set_mode(Types.GameMode.GAUNTLET)
+	_rc.reset_run(_bounds)
+	_rc.lives = 2
+	_rc.max_lives = 2
+	# A 40-px wall across the arena floor with the ship inside it.
+	var row: GauntletMaze.GauntletWallRow = GauntletMaze.GauntletWallRow.new()
+	row.y = _bounds.y - 40.0
+	row.height = 40.0
+	row.segments = [GauntletMaze.WallSegment.new(0.0, _bounds.x)]
+	row.gaps = [GauntletMaze.MazeGap.new(0.0, 0.0)]
+	_maze.rows = [row]
+	_player.x = _bounds.x * 0.5
+	_player.y = _bounds.y - 10.0
+	_tick()
+	assert_eq(_rc.lives, 1, "the crush callback is lose_life (TiltGame.ts:1902)")
+	assert_true(_player.has_shield(), "the post-hit shield (:2064)")
+	_tick()
+	assert_eq(_rc.lives, 1, "the shield guards the every-tick crush (:2052-2055)")
+
+
+func test_reset_run_rebuilds_the_maze() -> void:
+	_options.set_mode(Types.GameMode.GAUNTLET)
+	_rc.reset_run(_bounds)
+	for i: int in range(240):
+		_tick()
+	_rc.reset_run(_bounds)
+	assert_eq(_maze.rows.size(), 4)
+	assert_eq(_maze.rows[0].id, 1)
+	assert_almost_eq(_maze.rows[0].y, 0.0, 0.0001)
+
+
+func test_run_result_names_the_runs_mode() -> void:
+	_options.set_mode(Types.GameMode.GAUNTLET)
+	_rc.reset_run(_bounds)
+	_options.set_mode(Types.GameMode.CODE_RED)
+	var result: RunOverSheet.RunResult = HudController.run_result_for(0, _scores.stats, _rc)
+	assert_eq(result.mode_name, "Gauntlet", "the run's mode, not the pending pick (R4)")
+	assert_almost_eq(result.mode_multiplier, 1.25, 0.0001)

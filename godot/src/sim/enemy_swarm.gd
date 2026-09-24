@@ -352,7 +352,7 @@ func spawn_carrier(bounds: Vector2, _player_pos: Vector2) -> Types.Enemy:
 
 
 ## Spawns an immediate, dramatic start armada tailored to the mode.
-## TODO(M10): the cinematic calls this (TiltEntranceCinematic.ts:196, :200); no M3 caller.
+## TODO(M11): the cinematic's handover calls this (TiltEntranceCinematic.ts:196, :200); M10 R3.
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:781-799
 func spawn_mode_armada(mode: Types.GameMode, bounds: Vector2, player_pos: Vector2) -> void:
 	if mode == Types.GameMode.CODE_RED:
@@ -565,8 +565,8 @@ func spawn_wall_formation(bounds: Vector2) -> void:
 ## Spawns a sequential gauntlet wall corridor, cycling through top-down,
 ## right-left, bottom-up and left-right on successive calls.
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:972-1063
-# TODO(M10): no caller in web/src — GauntletMaze.ts builds gauntlet walls; M10
-# decides whether its callers route through this.
+# PORT-NOTE: no caller in web/src — GauntletMaze.ts builds the gauntlet walls.
+# Dead in the TS; preserved deliberately (M10 R7).
 func spawn_sequential_gauntlet_wall(bounds: Vector2) -> void:
 	var dir: int = _wall_direction_cycle % 4  # PORT: web/src/tilt-to-live/EnemySwarm.ts:973
 	_wall_direction_cycle += 1
@@ -668,8 +668,8 @@ func spawn_sequential_gauntlet_wall(bounds: Vector2) -> void:
 
 ## Spawns a central rotating obstacle gate of six hazard turret dots.
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:1068-1094
-# TODO(M10): no caller in web/src — GauntletMaze.ts builds gauntlet walls; M10
-# decides whether its callers route through this.
+# PORT-NOTE: no caller in web/src — GauntletMaze.ts builds the gauntlet walls.
+# Dead in the TS; preserved deliberately (M10 R7).
 func spawn_rotating_gate(bounds: Vector2) -> void:
 	var cx: float = bounds.x / 2.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1069
 	var cy: float = bounds.y / 2.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1070
@@ -817,8 +817,6 @@ func update(
 
 	# 2. Coordinated Formation Waves with Mode Specialization.
 	# PORT: web/src/tilt-to-live/EnemySwarm.ts:106-132
-	# TODO(M10): gauntlet and code-red modes are selected by run_controller in
-	# M10; the branches are ported now because they live inside update().
 	if _wave_timer <= 0.0:
 		if is_code_red:
 			var roll: float = randf()  # PORT: web/src/tilt-to-live/EnemySwarm.ts:110
