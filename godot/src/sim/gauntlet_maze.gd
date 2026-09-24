@@ -214,6 +214,7 @@ func _spawn_row(y: float, width: float) -> void:
 
 		_last_gap_x = primary_candidate
 	elif pattern_roll < 0.85:  # PORT: web/src/tilt-to-live/GauntletMaze.ts:126
+		# PORT: web/src/tilt-to-live/GauntletMaze.ts:127
 		pattern_index = 2
 		# Pattern 2: Floating Shorter Barricades / Pillars.
 		var block_width: float = 140.0 + randf() * 50.0  # PORT: web/src/tilt-to-live/GauntletMaze.ts:130
@@ -248,6 +249,7 @@ func _spawn_row(y: float, width: float) -> void:
 				closest_gap_center = center
 		_last_gap_x = closest_gap_center
 	else:
+		# PORT: web/src/tilt-to-live/GauntletMaze.ts:164
 		pattern_index = 3
 		# Pattern 3: Central Island Block.
 		# PORT: web/src/tilt-to-live/GauntletMaze.ts:167
