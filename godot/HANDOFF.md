@@ -4,13 +4,7 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**M9 — Milestones is code-complete, device pass pending.** Exit protocol
-(CONVENTIONS §9) run 2026-09-24; final commit `cd77de6` (the parent of this
-handoff's own exit commit — `git log -1 --format=%H` on the exit commit,
-`git log -2 --format=%H` shows both). `PORT-PROGRESS.md`'s M9 box is ticked
-with "DEVICE PASS PENDING"; `VERIFY-ME.md` §M9 has 7 unticked hand-held
-checks (rail, toast, Run over list, Milestones screen, boot unlocks,
-persistence, frame time) — the A55 was absent from `adb` on 2026-09-23.
+**M10 — Modes in progress:** Task 1 (GauntletMaze sim) landed; next Task 2 (run wiring). Plan `docs/superpowers/plans/2026-09-20-m10-modes.md`.
 
 **Final review fixes** (`.superpowers/sdd/2026-09-20-m9-milestones/final-review.md`,
 `final-fix-report.md`, commit `cd77de6`): **I-1** — Run over now fills/shows 450 ms after
