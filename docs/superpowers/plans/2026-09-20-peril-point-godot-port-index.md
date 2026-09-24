@@ -74,7 +74,7 @@ Copied verbatim from the spec and `CONVENTIONS.md`. Every task in every module p
 | 8 | Armory UI (+ cosmetics in the renderer, user ruling 2026-09-22) | M7 | `2026-09-20-m8-armory-ui.md` | **code complete** — device pass pending (`godot/VERIFY-ME.md`) |
 | 8.5 | **Interface rework** — boards become the visual authority | M8 | `2026-09-23-m8.5-interface-rework.md` | **code complete** — device pass pending (`godot/VERIFY-ME.md`) |
 | 9 | Milestones | M7, M8.5 | `2026-09-20-m9-milestones.md` | **code complete** — device pass pending (`godot/VERIFY-ME.md`) |
-| 10 | Modes (code-red, gauntlet) | M3 | not yet written | — |
+| 10 | Modes (code-red, gauntlet) | M3 | `2026-09-20-m10-modes.md` | **code complete** — device pass pending (`godot/VERIFY-ME.md`) |
 | 11 | Menu, cinematic, export, device pass | all | not yet written | — |
 
 **Independent set:** once M2 is done, modules **3, 4, 5 and 7** depend only on M2 and may be taken in any order. M6 needs M5; M8 and M9 need M7; M10 needs M3; M11 needs everything.

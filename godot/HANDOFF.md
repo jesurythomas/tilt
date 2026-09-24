@@ -4,9 +4,12 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**M10 — Modes:** Tasks 1–6 landed; next Task 7 (exit protocol).
+**M10 — Modes: code-complete, device pass pending.** Final commit `2e6b2d2`
+(exit commit for the whole module — final review fixes F-1..F-4 landed at
+this same SHA). Plan `docs/superpowers/plans/2026-09-20-m10-modes.md`. Full
+section: `## M10 — what landed` below.
 
-**Final review fixes** (`.superpowers/sdd/2026-09-20-m9-milestones/final-review.md`,
+**Final review fixes (M9)** (`.superpowers/sdd/2026-09-20-m9-milestones/final-review.md`,
 `final-fix-report.md`, commit `cd77de6`): **I-1** — Run over now fills/shows 450 ms after
 `run_ended`, ported from `TiltGame.ts:2084-2151` (`HudController._on_run_ended`
 starts a one-shot `Timer`; stopped on Retry or any phase change so a stale
@@ -19,15 +22,18 @@ calibrate marked pending I-2); `goal_manager.gd:24`'s stale process-note
 replaced. **I-2** (toast under Pause/Armory) is parked for the user — plan
 Open question 6. Full section: "## M9 — what landed" below.
 
-Last completed module before M9: **M8.5 — Interface rework**, code complete
-2026-09-23 (head `541e92c`).
-Code-complete, **device pass pending** (none ticked but M9 in `PORT-PROGRESS.md`):
+Last completed module before M10: **M9 — Milestones**, code complete
+2026-09-24 (head `cd77de6`).
+Code-complete, **device pass pending** (none ticked in `PORT-PROGRESS.md`,
+all marked `DEVICE PASS PENDING`):
 **M2.5 — Mobile feel** (head `37f9fd4` + the user's tuning `c023e09`),
 **M3 — Enemy roster** (head `5bb5cc9`), **M4 — Weapons** (head `0b7fccf`),
 **M7 — Persistence and economy** (head `dba9126`),
 **M8 — Armory UI** (head `f0cac03`; its device pass is folded into M8.5's),
 **M8.5 — Interface rework** (head `541e92c`),
-**M9 — Milestones** (head `cd77de6`; its device pass is its own, `VERIFY-ME.md` §M9).
+**M9 — Milestones** (head `cd77de6`; its device pass is its own, `VERIFY-ME.md` §M9),
+**M10 — Modes** (head `2e6b2d2`; its device pass is its own, `VERIFY-ME.md` §M10,
+10 unticked checks — the A55 was absent from `adb` on 2026-09-25).
 Also landed after M4/M8, still device-unchecked: **HUD score feedback**
 (`9cc3e8f..31bf2ce`) and the **mobile scale split** (2026-09-22, see its
 section below; the user skipped its A55 pass while the phone is absent).
@@ -69,8 +75,9 @@ Branch: `feat/godot-port` (no upstream; nothing pushed).
 > ### ⚠ Read `godot/VERIFY-ME.md`
 > Every check that needs a hand on the phone or a decision from the user is
 > collected there, per module. M2.5's constants are all provisional until its
-> section is run. **M7, M8 (folded into M8.5), M8.5 and "Mobile scale split"
-> device checks are all unrun.** The M8.5 debug APK exported at 31,561,743
+> section is run. **M7, M8 (folded into M8.5), M8.5, M9, M10 and "Mobile
+> scale split" device checks are all unrun** — the A55 has been absent from
+> `adb` since 2026-09-21. The M8.5 debug APK exported at 31,561,743
 > bytes (+1,030,646 over M8, mostly fonts).
 
 ## How to verify right now
@@ -79,10 +86,10 @@ Branch: `feat/godot-port` (no upstream; nothing pushed).
 cd /c/Users/Jesury/Documents/Personal/dread-flock
 GODOT="/c/Users/Jesury/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe"
 
-tools/run_tests.sh                        # expect: OK: 49/49 scripts (519 tests, 17277 asserts)
+tools/run_tests.sh                        # expect: OK: 49/49 scripts (520 tests, 17359 asserts)
 gdformat --check godot/src godot/tests    # expect: 88 files would be left unchanged
 gdlint godot/src godot/tests              # expect: Success: no problems found
-grep -rn "TODO(M9)" godot/src/ godot/tests/  # expect: nothing
+grep -rn "TODO(M10)" godot/src/ godot/tests/  # expect: nothing
 grep -rniE "ff4757" godot/src/ui/         # expect: nothing (rule 01)
 grep -rn "DIVERGENCE" godot/src/ | wc -l  # expect: 177
 grep -rn "DIVERGENCE(UI-SYSTEM)" godot/src/ | wc -l   # expect: 106
@@ -116,6 +123,20 @@ Passing 519, Asserts 17277); `gdformat --check` — `88 files would be left
 unchanged`; `gdlint` — `Success: no problems found`; DIVERGENCE **177** total,
 `DIVERGENCE(UI-SYSTEM)` **106** (unchanged), `DIVERGENCE(M10 R1)` **3** (the
 picker's stand-in tags in `pause_sheet.gd` and `hud_controller.gd`).
+
+Re-run fresh again at **M10 Task 7's exit** (2026-09-25, commit `2e6b2d2`,
+after the final-review fix wave F-1..F-4 — see "## M10 — what landed"):
+`OK: 49/49 scripts collected, all tests passed` (Tests **520**, Passing 520,
+Asserts **17359** — +1 script over Task 5's 519, the F-1 stripe brute-force
+equality test); `gdformat --check` — `88 files would be left unchanged`;
+`gdlint` — `Success: no problems found`; `grep -rn "TODO(M10)"` printed
+nothing; `grep -rniE "ff4757" godot/src/ui/` printed nothing; DIVERGENCE
+**177** total, `DIVERGENCE(UI-SYSTEM)` **106**, `DIVERGENCE(M10 R1)` **3**
+(all unchanged from Task 5 — F-1..F-4 added no new literals or picker tags);
+headless `--quit-after 120` SCRIPT ERROR count **0**; `git status --short`
+empty both before this task's own doc changes were staged and after
+`git checkout godot/project.godot`. This is the module's exit evidence —
+M10 is now code-complete, device pass pending.
 
 `--check-only -s` on `src/meta/progression_manager.gd`, `game_options.gd`,
 `save_store.gd`, `sim/coin_system.gd` each fail with `Identifier not found:
@@ -906,25 +927,132 @@ Important, 7 Minor.
   legitimate ruling, but log it as a ruling, not a silent skip, and let the
   final review cover the gap explicitly.
 
+## M10 — what landed
+
+Plan `docs/superpowers/plans/2026-09-20-m10-modes.md` (7 tasks; rulings
+R1–R11 at its top, plus an `## Execution rulings` section added at this
+exit copying the SDD ledger verbatim); ledger
+`.superpowers/sdd/2026-09-20-m10-modes/execution-rulings.md` (git-ignored,
+13 lines, copied into the plan before this exit). 8 commits, `2c235eb..2e6b2d2`:
+`2c235eb`, `1da36c2` (Task 1, GauntletMaze sim), `42883d0` (Task 2, run
+wiring), `5c723b9` (Task 3, mode visuals), `62c1402` (Task 4, banner),
+`1677df2` (Task 5, Pause picker), `bbb3b5c` (Task 6, device checks recorded
+unrun), `2e6b2d2` (final-review fixes F-1..F-4, folded in before Task 7 per
+the ledger's "final review runs before Task 7" ruling).
+
+| Area | Files |
+|---|---|
+| Full `GauntletMaze.ts` port minus `render()` | `src/sim/gauntlet_maze.gd` (new) |
+| Mode captured at `reset_run`; owns the maze; passed through steps 4–8 | `src/sim/run_controller.gd` |
+| `TODO(M10)` retags (R3, R7) | `src/sim/enemy_swarm.gd`, `src/core/game_state_machine.gd` |
+| Owns/scales the maze; boots the saved mode; `_apply_game_mode()`/`set_game_mode()`; `restart_run` syncs `_state.mode` (F-2); grid clock refreshed on resize (F-3) | `src/core/game_root.gd` |
+| Mode colours (R6), code-red vignette, gauntlet corner brackets | `src/render/grid_layer.gd` |
+| Maze drawing (`bind_maze`, `_draw_maze`), shared-clip `stripe_polygons` (F-1), `beacon_pulse` | `src/render/entity_layer.gd` |
+| Mode announcement banner, 0–2.8 s of run clock (R2) | `src/render/effect_layer.gd` |
+| Temporary Pause mode picker, `DIVERGENCE(M10 R1)` (R1) | `src/ui/pause_sheet.gd` |
+| Pause stats / Run over subtitle read `run.mode` (R4); R10 no-badge note | `src/ui/hud_controller.gd` |
+| Tests | `tests/test_gauntlet_maze.gd` (new); additions to `test_run_controller.gd`, `test_main_scene.gd`, `test_render_layers.gd` (+ F-1's brute-force equality test), `test_pause_sheet.gd` |
+| Device evidence (unrun, phone absent) | `godot/VERIFY-ME.md` §M10, 10 unticked checks |
+
+**Rulings R1–R11** (plan, recorded 2026-09-24 before execution; full text in
+the plan's Rulings section):
+- **R1** — a temporary Pause-sheet mode picker (Segmented `Standard |
+  Gauntlet | Code Red`) stands in for `Main.dc.html`'s mode cards (M11).
+  Picking calls `GameRoot.set_game_mode` (saves); the running run keeps its
+  mode until the next Restart run or Retry. `DIVERGENCE(M10 R1)`,
+  `TODO(M11): remove when Main.dc.html's mode cards land`.
+- **R2** — the mode banner (`TiltRenderer.ts:513-565`, uncalled in `web/src`)
+  is drawn by `EffectLayer` from the run clock (`RunController.elapsed`) over
+  each run's first 2.8 s; it hides at run end and shows again at reset.
+- **R3** — the opening armada (`spawn_mode_armada`) stays with M11's
+  cinematic handover; M10 retags its `TODO(M10)` as `TODO(M11)` and adds no
+  stand-in.
+- **R4** — `RunController` captures `mode` once in `reset_run`; every in-run
+  read and both HUD reads use it (needed because R1 can change the saved
+  choice mid-run).
+- **R5** — `RunController` owns and resets the maze at its TS position (after
+  `scores.reset()`, before `grid.resize`); assigned after construction, like
+  `goals`, to keep the constructor under gdlint's 10-argument limit.
+- **R6** — mode backgrounds in `TiltRenderer.ts:64-74` are dead in the TS
+  (the equipped arena theme always overrides them) — ported anyway per LAW 2;
+  what the player actually sees of a mode is the overlays, the maze and the
+  banner.
+- **R7** — `spawn_sequential_gauntlet_wall`/`spawn_rotating_gate` stay
+  uncalled (the TS never calls them; `GauntletMaze.ts` builds the walls
+  instead) — their `TODO(M10)`s become PORT-NOTEs.
+- **R8** — each 6-px stripe stroke is its true clipped rectangle
+  (`Geometry2D.intersect_polygons`), standing in for `ctx.clip()`, which has
+  no CanvasItem equivalent; F-1 later shares this clip's work without
+  changing the geometry.
+- **R9** — the beacon glow (`shadowColor`/`shadowBlur`) waits for M11's
+  on-device glow-cost ruling, same class as M2–M4's in-arena glow.
+- **R10** — no HUD mode badge; the boards decide what a screen shows (M9 R10
+  precedent) — the mode name appears on Pause and Run over instead.
+- **R11** — `playGauntletKlaxon` stays uncalled (only referenced by the menu
+  audio stub, out of scope).
+
+**Final-review fix wave** (`.superpowers/sdd/2026-09-20-m10-modes/final-fix-report.md`,
+base `bbb3b5c`, commit `2e6b2d2`):
+- **F-1** — `stripe_polygons` shares one interior stroke's clip, translated
+  per stripe instead of re-clipping each one; end stripes still fall back to
+  the original full clip. Geometry is byte-for-byte identical (a new
+  brute-force equality test proves it) — only the work changed. Benchmark:
+  2.06 ms → 0.63 ms per synthetic frame on desktop (~3.3x).
+- **F-2** — `GameRoot.restart_run` now sets `_state.mode =
+  _run_controller.mode` after `reset_run`, so `GameStateMachine.mode` never
+  goes stale after a Pause pick + restart (M11 reads it for the cinematic
+  handover).
+- **F-3** — `resize_canvas` now also calls `_grid_layer.set_elapsed(...)`, so
+  the code-red vignette pulse keeps ticking through a resize.
+- **F-4** — `VERIFY-ME.md` §M10's frame-time line corrected to the real scale
+  (~650 clipped stripe polygons at 2340×1080, not full-arena-width estimate),
+  plus two new device checks: **Early resize** (pre-resize row width persists
+  until scroll-off, TS-faithful) and **Ship vs walls on mobile** (the 1.5×
+  mobile ship overlaps sim-size walls/gaps, a consequence of the M2.5
+  mobile-scale divergence, not an M10 change).
+
+**Deferred minors** (left by ruling, ledger line 65 — final-review triage):
+- `_draw_mode_banner` allocates a `StyleBoxFlat` every frame for the banner's
+  2.8 s window instead of caching it.
+- `BANNER_SUB` duplicates `UiTheme.COLOR_TEXT_MUTED` — kept as a render
+  colour with its own `# PORT:` citation rather than reaching into the UI
+  theme from a render layer.
+
+**Verification**: 49/49 GUT scripts, 520 tests (519 plan total + the F-1
+equality test), 17359 asserts; `gdformat`/`gdlint` clean; `TODO(M10)` grep
+empty; `ff4757` grep empty; DIVERGENCE 177 total (106 `UI-SYSTEM`, 3
+`M10 R1`); headless `--quit-after 120` 0 SCRIPT ERROR. Full command block
+and fresh output: "## How to verify right now" above.
+
+**Device pass pending**: the A55 was absent from `adb` on 2026-09-25.
+`VERIFY-ME.md` §M10 has 10 unticked checks (picker, banner, gauntlet walls,
+gauntlet crush, gauntlet score, Code Red, multipliers, frame time, early
+resize, ship-vs-walls).
+
+## Open questions (M10)
+
+None raised during execution beyond the plan's own rulings (all resolved by
+user ruling at plan time, R1–R11 above) and the final review's four fixes
+(F-1..F-4, all fixed, none parked). `M11` must still: **remove the R1 Pause
+picker** (`DIVERGENCE(M10 R1)`, `TODO(M11)` in `pause_sheet.gd` and
+`hud_controller.gd`) once `Main.dc.html`'s mode cards land, and **port the
+cinematic handover** (R3 — `TiltEntranceCinematic.ts:192-215`'s
+`spawn_mode_armada` call plus Classic's 8-seeker/nuke-orb/2.5 s-shield
+opening).
+
 ## Next
 
-**M9 is closed (device pass pending). M10 — Modes is planned, not started**
-(user choice 2026-09-24). Plan: `docs/superpowers/plans/2026-09-20-m10-modes.md`
-(7 tasks; rulings R1–R11 at its top — R1 temporary Pause mode picker, R2 banner
-over a run's first 2.8 s, R3 armada left for M11's cinematic, all user rulings).
-Note: `web/src/tilt-to-live/GameStateMachine.ts` does not exist; the mode code
-lives in `TiltGame.ts`, `GauntletMaze.ts` and `TiltRenderer.ts`.
+**M10 is closed (device pass pending). M5 — Audio bake + SFX is the only
+module left before M11.**
 
-**First step, literally:** the user reviews the plan and picks an execution
-method (subagent-driven or native); then execute Task 1 (`GauntletMaze` sim).
-
-After M10: **M5 — Audio bake + SFX** — read `web/src/tilt-to-live/TiltAudio.ts`
-in full, then spec §8 Module 5's acceptance lines, then write
-`docs/superpowers/plans/2026-09-20-m5-audio-bake-and-sfx.md` before touching code.
+**First step, literally:** read `web/src/tilt-to-live/TiltAudio.ts` in full,
+then spec §8 Module 5's acceptance lines, then write
+`docs/superpowers/plans/2026-09-20-m5-audio-bake-and-sfx.md` before touching
+code.
 
 Before starting: `git status --short` must be clean under `godot/`
 (the user may leave device tuning uncommitted — never stash or revert it),
-and read `godot/VERIFY-ME.md` for the outstanding M2.5/M3/M4/M7/M8.5/M9 and
-"Mobile scale split" device checks. If the A55 is back on `adb`, offer the
-device pass first — it would clear six modules' pending boxes in one session
-(absent again on 2026-09-24).
+and read `godot/VERIFY-ME.md` for the outstanding M2.5/M3/M4/M7/M8.5/M9/M10
+and "Mobile scale split" device checks. If the A55 is back on `adb`, offer
+the device pass first — it would clear seven modules' pending boxes in one
+session (absent since 2026-09-21, still absent on 2026-09-25).

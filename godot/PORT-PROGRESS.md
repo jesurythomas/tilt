@@ -245,9 +245,15 @@ Dependency map and resume instructions:
       --  A55 absent from `adb` on 2026-09-23 — device pass pending;
           `VERIFY-ME.md` §M9 has 7 unticked hand-held checks.
 
-- [ ] **M10 — Modes**  deps: M3
-      -- all 3 modes playable start to death
-      -- gauntlet maze walls block and push; mode multipliers apply
+- [x] **M10 — Modes**  deps: M3  done 2026-09-25  `2e6b2d2`  DEVICE PASS PENDING
+      plan  `docs/superpowers/plans/2026-09-20-m10-modes.md`
+      **tick this box only after `godot/VERIFY-ME.md` §M10 is run on the A55**
+      ok  GauntletMaze sim + render; mode routed through steps 4–8; mode
+          overlays; banner (R2); temporary Pause picker (R1).
+      ok  49/49 GUT scripts (520 tests); gdformat/gdlint clean; `TODO(M10)`
+          grep empty; headless 0 SCRIPT ERROR.
+      --  armada + cinematic handover left for M11 (R3); device pass pending —
+          `VERIFY-ME.md` §M10.
 
 - [ ] **M11 — Menu, cinematic, export, device pass**  deps: all
       -- cold boot → menu → cinematic → run → death → menu loops on device
