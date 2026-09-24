@@ -449,3 +449,36 @@ Hand-held checks (tick when seen on the A55):
 - [ ] **Unlock goals at boot**: an existing save that already owns a goal's ship/skin/arena completes that goal once at launch, silently (B3: no toast, no points paid — only cumulative.totalPointsEarned moves), never twice.
 - [ ] **Persistence**: kill the app and relaunch — completed milestones and cumulative totals survive (`user://tilt_to_live_completed_goals_v1.json` is a bare JSON array).
 - [ ] **Frame time** under a mass explosion unchanged from the "Mobile scale split" figure (the per-tick goal check is a 57-goal loop).
+
+## M10 — Modes
+
+Code-complete 2026-09-25 (head `1677df2`). Pick a mode on Pause → Mode, then tap
+Restart run (or die and Retry).
+
+A55 absent from `adb` on 2026-09-25; every check below is pending.
+
+- [ ] **Picker.** Pause shows Mode: Standard | Gauntlet | Code Red under
+      Restart run; the saved mode is highlighted; nothing clips at 844×390
+      logical (the A55). A pick does not change the running run; Restart run
+      starts the picked mode; the pick survives an app relaunch.
+- [ ] **Banner.** Each run opens with the mode's banner under the HUD's top
+      row (CLASSIC SURVIVAL / THE GAUNTLET / CODE RED PROTOCOL), fading out
+      after ~3.7 s of real time (2.8 s of sim time at GAME_SPEED 0.75). It
+      does not collide with the score, lives or pause button. Dying inside
+      that window leaves no banner under Run over.
+- [ ] **Gauntlet walls.** Walls descend from the top with sliding amber
+      stripes, an amber leading edge and pulsing green gap beacons; the ship
+      cannot pass through a wall from below or the side; a wall carries the
+      ship down; sparks fly on contact; walls speed up with score and time.
+- [ ] **Gauntlet crush.** Pinned against the floor with 2+ lives (Armory
+      boost): one life lost, the shield comes up, the run continues. With one
+      life: the run ends. It never drains several lives in one crush.
+- [ ] **Gauntlet score.** Score climbs steadily with no kills; hazard corner
+      brackets show at the four corners; no horizontal/vertical wall sweeps.
+- [ ] **Code Red.** A slow plasma vignette pulse at the edges; spawns come
+      fast and in pairs; elite enemies arrive early; orbs spawn faster.
+- [ ] **Multipliers.** Run over's subtitle reads "— Gauntlet, 1.3×" /
+      "— Code Red, 1.5×" / "— Standard, 1.0×"; Pause's stats line names the
+      running run's mode even after a different pick.
+- [ ] **Frame time.** A 2-minute Gauntlet run holds 60 fps (the maze adds up
+      to ~6 rows × 3 segments of polygon draws per frame).
