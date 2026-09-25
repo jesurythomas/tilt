@@ -1105,7 +1105,7 @@ func _on_phase_changed(phase: Types.GamePhase) -> void:
 
 `_score_block` and `_pause_button` are already found in `_ready`. Check that the variable names match, and that `_pause_button` is a member, not a local.
 
-- [x] **Step 4: Run the tests.** 52 scripts, **+8 tests** (587: 7 main-scene + 1 HUD). Then run a headless boot and read its log:
+- [x] **Step 4: Run the tests.** 52 scripts, **+8 tests** (587: 7 main-scene + 1 HUD; fix round 1 made it +9, 588 — see Execution rulings). Then run a headless boot and read its log:
 
 ```bash
 "$GODOT" --headless --path godot --quit-after 240 2>&1 | grep -cE "SCRIPT ERROR|ERROR:"   # expect 0
@@ -1323,7 +1323,7 @@ func reset_progress() -> void:
 
 In `_ready`, connect `_menu.reset_confirmed.connect(reset_progress)`, `_menu.readability_changed.connect(apply_readability)`, `_menu.sfx_toggled.connect(set_sfx_enabled)` and `_menu.music_toggled.connect(set_music_enabled)`. The main-scene tests do not press Confirm through `GameRoot`: that would reload the test scene. They call the static method instead.
 
-- [ ] **Step 4: Run the tests.** 52 scripts, **+11 tests** (598). Format and lint.
+- [ ] **Step 4: Run the tests.** 52 scripts, **+11 tests** (599). Format and lint.
 
 - [ ] **Step 5: Commit**
 
@@ -1463,7 +1463,7 @@ func _on_calibrate_closed() -> void:
 
 `set_level_requested` must fire **before** `closed`, so that calibration reads a live sensor. In `CalibrateScreen._on_set_level_pressed`, emit `set_level_requested` first, then `close()`, which emits `closed`.
 
-- [ ] **Step 4: Run the tests.** 53 scripts, **+6 tests** (604). Format (96 files) and lint.
+- [ ] **Step 4: Run the tests.** 53 scripts, **+6 tests** (605). Format (96 files) and lint.
 
 - [ ] **Step 5: Commit**
 
@@ -1563,7 +1563,7 @@ func test_pause_settings_opens_the_options_modal_over_pause() -> void:
 
 - [ ] **Step 3: Implement** as in Interfaces. In `run_controller.gd:214`, replace the `TODO(M11)` with `# PORT-NOTE: the Run over coins row (:2108, :2123-2130) reads coins.coins_collected in HudController (M11a R17).` Replace `pause_sheet.gd:48`'s and `hud_controller.gd:659`'s `TODO(M11)` lines by deleting the code they mark.
 
-- [ ] **Step 4: Run the tests.** 53 scripts. Tests = 604 + 6 − (1 + N). Write the number into the commit scope line and the HANDOFF State line. Format and lint. `grep -rn "M10 R1" godot/src` → nothing.
+- [ ] **Step 4: Run the tests.** 53 scripts. Tests = 605 + 6 − (1 + N). Write the number into the commit scope line and the HANDOFF State line. Format and lint. `grep -rn "M10 R1" godot/src` → nothing.
 
 - [ ] **Step 5: Commit**
 
@@ -1644,6 +1644,9 @@ git commit -m "M11a done: next read godot/HANDOFF.md + VERIFY-ME.md, then plan M
 ## Execution rulings
 
 (Filled during execution: any ruling taken while running a task, one line each, with the task number.)
+
+- Task 4: the p/Escape key path reaches the Pause sheet refresh through `HudController.set_pause_panel_visible(true)`, which calls `_refresh_pause_sheet()` (hud_controller.gd:307-311); `refresh_pause_sheet` was not exposed.
+- Task 4: delta +9 (588), because a regression test covers the two R12 HUD guards (`_process` MENU skip, lives-dirty on MENU).
 
 ## Open questions
 

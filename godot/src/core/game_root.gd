@@ -363,6 +363,10 @@ func _on_menu_scheme_chosen(scheme: Types.ControlScheme) -> void:
 ## launchRun plus startCinematic's reset.
 ## PORT: web/src/tilt-to-live/TiltGame.ts:1486-1494, :1523-1530
 func launch_run(mode: Types.GameMode) -> void:
+	# PORT: web/src/tilt-to-live/TiltGame.ts:1487-1489
+	# PORT-NOTE: `if (mode)` guards the optional TS argument; here it is typed and
+	# always given, and CLASSIC is enum 0, so the guard is dropped, not ported as falsy.
+	options.set_mode(mode)
 	_state.launch_run(mode)
 	# PORT: web/src/tilt-to-live/TiltGame.ts:1490-1491 (idempotent after Play)
 	_goals_hud.set_menu_mode(false)

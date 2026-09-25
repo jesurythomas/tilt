@@ -652,11 +652,14 @@ func test_p_and_escape_follow_the_ts_key_map() -> void:
 	root.launch_run(root.options.settings.mode)
 	root._unhandled_input(key)
 	assert_true(root.is_paused(), "playing → paused")
+	var pause_panel: Control = root.find_child("PausePanel", true, false) as Control
+	assert_true(pause_panel.visible, "the pause sheet opens (:1619-1630)")
 	var esc: InputEventKey = InputEventKey.new()
 	esc.keycode = KEY_ESCAPE
 	esc.pressed = true
 	root._unhandled_input(esc)
 	assert_false(root.is_paused(), "paused → playing (:1325)")
+	assert_false(pause_panel.visible, "the pause sheet closes on resume")
 	root.open_armory()
 	root._unhandled_input(esc)
 	assert_false(root.is_armory_open(), "Armory open → Escape closes it first (:1326-1327)")
@@ -684,3 +687,27 @@ func test_menu_settles_under_milestones_and_armory() -> void:
 	var goals: Node = root.find_child("GoalsHud", true, false)
 	assert_gt(menu.get_index(), hud.get_index(), "over Pause (Settings from Pause, Task 7)")
 	assert_lt(menu.get_index(), goals.get_index(), "under Milestones and Armory")
+
+
+## M11a R12: the idle run behind the menu must not re-show the run HUD, and the
+## next run's lives row must redraw even when its pips match the last run's.
+func test_the_menu_keeps_the_run_hud_hidden_and_the_next_run_redraws_it() -> void:
+	var root: GameRoot = await _boot_into_run()
+	var lives: Control = root.find_child("LivesRow", true, false) as Control
+	var timer: Control = root.find_child("WeaponTimer", true, false) as Control
+	root._run_controller.max_lives = 3
+	root._run_controller.lives = 3
+	root._run_controller.player.shield_timer = 3.0
+	await get_tree().process_frame
+	assert_true(lives.visible, "precondition: a 3-life run shows its icons")
+	assert_true(timer.visible, "precondition: the shield timer shows")
+	root.return_to_menu()
+	await get_tree().process_frame
+	assert_false(timer.visible, "R12: hidden in the menu, live shield or not")
+	assert_false(lives.visible, "R12")
+	root.launch_run(Types.GameMode.GAUNTLET)
+	assert_eq(root.options.settings.mode, Types.GameMode.GAUNTLET, "TiltGame.ts:1487-1489")
+	root._run_controller.max_lives = 3
+	root._run_controller.lives = 3
+	await get_tree().process_frame
+	assert_true(lives.visible, "the same pips redraw in the next run (R12)")
