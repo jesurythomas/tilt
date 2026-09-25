@@ -669,13 +669,15 @@ Inline execution (executing-plans); ledger at `.superpowers/sdd/2026-09-20-m6-ge
 - **Task 1 (2026-09-25).** (a) The test gained `if stream == null: return` after `assert_not_null`, so the red run fails on the assertion rather than a null dereference. (b) Chrome's offline render is not bit-exact between runs: two bakes differed in 4 of 1 263 761 samples, each by 1 LSB (float jitter at int16 rounding boundaries). `bake_music.mjs` therefore keeps the existing `music_loop.wav` when a fresh render is within 1 LSB of it in every sample (it prints `kept`), so the exit check "`git status --short godot/assets/audio/` empty" holds. R3's "byte-deterministic" is true to ±1 LSB. The bake printed 1263761 frames and peak 0.0580. Per-bar RMS ×1000 was `4.6 4.3 4.3 4.4 5.3 5.1 5.1 5.2 5.3 5.1 5.1 5.1 2.2 1.6 2.9 4.6`: the lead adds level in bars 4–11, and the breakdown dips in bars 12–14.
 - **Task 2 (2026-09-25).** `test_audio_bank.gd` went past gdlint's 20 public methods (22 tests). It gains `# gdlint:disable=max-public-methods` as line 1, the `test_run_controller.gd` precedent. Tests 556, DIVERGENCE 181 (`DIVERGENCE(M6` 3), `TODO(M6)` grep empty.
 - **Task 3 (2026-09-25).** Tests 559; headless boot `SCRIPT ERROR|missing baked` count 0. The A55 was absent from `adb`, so no APK was built and `VERIFY-ME.md` §M6 was appended with all eight checks unticked.
+- **Final review (2026-09-25).** Fresh reviewer: 0 Critical, 0 Important, 6 Minor. Minors 1–2 (VERIFY-ME §M6: the "Sound switch" check cannot exercise R6; the start-time difference is ~0.65 s, not 50 ms) were re-graded Important and fixed as doc edits, with no test possible. Minors 3–6 were deferred to `HANDOFF.md` Open questions (M6).
+- **Task 4 (2026-09-25).** Exit verification passed fresh (see `HANDOFF.md`). The next module is M11, the only unwritten one.
 
 ### Task 4: Module exit protocol (CONVENTIONS §9)
 
 **Files:**
 - Modify: `godot/PORT-PROGRESS.md` (the M6 box), `godot/HANDOFF.md` (rewrite `## State`, add `## M6 — what landed`, rewrite `## Next`), `docs/superpowers/plans/2026-09-20-peril-point-godot-port-index.md` (row 6)
 
-- [ ] **Step 1: Verify, fresh, and read every output**
+- [x] **Step 1: Verify, fresh, and read every output**
 
 ```bash
 cd /c/Users/Jesury/Documents/Personal/dread-flock
@@ -698,7 +700,7 @@ git status --short                        # expect: empty
 
 If any command differs from its expectation, the module is not done: fix it or stop and report.
 
-- [ ] **Step 2: Tick `PORT-PROGRESS.md`**
+- [x] **Step 2: Tick `PORT-PROGRESS.md`**
 
 Replace the M6 entry with:
 
@@ -715,7 +717,7 @@ Replace the M6 entry with:
           pass pending, `VERIFY-ME.md` §M6.
 ```
 
-- [ ] **Step 3: Rewrite `HANDOFF.md`**
+- [x] **Step 3: Rewrite `HANDOFF.md`**
 
 Rewrite it for a session with zero context:
 - `## State`: M6 is code-complete with the device pass pending; give the final commit SHA. Move M5's paragraph down into the "code-complete, device pass pending" list.
@@ -731,7 +733,7 @@ Copy every execution ruling from the SDD ledger (if one was kept) into this plan
 
 In the index plan, set row 6 to `| 6 | Generative music (baked loop, M6 R1) | M5 | \`2026-09-20-m6-generative-music.md\` | **code complete** — device pass pending (\`godot/VERIFY-ME.md\`) |`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add godot/PORT-PROGRESS.md godot/HANDOFF.md docs/superpowers/plans/2026-09-20-peril-point-godot-port-index.md docs/superpowers/plans/2026-09-20-m6-generative-music.md
@@ -739,4 +741,4 @@ git commit -m "M6 done: next read godot/HANDOFF.md + VERIFY-ME.md, then plan <ne
 git log -1 --format=%B
 ```
 
-- [ ] **Step 5: Stop.** Report to the user and do not begin the next module (CONVENTIONS §9 step 5).
+- [x] **Step 5: Stop.** Report to the user and do not begin the next module (CONVENTIONS §9 step 5).

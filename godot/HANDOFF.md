@@ -4,18 +4,22 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
+**M6 — Generative music: code-complete, device pass pending.** Exit verified at
+`d489691` (2026-09-25); the exit commit carries this text. Plan
+`docs/superpowers/plans/2026-09-20-m6-generative-music.md`. User ruling M6 R1: the TS
+arrangement takes no game input, so `tools/bake-audio/bake_music.mjs` renders it once,
+through `TiltAudio.ts`'s own `scheduleStep`, to a seamless loop
+(`godot/assets/audio/music/music_loop.wav`). `AudioBank` plays it, and a run starts it in
+`RunController.reset_run` until M11's cinematic exists. Full section:
+`## M6 — what landed` below. Device checks: `VERIFY-ME.md` §M6. **Next: plan M11**
+(see Next below).
+
 **M5 — Audio bake and SFX: code-complete, device pass pending.** Exit verified at
 `539d654` (2026-09-25); the exit commit is the one carrying this text. Plan
 `docs/superpowers/plans/2026-09-20-m5-audio-bake-and-sfx.md`. 37 SFX baked from
 `TiltAudio.ts` to WAV (M5 R1) and played through a 32-voice `AudioBank`; music is
 still `TODO(M6)`. Full section: `## M5 — what landed` below. Device checks:
 `VERIFY-ME.md` §M5 (A55 absent on 2026-09-25).
-
-**M6 — Generative music: in progress — Tasks 1–3 landed (music bake, loop playback, run-start site, VERIFY-ME §M6); next Task 4 (exit).** Plan
-`docs/superpowers/plans/2026-09-20-m6-generative-music.md` (Tasks 1–4). User ruling
-M6 R1 (2026-09-25): the TS arrangement has no game input, so it bakes to one seamless
-loop WAV. There are no stems and no `music_sequencer.gd` (this amends spec D5/§8 M6 at Task 1).
-**Next: M6 Task 4, the exit** (plan approved by the user 2026-09-25).
 
 **M10 — Modes: code-complete, device pass pending.** Final commit `2e6b2d2`
 (exit commit for the whole module — final review fixes F-1..F-4 landed at
@@ -99,17 +103,18 @@ Branch: `feat/godot-port` (no upstream; nothing pushed).
 cd /c/Users/Jesury/Documents/Personal/dread-flock
 GODOT="/c/Users/Jesury/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe"
 
-node tools/bake-audio/bake_sfx.mjs | tail -1   # expect: OK: 37 files in …
-git status --short godot/assets/audio/sfx/     # expect: empty (the bake is deterministic)
-tools/run_tests.sh                        # expect: OK: 50/50 scripts (549 tests, 17667 asserts)
+node tools/bake-audio/bake_sfx.mjs | tail -1     # expect: OK: 37 files in …
+node tools/bake-audio/bake_music.mjs | tail -1   # expect: OK: music_loop.wav 1263761 frames (loop_end) in …
+git status --short godot/assets/audio/           # expect: empty (both bakes are deterministic)
+tools/run_tests.sh                        # expect: OK: 50/50 scripts (559 tests, 17696 asserts)
 gdformat --check godot/src godot/tests    # expect: 90 files would be left unchanged
 gdlint godot/src godot/tests              # expect: Success: no problems found
-grep -rn "TODO(M5)" godot/src/ godot/tests/   # expect: nothing
+grep -rn "TODO(M6)" godot/src/ godot/tests/   # expect: nothing
 grep -rniE "ff4757" godot/src/ui/         # expect: nothing (rule 01)
-grep -rn "DIVERGENCE" godot/src/ | wc -l  # expect: 178
-grep -rn "DIVERGENCE(M5 R2)" godot/src/ | wc -l   # expect: 1
+grep -rn "DIVERGENCE" godot/src/ | wc -l  # expect: 181
+grep -rn "DIVERGENCE(M6" godot/src/ | wc -l   # expect: 3
 "$GODOT" --headless --path godot --quit-after 120 2>&1 | grep -c "SCRIPT ERROR"   # expect: 0
-"$GODOT" --headless --path godot --quit-after 120 2>&1 | grep -c "missing baked sfx"   # expect: 0
+"$GODOT" --headless --path godot --quit-after 120 2>&1 | grep -c "missing baked"   # expect: 0
 git checkout godot/project.godot          # headless runs strip one default-valued line; never commit that
 ```
 
@@ -160,6 +165,15 @@ collected, all tests passed` (Tests **549**, Passing 549, Asserts **17667**);
 ff4757 greps empty; DIVERGENCE **178**, `DIVERGENCE(M5 R2)` **1**; headless
 SCRIPT ERROR **0**, "missing baked sfx" **0**; `git status --short` empty after
 `git checkout godot/project.godot`. This is M5's exit evidence.
+
+Re-run fresh at **M6 Task 4's exit** (2026-09-25, at `d489691` plus the review's
+VERIFY-ME wording fix): the SFX bake printed `OK: 37 files`, the music bake printed
+`OK: music_loop.wav 1263761 frames` (`kept`: within 1 LSB of the committed file), and
+`godot/assets/audio/` was unchanged; `OK: 50/50 scripts collected, all tests passed`
+(Tests **559**, Asserts **17696**); `90 files would be left unchanged`; `Success: no
+problems found`; TODO(M6) and ff4757 greps empty; DIVERGENCE **181**,
+`DIVERGENCE(M6` **3**; headless SCRIPT ERROR **0**, "missing baked" **0**. This is
+M6's exit evidence.
 
 `--check-only -s` on `src/meta/progression_manager.gd`, `game_options.gd`,
 `save_store.gd`, `sim/coin_system.gd` each fail with `Identifier not found:
@@ -1099,19 +1113,74 @@ Rulings, one line each:
 None raised during execution. The Task 4 milestone correction (a plan error,
 not a port change) is recorded in the plan's `## Execution rulings`.
 
+## M6 — what landed
+
+Plan `docs/superpowers/plans/2026-09-20-m6-generative-music.md` (Tasks 1–4, commits
+`c00cbfd`..exit), executed inline. The execution rulings are in the plan's
+`## Execution rulings`. The final whole-branch review (fresh reviewer) found 0 Critical
+and 0 Important issues. Two Minor findings about VERIFY-ME wording were re-graded
+Important and fixed. The deferred Minors are listed under Open questions (M6).
+
+| File | What |
+|---|---|
+| `tools/bake-audio/bake_music.mjs` | Loads `TiltAudio.ts` unmodified in headless Chrome and calls its `scheduleStep` for steps 0–511 on the scheduler's `+=` grid. It keeps cycle 2 (frames 1263761..2527522) and writes a 16-bit mono 44.1 kHz WAV. A fresh render within 1 LSB of the committed file keeps that file (Chrome jitters about 4 samples by 1 LSB). |
+| `tools/bake-audio/wav.mjs` | The WAV encoder, shared by both bakes (moved out of `bake_sfx.mjs`, whose output is byte-identical). |
+| `godot/assets/audio/music/music_loop.wav` (+ `.import`) | 28.66 s, peak 0.058. The import is QOA with `loop_mode=2`, `loop_begin=0` and `loop_end=1263761`. |
+| `godot/src/audio/audio_bank.gd` | `attach` adds `_music_player`. `start_music` has the `:86` guard and plays from 0. `stop_music` stops. `_apply_volume` sets music to `0` when muted, else `music_gain / 0.35`. `set_music_volume` applies live. A PORT-NOTE marks the scheduler methods, which run inside the bake. |
+| `godot/src/sim/run_controller.gd` | `reset_run` calls `start_music` when `music_enabled`, just before the starting-orb spawn (`TODO(M11)`: both move to the cinematic's end). |
+| tests | `test_audio_bank.gd` +7 (now has `gdlint:disable=max-public-methods`), `test_audio_call_sites.gd` +2, `test_main_scene.gd` +1. |
+| spec | D5, §4.2 and §8 M6 amended (R1). |
+
+Rulings, one line each:
+- **R1** One baked loop: no stems and no `music_sequencer.gd` (user ruling 2026-09-25).
+- **R2** Steps 0–511 on the TS `+=` grid; keep cycle 2, whose head holds cycle 1's tails; 1263761 frames.
+- **R3** The noise buffer is filled from a seeded mulberry32 (`0x5eed`), not `Math.random`. The bake is deterministic to ±1 LSB.
+- **R4** Baked level = musicGain 0.35 × master 0.28. Run time: `volume_linear = music_gain / 0.35`, and 0 when muted.
+- **R5** `start_music` returns early if playing, else plays from 0. `stop_music` stops. Resume restarts from the top, as in the TS. `unlock()` is not called.
+- **R6** Mute keeps the loop running silently. The TS backlog burst is dropped (`DIVERGENCE(M6 R6)`). Today nothing reaches it: Pause has already stopped the music.
+- **R7** Run start is at the end of `RunController.reset_run` until M11.
+- **R8** No 50 ms lead-in, stop is immediate, and the first cycle carries the bar-15 tails (`DIVERGENCE(M6 R8)` ×2).
+- **R9** The import loop settings are set explicitly. `loop_end=-1` would drop a frame.
+
+## Open questions (M6)
+
+None raised during execution. Deferred Minors from the final review, for the user:
+- `test_the_boot_run_starts_the_music_when_it_is_on` checks only the silent branch if
+  the host's saved options have music off.
+- `bake_music.mjs` prints `kept` for a real TS change whose effect is ≤1 LSB. It could
+  print the number of differing samples.
+- `bake_music.mjs`'s mulberry32 and WAV-header literals have no citation comment.
+- Spec §8 M6 still lists the old stems / `music_sequencer.gd` bullets above the R1
+  amendment.
+
 ## Next
 
-**M6 in progress.** `docs/superpowers/plans/2026-09-20-m6-generative-music.md`
-carries rulings R1–R9 and Tasks 1–4. R9 records a headless spike (2026-09-25): QOA import
-keeps a forward loop, an explicit `loop_end` survives, and playback position and seek work
-under the dummy driver.
+**M6 is closed (device pass pending). Next module: M11 — Menu, cinematic, export,
+device pass** (deps: all). It is the only module without a plan, and every dependency
+is code-complete. No plan exists yet.
 
-**First step, literally:** the plan is approved (2026-09-25). Read its first unticked task and
-the ledger `.superpowers/sdd/2026-09-20-m6-generative-music/progress.md` (if it exists), then
-continue from there. Tasks 1–3 are done.
+**First step, literally:** read spec §8 Module 11 and the index plan's M11 row, then
+list the TS sources it names (at least `TiltMenu.ts` and
+`TiltEntranceCinematic.ts`, plus every `TODO(M11)` in `godot/src`:
+`grep -rn "TODO(M11)" godot/src`). Read them, then write
+`docs/superpowers/plans/2026-09-20-m11-menu-cinematic-export.md`. Commit the plan and
+stop for review before executing it. M11 is large, so propose splitting it (for
+example menu / cinematic / export + device pass) if the spec allows.
+
+Carry into the M11 plan:
+- Move `start_music` and `spawn_starting_weapon_orb` out of `RunController.reset_run`
+  into the cinematic's completion callback (`TiltGame.ts:168-176`, `TODO(M11)`, M6 R7),
+  and call `play_warp_in` from the cinematic (`TiltEntranceCinematic.ts:74`, M5 R8).
+- If M11 ports a mid-play mute (the TS `btn-tilt-sound` → `toggleMute`,
+  `TiltGame.ts:1441`), M6 R6's silent-loop mute becomes reachable. Add a device check
+  for it.
+- Re-bake the music only if `TiltAudio.ts:82-479` changes (`node
+  tools/bake-audio/bake_music.mjs`, then `--import`). Update `edit/loop_end` if the
+  frame count changes.
+- M11 owns the device pass: M2.5, M3, M4, M5, M6, M7, M8.5, M9, M10 and the scale split
+  are all pending in `VERIFY-ME.md`.
 
 Before starting: `git status --short` must be clean under `godot/`
 (the user may leave device tuning uncommitted — never stash or revert it),
-and read `godot/VERIFY-ME.md` for the outstanding device checks. If the A55 is
-back on `adb`, offer the device pass first (absent since 2026-09-21, still
-absent on 2026-09-25).
+and read `godot/VERIFY-ME.md`. If the A55 is back on `adb`, offer the device pass
+first (absent since 2026-09-21, still absent on 2026-09-25).

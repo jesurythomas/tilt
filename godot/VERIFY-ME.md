@@ -529,8 +529,9 @@ silences music too). A55 absent from `adb` on 2026-09-25; no APK was installed, 
 nothing below has been checked on the device yet.
 
 - [ ] **Starts with the run.** Music starts as the run starts (at boot and on
-      Retry / Restart run). The cinematic is M11, so it starts ~50 ms sooner
-      than the web build (M6 R8).
+      Retry / Restart run). There is no cinematic until M11, so it starts
+      ~0.65 s sooner than the web build (the 600 ms cold open plus the 50 ms
+      lead, M6 R7/R8) — expected, not a bug.
 - [ ] **Evolves across bars.** Drums, bass and arpeggio from the top; the lead
       melody enters at ~9 s (bar 4) and climbs at ~18 s (bar 8); the breakdown
       (pads, snare roll) runs ~21–28 s; the loop restarts at ~28.7 s.
@@ -540,9 +541,10 @@ nothing below has been checked on the device yet.
       music at once; Resume restarts it from the top, as the web build does.
 - [ ] **Music switch.** Pause → Music off keeps it off after Resume and Retry;
       on again plays from the top on Resume. The choice survives an app relaunch.
-- [ ] **Sound switch.** Pause → Sound off silences music with the effects; on
-      again brings it back at the same loudness with no burst of stacked notes
-      (M6 R6).
+- [ ] **Sound switch.** Pause → Sound off, Resume: music stays silent with the
+      effects. Sound on again, Resume: music returns at the same loudness. (The
+      R6 no-burst rule has no reachable trigger yet — Pause already stops the
+      music — so this check does not verify R6.)
 - [ ] **Death.** The death crash stops the music; Retry starts it again.
 - [ ] **Level.** The music sits under the effects roughly as it does in the
       web build on the same phone.

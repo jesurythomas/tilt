@@ -137,9 +137,16 @@ Dependency map and resume instructions:
           grep empty; headless 0 SCRIPT ERROR.
       --  device pass pending — `VERIFY-ME.md` §M5.
 
-- [ ] **M6 — Generative music**  deps: M5
-      -- music plays and evolves across bars
-      -- no dropouts over a 5-minute device run
+- [x] **M6 — Generative music**  deps: M5  done 2026-09-25  (the M6 exit commit; code head `d489691`)  DEVICE PASS PENDING
+      plan  `docs/superpowers/plans/2026-09-20-m6-generative-music.md`
+      ok  the 16-bar arrangement bakes to one seamless loop (M6 R1: no stems,
+          no sequencer) — tools/bake-audio/bake_music.mjs, 1263761 frames.
+      ok  start/stop/mute/volume follow TiltAudio.ts (test_audio_bank.gd); a
+          run starts its music (test_audio_call_sites.gd, test_main_scene.gd).
+      ok  50/50 GUT scripts (559 tests); gdformat/gdlint clean; `TODO(M6)`
+          grep empty; headless 0 SCRIPT ERROR.
+      --  "evolves across bars" and "no dropouts over 5 minutes" — device
+          pass pending, `VERIFY-ME.md` §M6.
 
 - [ ] **M7 — Persistence and economy**  deps: M2   *(code complete 2026-09-21, head `dba9126`; DEVICE PASS PENDING)*
       plan  `docs/superpowers/plans/2026-09-20-m7-persistence-and-economy.md`
