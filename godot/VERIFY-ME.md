@@ -494,3 +494,29 @@ A55 absent from `adb` on 2026-09-25; every check below is pending.
       look as if it squeezes through gaps narrower than its body. Judge
       whether this reads as wrong; it is a consequence of the M2.5
       mobile-scale divergence, not an M10 change.
+
+## M5 — Audio bake and SFX
+
+Code-complete 2026-09-25 (head `acce4a5`). Sound on (Pause → Sound). Music is M6 —
+silence between effects is expected. A55 absent from `adb` on 2026-09-25; no
+APK was installed, so nothing below has been checked on the device yet.
+
+- [ ] **Weapons.** Each orb pickup plays its weapon's sound, then the pickup
+      chime: nuke boom, missile launch (and a pop per missile blast), laser
+      zap, lightning crackle (pitch varies call to call), freeze chime,
+      vortex drop. Shield is silent (as in the TS).
+- [ ] **Kills.** Each kill pops a note that climbs the pentatonic scale with
+      the combo and wraps after 15; combos 10, 16 and 25 add a chord chime.
+- [ ] **Pickups and misses.** Coins play a quiet two-note chime; a near miss
+      chirps; ramming a frozen enemy crackles like ice.
+- [ ] **Lives.** Losing a life (2+ lives, Armory boost) sounds the siren;
+      the last life plays the long death crash.
+- [ ] **Nuke storm.** A nuke through a dense swarm pops many notes at once
+      without distortion that sounds broken, and the frame rate holds. Past
+      32 simultaneous voices the extras are dropped (M5 R2) — judge whether
+      that is audible.
+- [ ] **Sound switch.** Pause → Sound off silences everything at once,
+      including a tail still playing; on again restores the same loudness;
+      the choice survives Retry and an app relaunch.
+- [ ] **Sync and level.** Sounds land on their events with no noticeable
+      lag, and their loudness roughly matches the web build on the same phone.

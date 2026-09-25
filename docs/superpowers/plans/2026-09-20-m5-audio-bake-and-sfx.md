@@ -1372,12 +1372,12 @@ git log -1 --format=%B
 **Files:**
 - Modify — append: `godot/VERIFY-ME.md` (`## M5 — Audio bake and SFX`). **Never recreate this file.**
 
-- [ ] **Step 1: Check the phone**
+- [x] **Step 1: Check the phone** — A55 absent from `adb` on 2026-09-25; no APK exported; section written unticked.
 
 Run: `"$ADB" devices`
 If `RRCXB04L8EJ` is listed, export and install the debug APK the way earlier modules did (`godot/HANDOFF.md` "How to verify right now" and the M8.5/M9 device sections). Record the APK size delta, which should be small: 37 short QOA files. Then walk the checks in Step 2 with the user and tick the ones they confirm. If the phone is absent, write the section unticked and record "A55 absent from `adb` on <date>".
 
-- [ ] **Step 2: Append the checklist**
+- [x] **Step 2: Append the checklist**
 
 Append to `godot/VERIFY-ME.md`:
 
@@ -1410,7 +1410,7 @@ silence between effects is expected.
 
 Fill in `<date>` and `<sha>` (the head after Task 4).
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 Tick the boxes and set `## State` to "M5 in progress: Tasks 1–5 landed; next Task 6 (exit protocol)".
 
