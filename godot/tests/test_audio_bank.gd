@@ -4,6 +4,11 @@ extends GutTest
 ## Proves the baked files exist, each play_* asks for its file, and the bank's
 ## mute, volume, voice cap and missing-file behaviour.
 
+## One 16th note. PORT: web/src/tilt-to-live/TiltAudio.ts:18
+const STEP_SECONDS: float = 60.0 / 134.0 / 4.0
+## One cycle of the arrangement. PORT: web/src/tilt-to-live/TiltAudio.ts:110
+const CYCLE_STEPS: int = 256
+
 var _host: Node = null
 
 
@@ -28,6 +33,23 @@ func test_every_baked_file_exists_and_nothing_else() -> void:
 	expected.sort()
 	assert_eq(on_disk, expected, "tools/bake-audio/bake_sfx.mjs writes exactly SFX_STEMS")
 	assert_eq(AudioBank.SFX_STEMS.size(), 37, "18 single SFX + 15 dot pops + 4 march steps")
+
+
+func test_music_loop_is_one_cycle_and_loops_forward() -> void:
+	assert_true(ResourceLoader.exists(AudioBank.MUSIC_PATH), "bake_music.mjs writes it (M6 R1)")
+	var stream: AudioStreamWAV = load(AudioBank.MUSIC_PATH) as AudioStreamWAV
+	assert_not_null(stream, "imported as AudioStreamWAV (M5 R1)")
+	if stream == null:
+		return
+	var rate: float = float(stream.mix_rate)
+	# The second cycle's frame span (M6 R2).
+	var frames: int = (
+		roundi(2 * CYCLE_STEPS * STEP_SECONDS * rate) - roundi(CYCLE_STEPS * STEP_SECONDS * rate)
+	)
+	assert_eq(roundi(stream.get_length() * rate), frames, "exactly one cycle (M6 R2)")
+	assert_eq(stream.loop_mode, AudioStreamWAV.LOOP_FORWARD, "M6 R9")
+	assert_eq(stream.loop_begin, 0, "M6 R9")
+	assert_eq(stream.loop_end, frames, "the whole file loops; -1 would drop a frame (M6 R9)")
 
 
 func test_each_play_method_requests_its_file() -> void:

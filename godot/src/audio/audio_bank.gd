@@ -19,6 +19,8 @@ extends RefCounted
 
 ## Where the bake writes (spec §4.2; WAV per M5 R1).
 const SFX_DIR: String = "res://assets/audio/sfx/"
+## Where the music bake writes (M6 R1).
+const MUSIC_PATH: String = "res://assets/audio/music/music_loop.wav"
 ## One dot_pop file per pentatonic note. PORT: web/src/tilt-to-live/TiltAudio.ts:23-27
 const DOT_POP_NOTES: int = 15
 ## One file per march note. PORT: web/src/tilt-to-live/TiltAudio.ts:829

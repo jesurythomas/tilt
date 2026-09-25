@@ -13,6 +13,7 @@ import { createRequire, stripTypeScriptTypes } from 'node:module';
 import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { wav } from './wav.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '../..');
@@ -52,28 +53,6 @@ const SFX = [
   ['warp_in', 'playWarpIn', [], 0.52], // :864
   ['invasion_alarm', 'playInvasionAlarm', [], 0.26] // :884
 ];
-
-function wav(samples, rate) {
-  const data = Buffer.alloc(samples.length * 2);
-  samples.forEach((s, i) => {
-    data.writeInt16LE(Math.round(Math.max(-1, Math.min(1, s)) * 32767), i * 2);
-  });
-  const header = Buffer.alloc(44);
-  header.write('RIFF', 0);
-  header.writeUInt32LE(36 + data.length, 4);
-  header.write('WAVE', 8);
-  header.write('fmt ', 12);
-  header.writeUInt32LE(16, 16); // PCM fmt chunk size
-  header.writeUInt16LE(1, 20); // PCM
-  header.writeUInt16LE(1, 22); // mono
-  header.writeUInt32LE(rate, 24);
-  header.writeUInt32LE(rate * 2, 28); // byte rate
-  header.writeUInt16LE(2, 32); // block align
-  header.writeUInt16LE(16, 34); // bits per sample
-  header.write('data', 36);
-  header.writeUInt32LE(data.length, 40);
-  return Buffer.concat([header, data]);
-}
 
 const source = stripTypeScriptTypes(
   readFileSync(resolve(repo, 'web/src/tilt-to-live/TiltAudio.ts'), 'utf8')

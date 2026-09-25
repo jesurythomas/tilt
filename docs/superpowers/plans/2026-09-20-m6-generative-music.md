@@ -104,7 +104,7 @@ These are the inputs the spec implies that are most likely to bite a player. Eac
 **Interfaces:**
 - Produces: `AudioBank.MUSIC_PATH: String = "res://assets/audio/music/music_loop.wav"`, and a loaded `AudioStreamWAV` with `loop_mode == LOOP_FORWARD`, `loop_begin == 0`, and `loop_end ==` frame count `== roundi(get_length() * mix_rate)`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 In `godot/tests/test_audio_bank.gd`, add these constants above `var _host: Node = null` (gdlint wants constants before variables and functions):
 
@@ -140,12 +140,12 @@ Also add to the `AudioBank` constants in `godot/src/audio/audio_bank.gd`, direct
 const MUSIC_PATH: String = "res://assets/audio/music/music_loop.wav"
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `tools/run_tests.sh`
 Expected: FAIL in `test_music_loop_is_one_cycle_and_loops_forward` ("bake_music.mjs writes it"). Everything else passes (549 + 1 failing).
 
-- [ ] **Step 3: Move `wav()` into `tools/bake-audio/wav.mjs`**
+- [x] **Step 3: Move `wav()` into `tools/bake-audio/wav.mjs`**
 
 Create `tools/bake-audio/wav.mjs`:
 
@@ -180,7 +180,7 @@ In `tools/bake-audio/bake_sfx.mjs`, delete the `function wav(samples, rate) { �
 Run: `node tools/bake-audio/bake_sfx.mjs | tail -1 && git status --short godot/assets/audio/sfx/`
 Expected: `OK: 37 files in …`, then nothing (the SFX are byte-identical).
 
-- [ ] **Step 4: Write `tools/bake-audio/bake_music.mjs`**
+- [x] **Step 4: Write `tools/bake-audio/bake_music.mjs`**
 
 ```js
 // Renders TiltAudio.ts's background music to one seamless loop WAV in
@@ -292,12 +292,12 @@ console.log(
 console.log(`OK: music_loop.wav ${samples.length} frames (loop_end) in ${outDir}`);
 ```
 
-- [ ] **Step 5: Run the bake twice and check it is deterministic**
+- [x] **Step 5: Run the bake twice and check it is deterministic**
 
 Run: `node tools/bake-audio/bake_music.mjs && sha1sum godot/assets/audio/music/music_loop.wav && node tools/bake-audio/bake_music.mjs | tail -1 && sha1sum godot/assets/audio/music/music_loop.wav`
 Expected: `OK: music_loop.wav 1263761 frames (loop_end) …` both times, the same SHA-1 both times, and a peak strictly between 0 and 1. If the frame count is not 1263761, stop: R2's arithmetic or the accumulation differs, so reconcile it before going on.
 
-- [ ] **Step 6: Import, set the loop, and re-import**
+- [x] **Step 6: Import, set the loop, and re-import**
 
 ```bash
 "$GODOT" --headless --path godot --import
@@ -308,12 +308,12 @@ grep -n "loop\|compress" godot/assets/audio/music/music_loop.wav.import
 
 Expected grep: `edit/loop_mode=2`, `edit/loop_begin=0`, `edit/loop_end=1263761`, `compress/mode=2`.
 
-- [ ] **Step 7: Run the tests to verify they pass**
+- [x] **Step 7: Run the tests to verify they pass**
 
 Run: `tools/run_tests.sh`
 Expected: `OK: 50/50 scripts collected, all tests passed` with **550** tests.
 
-- [ ] **Step 8: Amend the spec (R1)**
+- [x] **Step 8: Amend the spec (R1)**
 
 In `docs/superpowers/specs/2026-09-20-peril-point-godot-port-design.md`:
 - Append to the D5 row's rationale cell: ` **Amended 2026-09-25 (M6 R1):** the TS arrangement takes no game input, so the music bakes to one seamless loop rendered by the TS scheduler's own \`scheduleStep\`; no stems and no GDScript sequencer.`
@@ -329,7 +329,7 @@ renders it once, through the TS's own `scheduleStep`, to a seamless loop WAV
 volume against that loop. There are no stems and no `music_sequencer.gd`.
 ```
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git checkout godot/project.godot
@@ -661,6 +661,12 @@ git log -1 --format=%B
 ```
 
 ---
+
+## Execution rulings
+
+Inline execution (executing-plans); ledger at `.superpowers/sdd/2026-09-20-m6-generative-music/progress.md` (git-ignored), copied here.
+
+- **Task 1 (2026-09-25).** (a) The test gained `if stream == null: return` after `assert_not_null`, so the red run fails on the assertion rather than a null dereference. (b) Chrome's offline render is not bit-exact between runs: two bakes differed in 4 of 1 263 761 samples, each by 1 LSB (float jitter at int16 rounding boundaries). `bake_music.mjs` therefore keeps the existing `music_loop.wav` when a fresh render is within 1 LSB of it in every sample (it prints `kept`), so the exit check "`git status --short godot/assets/audio/` empty" holds. R3's "byte-deterministic" is true to ±1 LSB. The bake printed 1263761 frames and peak 0.0580. Per-bar RMS ×1000 was `4.6 4.3 4.3 4.4 5.3 5.1 5.1 5.2 5.3 5.1 5.1 5.1 2.2 1.6 2.9 4.6`: the lead adds level in bars 4–11, and the breakdown dips in bars 12–14.
 
 ### Task 4: Module exit protocol (CONVENTIONS §9)
 
