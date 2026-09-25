@@ -145,6 +145,11 @@ func _ready() -> void:
 	_menu.armory_requested.connect(open_armory.bind(""))
 	_menu.all_goals_requested.connect(open_all_goals_modal)  # PORT: :195
 	_menu.scheme_chosen.connect(_on_menu_scheme_chosen)
+	# The Settings modal (M11a ruling R9): readability and audio apply at once.
+	_menu.readability_changed.connect(apply_readability)
+	_menu.sfx_toggled.connect(set_sfx_enabled)
+	_menu.music_toggled.connect(set_music_enabled)
+	_menu.reset_confirmed.connect(reset_progress)  # PORT: web/src/tilt-to-live/TiltMenu.ts:510
 	GameEvents.run_ended.connect(_on_run_ended)
 
 	resize_canvas()
@@ -456,6 +461,32 @@ func set_music_enabled(is_on: bool) -> void:
 			_audio.start_music()
 	else:
 		_audio.stop_music()
+
+
+## Deletes the progress files the TS reset prompt names.
+## PORT: web/src/tilt-to-live/TiltMenu.ts:507-517
+# DIVERGENCE(M11a Q1): :515-516 remove 'tilt_to_live_progression_v1' and
+# 'tilt_to_live_scores_v1', which the TS never writes (ProgressionManager.ts:119 is _v3,
+# ScoreManager.ts:162 is 'tilt_to_live_best'), so a TS reset keeps points, unlocks and the
+# best score despite its prompt (:508). The user ruled the port deletes them.
+# 'tilt_goals_hud_collapsed' (:517) has no port file; control settings and calibration stay.
+static func reset_progress_files() -> void:
+	for path: String in [
+		GameOptionsManager.SAVE_PATH,
+		GoalManager.SAVE_PATH,
+		GoalManager.CUMULATIVE_SAVE_PATH,
+		ProgressionManager.SAVE_PATH,
+		ScoreManager.BEST_SCORE_PATH,
+	]:
+		var absolute: String = ProjectSettings.globalize_path(path)
+		if FileAccess.file_exists(absolute):
+			DirAccess.remove_absolute(absolute)
+
+
+## PORT: web/src/tilt-to-live/TiltMenu.ts:510-520 — window.location.reload() becomes a scene reload.
+func reset_progress() -> void:
+	reset_progress_files()
+	get_tree().reload_current_scene.call_deferred()
 
 
 ## PORT: web/src/tilt-to-live/TiltGame.ts:2343-2350

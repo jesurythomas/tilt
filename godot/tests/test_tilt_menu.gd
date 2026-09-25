@@ -145,3 +145,91 @@ func test_every_menu_target_meets_the_48_rule() -> void:
 		var b: Button = button as Button
 		if b.is_visible_in_tree():
 			assert_true(b.size.y >= 48.0, "%s height %f (interface spec §4.5)" % [b.name, b.size.y])
+
+
+func _settings_open() -> TiltMenu:
+	var menu: TiltMenu = _menu()
+	(menu.find_child("MenuSettingsButton", true, false) as Button).pressed.emit()
+	return menu
+
+
+func test_settings_button_opens_the_modal_and_back_closes_it() -> void:
+	var menu: TiltMenu = _settings_open()
+	assert_true(menu.is_options_open(), "TiltMenu.ts:252-254")
+	(menu.find_child("OptionsBackButton", true, false) as Button).pressed.emit()
+	assert_false(menu.is_options_open(), "TiltMenu.ts:419-421")
+
+
+func test_halo_and_grid_switches_save_and_announce() -> void:
+	var menu: TiltMenu = _settings_open()
+	watch_signals(menu)
+	(menu.find_child("HaloSwitch", true, false) as CheckButton).toggled.emit(false)
+	(menu.find_child("GridSwitch", true, false) as CheckButton).toggled.emit(true)
+	var saved: GameOptionsManager = GameOptionsManager.new()
+	assert_false(saved.settings.high_contrast_halo, "TiltMenu.ts:429-433")
+	assert_true(saved.settings.show_gridlines, "TiltMenu.ts:441-445")
+	assert_signal_emit_count(menu, "readability_changed", 2, "R9: applied at once")
+
+
+func test_shake_segments_store_the_ts_ids() -> void:
+	var menu: TiltMenu = _settings_open()
+	(menu.find_child("ShakeLow", true, false) as Button).pressed.emit()
+	assert_eq(GameOptionsManager.new().settings.screen_shake, GameOptionsManager.ScreenShake.LOW)
+	(menu.find_child("ShakeFull", true, false) as Button).pressed.emit()
+	assert_eq(
+		GameOptionsManager.new().settings.screen_shake,
+		GameOptionsManager.ScreenShake.FULL,
+		"data-shake=full (TiltMenu.ts:345)"
+	)
+
+
+func test_the_default_normal_shake_marks_full() -> void:
+	var menu: TiltMenu = _settings_open()
+	assert_true(
+		(menu.find_child("ShakeFull", true, false) as Button).button_pressed,
+		"isCurrentShake: normal counts as full (TiltMenu.ts:280-285)"
+	)
+
+
+func test_audio_switches_announce() -> void:
+	var menu: TiltMenu = _settings_open()
+	watch_signals(menu)
+	(menu.find_child("SfxSwitch", true, false) as CheckButton).toggled.emit(false)
+	(menu.find_child("MusicSwitch", true, false) as CheckButton).toggled.emit(false)
+	# R9 (Q2 ruling). GUT's 4th argument here is the emit index, not a message.
+	assert_signal_emitted_with_parameters(menu, "sfx_toggled", [false])
+	assert_signal_emitted_with_parameters(menu, "music_toggled", [false])
+	assert_signal_not_emitted(menu, "readability_changed", "audio is not readability")
+
+
+func test_aim_line_is_omitted() -> void:
+	var menu: TiltMenu = _settings_open()
+	assert_null(menu.find_child("AimSwitch", true, false), "R3")
+
+
+func test_calibrate_link_shows_only_for_tilt_and_armory_link_closes() -> void:
+	var menu: TiltMenu = _settings_open()
+	var calibrate: Control = menu.find_child("SettingsCalibrateButton", true, false) as Control
+	assert_false(calibrate != null and calibrate.is_visible_in_tree(), "TiltMenu.ts:378")
+	_settings.scheme = Types.ControlScheme.GYRO
+	menu.open_options_modal()
+	calibrate = menu.find_child("SettingsCalibrateButton", true, false) as Control
+	assert_true(calibrate.is_visible_in_tree())
+	watch_signals(menu)
+	(menu.find_child("ArmoryLink", true, false) as Button).pressed.emit()
+	assert_false(menu.is_options_open(), "TiltMenu.ts:501")
+	assert_signal_emitted(menu, "armory_requested", "TiltMenu.ts:502")
+
+
+func test_reset_asks_first_and_cancel_emits_nothing() -> void:
+	var menu: TiltMenu = _settings_open()
+	watch_signals(menu)
+	(menu.find_child("ResetButton", true, false) as Button).pressed.emit()
+	var confirm: Control = menu.find_child("ResetConfirm", true, false) as Control
+	assert_true(confirm.is_visible_in_tree(), "window.confirm (TiltMenu.ts:507)")
+	(menu.find_child("ResetCancelButton", true, false) as Button).pressed.emit()
+	assert_false(confirm.is_visible_in_tree())
+	assert_signal_not_emitted(menu, "reset_confirmed")
+	(menu.find_child("ResetButton", true, false) as Button).pressed.emit()
+	(menu.find_child("ResetConfirmButton", true, false) as Button).pressed.emit()
+	assert_signal_emitted(menu, "reset_confirmed", "TiltMenu.ts:510")

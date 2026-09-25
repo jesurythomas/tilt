@@ -1142,7 +1142,7 @@ git commit -m "M11a: boot into the menu and step its backdrop; next: Task 5"
   3. **Audio** (`:353`): `SfxSwitch` `"Sound"` and `MusicSwitch` `"Music"` switch cards with no hints (the board has none; R6). Then **Data** (`:397`, caps with margin-top 8): the `"Reset progress"` card with hint `"Cannot be undone."`, and `ResetButton` (`"Reset"`, height 48, border `COLOR_LINE_STRONG`, text `COLOR_TEXT_MUTED` 13).
 - `ResetConfirm` (R11): `UiTheme.build_sheet(<modal>, 0.8)` (the Pause scrim alpha). It holds a 14 px `COLOR_TEXT` label with the TS confirm text (`:508`), then an HBox with `ResetCancelButton` (`PrimaryButton`, `"Cancel"`) and `ResetConfirmButton` (`SecondaryButton`, `"Reset"`). The sheet is hidden until Reset is pressed.
 
-- [ ] **Step 1: Write the failing tests** (append to `test_tilt_menu.gd`):
+- [x] **Step 1: Write the failing tests** (append to `test_tilt_menu.gd`):
 
 ```gdscript
 func _settings_open() -> TiltMenu:
@@ -1282,9 +1282,9 @@ func test_settings_switches_apply_at_once() -> void:
 
 (+8 tests in `test_tilt_menu.gd`, +3 in `test_main_scene.gd`.)
 
-- [ ] **Step 2: Run to verify they fail.**
+- [x] **Step 2: Run to verify they fail.**
 
-- [ ] **Step 3: Implement.** In `tilt_menu.gd`, `open_options_modal()` ports `:257-413`. It rebuilds `OptionsModal`'s contents from `_options.settings` and `_settings.scheme` each time it opens, as the TS re-renders on every toggle (`this.openOptionsModal()` at the end of each handler), and then shows it. The handlers in `_bind_options_events()` port `:415-522`:
+- [x] **Step 3: Implement.** In `tilt_menu.gd`, `open_options_modal()` ports `:257-413`. It rebuilds `OptionsModal`'s contents from `_options.settings` and `_settings.scheme` each time it opens, as the TS re-renders on every toggle (`this.openOptionsModal()` at the end of each handler), and then shows it. The handlers in `_bind_options_events()` port `:415-522`:
   - Halo, grid, shake: mutate, `_options.save()`, `readability_changed.emit()` (R9), then `open_options_modal()` (re-render).
   - Sound and Music: `sfx_toggled.emit(is_on)` / `music_toggled.emit(is_on)`, then re-render. `GameRoot` connects them to `set_sfx_enabled` / `set_music_enabled`, which mutate, save and apply (R9, Q2 ruling). Tag: `# DIVERGENCE(M11a Q2): TiltMenu.ts:460-470 only saves; the user ruled Settings applies audio at once, as Pause does (TiltGame.ts:1396-1416).`
   - Scheme card: `scheme_chosen.emit(scheme)`, then re-render after GameRoot writes it. GameRoot's `_on_menu_scheme_chosen` calls `set_control_scheme`. Because `_settings` is the same `ControlSettings` object, the re-render reads the new scheme.
@@ -1323,9 +1323,11 @@ func reset_progress() -> void:
 
 In `_ready`, connect `_menu.reset_confirmed.connect(reset_progress)`, `_menu.readability_changed.connect(apply_readability)`, `_menu.sfx_toggled.connect(set_sfx_enabled)` and `_menu.music_toggled.connect(set_music_enabled)`. The main-scene tests do not press Confirm through `GameRoot`: that would reload the test scene. They call the static method instead.
 
-- [ ] **Step 4: Run the tests.** 52 scripts, **+11 tests** (599). Format and lint.
+- [x] **Step 4: Run the tests.** 52 scripts, **+11 tests** (599). Format and lint.
 
-- [ ] **Step 5: Commit**
+  *Landed note (Task 5):* `test_audio_switches_announce` as written passed a message as the 4th argument of `assert_signal_emitted_with_parameters`, which GUT 9 reads as the emit index (runtime error). The message became a comment; the assertions are unchanged. The Keys card is built and hidden on mobile (as `ControlPicker`); `SettingsCalibrateButton` is built only while the scheme is `GYRO`.
+
+- [x] **Step 5: Commit**
 
 ```bash
 git checkout godot/project.godot

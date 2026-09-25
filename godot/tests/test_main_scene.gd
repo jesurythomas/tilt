@@ -23,6 +23,7 @@ func before_each() -> void:
 	_remove(SaveStore.corrupt_path_for(GoalManager.SAVE_PATH))
 	_remove(GoalManager.CUMULATIVE_SAVE_PATH)
 	_remove(SaveStore.corrupt_path_for(GoalManager.CUMULATIVE_SAVE_PATH))
+	_remove(ScoreManager.BEST_SCORE_PATH)
 
 
 func after_each() -> void:
@@ -34,6 +35,7 @@ func after_each() -> void:
 	_remove(SaveStore.corrupt_path_for(GoalManager.SAVE_PATH))
 	_remove(GoalManager.CUMULATIVE_SAVE_PATH)
 	_remove(SaveStore.corrupt_path_for(GoalManager.CUMULATIVE_SAVE_PATH))
+	_remove(ScoreManager.BEST_SCORE_PATH)
 
 
 ## Boots the scene and starts a run from the menu, as Play does (TiltMenu.ts:238-241).
@@ -711,3 +713,54 @@ func test_the_menu_keeps_the_run_hud_hidden_and_the_next_run_redraws_it() -> voi
 	root._run_controller.lives = 3
 	await get_tree().process_frame
 	assert_true(lives.visible, "the same pips redraw in the next run (R12)")
+
+
+func test_reset_cancel_keeps_every_file() -> void:
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	root.options.save()
+	root.progression.add_points(5)
+	root._menu.open_options_modal()
+	(root.find_child("ResetButton", true, false) as Button).pressed.emit()
+	(root.find_child("ResetCancelButton", true, false) as Button).pressed.emit()
+	assert_true(FileAccess.file_exists(GameOptionsManager.SAVE_PATH))
+	assert_true(FileAccess.file_exists(ProgressionManager.SAVE_PATH))
+
+
+func test_reset_confirm_removes_progress_and_keeps_controls() -> void:
+	GameOptionsManager.new().save()
+	var goals: GoalManager = GoalManager.new()
+	goals.save_completed()
+	goals.save_cumulative()
+	var progression: ProgressionManager = ProgressionManager.new()
+	progression.add_points(5)
+	ControlSettings.new().save_settings()
+	SaveStore.save_dict(ScoreManager.BEST_SCORE_PATH, {"bestScore": 1200})
+	GameRoot.reset_progress_files()
+	assert_false(FileAccess.file_exists(GameOptionsManager.SAVE_PATH), "settings_v1 (:512)")
+	assert_false(FileAccess.file_exists(GoalManager.SAVE_PATH), "completed_goals_v1 (:513)")
+	assert_false(
+		FileAccess.file_exists(GoalManager.CUMULATIVE_SAVE_PATH), "cumulative_stats_v1 (:514)"
+	)
+	assert_false(
+		FileAccess.file_exists(ProgressionManager.SAVE_PATH), "R10 (Q1 ruling): :515's intent"
+	)
+	assert_false(
+		FileAccess.file_exists(ScoreManager.BEST_SCORE_PATH), "R10 (Q1 ruling): :516's intent"
+	)
+	assert_true(FileAccess.file_exists(ControlSettings.SETTINGS_PATH), "R10: not in the prompt")
+
+
+func test_settings_switches_apply_at_once() -> void:
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	root._menu.open_options_modal()
+	(root.find_child("HaloSwitch", true, false) as CheckButton).toggled.emit(false)
+	(root.find_child("GridSwitch", true, false) as CheckButton).toggled.emit(true)
+	(root.find_child("SfxSwitch", true, false) as CheckButton).toggled.emit(false)
+	assert_false(root._entity_layer._high_contrast_halo, "R2/R9")
+	assert_true(root._grid_layer.show_gridlines)
+	assert_true(root._audio.is_muted(), "R9 (Q2 ruling): set_sfx_enabled at once")
+	assert_false(GameOptionsManager.new().settings.sfx_enabled, "and saved")
