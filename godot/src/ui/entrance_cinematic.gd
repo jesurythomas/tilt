@@ -172,7 +172,9 @@ func _gui_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		is_press = (event as InputEventScreenTouch).pressed
 	elif event is InputEventMouseButton:
-		is_press = (event as InputEventMouseButton).pressed
+		# PORT: web/src/tilt-to-live/TiltEntranceCinematic.ts:101 click (primary button)
+		var mouse_event: InputEventMouseButton = event as InputEventMouseButton
+		is_press = mouse_event.pressed and mouse_event.button_index == MOUSE_BUTTON_LEFT
 	if is_press and is_playing:
 		accept_event()
 		skip_requested.emit()
@@ -256,7 +258,7 @@ func _glow() -> TextureRect:
 	texture.gradient = gradient
 	texture.fill = GradientTexture2D.FILL_RADIAL
 	texture.fill_from = Vector2(0.5, 0.5)  # DIVERGENCE(UI-SYSTEM): ColdOpen.dc.html — at 50% 50%
-	texture.fill_to = Vector2(1.0, 0.5)
+	texture.fill_to = Vector2(1.0, 0.5)  # DIVERGENCE(UI-SYSTEM): ColdOpen.dc.html — at 50% 50%
 	var diameter: Vector2 = GLOW_RADII * 2.0  # DIVERGENCE(UI-SYSTEM): ColdOpen.dc.html — radii → size
 	texture.width = roundi(diameter.x)
 	texture.height = roundi(diameter.y)

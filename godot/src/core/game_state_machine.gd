@@ -103,7 +103,8 @@ func restart() -> void:
 ## PORT: web/src/tilt-to-live/TiltGame.ts:1523-1530
 func start_cinematic() -> void:
 	# PORT-NOTE: goalsHUD.setMenuMode(false) (TiltGame.ts:1524) is GameRoot's
-	# (GameRoot.launch_run) — this machine holds no UI (spec §5.1).
+	# (GameRoot.launch_run and GameRoot.restart_run) — this machine holds no UI
+	# (spec §5.1).
 	reset_run(mode)
 	phase = Types.GamePhase.CINEMATIC  # PORT: web/src/tilt-to-live/TiltGame.ts:1526
 	# PORT-NOTE: cinematic.start (:1527-1529) is GameRoot's (_begin_cinematic) —
@@ -139,7 +140,8 @@ func reset_run(new_mode: Types.GameMode) -> void:
 
 	phase = Types.GamePhase.PLAYING
 	# PORT-NOTE: document.body.classList.add('tilt-playing') (TiltGame.ts:1563) is
-	# GameRoot's: the run HUD shows on phase_changed(PLAYING) (M11a R12).
+	# GameRoot's: the run HUD shows on phase_changed(CINEMATIC or PLAYING)
+	# (M11a R12, M11b R9).
 	elapsed = 0.0
 	# PORT-NOTE: TiltGame.ts:1565 also zeroes this.accumulator, the manual
 	# rAF-loop accumulator driving fixed updates. Godot's fixed physics step
@@ -163,7 +165,8 @@ func reset_run(new_mode: Types.GameMode) -> void:
 	# run_controller.gd::reset_run, which Retry and Restart run also reach (M5 R11).
 	# TODO(M2): updateHUD().
 	# PORT-NOTE: the pause and game-over modals (TiltGame.ts:1612-1613) hide on
-	# phase_changed(PLAYING) in HudController._on_phase_changed (M11a R12).
+	# phase_changed(CINEMATIC or PLAYING) in HudController._on_phase_changed
+	# (M11a R12, M11b R9).
 	# PORT-NOTE: goalsHUD.updateLive (:1615) is ported in run_controller.gd::reset_run.
 	# PORT-NOTE: updateCursor() (TiltGame.ts:1616) — no pointer on Android (M11a R16).
 

@@ -146,6 +146,27 @@ func test_a_tap_or_click_asks_to_skip_only_while_playing() -> void:
 	assert_eq(c.mouse_filter, Control.MOUSE_FILTER_STOP, "the overlay eats the tap")
 
 
+func test_only_a_left_click_asks_to_skip() -> void:
+	var c: EntranceCinematic = _cinematic()
+	watch_signals(c)
+	c.start(BOUNDS.x, BOUNDS.y, Types.GameMode.CLASSIC)
+	var wheel: InputEventMouseButton = InputEventMouseButton.new()
+	wheel.button_index = MOUSE_BUTTON_WHEEL_UP
+	wheel.pressed = true
+	c._gui_input(wheel)
+	assert_signal_not_emitted(c, "skip_requested", "wheel is not the primary button")
+	var right_click: InputEventMouseButton = InputEventMouseButton.new()
+	right_click.button_index = MOUSE_BUTTON_RIGHT
+	right_click.pressed = true
+	c._gui_input(right_click)
+	assert_signal_not_emitted(c, "skip_requested", "right-click is not the primary button")
+	var left_click: InputEventMouseButton = InputEventMouseButton.new()
+	left_click.button_index = MOUSE_BUTTON_LEFT
+	left_click.pressed = true
+	c._gui_input(left_click)
+	assert_signal_emit_count(c, "skip_requested", 1, ":101 click (primary button)")
+
+
 func test_the_board_is_built_as_drawn() -> void:
 	var c: EntranceCinematic = _cinematic()
 	c.start(BOUNDS.x, BOUNDS.y, Types.GameMode.CLASSIC)
