@@ -9,7 +9,13 @@ Rewritten at every module stop. Written for a session with zero context.
 `docs/superpowers/plans/2026-09-20-m5-audio-bake-and-sfx.md`. 37 SFX baked from
 `TiltAudio.ts` to WAV (M5 R1) and played through a 32-voice `AudioBank`; music is
 still `TODO(M6)`. Full section: `## M5 — what landed` below. Device checks:
-`VERIFY-ME.md` §M5 (A55 absent on 2026-09-25). **Next: plan M6** (see Next below).
+`VERIFY-ME.md` §M5 (A55 absent on 2026-09-25).
+
+**M6 — Generative music: plan written, awaiting user review.** Plan
+`docs/superpowers/plans/2026-09-20-m6-generative-music.md` (Tasks 1–4). User ruling
+M6 R1 (2026-09-25): the TS arrangement has no game input, so it bakes to one seamless
+loop WAV. There are no stems and no `music_sequencer.gd` (this amends spec D5/§8 M6 at Task 1).
+**Next: once the user approves, execute M6 Task 1.**
 
 **M10 — Modes: code-complete, device pass pending.** Final commit `2e6b2d2`
 (exit commit for the whole module — final review fixes F-1..F-4 landed at
@@ -1095,30 +1101,17 @@ not a port change) is recorded in the plan's `## Execution rulings`.
 
 ## Next
 
-**M5 is closed (device pass pending). Next module: M6 — Generative music**
-(deps M5). No plan exists yet.
+**M6 plan written, not executed.** `docs/superpowers/plans/2026-09-20-m6-generative-music.md`
+carries rulings R1–R9 and Tasks 1–4. R9 records a headless spike (2026-09-25): QOA import
+keeps a forward loop, an explicit `loop_end` survives, and playback position and seek work
+under the dummy driver.
 
-**First step, literally:** read `web/src/tilt-to-live/TiltAudio.ts:12-20` and
-`:82-479` in full, then spec §8 Module 6, then write
-`docs/superpowers/plans/2026-09-20-m6-generative-music.md`. Commit the plan and
-stop for review before executing it.
-
-Carry into the M6 plan:
-- M6 fills `AudioBank.start_music`/`stop_music` (`TODO(M6)`), reads
-  `AudioBank.music_gain`, and must honour `_muted`: the TS master mute silences
-  music too (`:54`, `:106`).
-- The music drums use a noise buffer (`:114-124`, `Math.random`), so an M6 bake
-  is not deterministic unless it pins `Math.random`. Decide this at plan time.
-- The TS starts music when the cinematic ends (`TiltGame.ts:169-172`). The
-  cinematic is M11, so M6 must choose where a run's music starts until then.
-- M11 must call `play_warp_in` from the cinematic (`TiltEntranceCinematic.ts:74`, M5 R8).
-- `tools/bake-audio/bake_sfx.mjs` is the pattern for any music-stem bake.
-  Re-bake the SFX only if `TiltAudio.ts` changes: run `node tools/bake-audio/bake_sfx.mjs`,
-  then `godot --headless --path godot --import`.
+**First step, literally:** if the user has approved the plan, read it plus
+`web/src/tilt-to-live/TiltAudio.ts:5-20, :29-80, :82-479`, then execute Task 1. If the
+user has asked for changes, edit the plan first and re-commit it.
 
 Before starting: `git status --short` must be clean under `godot/`
 (the user may leave device tuning uncommitted — never stash or revert it),
-and read `godot/VERIFY-ME.md` for the outstanding M2.5/M3/M4/M5/M7/M8.5/M9/M10
-and "Mobile scale split" device checks. If the A55 is back on `adb`, offer
-the device pass first. It would clear the pending boxes of eight modules and
-the scale split in one session (absent since 2026-09-21, still absent on 2026-09-25).
+and read `godot/VERIFY-ME.md` for the outstanding device checks. If the A55 is
+back on `adb`, offer the device pass first (absent since 2026-09-21, still
+absent on 2026-09-25).
