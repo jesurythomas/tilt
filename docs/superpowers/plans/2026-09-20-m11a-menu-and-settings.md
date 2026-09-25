@@ -1356,7 +1356,7 @@ git commit -m "M11a: port the options modal to the Settings board; next: Task 6"
 - `dot_offset()` = `tilt_vector.limit_length(1.0) * 66.0` × `ui_scale` (66 is half of 132, `DIVERGENCE(UI-SYSTEM)`, R4). The board draws the dot 4 px up and 1 px right of centre (`margin: -24px 0 0 -8px`) as a mock of a tilted phone. At rest the port centres it. PORT-NOTE.
 - `_process` (UI, not sim): while open, `_tilt.poll()` then `queue_redraw` on `Disc`.
 
-- [ ] **Step 1: Write the failing tests** — `godot/tests/test_calibrate_screen.gd`:
+- [x] **Step 1: Write the failing tests** — `godot/tests/test_calibrate_screen.gd`:
 
 ```gdscript
 ## test_calibrate_screen.gd
@@ -1441,9 +1441,9 @@ func test_the_menu_calibrate_icon_opens_the_screen_and_set_level_calibrates() ->
 
 (+5 tests in the new script, +1 in `test_main_scene.gd`.)
 
-- [ ] **Step 2: Run to verify they fail.** Expect `collected 52 of 53`.
+- [x] **Step 2: Run to verify they fail.** Expect `collected 52 of 53`.
 
-- [ ] **Step 3: Implement** `calibrate_screen.gd` (header `PORTS: nothing — new file per interface spec §6.6 (Calibrate.dc.html) and M11a R4-R5`). Add the `main.tscn` node `Calibrate` (full rect, `visible = false`, script, `unique_name_in_owner`) directly after `Menu`. In `game_root.gd`, add `@onready var _calibrate_screen: CalibrateScreen = %Calibrate`. In `_ready`: `_calibrate_screen.bind(_tilt)`; `_menu.calibrate_screen_requested.connect(open_calibrate_screen)`; `_calibrate_screen.set_level_requested.connect(calibrate_gyro_from_screen)`; `_calibrate_screen.closed.connect(_on_calibrate_closed)`. In `resize_canvas`: `_calibrate_screen.set_ui_scale(ui_scale, arena_origin)`.
+- [x] **Step 3: Implement** `calibrate_screen.gd` (header `PORTS: nothing — new file per interface spec §6.6 (Calibrate.dc.html) and M11a R4-R5`). Add the `main.tscn` node `Calibrate` (full rect, `visible = false`, script, `unique_name_in_owner`) directly after `Menu`. In `game_root.gd`, add `@onready var _calibrate_screen: CalibrateScreen = %Calibrate`. In `_ready`: `_calibrate_screen.bind(_tilt)`; `_menu.calibrate_screen_requested.connect(open_calibrate_screen)`; `_calibrate_screen.set_level_requested.connect(calibrate_gyro_from_screen)`; `_calibrate_screen.closed.connect(_on_calibrate_closed)`. In `resize_canvas`: `_calibrate_screen.set_ui_scale(ui_scale, arena_origin)`.
 
 ```gdscript
 ## Opens the Calibrate board and starts the sensor so its dot moves (M11a R4).
@@ -1465,9 +1465,9 @@ func _on_calibrate_closed() -> void:
 
 `set_level_requested` must fire **before** `closed`, so that calibration reads a live sensor. In `CalibrateScreen._on_set_level_pressed`, emit `set_level_requested` first, then `close()`, which emits `closed`.
 
-- [ ] **Step 4: Run the tests.** 53 scripts, **+6 tests** (605). Format (96 files) and lint.
+- [x] **Step 4: Run the tests.** 53 scripts, **+6 tests** (605). Format (96 files) and lint.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git checkout godot/project.godot

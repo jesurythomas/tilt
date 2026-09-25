@@ -764,3 +764,17 @@ func test_settings_switches_apply_at_once() -> void:
 	assert_true(root._grid_layer.show_gridlines)
 	assert_true(root._audio.is_muted(), "R9 (Q2 ruling): set_sfx_enabled at once")
 	assert_false(GameOptionsManager.new().settings.sfx_enabled, "and saved")
+
+
+func test_the_menu_calibrate_icon_opens_the_screen_and_set_level_calibrates() -> void:
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	(root.find_child("MenuCalibrateButton", true, false) as Button).pressed.emit()
+	var screen: CalibrateScreen = root.find_child("Calibrate", true, false) as CalibrateScreen
+	assert_true(screen.is_open(), "R5")
+	(screen.find_child("SetLevelButton", true, false) as Button).pressed.emit()
+	assert_false(screen.is_open())
+	var toast: Control = root.find_child("ToastSlot", true, false) as Control
+	assert_true(toast.get_child_count() > 0, "calibrate_gyro's toast shows on the menu (R12)")
+	assert_false(root._tilt.is_listening, "back in the menu the sensor stops (R4)")

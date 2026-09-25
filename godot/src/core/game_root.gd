@@ -1,7 +1,11 @@
+# gdlint:ignore=max-public-methods
 ## game_root.gd
 ## PORTS: web/src/tilt-to-live/TiltGame.ts:1822-1853 (loop), 1855-2083 (update),
 ##        2259-2318 (render dispatch), 2419-2439 (resizeCanvas)
 ##        per spec §5.1 and §5.4
+# PORT-NOTE: as audio_bank.gd — GameRoot dispatches to every subsystem, and
+# M11a's Calibrate wiring pushed its public method count past gdlint's
+# default max-public-methods (20).
 class_name GameRoot
 extends Node2D
 ## Owns every subsystem, reproduces resizeCanvas() and drives frame order.
@@ -86,6 +90,7 @@ var _bounds: Vector2 = Vector2.ZERO
 @onready var _hud_frame: Control = %Frame
 @onready var _toast_slot: Control = %ToastSlot
 @onready var _menu: TiltMenu = %Menu
+@onready var _calibrate_screen: CalibrateScreen = %Calibrate
 
 
 func _ready() -> void:
@@ -150,6 +155,11 @@ func _ready() -> void:
 	_menu.sfx_toggled.connect(set_sfx_enabled)
 	_menu.music_toggled.connect(set_music_enabled)
 	_menu.reset_confirmed.connect(reset_progress)  # PORT: web/src/tilt-to-live/TiltMenu.ts:510
+	# The Calibrate board (M11a R4, R5).
+	_calibrate_screen.bind(_tilt)
+	_menu.calibrate_screen_requested.connect(open_calibrate_screen)
+	_calibrate_screen.set_level_requested.connect(calibrate_gyro_from_screen)
+	_calibrate_screen.closed.connect(_on_calibrate_closed)
 	GameEvents.run_ended.connect(_on_run_ended)
 
 	resize_canvas()
@@ -445,6 +455,23 @@ func calibrate_gyro() -> bool:
 	return success
 
 
+## Opens the Calibrate board and starts the sensor so its dot moves (M11a R4).
+func open_calibrate_screen() -> void:
+	_tilt.request_permission_and_start()
+	_calibrate_screen.open()
+
+
+## Set level: the TS calibrateGyro and its toast (TiltGame.ts:2331-2341).
+func calibrate_gyro_from_screen() -> void:
+	calibrate_gyro()
+
+
+func _on_calibrate_closed() -> void:
+	# M11a R4: reset_run owns the sensor during a run (TiltGame.ts:1553-1557).
+	if is_in_menu():
+		_tilt.stop_listening()
+
+
 ## The pause sheet's Sound switch. PORT: web/src/tilt-to-live/TiltGame.ts:1396-1403
 func set_sfx_enabled(is_on: bool) -> void:
 	options.settings.sfx_enabled = is_on
@@ -588,6 +615,7 @@ func resize_canvas() -> void:
 	_armory.set_ui_scale(ui_scale, arena_origin)
 	_goals_hud.set_ui_scale(ui_scale, arena_origin)
 	_menu.set_ui_scale(ui_scale, arena_origin)
+	_calibrate_screen.set_ui_scale(ui_scale, arena_origin)
 	_effect_layer.set_ui_scale(ui_scale)
 
 
