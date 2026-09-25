@@ -197,7 +197,14 @@ func _unhandled_input(event: InputEvent) -> void:
 	# every other scheme keeps TiltGame.ts's steer-toward-pointer behaviour.
 	# NOTE: TOUCH is the control picker's label for Types.ControlScheme.MOUSE
 	# (spec §4.3) — the enum value is a cited port of GameOptions.ts:21.
-	if _router.control_scheme == Types.ControlScheme.MOUSE and OS.has_feature("mobile"):
+	# M11a final review: the menu backdrop is autopiloted and takes no player
+	# input (TiltGame.ts:1650-1830); skip the joystick so a backdrop tap does
+	# not draw it over the menu.
+	if (
+		_router.control_scheme == Types.ControlScheme.MOUSE
+		and OS.has_feature("mobile")
+		and not is_in_menu()
+	):
 		if event is InputEventScreenTouch:
 			var touch: InputEventScreenTouch = event
 			if touch.pressed:
@@ -418,9 +425,6 @@ func return_to_menu() -> void:
 		return
 	_state.return_to_menu()
 	_joystick.reset()
-	# M11a R2: the menu render never decays the shake, so a death shake would
-	# otherwise resume on the next run's first frame.
-	camera_shake = 0.0
 	# PORT: web/src/tilt-to-live/TiltGame.ts:1502-1510 — the modals hide on
 	# phase_changed(MENU) (HudController._on_phase_changed, M11a R12).
 	_goals_hud.set_menu_mode(true)
@@ -452,7 +456,7 @@ func restart_run() -> void:
 	_state.phase = Types.GamePhase.PLAYING
 	_run_controller.reset_run(_bounds)
 	# PORT-NOTE(M10 final review F-2): the machine's mode follows the run's
-	# captured mode (R4), so M11's _state.restart() does not pass a stale mode.
+	# captured mode (R4), so M11b's _state.restart() does not pass a stale mode.
 	_state.mode = _run_controller.mode
 	_apply_game_mode()
 	GameEvents.phase_changed.emit(Types.GamePhase.PLAYING)
@@ -551,7 +555,7 @@ func is_armory_open() -> bool:
 	return _armory.is_open()
 
 
-## Opens the full Milestones screen (the Run over rows, the M key; the menu link is M11's).
+## Opens the full Milestones screen (the Run over rows, the M key; the menu link is M11a's).
 ## PORT: web/src/tilt-to-live/TiltGame.ts:195
 func open_all_goals_modal() -> void:
 	_goals_hud.open_all_goals_modal()

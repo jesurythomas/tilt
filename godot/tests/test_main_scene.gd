@@ -24,6 +24,7 @@ func before_each() -> void:
 	_remove(GoalManager.CUMULATIVE_SAVE_PATH)
 	_remove(SaveStore.corrupt_path_for(GoalManager.CUMULATIVE_SAVE_PATH))
 	_remove(ScoreManager.BEST_SCORE_PATH)
+	_remove(TiltInput.CALIBRATION_PATH)
 
 
 func after_each() -> void:
@@ -36,6 +37,7 @@ func after_each() -> void:
 	_remove(GoalManager.CUMULATIVE_SAVE_PATH)
 	_remove(SaveStore.corrupt_path_for(GoalManager.CUMULATIVE_SAVE_PATH))
 	_remove(ScoreManager.BEST_SCORE_PATH)
+	_remove(TiltInput.CALIBRATION_PATH)
 
 
 ## Boots the scene and starts a run from the menu, as Play does (TiltMenu.ts:238-241).
@@ -761,9 +763,15 @@ func test_the_menu_calibrate_icon_opens_the_screen_and_set_level_calibrates() ->
 	assert_true(screen.is_open(), "R5")
 	(screen.find_child("SetLevelButton", true, false) as Button).pressed.emit()
 	assert_false(screen.is_open())
-	var toast: Control = root.find_child("ToastSlot", true, false) as Control
-	assert_true(toast.get_child_count() > 0, "calibrate_gyro's toast shows on the menu (R12)")
-	assert_false(root._tilt.is_listening, "back in the menu the sensor stops (R4)")
+	# Headless has no gyro (TiltInput.is_supported is Android/iOS only), so
+	# calibrate_gyro's toast falls back to the "Sensor Unavailable" title (:2337).
+	var title: Label = root.find_child("ToastTitle", true, false) as Label
+	assert_eq(title.text, "GYRO SENSOR", "calibrate_gyro's toast shows on the menu (R12)")
+	assert_true((root.find_child("GoalToast", true, false) as Control).visible)
+	assert_false(
+		root._tilt.is_listening,
+		"trivially true headless: is_supported gates start_listening to Android/iOS (R4)"
+	)
 
 
 func test_pause_quit_to_menu_hides_everything_and_stops_music() -> void:

@@ -236,7 +236,7 @@ func _draw_weapon_fx() -> void:
 			)
 			# Accretion arms and core, rotating. PORT: web/src/tilt-to-live/WeaponSystem.ts:706-743
 			# PORT-NOTE: shadowColor/shadowBlur (:709-710, :729-730) have no per-draw port;
-			# spec §4.5 routes glow to the M11 WorldEnvironment pass.
+			# spec §4.5 routes glow to the M11c WorldEnvironment pass.
 			draw_set_transform(_arena_origin + pos, _elapsed * 7.5, Vector2.ONE)
 			for arm: int in range(6):
 				# PORT: web/src/tilt-to-live/WeaponSystem.ts:714

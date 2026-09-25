@@ -106,7 +106,7 @@ func start_cinematic() -> void:
 	# (GameRoot.launch_run) — this machine holds no UI (spec §5.1).
 	reset_run(mode)
 	# PORT-NOTE: TiltGame.ts:1526 sets phase = 'cinematic' here and
-	# TiltEntranceCinematic drives the 600 ms cold open. The cinematic is M11
+	# TiltEntranceCinematic drives the 600 ms cold open. The cinematic is M11b
 	# (spec §8), so M1 leaves the phase where reset_run() put it — PLAYING —
 	# rather than entering a phase nothing can leave.
 	# TODO(M11b): set phase = CINEMATIC and start the entrance cinematic.

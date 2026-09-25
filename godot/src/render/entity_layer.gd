@@ -16,7 +16,7 @@ extends Node2D
 ## driven by the equipped ShipSkinConfig, which GameRoot pushes in through
 ## set_ship_skin() (TiltGame.ts:2310). A null skin draws PlayerShip.ts:274-293's
 ## classic fallback — the constants below — which is also what the menu
-## backdrop (M11) gets.
+## backdrop (M11a) gets.
 
 ## PORT: web/src/tilt-to-live/PlayerShip.ts:284-292 (the classic skin defaults)
 const HULL_COLOR: Color = Color("#ffffff")

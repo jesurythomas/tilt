@@ -287,7 +287,7 @@ func play_space_invader_step(step: int) -> void:
 
 ## Plays the warp-in sound. PORT: web/src/tilt-to-live/TiltAudio.ts:847-865
 # PORT-NOTE: its caller is the entrance cinematic (TiltEntranceCinematic.ts:74),
-# which is M11 (M5 R8).
+# which is M11b (M5 R8).
 func play_warp_in() -> void:
 	_play("warp_in")
 

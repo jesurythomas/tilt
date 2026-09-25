@@ -606,6 +606,13 @@ Run §0 first.
       floating joystick behind the menu.
 - [ ] 16. The menu title lacks the board's -0.015em letter-spacing —
       visible?
+- [ ] 17. The Set level toast may be hidden when Calibrate was opened from
+      Settings (the opaque modal covers the Hud ToastSlot); on the menu-icon
+      path the title block may overlap it. Judge on device.
+- [ ] 18. The tilt sensor stays on in MENU after a cold boot and after
+      picking Tilt in the Steer row, while return-to-menu and closing
+      Calibrate stop it (`_on_calibrate_closed`, `GameRoot.gd`). Note any
+      battery or feel issue.
 
 When done: tick M11a in `PORT-PROGRESS.md` with the SHA you tested, and
 resolve Q3 above in `HANDOFF.md`'s Open questions (M11a).

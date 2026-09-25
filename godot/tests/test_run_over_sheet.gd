@@ -41,6 +41,7 @@ func _label(sheet: Node, name: String) -> Label:
 func _assert_fits(size: Vector2, scale: float) -> void:
 	var sheet: RunOverSheet = _sheet(size, scale)
 	sheet.show_result(_result())
+	sheet.set_coins(3, 120)  # M11a final review: fit-test the visible CoinsRow too
 	await get_tree().process_frame
 	await get_tree().process_frame
 	var outside: Array[String] = UiChecks.outside(sheet, sheet.get_global_rect())

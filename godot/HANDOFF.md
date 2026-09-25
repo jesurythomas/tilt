@@ -1346,8 +1346,13 @@ commit (fix-round 1, same day):** DIVERGENCE total **234** (+2,
 `DIVERGENCE(M11a I-2)`, retagged from `PORT-NOTE` per Law 4 — new behaviour
 with no TS counterpart requires a divergence tag, not a plain note), tests
 **611** (+2, regression coverage for I-2 and I-1(b), both proven RED before
-their fix and GREEN after). Full command block and fresh output: "## How to
-verify right now" above.
+their fix and GREEN after). **After fix-round 2 (final review, same day):**
+53/53 GUT scripts, tests **611** (unchanged — every fix strengthened an
+existing test rather than adding a new one), 17973 asserts (+5); `gdformat
+--check` 96 files unchanged; `gdlint` clean; `DIVERGENCE` total **234**
+(unchanged — the CoinsRow fit check needed no new board literal); `ff4757`
+grep empty; headless `--quit-after 240` 0 SCRIPT ERROR. Full command block
+and fresh output: "## How to verify right now" above.
 
 ## Open questions (M11a)
 
@@ -1363,6 +1368,13 @@ verify right now" above.
    `VERIFY-ME.md` §M11a check 10 asks the device pass to record what actually
    happens (especially whether it quits the app from Settings) so this can
    be ruled then.
+4. **Sensor-on-in-MENU — open, device judgment.** The tilt sensor starts at
+   cold boot (`GameRoot._ready`) and again on picking Tilt in the Steer row
+   (`set_control_scheme`), and stays on for as long as the menu is up;
+   `return_to_menu` and `_on_calibrate_closed` are the only places that stop
+   it. No TS counterpart drives this (the web page has no persistent sensor
+   cost). `VERIFY-ME.md` §M11a check 18 asks the device pass to judge any
+   battery or feel issue.
 
 **Final whole-module review** (dispatched at Task 8 Step 5, a fresh reviewer
 over `b65eb14..HEAD`): 0 Critical, 2 Important, 5 Minor.
@@ -1393,17 +1405,60 @@ over `b65eb14..HEAD`): 0 Critical, 2 Important, 5 Minor.
   (M2.5's `restart_run` still recalibrates on every restart; the menu's
   `launch_run` no longer does on the very first Play) for the device pass to
   judge.
-- **Deferred Minors** (recorded, not fixed — full text in the plan's
+- **Deferred Minors** (recorded, not fixed at Task 8 — M-1 and M-2 fixed in
+  the final review wave below; full text in the plan's
   `## Execution rulings`, Task 8 entries): M-1 `return_to_menu`'s
-  `camera_shake = 0.0` reset is miscredited to R2 in its comment; M-2 four
-  stale pre-split "M11" comments (should read M11a/M11b/M11c) in
-  `game_root.gd` (×2), `audio_bank.gd`, `effect_layer.gd`; M-3
+  `camera_shake = 0.0` reset is miscredited to R2 in its comment; M-2 —
+  widened from four to **six** stale pre-split "M11" comments (should read
+  M11a/M11b/M11c) once the final reviewer found two more:
+  `game_root.gd` (×2), `audio_bank.gd`, `effect_layer.gd`,
+  `game_state_machine.gd`, `entity_layer.gd` — now fixed; M-3
   `calibrate_screen.gd`'s legend SVGs hardcode two hex colours instead of
   formatting `UiTheme` tokens in, unlike `tilt_menu.gd`'s own SVGs; M-4
   Settings-over-Pause p/Escape resumes underneath the modal (TS-faithful,
   device-irrelevant); M-5 three draw-arc point counts in
   `calibrate_screen.gd` are uncited (matches existing uncited precedent
-  elsewhere).
+  elsewhere). M-3, M-4 and M-5 remain deferred.
+
+**Final review (controller), fix-round 2, same day.** A fresh finding pass
+over the Task 8 exit turned up one Important and five Minor items, all fixed
+in one commit:
+1. The Run over sheet's fit tests never exercised the visible CoinsRow
+   (`ui_checks.gd` skips hidden Containers and `_assert_fits` never called
+   `set_coins`). `test_run_over_sheet.gd`'s `_assert_fits` now calls
+   `sheet.set_coins(3, 120)` before asserting; the real layout already fits
+   at both 844×390 and the A55 size, so no board literal changed (DIVERGENCE
+   stayed 234) — proven by a temporary oversized `CoinsRow` that made the fit
+   check fail, then reverted.
+2. `GameRoot._unhandled_input` now skips the joystick branch while
+   `is_in_menu()`, so a Touch-scheme tap on the menu backdrop no longer draws
+   the floating joystick over the menu. `OS.has_feature("mobile")` gates the
+   whole branch and is false headless, so this cannot be exercised by a
+   headless test; no test was added (VERIFY-ME §M11a check 15 still covers
+   the device check).
+3. `return_to_menu`'s untagged `camera_shake = 0.0` reset (M-1) removed —
+   the TS `returnToMenu` (:1496-1517) never resets shake and `_process`
+   already decays it; no test asserted the line.
+4. `test_the_menu_calibrate_icon_opens_the_screen_and_set_level_calibrates`'s
+   `ToastSlot.get_child_count() > 0` (always true — `GoalToast` lives there
+   permanently) replaced with an assertion on the toast's actual title text.
+   Headless has no gyro (`TiltInput.is_supported` is Android/iOS only), so
+   `calibrate_gyro` shows the "GYRO SENSOR" fallback there, not "TILT
+   CALIBRATED" — the test now asserts that title and the toast's visibility.
+   The `is_listening` assertion is kept, reworded to say it is trivially true
+   headless for the same reason.
+5. `test_main_scene.gd`'s save-clearing `before_each`/`after_each` now also
+   remove `TiltInput.CALIBRATION_PATH` — proven leaking a real file
+   (`user://tilt_gyro_calibration.json`) across runs before the fix, clean
+   after.
+6. M-2 widened and fixed (see above) — six stale "M11" comments retagged to
+   M11a/M11b/M11c; comments only, no behaviour change.
+
+Verification after this wave: 53/53 GUT scripts, 611 tests (unchanged — every
+change strengthened an existing test), 17973 asserts; `gdformat --check` and
+`gdlint` clean; `DIVERGENCE` total 234 (unchanged); `ff4757` grep empty;
+headless `--quit-after 240` 0 SCRIPT ERROR. Full report:
+`.superpowers/sdd/2026-09-20-m11a-menu-and-settings/final-fix-report.md`.
 
 ## Next
 
