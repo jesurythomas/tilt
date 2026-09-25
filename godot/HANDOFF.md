@@ -4,7 +4,19 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**M11a in progress: Tasks 1–7 landed; next Task 8 (exit).** The user split M11 into M11a (menu, Settings, Calibrate), M11b (entrance cinematic) and M11c (export + device pass) on 2026-09-25, and ruled R1–R4 (backdrop mirrored to the board; port screen shake + wire the halo; omit Aim line; Calibrate with a live tilt dot). Plan `docs/superpowers/plans/2026-09-20-m11a-menu-and-settings.md` (8 tasks, rulings R1–R17). Plan reviewed 2026-09-25; the user ruled **Q1 = fix** (Reset also deletes progression and best score, `DIVERGENCE(M11a Q1)`, R10) and **Q2 = apply at once** (Settings' Sound/Music route to `GameRoot.set_sfx_enabled`/`set_music_enabled`, `DIVERGENCE(M11a Q2)`, R9); Q3 (Android back) stays for the device pass. Execution: **subagent-driven** (one implementer per task, then review). Task 1 (`MenuBackdrop`, `godot/src/render/menu_backdrop.gd`) landed: 51/51 scripts, 566 tests (+7), `DIVERGENCE(M11a R1)` ×3 in this file (the module's Step 4 exit check expects a cumulative total of 4 across `godot/src`, so a 4th lands in a later task). Task 2 (screen shake + halo wiring, R2) landed: `RunController.trigger_shake` Callable ported at `lose_life`/`trigger_player_death`; `GameRoot.trigger_shake`/`camera_shake`/`apply_readability` drive the arena layers' `position` and `EntityLayer.set_high_contrast_halo`; 51/51 scripts, 570 tests (+4). Task 3 (`TiltMenu`, `godot/src/ui/tilt_menu.gd`, the menu screen on Main.dc.html) landed: root Control stays visible, `show_menu`/`hide_menu` toggle only `MenuContainer` (ruling P1), `render()` rebuilds `MenuContainer`; not yet wired (Task 4 adds it to main.tscn and must anchor it full-rect); the Settings gear is inert until Task 5; 52/52 scripts, 579 tests (+9). Task 4 (the MENU phase) landed: boot enters `MENU` (menu shown, backdrop stepping at real `delta`, layers rebound to the backdrop per R13), `GameRoot.launch_run`/`return_to_menu`/`is_in_menu`, the TS key map (p/Escape, Space/Enter/r in `GAME_OVER`), `Menu` node in `main.tscn` between `Hud` and `GoalsHud`, HUD R12 menu visibility; main-scene boot tests now `await _boot_into_run()`; 52/52 scripts, 588 tests (+9, incl. a regression test for the R12 HUD guards; `launch_run` now ports `options.setMode`). Task 5 (Settings, Settings.dc.html) landed: `TiltMenu.open_options_modal`/`close_options_modal`/`is_options_open`; `OptionsModal` and `ResetConfirm` are siblings of `MenuContainer` rebuilt on every open/toggle (TS re-render); the menu gear opens it; signals `readability_changed`, `sfx_toggled`, `music_toggled`, `reset_confirmed` wired in `GameRoot._ready` to `apply_readability`, `set_sfx_enabled`, `set_music_enabled`, `reset_progress`; `GameRoot.reset_progress_files()` (static) deletes options, both goal files, progression and best score and keeps ControlSettings (`DIVERGENCE(M11a Q1)`); Settings audio applies at once (`DIVERGENCE(M11a Q2)`); the Calibrate link emits `calibrate_screen_requested` (Task 6 connects it); switch cards are 64 tall (48 px switch target) where the board draws 60; 52/52 scripts, 599 tests (+11). Task 6 (Calibrate, `godot/src/ui/calibrate_screen.gd`, Calibrate.dc.html) landed: `CalibrateScreen` (Control, single-file — `Disc`'s ring/crosshair/dot draw through its own `draw` signal rather than a second script) full-rect over a void scrim, left block (caps/title/body + Set level/Cancel), a 230×230 Disc with base circle, crosshair, dashed top-speed ring, still ring and a live dot at `dot_offset()` (`tilt_vector.limit_length(1.0) * 66.0 * ui_scale`, centred at rest — PORT-NOTE, R4), and a "still"/"top speed" legend; wired in `GameRoot._ready`/`resize_canvas` (`open_calibrate_screen` starts the sensor and opens it; `set_level_requested` fires before `closed` so calibration reads a live sensor; `_on_calibrate_closed` stops the sensor back in the menu); `game_root.gd` now carries `# gdlint:ignore=max-public-methods` (as `audio_bank.gd`) since the wiring pushed it past 20 public methods; 53/53 scripts, 605 tests (+6); `DIVERGENCE` count 232 (was 181 at the M6 exit, mostly this screen's board-only literals). Task 7 (Pause and Run over reach the menu) landed: Pause gains `QuitToMenuButton` (under Restart run) and `PauseSettingsButton` (beside Armory; opens the menu's options modal over the paused run via `GameRoot.open_options_from_pause`); Run over gains `GameOverMenuButton` (before Spend) and a `CoinsRow` ("Coin pickups", `"<n> · +<pts> pt|pts"`, shown iff a coin was picked up, R17; `RunOverSheet.set_coins`); Quit/Menu call `GameRoot.return_to_menu`; the M10 R1 Pause mode picker and `GameRoot.set_game_mode` are gone; `TiltMenu.close_options_modal` also hides `ResetConfirm`; 53/53 scripts, 609 tests (+6 −2 deleted picker tests); `DIVERGENCE` count 232. **Next: M11a Task 8 (exit).** A55 still absent from `adb` on 2026-09-25.
+**M11a — Menu, Settings, Calibrate: code-complete, device pass pending.**
+Exit: the commit carrying this text (2026-09-25) — a commit cannot cite its
+own SHA (M5/M6 precedent). Plan
+`docs/superpowers/plans/2026-09-20-m11a-menu-and-settings.md` (8 tasks,
+rulings R1–R17). The user split M11 into M11a (menu, Settings, Calibrate),
+M11b (entrance cinematic) and M11c (export + device pass) on 2026-09-25, and
+ruled Q1 = fix Reset (also deletes progression and best score,
+`DIVERGENCE(M11a Q1)`, R10) and Q2 = apply Settings' Sound/Music at once
+(`DIVERGENCE(M11a Q2)`, R9); Q3 (Android back) stays open for the device
+pass. Execution: subagent-driven (one implementer per task, then review), 8
+tasks landed. Full section: `## M11a — what landed` below. Device checks:
+`VERIFY-ME.md` §M11a (A55 absent from `adb` on 2026-09-25). **Next: plan
+M11b** (see Next below).
 
 **M6 — Generative music: code-complete, device pass pending.** Exit verified at
 `d489691` (2026-09-25); the exit commit carries this text. Plan
@@ -94,9 +106,10 @@ Branch: `feat/godot-port` (no upstream; nothing pushed).
 > ### ⚠ Read `godot/VERIFY-ME.md`
 > Every check that needs a hand on the phone or a decision from the user is
 > collected there, per module. M2.5's constants are all provisional until its
-> section is run. **M7, M8 (folded into M8.5), M8.5, M9, M10 and "Mobile
-> scale split" device checks are all unrun** — the A55 has been absent from
-> `adb` since 2026-09-21. The M8.5 debug APK exported at 31,561,743
+> section is run. **M7, M8 (folded into M8.5), M8.5, M9, M10, "Mobile
+> scale split" and M11a device checks are all unrun** — the A55 has been
+> absent from `adb` since 2026-09-21 (confirmed absent again 2026-09-25 at
+> the M11a exit). The M8.5 debug APK exported at 31,561,743
 > bytes (+1,030,646 over M8, mostly fonts).
 
 ## How to verify right now
@@ -176,6 +189,34 @@ VERIFY-ME wording fix): the SFX bake printed `OK: 37 files`, the music bake prin
 problems found`; TODO(M6) and ff4757 greps empty; DIVERGENCE **181**,
 `DIVERGENCE(M6` **3**; headless SCRIPT ERROR **0**, "missing baked" **0**. This is
 M6's exit evidence.
+
+Re-run fresh at **M11a Task 8's exit** (2026-09-25):
+
+```bash
+cd /c/Users/Jesury/Documents/Personal/dread-flock
+GODOT="/c/Users/Jesury/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe"
+tools/run_tests.sh                              # OK: 53/53 scripts (609 tests, 17968 asserts)
+gdformat --check godot/src godot/tests          # 96 files would be left unchanged
+gdlint godot/src godot/tests                    # Success: no problems found
+grep -rn "TODO(M11)" godot/src godot/tests      # nothing
+grep -rnE "M10 R1([^0-9]|$)" godot/src          # nothing (plain "M10 R1" also hits R10/R11)
+grep -rniE "ff4757" godot/src/ui/               # nothing (rule 01)
+grep -rn "DIVERGENCE(M11a R1)" godot/src | wc -l   # 3
+grep -rn "DIVERGENCE(M11a Q[12])" godot/src | wc -l   # 2
+grep -rn "DIVERGENCE" godot/src/ | wc -l        # 232
+"$GODOT" --headless --path godot --quit-after 240 2>&1 | grep -c "SCRIPT ERROR"   # 0
+"$ADB" devices                                  # empty — A55 absent
+git checkout godot/project.godot
+git status --short                              # only this task's doc/src changes before staging
+```
+
+`OK: 53/53 scripts collected, all tests passed` (Tests 609, Passing 609,
+Asserts 17968 — unchanged from Task 7); `96 files would be left unchanged`;
+`Success: no problems found`; every grep above matched its expected count;
+DIVERGENCE total **232** (unchanged from Task 7); headless `--quit-after 240`
+SCRIPT ERROR count **0**; `"$ADB" devices` listed nothing (A55 absent from
+`adb`). This is M11a's exit evidence — M11a is now code-complete, device
+pass pending.
 
 `--check-only -s` on `src/meta/progression_manager.gd`, `game_options.gd`,
 `save_store.gd`, `sim/coin_system.gd` each fail with `Identifier not found:
@@ -1155,19 +1196,201 @@ None raised during execution. Deferred Minors from the final review, for the use
 - Spec §8 M6 still lists the old stems / `music_sequencer.gd` bullets above the R1
   amendment.
 
+## M11a — what landed
+
+Plan `docs/superpowers/plans/2026-09-20-m11a-menu-and-settings.md` (8 tasks,
+rulings R1–R17, `## Execution rulings` section at its end copying the SDD
+ledger verbatim, same precedent as M9/M10). Execution: subagent-driven (one
+implementer per task, then a review pass). Commits `2664835..HEAD` (Task 1
+through this exit).
+
+| Area | Files |
+|---|---|
+| The menu backdrop — a second, independent autopilot sim mirrored to the board (R1) | `src/render/menu_backdrop.gd` (new), `tests/test_menu_backdrop.gd` |
+| Screen shake + Enemy-outlines halo wiring (R2) | `src/sim/run_controller.gd` (`trigger_shake` Callable), `src/core/game_root.gd` (`trigger_shake`/`camera_shake`/`apply_readability`), `src/render/entity_layer.gd` (`set_high_contrast_halo`) |
+| The menu screen — Main.dc.html | `src/ui/tilt_menu.gd` (new, 523-line TS source), `tests/test_tilt_menu.gd` |
+| MENU phase: boot, `launch_run`/`return_to_menu`/`is_in_menu`, TS key map, HUD R12 menu-visibility guards | `src/core/game_root.gd`, `src/core/game_state_machine.gd`, `src/ui/hud_controller.gd`, `scenes/main.tscn` (`Menu` node) |
+| Settings (options modal) + reset confirm — Settings.dc.html (R3, R6–R11) | `src/ui/tilt_menu.gd` (`open_options_modal`/`close_options_modal`, `OptionsModal`/`ResetConfirm`), `src/core/game_root.gd` (`reset_progress_files`, signal wiring) |
+| Calibrate — Calibrate.dc.html, a live tilt dot (R4, R5) | `src/ui/calibrate_screen.gd` (new, single-file), `scenes/main.tscn` (`Calibrate` node) |
+| Pause reaches the menu: Quit to menu, Settings | `src/ui/pause_sheet.gd` (`QuitToMenuButton`, `PauseSettingsButton`) |
+| Run over reaches the menu: Menu button, Coins row (R17) | `src/ui/run_over_sheet.gd` (`GameOverMenuButton`, `CoinsRow`, `set_coins`) |
+| M10 R1 Pause mode picker + `GameRoot.set_game_mode` removed | `src/ui/pause_sheet.gd`, `src/ui/hud_controller.gd`, `src/core/game_root.gd` |
+| Exit: TODO(M11) retag, VERIFY-ME §M11a, PORT-PROGRESS/index/spec rows | `src/input/tilt_input.gd`, `src/render/entity_layer.gd`, `src/sim/enemy_swarm.gd`, `src/sim/run_controller.gd`, `src/ui/handling_preview.gd`, `VERIFY-ME.md`, `PORT-PROGRESS.md`, the index plan, the port design spec §8 |
+
+**Rulings R1–R17** (plan, recorded 2026-09-25 before execution; full text in
+the plan's `## Rulings` section):
+- **R1** — the backdrop's autopilot ship and orbs stay clear of the mode
+  panel, mirrored to its right-side board position (`x' = w - x`);
+  `DIVERGENCE(M11a R1)` ×3 (orb band, wander, side margins).
+- **R2** — `TiltRenderer.triggerShake`/`cameraShake` ported into `GameRoot`
+  through a `Callable` `RunController` holds; decays ×0.88 per rendered
+  frame, skipped in `MENU`; `high_contrast_halo` reaches `EntityLayer` at
+  boot and on every Settings change.
+- **R3** — the TS "Aim line" switch is omitted (no pointer on Android, no
+  board slot); Background grid stays (Rule N).
+- **R4** — Calibrate's dot is drawn every frame from `TiltInput.tilt_vector`,
+  clamped to the top-speed ring, `DIVERGENCE(UI-SYSTEM)`; Set level
+  calibrates + closes; Cancel closes; the sensor starts on open and stops on
+  close only from `MENU`.
+- **R5** — Calibrate is a new file (`ui/calibrate_screen.gd`), opened from
+  the menu icon and from Settings' "Calibrate tilt"; Pause keeps its
+  immediate calibrate (M8.5 Rule F).
+- **R6** — mode names/taglines/multipliers/labels/"Play"/"Armory"/
+  "Milestones"/"Screen shake"/"Reset progress"/confirm text are TS strings;
+  two board-string exceptions (Enemy-outlines hint, Data hint, Handling
+  link) per M8.5 pre-flight M14; the title is `"PERIL\nPOINT"` (app identity).
+- **R7** — Settings shows Touch/Tilt/Keys (off mobile), same set as
+  `ControlPicker`; no Mouse/Both card; a card writes through
+  `GameRoot.set_control_scheme`; the Calibrate link shows only for Tilt.
+- **R8** — the next-milestone teaser and the Background-grid row are kept
+  with no board slot (Rule N), `DIVERGENCE(UI-SYSTEM)`; the stats row stays
+  hidden while `best_score == 0`.
+- **R9 (Q2)** — the options modal's Sound/Music switches apply at once, like
+  Pause's, not only at the next `reset_run`; `DIVERGENCE(M11a Q2)`.
+- **R10 (Q1)** — Reset progress deletes options, both goal files,
+  progression **and the best score** (fixing a TS bug where the real save
+  keys were never named); keeps `ControlSettings` and calibration;
+  `DIVERGENCE(M11a Q1)`; reload is `get_tree().reload_current_scene()`.
+- **R11** — the reset confirm is a board-styled `UiTheme.build_sheet`
+  sheet (no native `window.confirm`), `DIVERGENCE(UI-SYSTEM)`.
+- **R12** — `HudController` hides/shows `ScoreBlock`/`LivesRow`/
+  `PauseButton`/`WeaponTimer` (+ Pause/Run-over sheets) on `MENU`/`PLAYING`;
+  `Frame` and `ToastSlot` stay visible so the Calibrate toast shows on the
+  menu; `GoalsHUD.set_menu_mode` follows the TS call sites.
+- **R13** — in `MENU`, `GameRoot` rebinds the render layers to the backdrop
+  (grid theme `null`/mode `CLASSIC`, entity layer to the backdrop's
+  player/swarm/weapons with no coins/skins/maze, effect layer to shared
+  particles with no floating text/banner); `launch_run` restores the run
+  bindings; backdrop entities are never `set_scale`d (PORT-NOTE).
+- **R14** — the backdrop steps at the real, unscaled `delta` (no
+  `GAME_SPEED`) and keeps its own `elapsed`, independent of the run's
+  (PORT-NOTE).
+- **R15** — the key map: p/Escape (armory/pause toggle), Space/Enter/r in
+  `GAME_OVER` → `restart_run()` (cinematic skip is M11b's, `TODO(M11b)`).
+- **R16** — `updateCursor` has no port (Android has no pointer); one-line
+  PORT-NOTEs at each TS call site, no TODO.
+- **R17** — the Run over Coins row (Rule N): `"<n> · +<pts> pt|pts"` shown
+  iff `coins_collected > 0`.
+
+**Execution rulings** (SDD ledger, copied verbatim into the plan's own
+`## Execution rulings` section before this handoff):
+- Task 4: the p/Escape key path reaches the Pause sheet refresh through
+  `HudController.set_pause_panel_visible(true)` → `_refresh_pause_sheet()`.
+- Task 4: delta +9 (588 tests) for a regression test covering the two R12
+  HUD guards.
+- Task 7: 1 test deleted in `test_pause_sheet.gd`, 2 in `test_main_scene.gd`
+  (the old mode-picker tests); total 605 + 6 − 2 = 609. The one-line commit
+  rule wins over naming deletions in the commit message.
+- Task 7: Pause's Settings is a `SecondaryButton` "Settings" beside Armory
+  (`Pause.dc.html:46`), not a gear icon — UiTheme has none.
+- Task 7: the coins row caption is the TS `"Coin pickups"`, under
+  `PointsRow` in the TS's own order.
+- Task 7: `UiChecks.overlapping_siblings` skips hidden Containers.
+- Task 7: `TiltMenu.close_options_modal()` also hides `ResetConfirm`;
+  `GameRoot.set_game_mode` removed (no caller left); `DIVERGENCE` total 232
+  (−3 `M10 R1`, +3 `UI-SYSTEM`).
+
+**Task 8 (exit)**: retagged the five remaining `TODO(M11)`s —
+`TODO(M11b)` for the cinematic handover (`enemy_swarm.gd:355`,
+`run_controller.gd:128`, plus the three already retagged in
+`game_state_machine.gd` at Task 4) and `TODO(M11c)` for glow/iOS
+(`entity_layer.gd:253`, `handling_preview.gd:16`, `tilt_input.gd:113`);
+`TODO(M11b)`/`TODO(M11c)` count 10. Appended `VERIFY-ME.md` §M11a (16 device
+checks, the brief's 10 plus 6 more surfaced in review — mode-card tagline
+clipping, the Play icon's left-edge placement, Settings' Readability column
+fit, Calibrate's flush-right layout, the Touch joystick drawing behind the
+menu backdrop, the menu title's missing letter-spacing). `PORT-PROGRESS.md`'s
+single M11 row replaced with three: M11a (code complete, device pass
+pending), M11b and M11c (both not yet written). Index plan module map and
+spec §8 Module 11 updated to the same three-way split. A fresh whole-module
+reviewer then found 2 Important bugs (Set level never actually calibrated;
+Settings closing over Pause left it stale) and 5 Minor findings — both
+Important bugs fixed, Minors deferred; see "Open questions (M11a)" below for
+the full write-up.
+
+**Verification** (fresh at this exit): 53/53 GUT scripts, 609 tests (unchanged
+from Task 7), 17968 asserts; `gdformat --check` 96 files unchanged; `gdlint`
+clean; `TODO(M11)` grep empty; the boundary-aware `M10 R1` grep
+(`grep -rnE "M10 R1([^0-9]|$)"`) empty; `ff4757` grep empty; `DIVERGENCE(M11a
+R1)` ×3; `DIVERGENCE(M11a Q[12])` ×2; `DIVERGENCE` total 232 (unchanged from
+Task 7); headless `--quit-after 240` 0 SCRIPT ERROR; `"$ADB" devices` listed
+nothing (A55 absent). Full command block and fresh output: "## How to verify
+right now" above.
+
+## Open questions (M11a)
+
+1. **Q1 — ruled 2026-09-25: fix it.** Reset progress also deletes
+   progression and the best score, closing a TS bug where the confirm
+   promised this but the real save keys were never named
+   (`DIVERGENCE(M11a Q1)`, R10).
+2. **Q2 — ruled 2026-09-25: apply at once.** Settings' Sound/Music switches
+   take effect immediately, like Pause's own switches, not only at the next
+   `reset_run` (`DIVERGENCE(M11a Q2)`, R9).
+3. **Q3 — open.** Android's system back gesture/button has no TS
+   counterpart. What should it do on the menu, in Settings and in Calibrate?
+   `VERIFY-ME.md` §M11a check 10 asks the device pass to record what actually
+   happens (especially whether it quits the app from Settings) so this can
+   be ruled then.
+
+**Final whole-module review** (dispatched at Task 8 Step 5, a fresh reviewer
+over `b65eb14..HEAD`): 0 Critical, 2 Important, 5 Minor.
+- **I-1 — fixed.** Two calibration bugs: (a) `CalibrateScreen._on_set_level_pressed`
+  closed the screen (stopping its poll, then stopping the sensor) before any
+  poll ever consumed the pending calibration flag `calibrate_current_position()`
+  arms — Set level silently did nothing; fixed by forcing one `_tilt.poll()`
+  between the emit and `close()`. (b) `launch_run`'s uncited
+  `_tilt.calibrate_current_position()` (no TS citation — `launchRun`/`resetRun`
+  never recalibrate) silently overwrote whatever pose Calibrate had just set,
+  since Play always follows it back to the menu — removed (`restart_run`'s own
+  call is untouched; that one is M2.5's, not this module's).
+- **I-2 — fixed.** `TiltMenu.close_options_modal()` emitted nothing, so
+  closing Settings from Pause left Pause's Sound/Music switches, its
+  `ControlPicker` scheme and its Calibrate-button visibility stale. Fixed: a
+  new `TiltMenu.options_closed` signal (`DIVERGENCE(UI-SYSTEM)`), connected in
+  `GameRoot._ready` to `_on_options_closed` → `_hud.set_pause_panel_visible(is_paused())`,
+  the same refresh `_on_pause_pressed` already does.
+- **Deferred Minors** (recorded, not fixed — full text in the plan's
+  `## Execution rulings`, Task 8 entries): M-1 `return_to_menu`'s
+  `camera_shake = 0.0` reset is miscredited to R2 in its comment; M-2 four
+  stale pre-split "M11" comments (should read M11a/M11b/M11c) in
+  `game_root.gd` (×2), `audio_bank.gd`, `effect_layer.gd`; M-3
+  `calibrate_screen.gd`'s legend SVGs hardcode two hex colours instead of
+  formatting `UiTheme` tokens in, unlike `tilt_menu.gd`'s own SVGs; M-4
+  Settings-over-Pause p/Escape resumes underneath the modal (TS-faithful,
+  device-irrelevant); M-5 three draw-arc point counts in
+  `calibrate_screen.gd` are uncited (matches existing uncited precedent
+  elsewhere).
+
 ## Next
 
-**M11a is planned** (`docs/superpowers/plans/2026-09-20-m11a-menu-and-settings.md`). Stop for the user's review of that plan; once approved, execute it from Task 1 with the execution method they choose. M11b and M11c plans are written at their own starts (see the plan's "Module split").
+**M11a is code-complete, device pass pending. Next: plan M11b (entrance
+cinematic).** M11a's own plan is fully executed (Tasks 1–8); do not begin
+M11b implementation without a written plan and the user's review of it, per
+CONVENTIONS §9 step 5.
 
-Before starting: `git status --short` must be clean under `godot/` (the user may leave device tuning uncommitted — never stash or revert it), and read `godot/VERIFY-ME.md`. If the A55 is back on `adb`, offer the device pass first.
+M11b's first step, literally: read `TiltEntranceCinematic.ts` in full,
+`ColdOpen.dc.html`, `TiltGame.ts:160-178`, `:1302-1309`, `:1344-1360`,
+`:1523-1530`, every `TODO(M11b)`; write
+`docs/superpowers/plans/2026-09-20-m11b-entrance-cinematic.md`; commit it and
+stop for review.
+
+Before starting: `git status --short` must be clean under `godot/` (the user
+may leave device tuning uncommitted — never stash or revert it), and read
+`godot/VERIFY-ME.md`. If the A55 is back on `adb`, offer the M11a device pass
+first (`VERIFY-ME.md` §M11a, 16 checks + Q3) — it costs nothing to run before
+M11b's own plan is written.
 
 Carried from the M6 exit into M11b/M11c:
 - M11b: move `start_music` + `spawn_starting_weapon_orb` out of `RunController.reset_run`
   into the cinematic's completion callback (`TiltGame.ts:168-176`, M6 R7), and call
-  `play_warp_in` from the cinematic (`TiltEntranceCinematic.ts:74`, M5 R8).
+  `play_warp_in` from the cinematic (`TiltEntranceCinematic.ts:74`, M5 R8);
+  now also `TODO(M11b)` at `run_controller.gd:128` and `enemy_swarm.gd:355`
+  (M10 R3's armada handover).
 - If a mid-play mute is ever ported (`btn-tilt-sound` → `toggleMute`, `TiltGame.ts:1441`),
   M6 R6's silent-loop mute becomes reachable — add a device check for it.
 - Re-bake the music only if `TiltAudio.ts:82-479` changes (`node tools/bake-audio/bake_music.mjs`,
   then `--import`); update `edit/loop_end` if the frame count changes.
-- M11c owns the device pass: M2.5, M3, M4, M5, M6, M7, M8.5, M9, M10, the scale split and
-  M11a are all pending in `VERIFY-ME.md`.
+- M11c owns the device pass: M2.5, M3, M4, M5, M6, M7, M8, M8.5, M9, M10, the
+  scale split and M11a are all pending in `VERIFY-ME.md`; M11c also owns
+  `TODO(M11c)` at `entity_layer.gd:253`, `handling_preview.gd:16` (glow) and
+  `tilt_input.gd:113` (iOS export).

@@ -37,6 +37,10 @@ signal sfx_toggled(is_on: bool)
 signal music_toggled(is_on: bool)
 ## The reset confirm was accepted. PORT: web/src/tilt-to-live/TiltMenu.ts:510
 signal reset_confirmed
+## PORT-NOTE: no TS counterpart. Settings has no DOM re-render to fall back
+## on when it closes over the paused run's own Pause sheet, so GameRoot
+## needs a hook to refresh it (final review I-2).
+signal options_closed
 
 const CONTROL_PICKER: PackedScene = preload("res://scenes/control_picker.tscn")
 
@@ -317,6 +321,7 @@ func close_options_modal() -> void:
 	# The confirm is the modal's sibling (ruling P1); it must not outlive it.
 	if _reset_confirm != null:
 		_reset_confirm.visible = false
+	options_closed.emit()
 
 
 ## True while the Settings modal is up.

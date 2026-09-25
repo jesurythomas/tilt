@@ -686,6 +686,10 @@ block and push the player; mode multipliers apply to scoring.
 device; sustained 60 fps across a 5-minute run; a signed **Android** release
 build is produced. iOS acceptance is deferred with D1.
 
+**Amended 2026-09-25 (user):** split into M11a (menu, settings, calibrate),
+M11b (entrance cinematic) and M11c (export and device pass); see
+docs/superpowers/plans/2026-09-20-m11a-menu-and-settings.md.
+
 ---
 
 ## 9. Risk register

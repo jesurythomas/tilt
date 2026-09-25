@@ -110,7 +110,7 @@ func request_permission_and_start() -> bool:
 	# 13+ Safari's DeviceOrientationEvent.requestPermission(). Android needs no
 	# runtime permission for the accelerometer, so this is the Android branch
 	# (GyroscopeController.ts:86-90) alone.
-	# TODO(M11): revisit when the iOS export lands (spec D1).
+	# TODO(M11c): revisit when the iOS export lands (spec D1).
 	permission_state = PermissionState.GRANTED
 	start_listening()
 	return true

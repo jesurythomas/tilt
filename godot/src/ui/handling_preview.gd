@@ -13,7 +13,7 @@ extends Control
 ## same fixed dt. This is UI, not sim — never _physics_process.
 ##
 ## PORT-NOTE: ctx.shadowBlur = 14 (:1086) is a glow; spec §4.5 defers every
-## glow decision to M11's device measurement. TODO(M11): the ship's tint glow.
+## glow decision to M11's device measurement. TODO(M11c): the ship's tint glow.
 
 ## Canvas minimums. PORT: web/src/tilt-to-live/ArmoryUI.ts:954-955
 const MIN_WIDTH: float = 280.0

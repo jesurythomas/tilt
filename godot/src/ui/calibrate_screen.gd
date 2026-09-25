@@ -299,6 +299,13 @@ func _legend_item(swatch_svg: String, label: String) -> HBoxContainer:
 
 func _on_set_level_pressed() -> void:
 	set_level_requested.emit()
+	# PORT-NOTE (R4): calibrate_current_position() only arms a pending
+	# capture; the real neutral pose is read on the next TiltInput.poll(). This
+	# screen's own _process poll stops the instant close() disables it below,
+	# so one poll is forced here to consume the pending flag against a fresh
+	# reading before the sensor can be told to stop listening (final review I-1).
+	if _tilt != null:
+		_tilt.poll()
 	close()
 
 

@@ -250,7 +250,7 @@ func _end_entity() -> void:
 ## PORT: web/src/tilt-to-live/GauntletMaze.ts:302-387
 # PORT-NOTE: walls are arena geometry the ship collides with, so they draw in
 # playfield space without the render-only model scale.
-# TODO(M11): the beacons' shadowColor/shadowBlur = 8 glow (:363-364) waits for
+# TODO(M11c): the beacons' shadowColor/shadowBlur = 8 glow (:363-364) waits for
 # the glow decision (spec §4.5), as every in-arena glow has since M2. In the TS
 # that shadow state is never reset, so it also bleeds onto later rows' walls
 # (M10 R9).

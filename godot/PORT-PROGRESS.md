@@ -267,7 +267,33 @@ Dependency map and resume instructions:
       --  armada + cinematic handover left for M11 (R3); device pass pending —
           `VERIFY-ME.md` §M10.
 
-- [ ] **M11 — Menu, cinematic, export, device pass**  deps: all
+- [ ] **M11a — Menu, Settings, Calibrate**  deps: all  *(code complete 2026-09-25; exit: the commit carrying this text; DEVICE PASS PENDING)*
+      plan  `docs/superpowers/plans/2026-09-20-m11a-menu-and-settings.md`
+      **tick this box only after `godot/VERIFY-ME.md` §M11a is run on the A55**
+      ok  `render/menu_backdrop.gd` — the second, independent autopilot sim
+          mirrored to the board (R1); `ui/tilt_menu.gd` — menu, options modal,
+          reset confirm; `ui/calibrate_screen.gd` — the Calibrate board with a
+          live tilt dot (R4); MENU phase, boot, launch/return, key map wired
+          into `game_root.gd`/`game_state_machine.gd`/`hud_controller.gd`;
+          Pause Quit-to-menu/Settings; Run over Menu + CoinsRow (R17); M10 R1
+          picker removed.
+      ok  53/53 GUT scripts (609 tests); gdformat 96 files unchanged; gdlint
+          clean; `TODO(M11)` grep empty; `ff4757` grep empty; `M10 R1` grep
+          (boundary-aware) empty; `DIVERGENCE(M11a R1)` ×3; `DIVERGENCE(M11a
+          Q1/Q2)` ×2; headless 0 SCRIPT ERROR.
+      --  A55 absent from `adb` on 2026-09-25 — device pass pending;
+          `VERIFY-ME.md` §M11a has 16 unticked checks, plus Q3 (Android back).
+
+- [ ] **M11b — Entrance cinematic**  deps: 11a
+      plan  not yet written
+      -- port `TiltEntranceCinematic.ts` and its armada handover (M10 R3)
+
+- [ ] **M11c — Export, glow measurement, device pass**  deps: 11b
+      plan  not yet written
+      -- glow cost measurement on device (spec §4.5) and its fallback
+      -- Android export preset, icons, splash screens; signed release build
+      -- iOS export preset only if a macOS host is available (D1)
       -- cold boot → menu → cinematic → run → death → menu loops on device
       -- sustained 60 fps across a 5-minute run
-      -- signed release build produced
+      -- the whole port's device pass: M2.5, M3, M4, M5, M6, M7, M8, M8.5,
+         M9, M10, the mobile scale split and M11a

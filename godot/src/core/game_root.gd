@@ -155,6 +155,9 @@ func _ready() -> void:
 	_menu.sfx_toggled.connect(set_sfx_enabled)
 	_menu.music_toggled.connect(set_music_enabled)
 	_menu.reset_confirmed.connect(reset_progress)  # PORT: web/src/tilt-to-live/TiltMenu.ts:510
+	# PORT-NOTE: no TS counterpart — Settings closing over Pause left its
+	# switches/picker/Calibrate-visibility stale (final review I-2).
+	_menu.options_closed.connect(_on_options_closed)
 	# The Calibrate board (M11a R4, R5).
 	_calibrate_screen.bind(_tilt)
 	_menu.calibrate_screen_requested.connect(open_calibrate_screen)
@@ -367,6 +370,14 @@ func open_options_from_pause() -> void:
 	_menu.open_options_modal()
 
 
+## PORT-NOTE: Settings has no TS re-render to keep Pause's own
+## switches/picker/Calibrate-visibility in sync once it closes back over a
+## paused run — re-run the same refresh `_on_pause_pressed` does (final
+## review I-2). A no-op when Pause was never the opener (is_paused() false).
+func _on_options_closed() -> void:
+	_hud.set_pause_panel_visible(is_paused())
+
+
 ## The menu Steer row picked a scheme (Main.dc.html, M11a ruling R7): write it,
 ## then redraw the menu, whose picker marks the active scheme.
 func _on_menu_scheme_chosen(scheme: Types.ControlScheme) -> void:
@@ -385,7 +396,11 @@ func launch_run(mode: Types.GameMode) -> void:
 	# PORT: web/src/tilt-to-live/TiltGame.ts:1490-1491 (idempotent after Play)
 	_goals_hud.set_menu_mode(false)
 	_menu.hide_menu()
-	_tilt.calibrate_current_position()
+	# PORT-NOTE: unlike restart_run(), launchRun/resetRun never recalibrate the
+	# gyro (TS :1486-1494, :1547-1557) — a fix from the M11a exit review (I-1):
+	# calibrating here silently overwrote whatever pose the player just set on
+	# the Calibrate board (R4/R5), since Play always follows it back to the
+	# menu. The gyro keeps whatever calibration Calibrate/Pause last set.
 	_joystick.reset()
 	_run_controller.reset_run(_bounds)
 	_state.mode = _run_controller.mode

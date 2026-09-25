@@ -75,7 +75,7 @@ Copied verbatim from the spec and `CONVENTIONS.md`. Every task in every module p
 | 8.5 | **Interface rework** — boards become the visual authority | M8 | `2026-09-23-m8.5-interface-rework.md` | **code complete** — device pass pending (`godot/VERIFY-ME.md`) |
 | 9 | Milestones | M7, M8.5 | `2026-09-20-m9-milestones.md` | **code complete** — device pass pending (`godot/VERIFY-ME.md`) |
 | 10 | Modes (code-red, gauntlet) | M3 | `2026-09-20-m10-modes.md` | **code complete** — device pass pending (`godot/VERIFY-ME.md`) |
-| 11a | Menu, Settings, Calibrate (M11 split, user ruling 2026-09-25) | all | `2026-09-20-m11a-menu-and-settings.md` | planned — awaiting review |
+| 11a | Menu, Settings, Calibrate (M11 split, user ruling 2026-09-25) | all | `2026-09-20-m11a-menu-and-settings.md` | **code complete** — device pass pending (`godot/VERIFY-ME.md`) |
 | 11b | Entrance cinematic | 11a | not yet written | — |
 | 11c | Export, glow measurement, device pass | 11b | not yet written | — |
 

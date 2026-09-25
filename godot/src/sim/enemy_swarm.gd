@@ -352,7 +352,7 @@ func spawn_carrier(bounds: Vector2, _player_pos: Vector2) -> Types.Enemy:
 
 
 ## Spawns an immediate, dramatic start armada tailored to the mode.
-## TODO(M11): the cinematic's handover calls this (TiltEntranceCinematic.ts:196, :200); M10 R3.
+## TODO(M11b): the cinematic's handover calls this (TiltEntranceCinematic.ts:196, :200); M10 R3.
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:781-799
 func spawn_mode_armada(mode: Types.GameMode, bounds: Vector2, player_pos: Vector2) -> void:
 	if mode == Types.GameMode.CODE_RED:

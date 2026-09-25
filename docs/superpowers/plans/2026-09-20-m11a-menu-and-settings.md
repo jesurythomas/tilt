@@ -1585,14 +1585,14 @@ git commit -m "M11a: wire Quit/Menu/Settings, drop mode picker; next: Task 8 exi
 - Modify: `godot/src/core/game_state_machine.gd` (already retagged in Task 4; check it), `godot/src/sim/run_controller.gd:124`, `godot/src/sim/enemy_swarm.gd:355`, `godot/src/render/entity_layer.gd:253`, `godot/src/ui/handling_preview.gd:16`, `godot/src/input/tilt_input.gd:113`
 - Modify: `godot/VERIFY-ME.md` (append), `godot/PORT-PROGRESS.md`, `godot/HANDOFF.md`, `docs/superpowers/plans/2026-09-20-peril-point-godot-port-index.md`, spec §8 Module 11
 
-- [ ] **Step 1: Retag.** Cinematic items → `TODO(M11b)`: `run_controller.gd:124` (start_music + orb spawn), `enemy_swarm.gd:355` (the handover) and any state-machine line left over from Task 4. Glow and iOS → `TODO(M11c)`: `entity_layer.gd:253`, `handling_preview.gd:16` and `tilt_input.gd:113`. Then:
+- [x] **Step 1: Retag.** Cinematic items → `TODO(M11b)`: `run_controller.gd:124` (start_music + orb spawn), `enemy_swarm.gd:355` (the handover) and any state-machine line left over from Task 4. Glow and iOS → `TODO(M11c)`: `entity_layer.gd:253`, `handling_preview.gd:16` and `tilt_input.gd:113`. Then:
 
 ```bash
 grep -rn "TODO(M11)" godot/src godot/tests   # expect: nothing
 grep -rn "TODO(M11b)\|TODO(M11c)" godot/src | wc -l   # record the count
 ```
 
-- [ ] **Step 2: Append `## M11a — Menu, Settings, Calibrate` to `godot/VERIFY-ME.md`,** in the file's existing checkbox style, with these device checks (A55, landscape):
+- [x] **Step 2: Append `## M11a — Menu, Settings, Calibrate` to `godot/VERIFY-ME.md`,** in the file's existing checkbox style, with these device checks (A55, landscape):
   1. A cold boot shows the menu. The backdrop ship roams **left of** the mode panel and dodges, orbs appear there too, and nothing important hides behind the panel (R1). Note any overlap with the title block.
   2. Each mode card highlights with its colour. Play starts that mode, and the run's banner names it.
   3. Pause → Quit to menu → the menu, with no HUD score, no music and the backdrop running. Play again → the run has the equipped ship skin and arena theme.
@@ -1604,13 +1604,13 @@ grep -rn "TODO(M11b)\|TODO(M11c)" godot/src | wc -l   # record the count
   9. The 48 rule: every menu, Settings and Calibrate target is comfortably tappable. Nothing overlaps at the A55's size.
   10. Android back gesture/button in the menu, Settings and Calibrate: record what happens. The TS has no back button; if it quits the app from Settings, raise it as **Q3**.
 
-- [ ] **Step 3: Docs.**
+- [x] **Step 3: Docs.**
   - `PORT-PROGRESS.md`: replace the single M11 row with three rows, M11a/M11b/M11c. Mark M11a **code complete — device pass pending**, with the date and "exit: the commit carrying this text". M5 and M6 did the same, because a commit cannot contain its own SHA.
   - Index plan module map: rows `11a`/`11b`/`11c`, with M11a pointing at this plan.
   - Spec §8 Module 11: append `**Amended 2026-09-25 (user):** split into M11a (menu, settings, calibrate), M11b (entrance cinematic) and M11c (export and device pass); see docs/superpowers/plans/2026-09-20-m11a-menu-and-settings.md.`
   - `HANDOFF.md`: rewrite `## State` (M11a code-complete, device pass pending; next: plan M11b). Add `## M11a — what landed` (a file table and rulings R1–R17, one line each) and `## Open questions (M11a)` with Q1 (fix the TS reset bug or keep it?), Q2 (Settings' audio switches wait for the next run), Q3 (Android back). Rewrite `## Next`: M11b's first step is literally "read `TiltEntranceCinematic.ts` in full, `ColdOpen.dc.html`, `TiltGame.ts:160-178`, `:1302-1309`, `:1344-1360`, `:1523-1530`, every `TODO(M11b)`; write `docs/superpowers/plans/2026-09-20-m11b-entrance-cinematic.md`; commit it and stop for review". Update `## How to verify right now` with the fresh numbers from Step 4.
 
-- [ ] **Step 4: Verify fresh and read every output.**
+- [x] **Step 4: Verify fresh and read every output.**
 
 ```bash
 cd /c/Users/Jesury/Documents/Personal/dread-flock
@@ -1619,7 +1619,7 @@ tools/run_tests.sh                              # expect: OK: 53/53 scripts (<th
 gdformat --check godot/src godot/tests          # expect: 96 files would be left unchanged
 gdlint godot/src godot/tests                    # expect: Success: no problems found
 grep -rn "TODO(M11)" godot/src godot/tests      # expect: nothing
-grep -rn "M10 R1" godot/src                     # expect: nothing
+grep -rnE "M10 R1([^0-9]|$)" godot/src      # expect: nothing (plain "M10 R1" also hits R10/R11)
 grep -rniE "ff4757" godot/src/ui/               # expect: nothing (rule 01)
 grep -rn "DIVERGENCE(M11a R1)" godot/src | wc -l   # expect: 3
 grep -rn "DIVERGENCE(M11a Q[12])" godot/src | wc -l   # expect: 2
@@ -1631,7 +1631,7 @@ git status --short                              # expect: only this task's doc c
 
 If the A55 is on `adb`, export the debug APK as in `HANDOFF.md`'s toolchain section, install it, and run the VERIFY-ME §M11a checks with the user. Otherwise, leave them unticked.
 
-- [ ] **Step 5: Final review, then commit and stop.** Dispatch one fresh reviewer (the most capable model) over `git diff <plan-commit>..HEAD`, with this plan and interface spec §6.6 as context. Fix every Critical and Important finding, re-run Step 4, and record deferred Minors under Open questions. Then:
+- [x] **Step 5: Final review, then commit and stop.** Dispatch one fresh reviewer (the most capable model) over `git diff <plan-commit>..HEAD`, with this plan and interface spec §6.6 as context. Fix every Critical and Important finding, re-run Step 4, and record deferred Minors under Open questions. Then:
 
 ```bash
 git checkout godot/project.godot
@@ -1654,6 +1654,10 @@ git commit -m "M11a done: next read godot/HANDOFF.md + VERIFY-ME.md, then plan M
 - Task 7: the coins row caption is the TS `"Coin pickups"` (`TiltGame.ts:1218`), not `"Coins"`; the row sits under `PointsRow` (TS order) in its styles (BodyText + PointsText), hidden until `set_coins` sees a pickup.
 - Task 7: `UiChecks.overlapping_siblings` skips hidden Containers (a hidden `CoinsRow` never lays out its labels, so they reported as overlapping).
 - Task 7: carried fixes from Task 5's review — `TiltMenu.close_options_modal()` also hides `ResetConfirm`; `_switch_card`'s 64-not-60 note is retagged `DIVERGENCE(UI-SYSTEM)`. `GameRoot.set_game_mode` is removed (no caller left; the layers' own `set_game_mode` stay). `DIVERGENCE` total 232 (−3 M10 R1, +3 UI-SYSTEM).
+- Task 8: `TODO(M11)` retag count is 5 lines (2 → `TODO(M11b)`, 3 → `TODO(M11c)`); `TODO(M11b)`/`TODO(M11c)` grep total 10 (includes the 3 `game_state_machine.gd` lines already retagged at Task 4).
+- Task 8 (final review I-1): **fixed.** Two calibration bugs. (a) `CalibrateScreen._on_set_level_pressed` emitted `set_level_requested` (which only arms a *pending* capture — the real neutral pose is read on the next `TiltInput.poll()`) and then called `close()` in the same call, which stops the screen's own `_process` poll and tells the sensor to stop listening before any poll ever consumed the pending flag — Set level silently did nothing. Fixed: `_on_set_level_pressed` now forces one `_tilt.poll()` between the emit and `close()`. (b) `launch_run`'s `_tilt.calibrate_current_position()` (added per this plan's Task 4 Interfaces text, "as `restart_run` does") has no TS citation — `TiltGame.ts` `launchRun`/`resetRun` never recalibrate — and it silently overwrote whatever pose the player had just set on the Calibrate board, since Play always follows Calibrate back to the menu. Removed; `restart_run`'s own call is untouched (that one is M2.5's own established ruling, VERIFY-ME check 4, "PLAY AGAIN recalibrates to the pose held at that moment", not this module's).
+- Task 8 (final review I-2): **fixed.** Closing Settings (`TiltMenu.close_options_modal`) emitted no signal, so when it was opened from Pause (`GameRoot.open_options_from_pause`), Pause's Sound/Music switches, its `ControlPicker` scheme and its Calibrate-button visibility (Rule E) all went stale on close — worse than the TS, whose own pause switches at least self-correct by writing `!settings.x`, where this port's switches write the literal `toggled(is_on)` value. Fixed: a new `TiltMenu.options_closed` signal (`DIVERGENCE(UI-SYSTEM)`, no TS counterpart), connected in `GameRoot._ready` to `_on_options_closed`, which calls `_hud.set_pause_panel_visible(is_paused())` — the same refresh `_on_pause_pressed` already does, a no-op when Pause was never the opener.
+- Task 8 (final review, deferred Minors — recorded, not fixed): **M-1** `return_to_menu`'s `camera_shake = 0.0` reset is credited to "M11a R2" in a comment, but R2 doesn't say this; it should be tagged `DIVERGENCE` with its own ruling or the comment fixed. **M-2** stale "M11" (pre-split) references remain in four comments: `game_root.gd` ("the menu link is M11's" — now M11a; "M11's `_state.restart()`" — should be M11b), `audio_bank.gd` ("which is M11" — should be M11b), `effect_layer.gd` ("the M11 WorldEnvironment pass" — should be M11c). **M-3** `calibrate_screen.gd`'s legend SVGs hardcode `#FFB14D`/`#5B8CFF` instead of formatting `UiTheme.COLOR_FLARE`/`COLOR_ION` into the string, unlike `tilt_menu.gd`'s `RING_ON`/`RING_OFF`. **M-4** with Settings open over Pause, p/Escape resumes the run underneath the full-screen Settings modal — TS-faithful (the TS does the same), device-irrelevant. **M-5** `calibrate_screen.gd`'s draw-arc point counts (64/32/4) are uncited, matching existing uncited precedent in `effect_layer.gd`/`entity_layer.gd`.
 
 ## Open questions
 

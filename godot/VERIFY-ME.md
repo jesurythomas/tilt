@@ -548,3 +548,55 @@ nothing below has been checked on the device yet.
 - [ ] **Death.** The death crash stops the music; Retry starts it again.
 - [ ] **Level.** The music sits under the effects roughly as it does in the
       web build on the same phone.
+
+## M11a — Menu, Settings, Calibrate
+
+Code-complete 2026-09-25 (Tasks 1-8; exit commit — see `PORT-PROGRESS.md`).
+A55 absent from `adb` on 2026-09-25, so nothing below has run on a phone.
+Run §0 first.
+
+- [ ] 1. A cold boot shows the menu. The backdrop ship roams **left of** the
+      mode panel and dodges, orbs appear there too, and nothing important
+      hides behind the panel (R1). Note any overlap with the title block.
+- [ ] 2. Each mode card highlights with its colour. Play starts that mode,
+      and the run's banner names it.
+- [ ] 3. Pause → Quit to menu → the menu, with no HUD score, no music and
+      the backdrop running. Play again → the run has the equipped ship skin
+      and arena theme.
+- [ ] 4. Death → Run over → Menu → the menu. The Coins row appears only when
+      coins were picked up.
+- [ ] 5. Settings from the menu and from Pause: each switch reads correctly;
+      Enemy outlines off removes the white rings at once; Background grid on
+      shows the grid at once. Screen shake Off/Low/Full visibly changes the
+      hit and death shake in the next run.
+- [ ] 6. Settings → Sound off mutes at once; Music off stops the loop at
+      once; Music on from Pause's Settings starts nothing until Resume (R9,
+      Q2 ruling, same as Pause's own switch).
+- [ ] 7. Calibrate from the menu icon, and from Settings' "Calibrate tilt"
+      (Tilt scheme only): the dot moves with the phone and stops at the
+      dashed ring. Set level → toast "TILT CALIBRATED" on the menu. The next
+      Tilt run is level at that pose.
+- [ ] 8. Reset progress → Cancel changes nothing. Reset → confirm → the app
+      reloads to the menu, settings are back to defaults; milestones,
+      points, unlocks and the best score are cleared; the control scheme and
+      calibration remain (R10, Q1 ruling).
+- [ ] 9. The 48 rule: every menu, Settings and Calibrate target is
+      comfortably tappable. Nothing overlaps at the A55's size.
+- [ ] 10. Android back gesture/button in the menu, Settings and Calibrate:
+      record what happens. The TS has no back button; if it quits the app
+      from Settings, raise it as **Q3**.
+- [ ] 11. The mode-card taglines and the Next teaser clip with "…" —
+      acceptable?
+- [ ] 12. The Play button's icon sits at the button's left edge, not beside
+      the label — acceptable?
+- [ ] 13. Settings' Readability column fits vertically at the A55's size
+      (grid hint wraps).
+- [ ] 14. Calibrate's disc and legend are flush-right with no safe-area
+      inset — check against the camera cutout.
+- [ ] 15. With the Touch scheme, touching the menu backdrop may draw the
+      floating joystick behind the menu.
+- [ ] 16. The menu title lacks the board's -0.015em letter-spacing —
+      visible?
+
+When done: tick M11a in `PORT-PROGRESS.md` with the SHA you tested, and
+resolve Q3 above in `HANDOFF.md`'s Open questions (M11a).
