@@ -616,3 +616,35 @@ Run §0 first.
 
 When done: tick M11a in `PORT-PROGRESS.md` with the SHA you tested, and
 resolve Q3 above in `HANDOFF.md`'s Open questions (M11a).
+
+## M11b — Entrance cinematic
+
+Code-complete 2026-09-26 (Tasks 1-2, final review fixes F-1..F-3; exit
+commit — see `PORT-PROGRESS.md`). A55 absent from `adb` on 2026-09-26 (only
+an emulator attached), so nothing below has run on a phone. Run §0 first.
+
+- [ ] 1. Play → the cold open: void, a soft blue glow, the ship glyph,
+      "PERIL POINT", and a thin bar near the bottom that fills in about
+      0.6 s. Then the run. Note any title clipping at the A55 size.
+- [ ] 2. A tap anywhere skips it at once. Nothing is drawn behind it (no
+      HUD, no Pause button reachable).
+- [ ] 3. The warp-in sound plays as it opens. With Music on, the loop
+      starts only as the run begins, not during the cold open.
+- [ ] 4. Classic: the run opens with 8 seekers in a ring, a nuke orb above
+      the ship, the ship's starting orb, and a shield bubble for about
+      2.5 s. Judge whether this start is fair on a phone (R12).
+- [ ] 5. Code Red: a 24-seeker ring, a vortex left and a nuke right.
+      Gauntlet: 8 seekers from the edges and a nuke.
+- [ ] 6. Retry, Pause → Restart and PLAY AGAIN each replay the cold open.
+      The previous run's enemies are gone.
+- [ ] 7. A held finger during the skip tap does not steer the ship or
+      leave the joystick drawn when the run starts (Touch scheme).
+- [ ] 8. The ship glyph has no glow yet (`TODO(M11c)`, R3). Judge whether
+      it reads well enough flat.
+- [ ] 9. Android back during the cold open: record what happens (M11a Q3,
+      Open question 1 in `HANDOFF.md`'s Open questions (M11b)).
+- [ ] 10. Retry / PLAY AGAIN / Pause→Restart with a tap: the new cold open
+      is not skipped at once by the same tap (touch-to-mouse emulation;
+      unverifiable headless).
+
+When done: tick M11b in `PORT-PROGRESS.md` with the SHA you tested.

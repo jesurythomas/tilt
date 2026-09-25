@@ -975,7 +975,7 @@ git commit -m "M11b: runs open on the cold open and hand over its armada; next: 
 **Files:**
 - Modify: `godot/VERIFY-ME.md` (append), `godot/PORT-PROGRESS.md`, `godot/HANDOFF.md`, `docs/superpowers/plans/2026-09-20-peril-point-godot-port-index.md`
 
-- [ ] **Step 1: Greps.**
+- [x] **Step 1: Greps.**
 
 ```bash
 grep -rn "TODO(M11b)" godot/src godot/tests      # expect: nothing
@@ -983,7 +983,7 @@ grep -rn "TODO(M11c)" godot/src | wc -l          # expect: the M11a count + 1 (t
 grep -rn "DIVERGENCE" godot/src/ | wc -l         # record (234 + this module's ColdOpen board tags)
 ```
 
-- [ ] **Step 2: Append `## M11b — Entrance cinematic` to `godot/VERIFY-ME.md`,** in the file's checkbox style (A55, landscape):
+- [x] **Step 2: Append `## M11b — Entrance cinematic` to `godot/VERIFY-ME.md`,** in the file's checkbox style (A55, landscape):
   1. Play → the cold open: void, a soft blue glow, the ship glyph, "PERIL POINT", and a thin bar near the bottom that fills in about 0.6 s. Then the run. Note any title clipping at the A55 size.
   2. A tap anywhere skips it at once. Nothing is drawn behind it (no HUD, no Pause button reachable).
   3. The warp-in sound plays as it opens. With Music on, the loop starts only as the run begins, not during the cold open.
@@ -994,12 +994,12 @@ grep -rn "DIVERGENCE" godot/src/ | wc -l         # record (234 + this module's C
   8. The ship glyph has no glow yet (`TODO(M11c)`, R3). Judge whether it reads well enough flat.
   9. Android back during the cold open: record what happens (M11a Q3, Open question 1 here).
 
-- [ ] **Step 3: Docs.**
+- [x] **Step 3: Docs.**
   - `PORT-PROGRESS.md`: in the M11b row, change `plan  not yet written` to the plan path, and mark it **code complete — device pass pending**, with the date and "exit: the commit carrying this text", plus the verification line from Step 4.
   - Index plan module map: point row `11b` at this plan.
   - `HANDOFF.md`: add an M11b `## State` paragraph at the top, and add `## M11b — what landed` (file table, rulings R1–R12 one line each, execution rulings) and `## Open questions (M11b)`. Rewrite `## Next`: **plan M11c**. Its first step is literally: read spec §4.5 and §8 Module 11, `godot/VERIFY-ME.md` in full, every `TODO(M11c)`, `export_presets.cfg` and `HANDOFF.md`'s toolchain section; write `docs/superpowers/plans/2026-09-20-m11c-export-and-device-pass.md`; commit it and stop for review. Update `## How to verify right now` with Step 4's fresh numbers. Carry the M6 notes (mid-play mute, music re-bake) forward into Next.
 
-- [ ] **Step 4: Verify fresh and read every output.**
+- [x] **Step 4: Verify fresh and read every output.**
 
 ```bash
 cd /c/Users/Jesury/Documents/Personal/dread-flock
@@ -1017,7 +1017,7 @@ git status --short                              # expect: only this task's doc c
 
 If the A55 is on `adb`, export the debug APK as in `HANDOFF.md`'s toolchain section, install it, and run VERIFY-ME §M11b (and §M11a, which has never been run) with the user. Otherwise, leave both unticked.
 
-- [ ] **Step 5: Final review, then commit and stop.** Dispatch one fresh reviewer (the most capable model) over `git diff <plan-commit>..HEAD`, with this plan, `TiltEntranceCinematic.ts` and `ColdOpen.dc.html` as context. Fix every Critical and Important finding, re-run Step 4, and record deferred Minors under Open questions. Then:
+- [x] **Step 5: Final review, then commit and stop.** Dispatch one fresh reviewer (the most capable model) over `git diff <plan-commit>..HEAD`, with this plan, `TiltEntranceCinematic.ts` and `ColdOpen.dc.html` as context. Fix every Critical and Important finding, re-run Step 4, and record deferred Minors under Open questions. Then:
 
 ```bash
 git checkout godot/project.godot
@@ -1034,6 +1034,11 @@ git commit -m "M11b done: next read godot/HANDOFF.md + VERIFY-ME.md, then plan M
 (Filled during execution: any ruling taken while running a task, one line each, with the task number.)
 
 - User review (2026-09-26): execution subagent-driven; R1 (board wins), R8, R10 and R12 approved as written. Ledger: `.superpowers/sdd/2026-09-20-m11b-entrance-cinematic/progress.md`.
+- The final whole-branch review ran before Task 3's docs, over `8451536..b9780f4`, so Task 3's docs describe the reviewed tree, not an earlier one.
+- Task 2 deviations, accepted by review: a `SubViewport(1280×720)` host in `test_play_opens_the_cold_open_and_hands_over_to_the_run`, because the tiny headless viewport let the shielded ship ram all 8 seekers; `gdlint:disable=max-returns` around `GameRoot._unhandled_input`; `shield_timer = 0.0` before a forced `lose_life()` in death tests, a new precondition from the 2.5 s spawn shield; an extra `skip_cinematic`/`finish_cinematic` call in the unlisted tests `test_p_and_escape_follow_the_ts_key_map` and `test_starting_orb_is_the_equipped_ships_weapon`.
+- Fix round 1 (Task 2 review) restored `test_run_over_menu_returns_to_the_menu` past the spawn shield.
+- Final review F-3: a left click only (the wheel and right-click no longer skip the cold open).
+- `GameStateMachine.stop()` has no caller in the port.
 
 ## Open questions
 

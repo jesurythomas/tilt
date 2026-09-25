@@ -284,10 +284,24 @@ Dependency map and resume instructions:
       --  A55 absent from `adb` on 2026-09-25 — device pass pending;
           `VERIFY-ME.md` §M11a has 16 unticked checks, plus Q3 (Android back).
 
-- [ ] **M11b — Entrance cinematic**  deps: 11a
-      plan  docs/superpowers/plans/2026-09-20-m11b-entrance-cinematic.md
-            (written 2026-09-26, awaiting review)
-      -- port `TiltEntranceCinematic.ts` and its armada handover (M10 R3)
+- [ ] **M11b — Entrance cinematic**  deps: 11a  *(code complete — device pass pending 2026-09-26; exit: the commit carrying this text)*
+      plan  `docs/superpowers/plans/2026-09-20-m11b-entrance-cinematic.md`
+      **tick this box only after `godot/VERIFY-ME.md` §M11b is run on the A55**
+      ok  `ui/entrance_cinematic.gd` — `TiltEntranceCinematic.ts` ported on
+          the ColdOpen board (R1-R4); CINEMATIC phase wired into
+          `game_state_machine.gd`/`game_root.gd`/`hud_controller.gd` (R5-R11);
+          Classic/Code Red/Gauntlet start armadas + spawn shield (R12,
+          M10 R3's `TODO(M11b)` resolved).
+      ok  54/54 GUT scripts (631 tests); gdformat 98 files unchanged; gdlint
+          clean; `TODO(M11b)` grep empty; `ff4757` grep empty; `DIVERGENCE`
+          total 244 (234 + 10 `ColdOpen.dc.html` tags); headless 0 SCRIPT
+          ERROR. Final whole-branch review: 0 Critical/Important; F-1..F-3
+          fixed (stale PORT-NOTEs, an uncited `fill_to` literal, left-click-only
+          skip).
+      --  A55 absent from `adb` on 2026-09-26 (only an emulator attached) —
+          device pass pending; `VERIFY-ME.md` §M11b has 10 unticked checks
+          (the 10th, touch-to-mouse emulation on Retry/PLAY AGAIN/Pause→
+          Restart, is unverifiable headless).
 
 - [ ] **M11c — Export, glow measurement, device pass**  deps: 11b
       plan  not yet written

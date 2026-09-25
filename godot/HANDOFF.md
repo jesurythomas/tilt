@@ -4,6 +4,21 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
+**M11b — Entrance cinematic: code-complete, device pass pending.** Exit: the
+commit carrying this text (2026-09-26) — a commit cannot cite its own SHA.
+Plan `docs/superpowers/plans/2026-09-20-m11b-entrance-cinematic.md` (3 tasks,
+rulings R1–R12, 3 open questions); the user approved R1 (the ColdOpen board's
+sizes win over the TS DOM's), R8 (the TS `returnToMenu` skip quirk, ported as
+written), R10 (every Retry replays the cold open) and R12 (runs now start
+with the handover armada, 2.5 s shield and nuke) as written on 2026-09-26.
+Execution: subagent-driven (Task 1, Task 2, then a final whole-branch
+review). `TiltEntranceCinematic.ts` ports to `src/ui/entrance_cinematic.gd`,
+drawn on the ColdOpen board; the `CINEMATIC` phase now sits between Play/
+Retry/Restart and a playing run. Full section: `## M11b — what landed`
+below. Device checks: `VERIFY-ME.md` §M11b (A55 absent from `adb` on
+2026-09-26 — only an emulator was attached). **Next: plan M11c** (see Next
+below).
+
 **M11a — Menu, Settings, Calibrate: code-complete, device pass pending.**
 Exit: the commit carrying this text (2026-09-25) — a commit cannot cite its
 own SHA (M5/M6 precedent). Plan
@@ -15,8 +30,8 @@ ruled Q1 = fix Reset (also deletes progression and best score,
 (`DIVERGENCE(M11a Q2)`, R9); Q3 (Android back) stays open for the device
 pass. Execution: subagent-driven (one implementer per task, then review), 8
 tasks landed. Full section: `## M11a — what landed` below. Device checks:
-`VERIFY-ME.md` §M11a (A55 absent from `adb` on 2026-09-25). **M11b plan
-written 2026-09-26, awaiting the user's review** (see Next below).
+`VERIFY-ME.md` §M11a (A55 absent from `adb` on 2026-09-25). **M11b is now
+code-complete** (see the M11b paragraph above and Next below).
 
 **M6 — Generative music: code-complete, device pass pending.** Exit verified at
 `d489691` (2026-09-25); the exit commit carries this text. Plan
@@ -253,6 +268,35 @@ scope fails this check regardless of correctness. The real compile evidence
 is `tools/run_tests.sh` passing: it compiles every script under the project's
 nine warnings-as-errors. Don't read a `--check-only` failure on these four
 files as a regression.
+
+Re-run fresh at **M11b Task 3's exit** (2026-09-26, after the final
+whole-branch review's fixes F-1..F-3):
+
+```bash
+cd /c/Users/Jesury/Documents/Personal/dread-flock
+GODOT="/c/Users/Jesury/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe"
+tools/run_tests.sh                              # OK: 54/54 scripts (631 tests, 18076 asserts)
+gdformat --check godot/src godot/tests          # 98 files would be left unchanged
+gdlint godot/src godot/tests                    # Success: no problems found
+grep -rn "TODO(M11b)" godot/src godot/tests     # nothing
+grep -rn "TODO(M11c)" godot/src | wc -l         # 4 (the M11a count of 3 + the ship glow, R3)
+grep -rniE "ff4757" godot/src/ui/               # nothing (rule 01)
+grep -rn "DIVERGENCE" godot/src/ | wc -l        # 244 (234 + 10 ColdOpen.dc.html tags)
+"$GODOT" --headless --path godot --quit-after 240 2>&1 | grep -c "SCRIPT ERROR"   # 0
+"$ADB" devices                                  # only emulator-5554 — A55 absent
+git checkout godot/project.godot
+git status --short                              # only this task's doc changes before staging
+```
+
+`OK: 54/54 scripts collected, all tests passed` (Tests **631**, Passing 631,
+Asserts **18076** — +20 over the Task 2 exit's 611: Task 1 landed 621 and
+Task 2 landed 630, then the final review's F-3 fix added one left-click-only
+regression test); `98 files would be left unchanged`; `Success: no problems
+found`; every grep above matched its expected count; `DIVERGENCE` total
+**244**; headless `--quit-after 240` SCRIPT ERROR count **0**; `"$ADB"
+devices` listed only `emulator-5554` (the A55 was absent). This is M11b's
+exit evidence — M11b is now code-complete, device pass pending. Full
+report: `.superpowers/sdd/2026-09-20-m11b-entrance-cinematic/task-3-report.md`.
 
 ## App identity and toolchain
 
@@ -1460,36 +1504,156 @@ change strengthened an existing test), 17973 asserts; `gdformat --check` and
 headless `--quit-after 240` 0 SCRIPT ERROR. Full report:
 `.superpowers/sdd/2026-09-20-m11a-menu-and-settings/final-fix-report.md`.
 
+## M11b — what landed
+
+Plan `docs/superpowers/plans/2026-09-20-m11b-entrance-cinematic.md` (3 tasks,
+rulings R1–R12, `## Execution rulings` section at its end, same precedent as
+M9/M10/M11a). Execution: subagent-driven (Task 1, Task 2, then one final
+whole-branch review). Commits `402c161..8ba3745` (plan approval through the
+final-review fix commit; this doc commit is the exit).
+
+| Area | Files |
+|---|---|
+| `TiltEntranceCinematic.ts`: start/update/skip/finish on the run's sim systems, plus the ColdOpen board overlay | `src/ui/entrance_cinematic.gd` (new), `tests/test_entrance_cinematic.gd` (new) |
+| `start_cinematic` enters `CINEMATIC`; the skip PORT-NOTEs corrected for R9 | `src/core/game_state_machine.gd` |
+| Owns `_cinematic`; `_begin_cinematic`, `_on_cinematic_finished`, `skip_cinematic`; launch/restart/return; the CINEMATIC key map; the cinematic tick; resize | `src/core/game_root.gd` |
+| `finish_cinematic` takes over the music and the starting orb from `reset_run` (M6 R7 closed) | `src/sim/run_controller.gd` |
+| `_on_phase_changed` hides the sheets on `CINEMATIC` too (R9) | `src/ui/hud_controller.gd` |
+| `spawn_mode_armada`'s `TODO(M11b)` (M10 R3) resolved into a caller citation | `src/sim/enemy_swarm.gd` |
+| `ColdOpen` node between `GoalsHud` and `Armory` in `CanvasLayer` | `scenes/main.tscn` |
+| Tests for the phase, the handover, the moved music/orb, the CINEMATIC key map, Retry/Restart replay | `tests/test_main_scene.gd`, `test_game_state_machine.gd`, `test_run_controller.gd`, `test_audio_call_sites.gd` |
+| Exit: VERIFY-ME §M11b, PORT-PROGRESS/index rows | `VERIFY-ME.md`, `PORT-PROGRESS.md`, the index plan |
+
+**Rulings R1–R12** (plan, recorded 2026-09-26 before execution; full text in
+the plan's `## Rulings` section):
+- **R1** — the ColdOpen board is the layout authority over the TS DOM's own
+  sizes (52 px ship, 58 px title, 160×2 bar at bottom 44), per the M8.5
+  precedent; the title is `"PERIL POINT"` (app identity), not the TS
+  `"TILT TO LIVE"`.
+- **R2** — `TiltEntranceCinematic.render()` paints a canvas the player never
+  sees (an opaque overlay sits above it); not ported, PORT-NOTE only.
+- **R3** — the ship glyph's glow waits for the M11c device measurement
+  (spec §4.5); drawn flat with `TODO(M11c)`.
+- **R4** — the fill bar sets whole-percent width every tick, as the TS does;
+  the CSS 50 ms transition is not ported (PORT-NOTE).
+- **R5** — `GameRoot` owns the cinematic; `GameStateMachine` holds no UI
+  (spec §5.1) and only flips `phase = CINEMATIC` after `reset_run`.
+- **R6** — the TS `onFinish` splits: `GameRoot._on_cinematic_finished` sets
+  `PLAYING`; `RunController.finish_cinematic` starts the music and spawns
+  the starting orb.
+- **R7** — a tap/click or Space/Enter/Escape skips, checked before the
+  restart and pause keys so Escape skips and never pauses; `{ once: true }`
+  is not ported since `skip()` is already idempotent.
+- **R8** — `return_to_menu` calls `cinematic.skip` after the phase flip, as
+  the TS does, even though no path reaches a playing cold open there (the
+  opaque overlay covers both callers); ported as written (Law 2).
+- **R9** — `CINEMATIC` hides the pause and game-over modals the same way
+  `PLAYING` does, so a restart key inside the run-over's 450 ms delay
+  (M9 I-1) cannot reopen a stale Run over sheet during the new run.
+- **R10** — every Retry, Pause→Restart and Space/Enter/r after death replays
+  the 600 ms cold open, as the TS's `startCinematic` calls do.
+- **R11** — the cinematic ticks at the real, unscaled `dt`, joining the
+  grid and particles in the existing `CINEMATIC` arm of `_physics_process`.
+- **R12** — the start armada is new gameplay in the port, faithfully ported:
+  Classic gets 8 ringed seekers + a nuke + a 2.5 s shield; Code Red gets the
+  24-seeker armada + a vortex + a nuke; Gauntlet gets the edge-seeker armada
+  + a nuke. Resolves `spawn_mode_armada`'s `TODO(M11b)` (M10 R3).
+
+**Execution rulings** (SDD ledger, copied into the plan's own
+`## Execution rulings` section before this handoff):
+- Task 2 deviations, accepted by review: a `SubViewport(1280×720)` host in
+  `test_play_opens_the_cold_open_and_hands_over_to_the_run`, because the tiny
+  headless viewport let the shielded ship ram all 8 seekers;
+  `gdlint:disable=max-returns` around `GameRoot._unhandled_input`;
+  `shield_timer = 0.0` before a forced `lose_life()` in death tests, a new
+  precondition from the 2.5 s spawn shield; an extra `skip_cinematic`/
+  `finish_cinematic` call in the unlisted tests
+  `test_p_and_escape_follow_the_ts_key_map` and
+  `test_starting_orb_is_the_equipped_ships_weapon`.
+- Task 2 fix round 1 restored `test_run_over_menu_returns_to_the_menu` past
+  the spawn shield (the test passed without ever reaching `GAME_OVER`,
+  because the shield blocked `lose_life`).
+- Final whole-branch review (opus, `8451536..b9780f4`): 0 Critical, 0
+  Important, ready "with fixes." **F-1 (comment-only)** — three stale
+  `game_state_machine.gd` PORT-NOTEs corrected: the run HUD and the pause/
+  game-over modals now cite `phase_changed(CINEMATIC or PLAYING)` (M11a R12,
+  M11b R9), and `setMenuMode(false)` now credits both `GameRoot.launch_run`
+  and `GameRoot.restart_run`. **F-2 (comment-only)** — `entrance_cinematic.gd`
+  `_glow()`'s `fill_to = Vector2(1.0, 0.5)` now carries the same
+  `DIVERGENCE(UI-SYSTEM): ColdOpen.dc.html — at 50% 50%` tag as the
+  preceding `fill_from` line (Law 1). **F-3 (code + test)** — `_gui_input`
+  skipped on any pressed `InputEventMouseButton`, including the scroll
+  wheel and right-click; the TS listens for `click` (primary button only,
+  `TiltEntranceCinematic.ts:101`) and `touchstart`. Now requires
+  `button_index == MOUSE_BUTTON_LEFT` for the mouse branch; one new
+  regression test proves the wheel and right-click emit nothing and a left
+  click does (631 tests, +1 over Task 2's 630). `GameStateMachine.stop()`
+  has no caller in the port.
+
+**Verification** (fresh at this exit, after F-1..F-3): 54/54 GUT scripts,
+631 tests, 18076 asserts; `gdformat --check` 98 files unchanged; `gdlint`
+clean; `TODO(M11b)` grep empty; `TODO(M11c)` grep 4 (the M11a count of 3 +
+the ship glow, R3); `ff4757` grep empty; `DIVERGENCE` total 244 (234 + 10
+`ColdOpen.dc.html` tags); headless `--quit-after 240` 0 SCRIPT ERROR;
+`"$ADB" devices` listed only `emulator-5554` (A55 absent). Full command
+block and output: "## How to verify right now" above. Full report:
+`.superpowers/sdd/2026-09-20-m11b-entrance-cinematic/task-3-report.md`.
+
+## Open questions (M11b)
+
+1. **R8's unreachable quirk.** The TS `returnToMenu` and `stop` call
+   `cinematic.skip` after leaving the cinematic phase. A playing cold open
+   would then spawn its armada and set `PLAYING` under the menu. Nothing
+   reaches this today, so it is ported as written. If M11a's Q3 ruling makes
+   Android back call `return_to_menu`, the back handler must be a no-op
+   during `CINEMATIC`, or this needs its own ruling.
+2. **R1, the layout authority.** The board's sizes are used, not the TS
+   DOM's (72 px ship, a clamp(48–76) title, a 200 px bar at bottom 120).
+   This follows the M8.5 precedent. The user can overrule it at review.
+3. **R10, the replay cost.** Every Retry now costs 0.6 s of cold open (a tap
+   skips it), as in the TS. The device pass judges this (`VERIFY-ME.md`
+   §M11b check 6).
+4. **F-4, parked (final review Minor).**
+   `test_a_tap_on_the_cold_open_skips_it` calls `_gui_input` directly and
+   never goes through the viewport. **Ruling:** the tree order was checked
+   by hand (Armory is the only later sibling under `CanvasLayer` and it is
+   hidden when closed, so it cannot steal the input ahead of `ColdOpen`),
+   and the device pass covers the real input path.
+5. **Parked (final review Minor).**
+   `test_music_starts_once_at_the_handover` cannot count `start_music`
+   calls, because `AudioBank._music_player.playing` is a boolean, not a
+   counter. **Ruling:** `start_music` is idempotent (`audio_bank.gd:166`),
+   and the test's orb-count assertion (one starting orb, not two) already
+   guards the single handover Review Focus 1 cares about.
+6. **Parked (final review Minor).**
+   `test_restart_inside_the_run_over_delay_keeps_the_sheet_shut` never
+   asserts that the run-over timer was running before the restart key is
+   pressed. **Ruling:** an R9 regression (the timer not stopping on
+   `CINEMATIC`) still fails the test regardless, and M9's own tests cover
+   the timer actually starting — the missing precondition weakens the test's
+   story but not its coverage.
+
 ## Next
 
-**M11b plan approved by the user (2026-09-26), executing subagent-driven:**
-`docs/superpowers/plans/2026-09-20-m11b-entrance-cinematic.md` (3 tasks,
-planning rulings R1–R12, 3 open questions). Do not start Task 1 until the
-user has reviewed the plan and chosen an execution method
-(subagent-driven or native). If the user approves it, run it task by task.
-The SDD ledger goes under `.superpowers/sdd/2026-09-20-m11b-entrance-cinematic/`.
-Rulings the user should look at in particular: R1 (the ColdOpen board's
-sizes win over the TS DOM's), R8 (the TS `returnToMenu` skip quirk,
-ported as written), R10 (every Retry replays the cold open) and R12 (runs
-now start with the handover armada, 2.5 s shield and nuke).
+**Plan M11c.** First step, literally: read spec §4.5 and §8 Module 11, all
+of `godot/VERIFY-ME.md`, every `TODO(M11c)`, `export_presets.cfg` and this
+file's toolchain section below; write
+`docs/superpowers/plans/2026-09-20-m11c-export-and-device-pass.md`; commit it
+and stop for review (CONVENTIONS §9 step 5).
 
 Before starting: `git status --short` must be clean under `godot/` (the user
-may leave device tuning uncommitted — never stash or revert it), and read
-`godot/VERIFY-ME.md`. If the A55 is back on `adb`, offer the M11a device pass
-first (`VERIFY-ME.md` §M11a, 16 checks + Q3). The A55 was absent again
-on 2026-09-26.
+may leave device tuning uncommitted — never stash or revert it). If the A55
+is back on `adb`, offer the M11a and M11b device passes first
+(`VERIFY-ME.md` §M11a, 16 checks + Q3; §M11b, 10 checks). The A55 was
+absent again on 2026-09-26 (only an emulator was attached).
 
-Carried from the M6 exit into M11b/M11c:
-- M11b: move `start_music` + `spawn_starting_weapon_orb` out of `RunController.reset_run`
-  into the cinematic's completion callback (`TiltGame.ts:168-176`, M6 R7), and call
-  `play_warp_in` from the cinematic (`TiltEntranceCinematic.ts:74`, M5 R8);
-  now also `TODO(M11b)` at `run_controller.gd:128` and `enemy_swarm.gd:355`
-  (M10 R3's armada handover).
+Carried from the M6 exit into M11c:
 - If a mid-play mute is ever ported (`btn-tilt-sound` → `toggleMute`, `TiltGame.ts:1441`),
   M6 R6's silent-loop mute becomes reachable — add a device check for it.
 - Re-bake the music only if `TiltAudio.ts:82-479` changes (`node tools/bake-audio/bake_music.mjs`,
   then `--import`); update `edit/loop_end` if the frame count changes.
 - M11c owns the device pass: M2.5, M3, M4, M5, M6, M7, M8, M8.5, M9, M10, the
-  scale split and M11a are all pending in `VERIFY-ME.md`; M11c also owns
-  `TODO(M11c)` at `entity_layer.gd:253`, `handling_preview.gd:16` (glow) and
-  `tilt_input.gd:113` (iOS export).
+  scale split, M11a and M11b are all pending in `VERIFY-ME.md`; M11c also owns
+  `TODO(M11c)` at `entity_layer.gd:253`, `handling_preview.gd:16` (glow),
+  `tilt_input.gd:113` (iOS export) and `entrance_cinematic.gd`'s ship glow
+  (R3, the fourth `TODO(M11c)` site).
