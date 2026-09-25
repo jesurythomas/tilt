@@ -4,27 +4,40 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**M11c part 1 — Performance: planned, awaiting user review (2026-09-26).**
-The A55 was back on `adb` on 2026-09-26. HEAD `fbf7e94` installs, boots to
-the menu in ~2 s with 0 script errors, and plays the M11b handover (8-seeker
-ring, nuke orb, starting orb, 2.5 s shield — M11b check 4 seen). The user
-played it and reported: frame rate collapses with many things on screen;
-spikes when horizontal/vertical wall formations spawn and when power-ups
-kill many units; the cold open is not centred; "some options don't show
-correctly"; the ring spawn that surrounds you leaves no escape. A temporary
-probe measured the cause: **CPU time in GDScript, not the GPU.** At ~110
-enemies the game runs at 12–14 fps, with swarm 22–27 ms, grid springs 18–19
-ms and enemy draw 14–17 ms per frame, and the 120 Hz sim spiralling to 8
-ticks per frame. **`dumpsys gfxinfo` sees 0 Godot frames**, so every
-frame-time check in `VERIFY-ME.md` has measured nothing; SurfaceFlinger
-`--latency` works. Full evidence table, rulings P1–P7 and 9 tasks:
-`docs/superpowers/plans/2026-09-26-m11c-performance.md`. The probe was
-reverted from the tree (Task 1 re-adds it properly). **Next: the user
-reviews the plan and answers its Open questions; then execute Task 1.**
-The emulator (`emulator-5554`, Android 17, arm64 by translation) also runs
-the debug APK; the user allowed its use on 2026-09-26. It showed the
-"TILT CALIBRATED" toast drawn over the menu title at cold boot (M11a
-check 17), and the A55 showed the same toast still up when a run starts.
+**M11c part 1 — Performance: code-complete, A55 measurement pending
+(2026-09-26).** Plan `docs/superpowers/plans/2026-09-26-m11c-performance.md`;
+ledger `.superpowers/sdd/2026-09-26-m11c-performance/progress.md` (git-ignored).
+The user played HEAD `fbf7e94` on the A55 and reported frame collapse with
+many things on screen, spikes on wall-formation spawns and power-up mass
+kills, an off-centre cold open, a start ring too tight to escape, and
+"some options don't show correctly" (parked by the user). A temporary probe
+found it was CPU time in GDScript: at ~110 enemies, fps 12–14, the 120 Hz sim
+spiralling to 8 ticks per frame, swarm 22–27 ms, grid 18–19 ms and entity draw
+14–17 ms per frame. **`dumpsys gfxinfo` sees 0 Godot frames**; use
+`tools/frametime.sh` (SurfaceFlinger) and the debug `PERF` log line.
+
+User rulings (2026-09-26): no catch-up cap and no slow motion (P2 withdrawn);
+options display out of scope for now; widen the start ring (P8); execute
+natively. What landed, with desktop bench numbers (`godot/bench/`, 115
+enemies on the A55's 2162×1056 arena, before → after):
+
+| Change | Ruling | Desktop effect |
+|---|---|---|
+| debug-only `PerfProbe` (one `PERF` line/s) + `tools/frametime.sh` + `godot/bench/` | P1 | — |
+| separation prefilter + packed 64-bit copies + dx² early reject, bit-exact (oracle test) | P4 | separation 2,100 → 230 µs/tick; swarm 2,400 → 430 |
+| grid sleeps while gridlines are off; packed 64-bit arrays; blasts scan an exact window (radius + tracked max displacement), bit-exact | P3 | grid 790 → 0 µs/tick (340 awake); 30-kill tick ~7,000 → 210 µs |
+| enemy dots, frozen dots and particles draw from shared disc/ring `GradientTexture2D`s (`render/circle_sprites.gd`) | P5 | `draw_circle` 7.5 µs and `draw_arc` 7.3 µs vs `draw_rect` 0.26; entity draw 5,200 → 800 µs/frame |
+| `score_changed` only on change; chip restyled only on a tier change | P6 | removes 120 StyleBox rebuilds/s |
+| Classic start ring radius `max(260, 0.42 × short side)` (~443 px on the A55) | P8 | — |
+| cold-open stack grows both ways from its centre anchor (it grew right/down from a 0×0 pre-tree size: 529 px right, 99 px low at 2340×1080) | Task 7 | — |
+
+Verification (fresh, 2026-09-26): `OK: 57/57 scripts collected, all tests
+passed` (652 tests); `gdformat --check` 103 files unchanged; `gdlint` clean;
+headless `--quit-after 240` 0 SCRIPT ERROR; `DIVERGENCE` total 264. The A55
+dropped off `adb` at 02:11 and did not return, so `VERIFY-ME.md` §M11c part 1
+(6 checks) is unrun. Finding, not fixed (options parked): `calibrate_screen.gd:175`
+anchors a block `PRESET_CENTER_LEFT`, the same grow-direction pattern as the
+cold-open bug. **Next: see Next below.**
 
 **M11b — Entrance cinematic: code-complete, device pass pending.** Exit: the
 commit carrying this text (2026-09-26) — a commit cannot cite its own SHA.
@@ -1657,11 +1670,13 @@ block and output: "## How to verify right now" above. Full report:
 
 ## Next
 
-**Execute M11c part 1 (performance)** once the user has reviewed
-`docs/superpowers/plans/2026-09-26-m11c-performance.md` and chosen an
-execution method. First step, literally: Task 1 (the probe and
-`tools/frametime.sh`). Every task ends with an A55 measurement while the
-user plays a Classic run past 100 enemies.
+**Measure M11c part 1 on the A55.** When the phone is on `adb`: export and
+install the debug APK (VERIFY-ME §0), then run `VERIFY-ME.md` §M11c part 1
+with the user playing. If check 1 misses the target (fps ≥ 58 at 100+
+enemies), read the largest remaining `PERF` section and stop for a ruling —
+candidates are the other enemy types' draws (charger, artillery, carrier,
+pulsar, specter keep `draw_circle`/`draw_arc`), `GoalManager.evaluate_live_total_goals`
+(P7), or MultiMesh (spec §9).
 
 **Then plan M11c part 2** (glow, icons/splash, signed release, the rest of
 the device pass). Its first step: read spec §4.5 and §8 Module 11, all of

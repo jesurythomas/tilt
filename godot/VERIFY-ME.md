@@ -625,6 +625,33 @@ Run §0 first.
 When done: tick M11a in `PORT-PROGRESS.md` with the SHA you tested, and
 resolve Q3 above in `HANDOFF.md`'s Open questions (M11a).
 
+## M11c part 1 — Performance (plan `2026-09-26-m11c-performance.md`)
+
+Code-complete 2026-09-26. The A55 dropped off `adb` at 02:11 that day, so
+nothing below has run on it. Debug builds print one `PERF` line per second:
+`"$ADB" -s RRCXB04L8EJ logcat -s godot:I | grep PERF`.
+
+- [ ] 1. **Late run.** A Classic run past 100 enemies (`en=` in the PERF
+      line): `fps` ≥ 58, `maxsteps` ≤ 2. Before this pass: fps 12–14,
+      maxsteps 8, swarm 22–27 ms, grid 18–19 ms, entity draw 14–17 ms per
+      frame. Then `tools/frametime.sh 60 late-run`: p50 ≤ 16.7 ms, >20ms
+      under 2%.
+- [ ] 2. **Kill spikes.** A nuke or vortex through a dense swarm, and a
+      wall-sweep formation spawning: no visible hitch; the PERF line around
+      it keeps `maxsteps` ≤ 2.
+- [ ] 3. **Dots look the same.** Enemy dots (halo, glow, body, inner,
+      border, pupil), frozen dots and particles now draw from shared
+      textures (P5). Edges are smoother than before; anything else that
+      looks different is a finding.
+- [ ] 4. **Grid on.** Settings → Background grid on, mid-run: the grid
+      appears (flat), ripples on the next kills, and the PERF line shows
+      the awake-grid cost (`s_grid`).
+- [ ] 5. **Start ring.** A Classic run opens with the 8 seekers much
+      further out (0.42 × the arena's short side, ~443 px on the A55, P8).
+      Is it now fair to escape?
+- [ ] 6. **Cold open centred.** Ship, "PERIL POINT" and the glow sit in the
+      middle of the screen (was ~530 px right and ~100 px low).
+
 ## M11b — Entrance cinematic
 
 Code-complete 2026-09-26 (Tasks 1-2, final review fixes F-1..F-3; exit

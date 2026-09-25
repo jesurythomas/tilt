@@ -304,7 +304,15 @@ Dependency map and resume instructions:
           Restart, is unverifiable headless).
 
 - [ ] **M11c — Export, glow measurement, device pass**  deps: 11b
-      plan  not yet written
+      part 1 plan `docs/superpowers/plans/2026-09-26-m11c-performance.md` —
+          **code complete 2026-09-26, A55 measurement pending** (phone off
+          `adb` after 02:11). P1 probe + `tools/frametime.sh`; P3 grid sleeps
+          when hidden, packed, exact windowed blasts; P4 separation prefilter
+          on packed copies (bit-exact); P5 dots/particles from shared circle
+          textures; P6 score emitted on change, chip restyled on tier change;
+          P8 wider Classic start ring (user); cold-open stack centred. P2
+          (catch-up cap) withdrawn by the user. 57/57 scripts, 652 tests.
+      part 2 plan  not yet written
       -- glow cost measurement on device (spec §4.5) and its fallback
       -- Android export preset, icons, splash screens; signed release build
       -- iOS export preset only if a macOS host is available (D1)

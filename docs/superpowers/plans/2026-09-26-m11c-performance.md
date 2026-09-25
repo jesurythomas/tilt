@@ -98,6 +98,8 @@ The user asked on 2026-09-26: "we need to optimize the game". That request is th
 
 ### Task 1: The probe and the sampler (P1)
 
+**Status:** done `f27e02a` (+ `godot/bench/bench_sim.gd`); A55 baseline skipped (phone off adb) — the Evidence table is the baseline.
+
 **Files:**
 - Create: `godot/src/core/perf_probe.gd`, `godot/tests/test_perf_probe.gd`, `tools/frametime.sh`
 - Modify: `godot/src/core/game_root.gd` (`_physics_process`, `_process`), `godot/src/sim/run_controller.gd` (`update`), `godot/src/render/entity_layer.gd`, `effect_layer.gd`, `grid_layer.gd` (`_draw`), `godot/VERIFY-ME.md` (every `gfxinfo` line)
@@ -305,6 +307,8 @@ func test_catch_up_is_capped_at_three_ticks() -> void:
 
 ### Task 3: Separation prefilter (P4)
 
+**Status:** done `5472607` — extended to packed 64-bit copies + dx² early reject, still bit-exact (ledger ruling).
+
 **Files:** Modify `godot/src/sim/enemy_swarm.gd:1285-1321`; test `godot/tests/test_enemy_swarm_separation.gd` (new).
 
 - [ ] **Step 1: Failing oracle test.** Copy today's `apply_flocking_separation` body verbatim into the test as `_reference_separation(enemies: Array[Types.Enemy])`. Build a seeded (`seed(1234)`) swarm of 150 enemies: a mix of seekers, `WALL_DOT`, `BULLET`, frozen ones, satellites (`parent_carrier_id = 1`) and orbiters (`orbit_center = Vector2(5, 5)`), packed into a 120 × 120 px box so many pairs overlap. Deep-copy it. Run the reference on one copy and `swarm.apply_flocking_separation()` on the other, 30 times each. Assert every `x`/`y` is **exactly** equal (`assert_eq`, not `assert_almost_eq`). Add a second test that `EnemySwarm.separation_candidates()` excludes each ineligible kind. It fails until Step 3 exists.
@@ -364,6 +368,8 @@ Eligibility cannot change inside the loop, since the loop only writes `x`/`y`, s
 
 ### Task 4: The grid (P3)
 
+**Status:** done `48f459a` — Float64 (not Float32) and an exact window from the tracked max displacement, so bit-exact (ledger ruling).
+
 **Files:** Modify `godot/src/sim/vector_grid.gd` (whole file), `godot/src/render/grid_layer.gd:210-230` (the reader), `godot/src/core/game_root.gd:376` (tell the grid it is visible); test `godot/tests/test_vector_grid.gd`.
 
 **Interfaces:**
@@ -385,6 +391,8 @@ Eligibility cannot change inside the loop, since the loop only writes `x`/`y`, s
 - [ ] **Step 6: Commit** `M11c: sleep the invisible grid and pack its points; next: Task 5`.
 
 ### Task 5: Cached dot sprites (P5)
+
+**Status:** done `f80b74c` — shared disc/ring GradientTexture2Ds (`render/circle_sprites.gd`) replace the per-skin baked sprite; particles included (ledger rulings).
 
 **Files:** Modify `godot/src/render/entity_layer.gd` (`_draw_default_dot` :809, `_draw_frozen_dot` :533); test `godot/tests/test_entity_layer_sprites.gd` (new).
 
@@ -414,6 +422,8 @@ Eligibility cannot change inside the loop, since the loop only writes `x`/`y`, s
 
 ### Task 6: Score signal on change (P6)
 
+**Status:** done `7a16ac9`; step 5 (A55 exit measurement) pending — VERIFY-ME §M11c part 1.
+
 **Files:** Modify `godot/src/sim/run_controller.gd:257-260`, `godot/src/ui/hud_controller.gd:420-446`; tests `test_run_controller.gd`, `test_hud_controller.gd` (or wherever `_on_score_changed` is tested: `grep -rn "_on_score_changed\|score_changed" godot/tests`).
 
 - [ ] **Step 1: Failing tests.**
@@ -437,6 +447,8 @@ Eligibility cannot change inside the loop, since the loop only writes `x`/`y`, s
 
 ### Task 7: The cold open is not centred (user report)
 
+**Status:** done `da2ef3a` — root cause: stack sized before tree entry (0×0) and grown END-ward; now grows both ways. A55 visual pending.
+
 **Files:** investigate first, via `godot/src/ui/entrance_cinematic.gd` and `scenes/main.tscn` (the `ColdOpen` node).
 
 - [ ] **Step 1: Reproduce on the A55.** `adb shell screenrecord --time-limit 3 /sdcard/co.mp4` started just before tapping Play. Pull it, extract a frame (`ffmpeg -ss 0.3`, if present; otherwise screencap in a loop), and measure the stack's centre against the screen centre (1170, 540).
@@ -444,6 +456,8 @@ Eligibility cannot change inside the loop, since the loop only writes `x`/`y`, s
 - [ ] **Step 3: Fix, re-run, verify on the A55, commit** `M11c: centre the cold open at phone scale; next: Task 8`.
 
 ### Task 8: Move the start ring out (P8)
+
+**Status:** done `805d68c`; A55 visual pending.
 
 **Files:** Modify `godot/src/ui/entrance_cinematic.gd:30-33` and its seeker loop (`:200-212`); test `godot/tests/test_entrance_cinematic.gd` (`test_classic_hands_over_eight_ringed_seekers_a_nuke_and_a_shield`, :80).
 
@@ -474,6 +488,8 @@ and in the loop, `var radius: float = maxf(SEEKER_RADIUS, minf(width, height) * 
 - [ ] **Step 3:** Record the findings and rulings in `HANDOFF.md`; any fix gets its own task after the user rules.
 
 ### Task 9: Exit of part 1
+
+**Status:** docs done in the exit commit; the A55 measurement is the remaining gate (HANDOFF Next).
 
 - [ ] Update `VERIFY-ME.md`: a new §M11c-perf with the exit numbers. Tick every earlier frame-time check that the Task 6 measurement now covers. Those checks were never really run, since gfxinfo was blind.
 - [ ] Update `HANDOFF.md` (State, Evidence with before/after, Next = plan M11c part 2) and `PORT-PROGRESS.md` (the M11c row: part 1 done).
