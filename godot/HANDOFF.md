@@ -15,8 +15,8 @@ ruled Q1 = fix Reset (also deletes progression and best score,
 (`DIVERGENCE(M11a Q2)`, R9); Q3 (Android back) stays open for the device
 pass. Execution: subagent-driven (one implementer per task, then review), 8
 tasks landed. Full section: `## M11a — what landed` below. Device checks:
-`VERIFY-ME.md` §M11a (A55 absent from `adb` on 2026-09-25). **Next: plan
-M11b** (see Next below).
+`VERIFY-ME.md` §M11a (A55 absent from `adb` on 2026-09-25). **M11b plan
+written 2026-09-26, awaiting the user's review** (see Next below).
 
 **M6 — Generative music: code-complete, device pass pending.** Exit verified at
 `d489691` (2026-09-25); the exit commit carries this text. Plan
@@ -1462,22 +1462,22 @@ headless `--quit-after 240` 0 SCRIPT ERROR. Full report:
 
 ## Next
 
-**M11a is code-complete, device pass pending. Next: plan M11b (entrance
-cinematic).** M11a's own plan is fully executed (Tasks 1–8); do not begin
-M11b implementation without a written plan and the user's review of it, per
-CONVENTIONS §9 step 5.
-
-M11b's first step, literally: read `TiltEntranceCinematic.ts` in full,
-`ColdOpen.dc.html`, `TiltGame.ts:160-178`, `:1302-1309`, `:1344-1360`,
-`:1523-1530`, every `TODO(M11b)`; write
-`docs/superpowers/plans/2026-09-20-m11b-entrance-cinematic.md`; commit it and
-stop for review.
+**M11b plan written (2026-09-26), awaiting the user's review:**
+`docs/superpowers/plans/2026-09-20-m11b-entrance-cinematic.md` (3 tasks,
+planning rulings R1–R12, 3 open questions). Do not start Task 1 until the
+user has reviewed the plan and chosen an execution method
+(subagent-driven or native). If the user approves it, run it task by task.
+The SDD ledger goes under `.superpowers/sdd/2026-09-20-m11b-entrance-cinematic/`.
+Rulings the user should look at in particular: R1 (the ColdOpen board's
+sizes win over the TS DOM's), R8 (the TS `returnToMenu` skip quirk,
+ported as written), R10 (every Retry replays the cold open) and R12 (runs
+now start with the handover armada, 2.5 s shield and nuke).
 
 Before starting: `git status --short` must be clean under `godot/` (the user
 may leave device tuning uncommitted — never stash or revert it), and read
 `godot/VERIFY-ME.md`. If the A55 is back on `adb`, offer the M11a device pass
-first (`VERIFY-ME.md` §M11a, 16 checks + Q3) — it costs nothing to run before
-M11b's own plan is written.
+first (`VERIFY-ME.md` §M11a, 16 checks + Q3). The A55 was absent again
+on 2026-09-26.
 
 Carried from the M6 exit into M11b/M11c:
 - M11b: move `start_music` + `spawn_starting_weapon_orb` out of `RunController.reset_run`

@@ -285,7 +285,8 @@ Dependency map and resume instructions:
           `VERIFY-ME.md` §M11a has 16 unticked checks, plus Q3 (Android back).
 
 - [ ] **M11b — Entrance cinematic**  deps: 11a
-      plan  not yet written
+      plan  docs/superpowers/plans/2026-09-20-m11b-entrance-cinematic.md
+            (written 2026-09-26, awaiting review)
       -- port `TiltEntranceCinematic.ts` and its armada handover (M10 R3)
 
 - [ ] **M11c — Export, glow measurement, device pass**  deps: 11b
