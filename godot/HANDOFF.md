@@ -4,7 +4,7 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**M5 — Audio bake + SFX: planned (plan committed, no code yet).** Plan `docs/superpowers/plans/2026-09-20-m5-audio-bake-and-sfx.md`; see `## Next`.
+**M5 in progress: Task 1 landed; next Task 2 (AudioBank playback).** Plan `docs/superpowers/plans/2026-09-20-m5-audio-bake-and-sfx.md`; see `## Next`. Task 1: `tools/bake-audio/bake_sfx.mjs` wrote 37 deterministic WAVs to `godot/assets/audio/sfx/` (imported as QOA, `.import` sidecars committed); spec §4.2/§8 M5 amended to `.wav`; suite unchanged at 49/49 scripts, 520 tests.
 
 **M10 — Modes: code-complete, device pass pending.** Final commit `2e6b2d2`
 (exit commit for the whole module — final review fixes F-1..F-4 landed at
@@ -1055,10 +1055,12 @@ rulings R1–R11). User rulings at plan time: **R1** bake to 16-bit mono WAV
 `TiltAudio.ts` unmodified in headless Chrome via Puppeteer's
 `OfflineAudioContext` (spiked and working 2026-09-25).
 
-**First step, literally:** read the M5 plan in full (including its
-Rulings and Global Constraints), then read `web/src/tilt-to-live/TiltAudio.ts`,
-then execute Task 1 (`tools/bake-audio/bake_sfx.mjs`). Follow the plan's
-tasks in order; tick each and commit per `CLAUDE.md`.
+**First step, literally:** Task 1 (the bake) landed 2026-09-25. Read the M5
+plan's Rulings, Global Constraints and Task 2, then execute Task 2
+(`AudioBank` playback, `spy_audio_bank.gd`, `test_audio_bank.gd` 1 → 13
+tests, expected total 533). Follow the plan's tasks in order; tick each and
+commit per `CLAUDE.md`. Re-bake (only if `TiltAudio.ts` changes):
+`node tools/bake-audio/bake_sfx.mjs`, then `godot --headless --path godot --import`.
 
 Before starting: `git status --short` must be clean under `godot/`
 (the user may leave device tuning uncommitted — never stash or revert it),
