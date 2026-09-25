@@ -208,3 +208,24 @@ func test_start_ring_scales_with_the_arena_on_large_screens() -> void:
 		for e: Types.Enemy in _swarm.enemies:
 			var d: float = Vector2(e.x, e.y).distance_to(size / 2.0)
 			assert_almost_eq(d, expected, 0.01, "ring radius at %s" % size)
+
+
+func test_the_stack_is_centred_at_phone_scale() -> void:
+	# User report 2026-09-26 (A55): "the Peril Point loading screen isn't centered".
+	var a55: Vector2 = Vector2(2340.0, 1080.0)
+	var c: EntranceCinematic = _cinematic()
+	c.size = a55
+	c.set_ui_scale(minf(a55.y / 390.0, a55.x / 844.0))
+	c.start(BOUNDS.x, BOUNDS.y, Types.GameMode.CLASSIC)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var centre: Vector2 = c.get_global_rect().get_center()
+	for node_name: String in ["Stack", "Ship", "Title", "Glow"]:
+		var n: Control = c.find_child(node_name, true, false) as Control
+		assert_almost_eq(
+			n.get_global_rect().get_center().x, centre.x, 1.0, "%s centred horizontally" % node_name
+		)
+	var stack: Control = c.find_child("Stack", true, false) as Control
+	assert_almost_eq(
+		stack.get_global_rect().get_center().y, centre.y, 1.0, "Stack centred vertically"
+	)

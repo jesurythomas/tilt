@@ -305,8 +305,12 @@ func _stack() -> VBoxContainer:
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	stack.add_child(title)
 
-	stack.size = stack.get_combined_minimum_size()
-	stack.set_anchors_and_offsets_preset(Control.PRESET_CENTER, Control.PRESET_MODE_KEEP_SIZE)
+	# The stack's minimum size is only known once its fonts resolve in the tree, so it
+	# must grow from its centre anchor both ways; the default (END) grew it right and
+	# down, off-centre at phone scale (A55 report, 2026-09-26).
+	stack.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	stack.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	stack.grow_vertical = Control.GROW_DIRECTION_BOTH
 	return stack
 
 
