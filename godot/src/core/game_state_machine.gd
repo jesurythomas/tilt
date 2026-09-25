@@ -24,6 +24,8 @@ var _grid: VectorGrid = null
 var _particles: ParticleEngine = null
 var _router: InputRouter = null
 var _tilt: TiltInput = null
+var _audio: AudioBank = null
+var _options: GameOptionsManager = null
 var _bounds: Vector2 = Vector2.ZERO
 var _is_running: bool = false
 
@@ -33,13 +35,17 @@ func _init(
 	grid: VectorGrid,
 	particles: ParticleEngine,
 	router: InputRouter,
-	tilt: TiltInput
+	tilt: TiltInput,
+	audio: AudioBank,
+	options: GameOptionsManager
 ) -> void:
 	_player = player
 	_grid = grid
 	_particles = particles
 	_router = router
 	_tilt = tilt
+	_audio = audio
+	_options = options
 
 
 ## Keeps the arena size the transitions reset against.
@@ -63,7 +69,7 @@ func start() -> void:
 func launch_run(new_mode: Types.GameMode) -> void:
 	mode = new_mode
 	# TODO(M11): goalsHUD.setMenuMode(false), menu.hide().
-	# TODO(M5): audio.unlock().
+	_audio.unlock()  # PORT: web/src/tilt-to-live/TiltGame.ts:1492
 	start_cinematic()
 
 
@@ -75,7 +81,7 @@ func return_to_menu() -> void:
 	phase = Types.GamePhase.MENU
 	_router.clear_movement_keys()
 	_tilt.stop_listening()
-	# TODO(M5): audio.stopMusic().
+	_audio.stop_music()  # PORT: web/src/tilt-to-live/TiltGame.ts:1501
 	# TODO(M11): hide the pause and game-over modals, skip the cinematic,
 	# goalsHUD.setMenuMode(true), menu.show(), updateCursor().
 	# TODO(M11): document.body.classList.remove('tilt-playing') (TiltGame.ts:1512).
@@ -107,7 +113,7 @@ func stop() -> void:
 	_is_running = false
 	_router.clear_movement_keys()
 	_tilt.stop_listening()
-	# TODO(M5): audio.stopMusic().
+	_audio.stop_music()  # PORT: web/src/tilt-to-live/TiltGame.ts:1536
 	# TODO(M11): skip the cinematic.
 	# PORT-NOTE: the rAF cancellation (ts:1541-1544) belongs to GameRoot,
 	# same as the loop start noted in start().
@@ -148,7 +154,8 @@ func reset_run(new_mode: Types.GameMode) -> void:
 	_particles.reset()
 	# PORT-NOTE: gauntletMaze.reset (:1604) is ported in run_controller.gd::reset_run (M10 R5).
 	_grid.resize(_bounds.x, _bounds.y)
-	# TODO(M5): audio.setMuted/setSfxVolume/setMusicVolume.
+	# PORT-NOTE: setMuted/setSfxVolume/setMusicVolume (:1607-1610) are ported in
+	# run_controller.gd::reset_run, which Retry and Restart run also reach (M5 R11).
 	# TODO(M2): updateHUD().
 	# TODO(M11): hide the pause and game-over modals (TiltGame.ts:1612-1613).
 	# PORT-NOTE: goalsHUD.updateLive (:1615) is ported in run_controller.gd::reset_run.
@@ -160,12 +167,14 @@ func reset_run(new_mode: Types.GameMode) -> void:
 func toggle_pause() -> void:
 	if phase == Types.GamePhase.PLAYING:
 		phase = Types.GamePhase.PAUSED
-		# TODO(M5): audio.stopMusic().
+		_audio.stop_music()  # PORT: web/src/tilt-to-live/TiltGame.ts:1622
 		# TODO(M11): populate and show the pause modal.
 	elif phase == Types.GamePhase.PAUSED:
 		phase = Types.GamePhase.PLAYING
 		# TODO(M11): hide the pause modal.
-		# TODO(M5): audio.startMusic() when music is enabled.
+		# PORT: web/src/tilt-to-live/TiltGame.ts:1638-1640
+		if _options.settings.music_enabled:
+			_audio.start_music()
 
 
 ## Formats elapsed seconds as `m:ss`.

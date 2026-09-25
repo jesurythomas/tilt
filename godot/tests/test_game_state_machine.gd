@@ -10,6 +10,8 @@ var _grid: VectorGrid = null
 var _particles: ParticleEngine = null
 var _router: InputRouter = null
 var _tilt: TiltInput = null
+var _audio: SpyAudioBank = null
+var _options: GameOptionsManager = null
 var _machine: GameStateMachine = null
 
 
@@ -19,7 +21,9 @@ func before_each() -> void:
 	_particles = ParticleEngine.new()
 	_router = InputRouter.new()
 	_tilt = TiltInput.new()
-	_machine = GameStateMachine.new(_player, _grid, _particles, _router, _tilt)
+	_audio = SpyAudioBank.new()
+	_options = GameOptionsManager.new()
+	_machine = GameStateMachine.new(_player, _grid, _particles, _router, _tilt, _audio, _options)
 	_machine.set_bounds(BOUNDS)
 
 
@@ -81,3 +85,45 @@ func test_return_to_menu_is_a_no_op_when_already_in_the_menu() -> void:
 func test_format_time_pads_seconds() -> void:
 	assert_eq(GameStateMachine.format_time(65.0), "1:05", "TiltGame.ts:1644-1648")
 	assert_eq(GameStateMachine.format_time(9.9), "0:09", "TiltGame.ts:1644-1648")
+
+
+func test_launch_run_unlocks_audio() -> void:
+	_machine.start()
+	_machine.launch_run(Types.GameMode.CLASSIC)
+	assert_eq(_audio.lifecycle, ["unlock"] as Array[String], "TiltGame.ts:1492")
+
+
+func test_return_to_menu_stops_the_music() -> void:
+	_machine.start()
+	_machine.launch_run(Types.GameMode.CLASSIC)
+	_machine.return_to_menu()
+	assert_eq(_audio.lifecycle[-1], "stop_music", "TiltGame.ts:1501")
+
+
+func test_stop_stops_the_music() -> void:
+	_machine.stop()
+	assert_eq(_audio.lifecycle, ["stop_music"] as Array[String], "TiltGame.ts:1536")
+
+
+func test_pausing_stops_the_music_and_resuming_restarts_it() -> void:
+	_options.settings.music_enabled = true
+	_machine.start()
+	_machine.launch_run(Types.GameMode.CLASSIC)
+	_audio.lifecycle.clear()
+	_machine.toggle_pause()
+	_machine.toggle_pause()
+	assert_eq(
+		_audio.lifecycle,
+		["stop_music", "start_music"] as Array[String],
+		"TiltGame.ts:1622, :1638-1640"
+	)
+
+
+func test_resuming_with_music_off_leaves_it_off() -> void:
+	_options.settings.music_enabled = false
+	_machine.start()
+	_machine.launch_run(Types.GameMode.CLASSIC)
+	_audio.lifecycle.clear()
+	_machine.toggle_pause()
+	_machine.toggle_pause()
+	assert_eq(_audio.lifecycle, ["stop_music"] as Array[String], "the musicEnabled guard (:1638)")

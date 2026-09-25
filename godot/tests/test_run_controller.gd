@@ -423,3 +423,16 @@ func test_run_result_names_the_runs_mode() -> void:
 	var result: RunOverSheet.RunResult = HudController.run_result_for(0, _scores.stats, _rc)
 	assert_eq(result.mode_name, "Gauntlet", "the run's mode, not the pending pick (R4)")
 	assert_almost_eq(result.mode_multiplier, 1.25, 0.0001)
+
+
+func test_reset_run_applies_the_sound_options() -> void:
+	_options.settings.sfx_enabled = false
+	_options.settings.sfx_volume = 0.4
+	_options.settings.music_volume = 0.5
+	_rc.reset_run(_bounds)
+	assert_true(_audio.is_muted(), "setMuted(!sfxEnabled) (TiltGame.ts:1608)")
+	assert_almost_eq(_audio._sfx_volume, 0.4, 0.0001, "setSfxVolume (:1609)")
+	assert_almost_eq(_audio.music_gain, 0.175, 0.0001, "setMusicVolume: 0.5 * 0.35 (:1610)")
+	_options.settings.sfx_enabled = true
+	_rc.reset_run(_bounds)
+	assert_false(_audio.is_muted(), "Retry re-applies the switch (M5 R11)")

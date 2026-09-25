@@ -950,7 +950,7 @@ git log -1 --format=%B
 - Consumes: `SpyAudioBank.lifecycle` (Task 2); `AudioBank.is_muted()`, `._sfx_volume`, `.music_gain` (Task 2); `GameOptionsManager.settings.sfx_enabled / sfx_volume / music_enabled / music_volume` (`game_options.gd:195-200`).
 - Produces: `GameStateMachine._init(player, grid, particles, router, tilt, audio: AudioBank, options: GameOptionsManager)`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `godot/tests/test_game_state_machine.gd`, add two members and change `before_each`'s construction:
 
@@ -1024,12 +1024,12 @@ func test_reset_run_applies_the_sound_options() -> void:
 	assert_false(_audio.is_muted(), "Retry re-applies the switch (M5 R11)")
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `tools/run_tests.sh`
 Expected: FAIL. `test_game_state_machine.gd` does not collect (the constructor takes 5 arguments, not 7), and `test_reset_run_applies_the_sound_options` fails its first assertion.
 
-- [ ] **Step 3: Wire `GameStateMachine`**
+- [x] **Step 3: Wire `GameStateMachine`**
 
 In `godot/src/core/game_state_machine.gd`, add after `var _tilt: TiltInput = null`:
 
@@ -1072,7 +1072,7 @@ Replace each `TODO(M5)` line:
 
 Keep each `TODO(M11)` line where it is. The PAUSED branch reads, in order: `phase = PLAYING`, the `TODO(M11): hide the pause modal.` line, then the music guard (the TS order, `:1636-1640`).
 
-- [ ] **Step 4: Wire `GameRoot` and `RunController`**
+- [x] **Step 4: Wire `GameRoot` and `RunController`**
 
 `godot/src/core/game_root.gd:115`:
 
@@ -1095,12 +1095,12 @@ Keep each `TODO(M11)` line where it is. The PAUSED branch reads, in order: `phas
 	audio.set_music_volume(options.settings.music_volume)
 ```
 
-- [ ] **Step 5: Run the tests to verify they pass**
+- [x] **Step 5: Run the tests to verify they pass**
 
 Run: `tools/run_tests.sh`
 Expected: `OK: 49/49 scripts collected, all tests passed`, Tests **539**.
 
-- [ ] **Step 6: Format, lint, grep**
+- [x] **Step 6: Format, lint, grep**
 
 ```bash
 gdformat --check godot/src godot/tests    # expect: 89 files would be left unchanged
@@ -1108,7 +1108,9 @@ gdlint godot/src godot/tests              # expect: Success: no problems found
 grep -rn "TODO(M5)" godot/src/ godot/tests/   # expect: nothing
 ```
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
+
+> **Executed 2026-09-25.** Two edits to the plan-written tests: `lifecycle.back()` became `lifecycle[-1]` (`back()` returns an untyped Variant, which fails the warnings-as-errors parse), and the pause test's `assert_eq` is wrapped one argument per line per `gdformat`. Result: 49/49 scripts, 539 tests; format 89 files clean; lint clean; no `TODO(M5)` left.
 
 Tick this task's boxes and set `## State` to "M5 in progress: Tasks 1–3 landed; next Task 4 (call-site proofs)".
 

@@ -114,6 +114,10 @@ func reset_run(arena_bounds: Vector2) -> void:
 	scores.reset()
 	maze.reset(bounds.x, bounds.y)  # PORT: web/src/tilt-to-live/TiltGame.ts:1604
 	grid.resize(bounds.x, bounds.y)
+	# PORT: web/src/tilt-to-live/TiltGame.ts:1607-1610 (M5 R11)
+	audio.set_muted(not options.settings.sfx_enabled)
+	audio.set_sfx_volume(options.settings.sfx_volume)
+	audio.set_music_volume(options.settings.music_volume)
 
 	spawn_starting_weapon_orb(bounds)
 	GameEvents.score_changed.emit(0, 1, scores.stats.best_score)

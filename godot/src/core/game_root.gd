@@ -113,7 +113,7 @@ func _ready() -> void:
 	_router.control_scheme = settings.scheme
 	_tilt.tilt_sensitivity = settings.tilt_sensitivity
 	_tilt.tilt_smoothing = settings.tilt_smoothing
-	_state = GameStateMachine.new(_player, _grid, _particles, _router, _tilt)
+	_state = GameStateMachine.new(_player, _grid, _particles, _router, _tilt, _audio, options)
 
 	_grid_layer.bind(_grid)
 	# PORT: web/src/tilt-to-live/TiltGame.ts:2280 (showGridlines into the renderer)
@@ -353,7 +353,7 @@ func open_armory(tab: String = "") -> void:
 	if _state.phase == Types.GamePhase.PLAYING:
 		_state.phase = Types.GamePhase.PAUSED
 		_hud.set_pause_panel_visible(false)
-		# TODO(M5): audio.stopMusic() (:2347).
+		_audio.stop_music()  # PORT: web/src/tilt-to-live/TiltGame.ts:2347
 	_armory.open(tab)
 
 
