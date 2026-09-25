@@ -1133,7 +1133,7 @@ This task changes no production code. If a test fails, the M2–M4 call site is 
 **Interfaces:**
 - Consumes: `SpyAudioBank` (Task 2); `ScoreManager.register_kill(x, y, weapon_type, audio)`, `.register_close_call(x, y, audio)` (`score_manager.gd:100`, `:149`); `CoinSystem.update(dt, player, bounds, particles, audio, mode_multiplier, on_collected)` (`coin_system.gd:60`); `WeaponSystem.spawn_orb(bounds, type, x, y)`, `.update(dt, player, enemies, bounds, particles, grid, audio, on_killed)`, `.trigger_weapon(type, x, y, player, enemies, particles, grid, audio)` (`weapon_system.gd:437`); `RunController` built as in `test_run_controller.gd:34-60`, plus `.check_collisions()`, `.lives`, `.max_lives`; `EnemySwarm.spawn_seeker(bounds, x, y)`; `Types.Enemy.frozen`.
 
-- [ ] **Step 1: Write the tests**
+- [x] **Step 1: Write the tests**
 
 Create `godot/tests/test_audio_call_sites.gd`:
 
@@ -1336,12 +1336,12 @@ func test_death_plays_the_crash_and_stops_the_music() -> void:
 
 Before running, check four facts and adapt only the test code, never the production code. (1) `RunController.swarm` and `.progression` are public (`run_controller.gd:9`, `:23`; verified at plan time). (2) `WeaponSystem.trigger_weapon`'s parameter order matches `weapon_system.gd:437-448`. (3) A missile's lifetime in the port is 3.5 s (`WeaponSystem.ts:431`), so 250 × 0.016 s = 4 s covers it. (4) `rc.reset_run` spawns the starting weapon orb near the ship (`spawn_starting_weapon_orb`). If that orb overlaps the ship and `check_collisions` does not touch orbs, the tests are unaffected. If a test records an extra `orb_pickup`, move `_player` off the orb before spawning the seeker.
 
-- [ ] **Step 2: Run the tests**
+- [x] **Step 2: Run the tests**
 
 Run: `tools/run_tests.sh`
 Expected: `OK: 50/50 scripts collected, all tests passed`, Tests **549**. Each of these tests passes against the M2–M4 code as it stands. A failure means that code disagrees with its TS citation (see the note under **Files**).
 
-- [ ] **Step 3: Format, lint**
+- [x] **Step 3: Format, lint**
 
 ```bash
 gdformat godot/tests/test_audio_call_sites.gd
@@ -1349,7 +1349,12 @@ gdformat --check godot/src godot/tests    # expect: 90 files would be left uncha
 gdlint godot/src godot/tests              # expect: Success: no problems found
 ```
 
-- [ ] **Step 4: Commit**
+**Execution rulings (Task 4, 2026-09-25).** Two corrections to the test code above, no production change:
+(a) `_spy.requested.front()` returns an untyped `Variant`, which fails to parse under warnings-as-errors; the committed test indexes `_spy.requested[0]`.
+(b) The milestone expectation `[10, 16, 25, 40]` was a plan error: `ScoreManager.ts:128` chimes at 25 and at every `comboCount > 25 && comboCount % 15 === 0`, so 30 and 45 chime and 40 never does. The port matched the TS. The committed test is `test_combo_milestones_chime_at_10_16_25_then_every_15th` and runs to combo 45, expecting `[10, 16, 25, 30, 45]`.
+Result: `OK: 50/50 scripts collected, all tests passed` (Tests 549, Asserts 17667); `gdformat --check` shows 90 files unchanged; gdlint clean.
+
+- [x] **Step 4: Commit**
 
 Tick this task's boxes and set `## State` to "M5 in progress: Tasks 1–4 landed; next Task 5 (device checks)".
 

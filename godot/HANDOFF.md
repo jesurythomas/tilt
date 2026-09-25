@@ -4,7 +4,7 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**M5 in progress: Tasks 1–3 landed; next Task 4 (call-site proofs).** Plan `docs/superpowers/plans/2026-09-20-m5-audio-bake-and-sfx.md`; see `## Next`. Task 1: `tools/bake-audio/bake_sfx.mjs` wrote 37 deterministic WAVs to `godot/assets/audio/sfx/` (imported as QOA, `.import` sidecars committed); spec §4.2/§8 M5 amended to `.wav`. Task 2: `AudioBank` now plays them — `attach(host)` (called in `GameRoot._ready`, M5 R10) loads the 37 files into a 32-voice `AudioStreamPolyphonic` (`DIVERGENCE(M5 R2)`, overflow dropped); mute/sfx volume drive the player's `volume_linear`; lightning pitch-randomised (R6); music still `TODO(M6)`. `tests/spy_audio_bank.gd` (`SpyAudioBank`) records requests for Tasks 3–4. Task 3: `GameStateMachine._init` now takes `audio, options`; `unlock` at `launch_run`, `stop_music` at `return_to_menu`/`stop`/pause/`open_armory`, `start_music` on resume when music is on (both still `TODO(M6)` bodies); sound options applied in `RunController.reset_run` (R11). No `TODO(M5)` remains. Suite 49/49 scripts, 539 tests; DIVERGENCE 178.
+**M5 in progress: Tasks 1–4 landed; next Task 5 (device checks).** Plan `docs/superpowers/plans/2026-09-20-m5-audio-bake-and-sfx.md`; see `## Next`. Task 1: `tools/bake-audio/bake_sfx.mjs` wrote 37 deterministic WAVs to `godot/assets/audio/sfx/` (imported as QOA, `.import` sidecars committed); spec §4.2/§8 M5 amended to `.wav`. Task 2: `AudioBank` now plays them — `attach(host)` (called in `GameRoot._ready`, M5 R10) loads the 37 files into a 32-voice `AudioStreamPolyphonic` (`DIVERGENCE(M5 R2)`, overflow dropped); mute/sfx volume drive the player's `volume_linear`; lightning pitch-randomised (R6); music still `TODO(M6)`. `tests/spy_audio_bank.gd` (`SpyAudioBank`) records requests for Tasks 3–4. Task 3: `GameStateMachine._init` now takes `audio, options`; `unlock` at `launch_run`, `stop_music` at `return_to_menu`/`stop`/pause/`open_armory`, `start_music` on resume when music is on (both still `TODO(M6)` bodies); sound options applied in `RunController.reset_run` (R11). No `TODO(M5)` remains. Task 4: `tests/test_audio_call_sites.gd` (10 tests, no production change) proves each live SFX fires at its TS moment; the plan's milestone expectation was corrected to the TS (`ScoreManager.ts:128`: 10, 16, 25, 30, 45 — never 40). Suite 50/50 scripts, 549 tests; DIVERGENCE 178.
 
 **M10 — Modes: code-complete, device pass pending.** Final commit `2e6b2d2`
 (exit commit for the whole module — final review fixes F-1..F-4 landed at
@@ -1055,10 +1055,9 @@ rulings R1–R11). User rulings at plan time: **R1** bake to 16-bit mono WAV
 `TiltAudio.ts` unmodified in headless Chrome via Puppeteer's
 `OfflineAudioContext` (spiked and working 2026-09-25).
 
-**First step, literally:** Tasks 1 (the bake), 2 (`AudioBank` playback) and
-3 (lifecycle wiring) landed 2026-09-25. Read the M5 plan's Rulings, Global
-Constraints and Task 4, then execute Task 4 (new `test_audio_call_sites.gd`,
-10 tests, no production code; expected 50/50 scripts, 549 tests). Follow the plan's tasks in order; tick each and
+**First step, literally:** Tasks 1–4 landed 2026-09-25. Read the M5 plan's Global
+Constraints and Task 5, then execute Task 5 (check `adb devices` first; append `## M5 — Audio bake and SFX`
+to `godot/VERIFY-ME.md`, never recreate it), then Task 6 (module exit protocol). Tick each task and
 commit per `CLAUDE.md`. Re-bake (only if `TiltAudio.ts` changes):
 `node tools/bake-audio/bake_sfx.mjs`, then `godot --headless --path godot --import`.
 
