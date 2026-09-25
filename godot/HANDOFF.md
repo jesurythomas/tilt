@@ -4,6 +4,28 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
+**M11c part 1 — Performance: planned, awaiting user review (2026-09-26).**
+The A55 was back on `adb` on 2026-09-26. HEAD `fbf7e94` installs, boots to
+the menu in ~2 s with 0 script errors, and plays the M11b handover (8-seeker
+ring, nuke orb, starting orb, 2.5 s shield — M11b check 4 seen). The user
+played it and reported: frame rate collapses with many things on screen;
+spikes when horizontal/vertical wall formations spawn and when power-ups
+kill many units; the cold open is not centred; "some options don't show
+correctly"; the ring spawn that surrounds you leaves no escape. A temporary
+probe measured the cause: **CPU time in GDScript, not the GPU.** At ~110
+enemies the game runs at 12–14 fps, with swarm 22–27 ms, grid springs 18–19
+ms and enemy draw 14–17 ms per frame, and the 120 Hz sim spiralling to 8
+ticks per frame. **`dumpsys gfxinfo` sees 0 Godot frames**, so every
+frame-time check in `VERIFY-ME.md` has measured nothing; SurfaceFlinger
+`--latency` works. Full evidence table, rulings P1–P7 and 9 tasks:
+`docs/superpowers/plans/2026-09-26-m11c-performance.md`. The probe was
+reverted from the tree (Task 1 re-adds it properly). **Next: the user
+reviews the plan and answers its Open questions; then execute Task 1.**
+The emulator (`emulator-5554`, Android 17, arm64 by translation) also runs
+the debug APK; the user allowed its use on 2026-09-26. It showed the
+"TILT CALIBRATED" toast drawn over the menu title at cold boot (M11a
+check 17), and the A55 showed the same toast still up when a run starts.
+
 **M11b — Entrance cinematic: code-complete, device pass pending.** Exit: the
 commit carrying this text (2026-09-26) — a commit cannot cite its own SHA.
 Plan `docs/superpowers/plans/2026-09-20-m11b-entrance-cinematic.md` (3 tasks,
@@ -1635,11 +1657,27 @@ block and output: "## How to verify right now" above. Full report:
 
 ## Next
 
-**Plan M11c.** First step, literally: read spec §4.5 and §8 Module 11, all
-of `godot/VERIFY-ME.md`, every `TODO(M11c)`, `export_presets.cfg` and this
-file's toolchain section below; write
-`docs/superpowers/plans/2026-09-20-m11c-export-and-device-pass.md`; commit it
-and stop for review (CONVENTIONS §9 step 5).
+**Execute M11c part 1 (performance)** once the user has reviewed
+`docs/superpowers/plans/2026-09-26-m11c-performance.md` and chosen an
+execution method. First step, literally: Task 1 (the probe and
+`tools/frametime.sh`). Every task ends with an A55 measurement while the
+user plays a Classic run past 100 enemies.
+
+**Then plan M11c part 2** (glow, icons/splash, signed release, the rest of
+the device pass). Its first step: read spec §4.5 and §8 Module 11, all of
+`godot/VERIFY-ME.md`, every `TODO(M11c)`, `export_presets.cfg` and this
+file's toolchain section below. Facts already gathered on 2026-09-26:
+- The TS has only 5 `shadowBlur` sites: `ArmoryUI.ts:1086` (preview ship),
+  `GauntletMaze.ts:364` (beacons), `TiltEntranceCinematic.ts:150`
+  (inside the unported `render()`, M11b R2), `WeaponSystem.ts:710,730`
+  (vortex arms and photon ring). Add the board's `ColdOpen.dc.html`
+  drop-shadow on the ship. A full-screen WorldEnvironment glow is not
+  affordable, given part 1's numbers; the per-draw fallback of §4.5 fits 5 sites.
+- Release signing: Godot 4.7 reads `GODOT_ANDROID_KEYSTORE_RELEASE_PATH`,
+  `_USER` and `_PASSWORD` from the environment; the user must create the
+  release keystore outside the repo.
+- The export warns `No project icon specified` (`application/config/icon`
+  is unset; every `launcher_icons/*` in `export_presets.cfg` is empty).
 
 Before starting: `git status --short` must be clean under `godot/` (the user
 may leave device tuning uncommitted — never stash or revert it). If the A55

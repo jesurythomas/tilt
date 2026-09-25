@@ -25,6 +25,13 @@ ADB="/c/Users/Jesury/AppData/Local/Android/Sdk/platform-tools/adb.exe"
 "$ADB" -s RRCXB04L8EJ exec-out screencap -p > godot/build/screen-m2.5.png
 ```
 
+> **⚠ Frame-time checks (2026-09-26):** `dumpsys gfxinfo` reports
+> `Total frames rendered: 0` for this app. It cannot see Godot's Vulkan
+> SurfaceView, so every `gfxinfo … 50th` check below measures nothing. Use
+> `dumpsys SurfaceFlinger --latency '<the app's SurfaceView (BLAST) layer>'`
+> instead; `tools/frametime.sh` wraps it once M11c part 1 Task 1 lands
+> (`docs/superpowers/plans/2026-09-26-m11c-performance.md`).
+
 The APK at `godot/build/peril-point-debug.apk` was exported from a tree one
 temporary log line ahead of HEAD; re-export as above rather than reusing it.
 
