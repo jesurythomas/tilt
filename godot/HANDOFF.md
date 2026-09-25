@@ -4,7 +4,7 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**M5 in progress: Task 1 landed; next Task 2 (AudioBank playback).** Plan `docs/superpowers/plans/2026-09-20-m5-audio-bake-and-sfx.md`; see `## Next`. Task 1: `tools/bake-audio/bake_sfx.mjs` wrote 37 deterministic WAVs to `godot/assets/audio/sfx/` (imported as QOA, `.import` sidecars committed); spec §4.2/§8 M5 amended to `.wav`; suite unchanged at 49/49 scripts, 520 tests.
+**M5 in progress: Tasks 1–2 landed; next Task 3 (lifecycle wiring).** Plan `docs/superpowers/plans/2026-09-20-m5-audio-bake-and-sfx.md`; see `## Next`. Task 1: `tools/bake-audio/bake_sfx.mjs` wrote 37 deterministic WAVs to `godot/assets/audio/sfx/` (imported as QOA, `.import` sidecars committed); spec §4.2/§8 M5 amended to `.wav`. Task 2: `AudioBank` now plays them — `attach(host)` (called in `GameRoot._ready`, M5 R10) loads the 37 files into a 32-voice `AudioStreamPolyphonic` (`DIVERGENCE(M5 R2)`, overflow dropped); mute/sfx volume drive the player's `volume_linear`; lightning pitch-randomised (R6); music still `TODO(M6)`. `tests/spy_audio_bank.gd` (`SpyAudioBank`) records requests for Tasks 3–4. Suite 49/49 scripts, 533 tests; DIVERGENCE 178.
 
 **M10 — Modes: code-complete, device pass pending.** Final commit `2e6b2d2`
 (exit commit for the whole module — final review fixes F-1..F-4 landed at
@@ -1055,10 +1055,11 @@ rulings R1–R11). User rulings at plan time: **R1** bake to 16-bit mono WAV
 `TiltAudio.ts` unmodified in headless Chrome via Puppeteer's
 `OfflineAudioContext` (spiked and working 2026-09-25).
 
-**First step, literally:** Task 1 (the bake) landed 2026-09-25. Read the M5
-plan's Rulings, Global Constraints and Task 2, then execute Task 2
-(`AudioBank` playback, `spy_audio_bank.gd`, `test_audio_bank.gd` 1 → 13
-tests, expected total 533). Follow the plan's tasks in order; tick each and
+**First step, literally:** Tasks 1 (the bake) and 2 (`AudioBank` playback)
+landed 2026-09-25. Read the M5 plan's Rulings, Global Constraints and Task 3,
+then execute Task 3 (lifecycle wiring: `GameStateMachine` gains `_audio`,
+`_options`; sound options in `RunController.reset_run` per R11; expected
+total 539). Follow the plan's tasks in order; tick each and
 commit per `CLAUDE.md`. Re-bake (only if `TiltAudio.ts` changes):
 `node tools/bake-audio/bake_sfx.mjs`, then `godot --headless --path godot --import`.
 

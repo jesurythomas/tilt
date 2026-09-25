@@ -557,3 +557,12 @@ func test_pause_mode_pick_saves_and_applies_on_restart() -> void:
 	assert_eq(root._run_controller.mode, Types.GameMode.GAUNTLET, "applies on Restart run (R1)")
 	assert_almost_eq(root._scores.mode_multiplier, 1.25, 0.0001)
 	assert_true(root._entity_layer.is_maze_drawn())
+
+
+func test_game_root_attaches_the_audio_bank() -> void:
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	var bank: AudioBank = root._audio
+	assert_not_null(bank._playback, "GameRoot._ready attaches the bank (M5 R10)")
+	assert_eq(bank._streams.size(), AudioBank.SFX_STEMS.size(), "every baked file loaded")

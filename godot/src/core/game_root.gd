@@ -92,6 +92,7 @@ func _ready() -> void:
 	_weapons = WeaponSystem.new()
 	_scores = ScoreManager.new()
 	_audio = AudioBank.new()
+	_audio.attach(self)  # M5 R10: stands in for unlock()'s context creation
 	progression = ProgressionManager.new()
 	options = GameOptionsManager.new()
 	_coins = CoinSystem.new()

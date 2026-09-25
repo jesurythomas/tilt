@@ -343,7 +343,7 @@ git log -1 --format=%B
   - `class_name SpyAudioBank extends AudioBank` with `requested: Array[String]`, `pitches: Array[float]`, `lifecycle: Array[String]` (records `"unlock"`, `"start_music"`, `"stop_music"`)
   - Every existing public signature is unchanged.
 
-- [ ] **Step 1: Write the spy helper**
+- [x] **Step 1: Write the spy helper**
 
 Create `godot/tests/spy_audio_bank.gd`:
 
@@ -387,7 +387,7 @@ func _play(stem: String, pitch_scale: float = 1.0) -> int:
 	return super(stem, pitch_scale)
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 Replace `godot/tests/test_audio_bank.gd` entirely:
 
@@ -607,12 +607,12 @@ func test_game_root_attaches_the_audio_bank() -> void:
 	assert_eq(bank._streams.size(), AudioBank.SFX_STEMS.size(), "every baked file loaded")
 ```
 
-- [ ] **Step 3: Run the tests to verify they fail**
+- [x] **Step 3: Run the tests to verify they fail**
 
 Run: `tools/run_tests.sh`
 Expected: FAIL. `test_audio_bank.gd` and `spy_audio_bank.gd` cannot parse (`attach`, `SFX_STEMS`, `_play`, `POLYPHONY`, `music_gain` are undeclared), so the runner reports `collected 48 of 49` or a parse error. That is the failing state.
 
-- [ ] **Step 4: Rewrite `AudioBank`**
+- [x] **Step 4: Rewrite `AudioBank`**
 
 Replace `godot/src/audio/audio_bank.gd` entirely:
 
@@ -907,13 +907,13 @@ In `godot/src/core/game_root.gd`, directly after `_audio = AudioBank.new()` (lin
 	_audio.attach(self)  # M5 R10: stands in for unlock()'s context creation
 ```
 
-- [ ] **Step 5: Run the tests to verify they pass**
+- [x] **Step 5: Run the tests to verify they pass**
 
 Run: `tools/run_tests.sh`
 Expected: `OK: 49/49 scripts collected, all tests passed`, Tests **533** (520 − 1 old + 13 new + 1 main-scene).
 `test_missing_files_log_and_play_silence` logs 37 warnings through `Log.warn` (→ `push_warning`). GUT's `failure_error_types` default is `["engine", "gut", "push_error"]` (`addons/gut/gut_config.gd:57`), so warnings do not fail a test, the same as the corrupt-save specs that already warn through `SaveStore`.
 
-- [ ] **Step 6: Format, lint, count**
+- [x] **Step 6: Format, lint, count**
 
 ```bash
 gdformat godot/tests/spy_audio_bank.gd
@@ -923,7 +923,7 @@ grep -rn "DIVERGENCE" godot/src/ | wc -l  # expect: 178
 grep -rn "TODO(M5)" godot/src/audio/      # expect: nothing
 ```
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 Tick this task's boxes and set `## State` to "M5 in progress: Tasks 1–2 landed; next Task 3 (lifecycle wiring)".
 
@@ -933,6 +933,8 @@ git add godot/src/audio/audio_bank.gd godot/tests/spy_audio_bank.gd godot/tests/
 git commit -m "M5: play baked sfx through a 32-voice bank; next: M5 Task 3"
 git log -1 --format=%B
 ```
+
+**Landed 2026-09-25.** `OK: 49/49 scripts collected, all tests passed` (Tests 533, Asserts 17639); `gdformat --check` 89 unchanged; `gdlint` clean; DIVERGENCE 178; `TODO(M5)` grep in `src/audio/` empty; headless boot SCRIPT ERROR 0. Ruling: `test_audio_bank.gd` is a full rewrite, so it got its one bare `gdformat` (joined the voice-cap `assert_eq` onto one line); `spy_audio_bank.gd.uid` committed with the spy (`.uid` sidecars are tracked).
 
 ---
 
