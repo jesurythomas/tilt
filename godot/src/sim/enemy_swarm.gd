@@ -1280,37 +1280,52 @@ func update_specter(e: Types.Enemy, player_pos: Vector2, dt: float) -> void:
 	e.stealth_opacity = 0.25 + 0.75 * pow(sin(e.age * 3.2), 2.0)
 
 
+## Indices of the enemies separation may move, in array order.
+## DIVERGENCE(M11c P4): the eligibility test runs once per enemy per tick instead of
+## once per pair; the i<j visiting order and the arithmetic are unchanged.
+func separation_candidates() -> PackedInt32Array:
+	var out: PackedInt32Array = PackedInt32Array()
+	for i: int in range(enemies.size()):
+		var e: Types.Enemy = enemies[i]
+		# PORT: web/src/tilt-to-live/EnemySwarm.ts:517, :521
+		if (
+			e.frozen
+			or e.type == Types.EnemyType.WALL_DOT
+			or e.type == Types.EnemyType.BULLET
+			or e.orbit_center != Vector2.ZERO
+			or e.parent_carrier_id != Types.ABSENT
+		):
+			continue
+		out.append(i)
+	return out
+
+
 ## Applies pairwise repulsive separation force to prevent clustering.
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:510-540
+# PORT-NOTE: the pair loop runs over separation_candidates() (M11c P4), on packed
+# 64-bit copies of x/y written back at the end. The loop writes only x/y, so
+# eligibility cannot change mid-loop; GDScript floats are 64-bit, so the copies are
+# exact; a pair with dx*dx >= min_distance2 can never pass dist2 < min_distance2, so
+# rejecting it early changes nothing. The result is identical to the TS pair loop.
 func apply_flocking_separation() -> void:
 	var min_distance: float = 16.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:511
 	var min_distance2: float = min_distance * min_distance
-	var count: int = enemies.size()
+	var idx: PackedInt32Array = separation_candidates()
+	var n: int = idx.size()
+	var xs: PackedFloat64Array = PackedFloat64Array()
+	var ys: PackedFloat64Array = PackedFloat64Array()
+	xs.resize(n)
+	ys.resize(n)
+	for k: int in range(n):
+		xs[k] = enemies[idx[k]].x
+		ys[k] = enemies[idx[k]].y
 
-	for i: int in range(count):
-		var a: Types.Enemy = enemies[i]
-		# PORT: web/src/tilt-to-live/EnemySwarm.ts:517
-		if (
-			a.frozen
-			or a.type == Types.EnemyType.WALL_DOT
-			or a.type == Types.EnemyType.BULLET
-			or a.orbit_center != Vector2.ZERO
-			or a.parent_carrier_id != Types.ABSENT
-		):
-			continue
-		for j: int in range(i + 1, count):
-			var b: Types.Enemy = enemies[j]
-			# PORT: web/src/tilt-to-live/EnemySwarm.ts:521
-			if (
-				b.frozen
-				or b.type == Types.EnemyType.WALL_DOT
-				or b.type == Types.EnemyType.BULLET
-				or b.orbit_center != Vector2.ZERO
-				or b.parent_carrier_id != Types.ABSENT
-			):
+	for ii: int in range(n):
+		for jj: int in range(ii + 1, n):
+			var dx: float = xs[jj] - xs[ii]
+			if dx * dx >= min_distance2:
 				continue
-			var dx: float = b.x - a.x
-			var dy: float = b.y - a.y
+			var dy: float = ys[jj] - ys[ii]
 			var dist2: float = dx * dx + dy * dy
 
 			# PORT: web/src/tilt-to-live/EnemySwarm.ts:527-537
@@ -1319,10 +1334,14 @@ func apply_flocking_separation() -> void:
 				var push: float = (min_distance - dist) * 0.15  # PORT: web/src/tilt-to-live/EnemySwarm.ts:529
 				var px: float = (dx / dist) * push
 				var py: float = (dy / dist) * push
-				a.x -= px
-				a.y -= py
-				b.x += px
-				b.y += py
+				xs[ii] -= px
+				ys[ii] -= py
+				xs[jj] += px
+				ys[jj] += py
+
+	for k: int in range(n):
+		enemies[idx[k]].x = xs[k]
+		enemies[idx[k]].y = ys[k]
 
 
 ## Handles enemy-death reactions (child satellite flinging, pulsar split).
