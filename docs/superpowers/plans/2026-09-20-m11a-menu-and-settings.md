@@ -621,7 +621,7 @@ git commit -m "M11a: port screen shake and wire the halo option; next: Task 3"
   - Nav row, gap 8, margin-top 2: `MenuArmoryButton` and `MenuMilestonesButton` (`SecondaryButton`, height 48, expand), then `MenuSettingsButton` (`GhostIconButton` 48×48, the board's gear SVG; TS label `"Settings"`, `:175`).
 - `set_ui_scale(scale, inset)` rebuilds the literal sizes (as `ArmoryUI.set_ui_scale` does) and insets the left and title blocks by `inset`. The right panel stays flush right: the board draws it to the edge.
 
-- [ ] **Step 1: Write the failing tests** — `godot/tests/test_tilt_menu.gd`:
+- [x] **Step 1: Write the failing tests** — `godot/tests/test_tilt_menu.gd`:
 
 ```gdscript
 ## test_tilt_menu.gd
@@ -763,9 +763,9 @@ func test_every_menu_target_meets_the_48_rule() -> void:
 
 (9 tests. `is_mode_selected(mode) -> bool` is a small public query that the tests read. It returns true when that card is drawn selected, and exists because a card's style is otherwise opaque to a test. Read the goal-query names from `goal_manager.gd` before writing `_next_teaser`. If the port has no `get_active_goals`, stop and record it.)
 
-- [ ] **Step 2: Run to verify they fail.** Expect `collected 51 of 52`.
+- [x] **Step 2: Run to verify they fail.** Expect `collected 51 of 52`.
 
-- [ ] **Step 3: Implement `godot/src/ui/tilt_menu.gd`.** Header:
+- [x] **Step 3: Implement `godot/src/ui/tilt_menu.gd`.** Header:
 
 ```gdscript
 # gdlint:ignore=max-public-methods
@@ -801,9 +801,9 @@ func _on_play_pressed() -> void:
 
 The Enter/Space card keys (`:226-234`) are the `Button`'s own `ui_accept`, so they need no extra code. PORT-NOTE.
 
-- [ ] **Step 4: Run the tests.** 52 scripts, **+9 tests** (579). Format (93 files) and lint.
+- [x] **Step 4: Run the tests.** 52 scripts, **+9 tests** (579). Format (93 files) and lint.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git checkout godot/project.godot
