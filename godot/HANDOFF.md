@@ -4,6 +4,8 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
+**M11a — Menu, Settings, Calibrate: planned, awaiting review.** The user split M11 into M11a (menu, Settings, Calibrate), M11b (entrance cinematic) and M11c (export + device pass) on 2026-09-25, and ruled R1–R4 (backdrop mirrored to the board; port screen shake + wire the halo; omit Aim line; Calibrate with a live tilt dot). Plan `docs/superpowers/plans/2026-09-20-m11a-menu-and-settings.md` (8 tasks, rulings R1–R17, open questions Q1–Q3). **Next: the user reviews the plan and picks an execution method; then run M11a Task 1.** A55 still absent from `adb` on 2026-09-25.
+
 **M6 — Generative music: code-complete, device pass pending.** Exit verified at
 `d489691` (2026-09-25); the exit commit carries this text. Plan
 `docs/superpowers/plans/2026-09-20-m6-generative-music.md`. User ruling M6 R1: the TS
@@ -1155,32 +1157,17 @@ None raised during execution. Deferred Minors from the final review, for the use
 
 ## Next
 
-**M6 is closed (device pass pending). Next module: M11 — Menu, cinematic, export,
-device pass** (deps: all). It is the only module without a plan, and every dependency
-is code-complete. No plan exists yet.
+**M11a is planned** (`docs/superpowers/plans/2026-09-20-m11a-menu-and-settings.md`). Stop for the user's review of that plan; once approved, execute it from Task 1 with the execution method they choose. M11b and M11c plans are written at their own starts (see the plan's "Module split").
 
-**First step, literally:** read spec §8 Module 11 and the index plan's M11 row, then
-list the TS sources it names (at least `TiltMenu.ts` and
-`TiltEntranceCinematic.ts`, plus every `TODO(M11)` in `godot/src`:
-`grep -rn "TODO(M11)" godot/src`). Read them, then write
-`docs/superpowers/plans/2026-09-20-m11-menu-cinematic-export.md`. Commit the plan and
-stop for review before executing it. M11 is large, so propose splitting it (for
-example menu / cinematic / export + device pass) if the spec allows.
+Before starting: `git status --short` must be clean under `godot/` (the user may leave device tuning uncommitted — never stash or revert it), and read `godot/VERIFY-ME.md`. If the A55 is back on `adb`, offer the device pass first.
 
-Carry into the M11 plan:
-- Move `start_music` and `spawn_starting_weapon_orb` out of `RunController.reset_run`
-  into the cinematic's completion callback (`TiltGame.ts:168-176`, `TODO(M11)`, M6 R7),
-  and call `play_warp_in` from the cinematic (`TiltEntranceCinematic.ts:74`, M5 R8).
-- If M11 ports a mid-play mute (the TS `btn-tilt-sound` → `toggleMute`,
-  `TiltGame.ts:1441`), M6 R6's silent-loop mute becomes reachable. Add a device check
-  for it.
-- Re-bake the music only if `TiltAudio.ts:82-479` changes (`node
-  tools/bake-audio/bake_music.mjs`, then `--import`). Update `edit/loop_end` if the
-  frame count changes.
-- M11 owns the device pass: M2.5, M3, M4, M5, M6, M7, M8.5, M9, M10 and the scale split
-  are all pending in `VERIFY-ME.md`.
-
-Before starting: `git status --short` must be clean under `godot/`
-(the user may leave device tuning uncommitted — never stash or revert it),
-and read `godot/VERIFY-ME.md`. If the A55 is back on `adb`, offer the device pass
-first (absent since 2026-09-21, still absent on 2026-09-25).
+Carried from the M6 exit into M11b/M11c:
+- M11b: move `start_music` + `spawn_starting_weapon_orb` out of `RunController.reset_run`
+  into the cinematic's completion callback (`TiltGame.ts:168-176`, M6 R7), and call
+  `play_warp_in` from the cinematic (`TiltEntranceCinematic.ts:74`, M5 R8).
+- If a mid-play mute is ever ported (`btn-tilt-sound` → `toggleMute`, `TiltGame.ts:1441`),
+  M6 R6's silent-loop mute becomes reachable — add a device check for it.
+- Re-bake the music only if `TiltAudio.ts:82-479` changes (`node tools/bake-audio/bake_music.mjs`,
+  then `--import`); update `edit/loop_end` if the frame count changes.
+- M11c owns the device pass: M2.5, M3, M4, M5, M6, M7, M8.5, M9, M10, the scale split and
+  M11a are all pending in `VERIFY-ME.md`.
