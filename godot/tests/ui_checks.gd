@@ -34,6 +34,9 @@ static func outside(root: Node, bounds: Rect2) -> Array[String]:
 static func overlapping_siblings(root: Node) -> Array[String]:
 	var out: Array[String] = []
 	for node: Node in root.find_children("*", "Container", true, false):
+		# A hidden Container never lays its children out; they are not drawn.
+		if not (node as Container).is_visible_in_tree():
+			continue
 		var kids: Array[Control] = []
 		for child: Node in node.get_children():
 			var control: Control = child as Control

@@ -1489,7 +1489,7 @@ git commit -m "M11a: build the Calibrate board with a live tilt dot; next: Task 
 - `HudController`: `_on_quit_to_menu_pressed()` → `root.return_to_menu()`; `_on_settings_pressed()` → `root.open_options_from_pause()`. Remove `_on_mode_chosen` and the `set_mode_choices` call in `_refresh_pause_sheet`.
 - `GameRoot`: `open_options_from_pause() -> void` → `_menu.open_options_modal()` (`TiltGame.ts:1418-1420`). Remove `set_game_mode` (M10 R1) **only if** no other caller remains: `grep -rn "set_game_mode" godot/`.
 
-- [ ] **Step 1: Tests.**
+- [x] **Step 1: Tests.**
 
 Delete these tests, which cover the removed picker, and **name each deleted test in the commit message**: `test_pause_mode_pick_saves_and_applies_on_restart` (`test_main_scene.gd`) and every picker test in `test_pause_sheet.gd`. Find them with `grep -n "Mode" godot/tests/test_pause_sheet.gd`.
 
@@ -1561,13 +1561,13 @@ func test_pause_settings_opens_the_options_modal_over_pause() -> void:
 
 (+1 pause, +2 run over, +3 main scene = +6 added. Removed: 1 main-scene test plus N pause-sheet picker tests. Record N.)
 
-- [ ] **Step 2: Run to verify the new tests fail.**
+- [x] **Step 2: Run to verify the new tests fail.**
 
-- [ ] **Step 3: Implement** as in Interfaces. In `run_controller.gd:214`, replace the `TODO(M11)` with `# PORT-NOTE: the Run over coins row (:2108, :2123-2130) reads coins.coins_collected in HudController (M11a R17).` Replace `pause_sheet.gd:48`'s and `hud_controller.gd:659`'s `TODO(M11)` lines by deleting the code they mark.
+- [x] **Step 3: Implement** as in Interfaces. In `run_controller.gd:214`, replace the `TODO(M11)` with `# PORT-NOTE: the Run over coins row (:2108, :2123-2130) reads coins.coins_collected in HudController (M11a R17).` Replace `pause_sheet.gd:48`'s and `hud_controller.gd:659`'s `TODO(M11)` lines by deleting the code they mark.
 
-- [ ] **Step 4: Run the tests.** 53 scripts. Tests = 605 + 6 − (1 + N). Write the number into the commit scope line and the HANDOFF State line. Format and lint. `grep -rn "M10 R1" godot/src` → nothing.
+- [x] **Step 4: Run the tests.** 53 scripts. Tests = 605 + 6 − (1 + N). Write the number into the commit scope line and the HANDOFF State line. Format and lint. `grep -rn "M10 R1" godot/src` → nothing.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git checkout godot/project.godot
@@ -1649,6 +1649,11 @@ git commit -m "M11a done: next read godot/HANDOFF.md + VERIFY-ME.md, then plan M
 
 - Task 4: the p/Escape key path reaches the Pause sheet refresh through `HudController.set_pause_panel_visible(true)`, which calls `_refresh_pause_sheet()` (hud_controller.gd:307-311); `refresh_pause_sheet` was not exposed.
 - Task 4: delta +9 (588), because a regression test covers the two R12 HUD guards (`_process` MENU skip, lives-dirty on MENU).
+- Task 7: deleted tests (N = 1 in `test_pause_sheet.gd`): `test_pause_mode_pick_saves_and_applies_on_restart` (`test_main_scene.gd`) and `test_mode_picker_marks_the_active_mode_and_emits` (`test_pause_sheet.gd`); `test_sheet_carries_the_board_controls` now lists `QuitToMenuButton`/`PauseSettingsButton` instead of `ModePicker`. Total 605 + 6 − 2 = 609. The one-line commit rule wins over naming them in the commit message.
+- Task 7: Pause's Settings is a `SecondaryButton` `"Settings"` beside Armory (flex-grow), as `Pause.dc.html` line 46 draws it — not a gear `GhostIconButton`; the board is the visual authority and UiTheme has no gear icon.
+- Task 7: the coins row caption is the TS `"Coin pickups"` (`TiltGame.ts:1218`), not `"Coins"`; the row sits under `PointsRow` (TS order) in its styles (BodyText + PointsText), hidden until `set_coins` sees a pickup.
+- Task 7: `UiChecks.overlapping_siblings` skips hidden Containers (a hidden `CoinsRow` never lays out its labels, so they reported as overlapping).
+- Task 7: carried fixes from Task 5's review — `TiltMenu.close_options_modal()` also hides `ResetConfirm`; `_switch_card`'s 64-not-60 note is retagged `DIVERGENCE(UI-SYSTEM)`. `GameRoot.set_game_mode` is removed (no caller left; the layers' own `set_game_mode` stay). `DIVERGENCE` total 232 (−3 M10 R1, +3 UI-SYSTEM).
 
 ## Open questions
 

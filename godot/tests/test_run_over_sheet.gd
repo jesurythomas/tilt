@@ -215,3 +215,22 @@ func test_many_milestones_keep_the_sheet_on_screen() -> void:
 		panel.get_global_rect().grow(0.5).encloses(retry.get_global_rect()), "Retry on the sheet"
 	)
 	assert_true((sheet.find_child("MilestonesClip", true, false) as Control).clip_contents)
+
+
+func test_run_over_has_a_menu_button() -> void:
+	var sheet: RunOverSheet = _sheet(Vector2(844, 390), 1.0)
+	var menu: Button = sheet.find_child("GameOverMenuButton", true, false) as Button
+	assert_not_null(menu, "TiltGame.ts:1226")
+	assert_eq(menu.text, "Menu")
+
+
+func test_coins_row_shows_only_after_a_pickup() -> void:
+	var sheet: RunOverSheet = _sheet(Vector2(844, 390), 1.0)
+	sheet.set_coins(0, 0)
+	var row: Control = sheet.find_child("CoinsRow", true, false) as Control
+	assert_false(row.visible, "TiltGame.ts:2130")
+	sheet.set_coins(3, 1)
+	assert_true(row.visible, "TiltGame.ts:2128")
+	assert_true(sheet.coins_detail_text().ends_with("+1 pt"), "singular (:2127)")
+	sheet.set_coins(3, 120)
+	assert_eq(sheet.coins_detail_text(), "3 · +120 pts", ":2127")

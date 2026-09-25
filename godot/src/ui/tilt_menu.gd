@@ -314,6 +314,9 @@ func open_options_modal() -> void:
 func close_options_modal() -> void:
 	if _options_modal != null:
 		_options_modal.visible = false
+	# The confirm is the modal's sibling (ruling P1); it must not outlive it.
+	if _reset_confirm != null:
+		_reset_confirm.visible = false
 
 
 ## True while the Settings modal is up.
@@ -1026,8 +1029,9 @@ func _card_label(label: String) -> Label:
 
 
 # A switch card. PORT: web/src/tilt-to-live/TiltMenu.ts:262-278 (renderToggleSwitch)
-# PORT-NOTE: the Switch is 48 tall for the touch target (interface spec §4.5), so
-# the card is 64 tall where the board draws 60.
+# DIVERGENCE(UI-SYSTEM): Settings.dc.html — 64 not 60: the 48 rule (interface spec §4.5).
+# The Switch is 48 tall for the touch target, so the card is 64 tall where the board
+# draws 60.
 func _switch_card(switch_name: String, label: String, hint: String, is_on: bool) -> PanelContainer:
 	var card: PanelContainer = _options_card()
 	var row: HBoxContainer = _card_row(label, hint)

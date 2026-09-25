@@ -32,7 +32,7 @@ var maze: GauntletMaze = null
 ## The mode this run was reset with (M10 R4).
 # PORT-NOTE: the TS reads options.settings.mode every tick (TiltGame.ts:1860),
 # in updateHUD (:2159) and at game over (:2091); nothing there can change it
-# mid-run. The Pause picker (M10 R1) can, so the run captures it at reset.
+# mid-run. The run captures it at reset all the same (M10 R4).
 var mode: Types.GameMode = Types.GameMode.CLASSIC
 
 ## Milestones. PORT: web/src/tilt-to-live/TiltGame.ts:66 (this.goals)
@@ -215,8 +215,8 @@ func update(
 
 	# 5.5 Update Coin Pickups (own spawn timer, independent of weapon orbs)
 	# PORT: web/src/tilt-to-live/TiltGame.ts:1930-1940 — spec §5.4 step 7
-	# TODO(M11): the coins row reads coins.coins_collected (TiltGame.ts:2108,
-	# :2123-2130); points_from_coins already feeds the Run over total (M9).
+	# PORT-NOTE: the Run over coins row (:2108, :2123-2130) reads coins.coins_collected
+	# in HudController (M11a R17).
 	var mode_config: GameOptionsManager.ModeConfig = options.get_mode_config(mode)
 	coins.update(
 		dt,

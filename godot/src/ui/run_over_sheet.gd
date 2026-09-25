@@ -48,6 +48,8 @@ const ROW_POINTS_SIZE: int = 12
 
 var _ui_scale: float = 1.0
 var _points_row: HBoxContainer = null
+var _coins_row: HBoxContainer = null
+var _coins_detail: Label = null
 var _milestones: VBoxContainer = null
 var _shown_milestones: Array[GoalManager.Goal] = []
 var _sheet: PanelContainer = null
@@ -73,6 +75,7 @@ var _steer_caption: Label = null
 var _picker: ControlPicker = null
 var _retry: Button = null
 var _bottom: HBoxContainer = null
+var _menu: Button = null
 var _spend: Button = null
 var _spend_row: HBoxContainer = null
 var _spend_value: Label = null
@@ -123,7 +126,8 @@ func set_ui_scale(scale: float) -> void:
 	_steer_caption.custom_minimum_size.x = STEER_LABEL_WIDTH * scale
 	_retry.custom_minimum_size.y = UiTheme.HERO_TARGET * scale
 	_bottom.add_theme_constant_override("separation", UiTheme.px(BOTTOM_GAP, scale))
-	_spend.custom_minimum_size.y = UiTheme.TOUCH_TARGET * scale
+	for button: Button in [_menu, _spend]:
+		button.custom_minimum_size.y = UiTheme.TOUCH_TARGET * scale
 	_spend_row.add_theme_constant_override("separation", UiTheme.px(SPEND_GAP, scale))
 	_picker.set_ui_scale(scale)
 	_milestones.add_theme_constant_override("separation", UiTheme.px(LIST_GAP, scale))
@@ -143,6 +147,18 @@ func show_result(result: RunResult) -> void:
 	_balance.text = UiTheme.group_digits(result.balance)  # PORT: :2121
 	_spend_value.text = UiTheme.group_digits(result.balance)  # PORT: :2122
 	_fill_milestones(result.milestones)  # PORT: :2132-2144
+
+
+## The coins row, shown only after a pickup. PORT: web/src/tilt-to-live/TiltGame.ts:2124-2130
+func set_coins(collected: int, points: int) -> void:
+	_coins_row.visible = collected > 0  # PORT: :2124, :2127, :2129
+	var unit: String = "pt" if points == 1 else "pts"  # PORT: :2126
+	_coins_detail.text = "%d · +%s %s" % [collected, UiTheme.group_digits(points), unit]
+
+
+## The coins row's figures, e.g. "3 · +120 pts" (TiltGame.ts:2126).
+func coins_detail_text() -> String:
+	return _coins_detail.text
 
 
 ## "Swarmed at 1:42 — Standard, 1.0×". PORT: web/src/tilt-to-live/TiltGame.ts:2095
@@ -223,6 +239,20 @@ func _build_right() -> VBoxContainer:
 	_points_row.gui_input.connect(_on_rows_gui_input)
 	_right.add_child(_points_row)
 
+	# M11a R17: the TS coins row (TiltGame.ts:1217-1220) under the points row.
+	# DIVERGENCE(UI-SYSTEM): RunOver.dc.html — Rule N: the board has no coins row; it
+	# takes the Points earned row's styles.
+	_coins_row = HBoxContainer.new()
+	_coins_row.name = "CoinsRow"
+	_coins_row.visible = false
+	var coins_caption: Label = UiTheme.text("Coin pickups", "BodyText")  # PORT: :1218
+	coins_caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_coins_row.add_child(coins_caption)
+	_coins_detail = UiTheme.text("", "PointsText")
+	_coins_detail.name = "CoinsDetailLabel"
+	_coins_row.add_child(_coins_detail)
+	_right.add_child(_coins_row)
+
 	# M9 plan R9: the list sits in the board's flex gap (RunOver.dc.html's
 	# flex-grow spacer) and clips there, so a long list never grows the sheet.
 	var clip: Control = Control.new()
@@ -256,7 +286,12 @@ func _build_right() -> VBoxContainer:
 	_right.add_child(_retry)
 
 	_bottom = HBoxContainer.new()
-	# TODO(M11): "Menu" (RunOver.dc.html) — no menu until M11 (interface spec §5).
+	_menu = Button.new()
+	_menu.name = "GameOverMenuButton"
+	_menu.theme_type_variation = "SecondaryButton"
+	_menu.text = "Menu"  # PORT: web/src/tilt-to-live/TiltGame.ts:1226
+	_menu.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_bottom.add_child(_menu)
 	_spend = Button.new()
 	_spend.name = "GameOverArmoryButton"
 	_spend.theme_type_variation = "SecondaryButton"

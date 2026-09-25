@@ -42,16 +42,15 @@ func test_sheet_carries_the_board_controls() -> void:
 		"PauseStats",
 		"ResumeButton",
 		"RestartRunButton",
-		"ModePicker",
+		"QuitToMenuButton",
 		"ControlPicker",
 		"CalibrateButton",
 		"SoundSwitch",
 		"MusicSwitch",
 		"PauseArmoryButton",
+		"PauseSettingsButton",
 	]:
 		assert_not_null(sheet.find_child(name, true, false), name)
-	assert_null(sheet.find_child("QuitButton", true, false), "Quit to menu is M11's (spec §5)")
-	assert_null(sheet.find_child("SettingsButton", true, false), "Settings is M11's (spec §5)")
 	var sheet_panel: PanelContainer = sheet.find_child("Sheet", true, false) as PanelContainer
 	assert_eq(sheet_panel.theme_type_variation, &"Sheet")
 
@@ -79,19 +78,8 @@ func test_switches_mirror_without_emitting() -> void:
 	assert_signal_not_emitted(sound, "toggled", "opening the sheet must not write settings")
 
 
-func test_mode_picker_marks_the_active_mode_and_emits() -> void:
+func test_pause_has_quit_to_menu_and_settings_and_no_mode_picker() -> void:
 	var sheet: PauseSheet = _sheet(Vector2(844, 390), 1.0)
-	var options: GameOptionsManager = GameOptionsManager.new()
-	sheet.set_mode_choices(options.modes, Types.GameMode.GAUNTLET)
-	var classic: Button = sheet.find_child("ModeClassicButton", true, false) as Button
-	var gauntlet: Button = sheet.find_child("ModeGauntletButton", true, false) as Button
-	var code_red: Button = sheet.find_child("ModeCodeRedButton", true, false) as Button
-	assert_eq(classic.text, "Standard", "names from the catalog (GameOptions.ts:37-71)")
-	assert_eq(code_red.text, "Code Red")
-	assert_true(gauntlet.button_pressed)
-	assert_false(classic.button_pressed)
-	watch_signals(sheet)
-	code_red.pressed.emit()
-	assert_signal_emitted_with_parameters(sheet, "mode_chosen", [Types.GameMode.CODE_RED])
-	assert_true(code_red.button_pressed)
-	assert_false(gauntlet.button_pressed)
+	assert_not_null(sheet.find_child("QuitToMenuButton", true, false), "TiltGame.ts:1153")
+	assert_not_null(sheet.find_child("PauseSettingsButton", true, false), "Pause.dc.html")
+	assert_null(sheet.find_child("ModePicker", true, false), "M10 R1 removed with the menu")

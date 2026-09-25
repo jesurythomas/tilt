@@ -182,11 +182,17 @@ func _ready() -> void:
 		_pause_panel.visible = false
 
 	_pause_sheet = _pause_panel as PauseSheet
-	if _pause_sheet != null:
-		_pause_sheet.mode_chosen.connect(_on_mode_chosen)
 	var restart_run: Button = find_child("RestartRunButton", true, false) as Button
 	if restart_run != null:
 		restart_run.pressed.connect(_on_restart_run_pressed)
+	# PORT: web/src/tilt-to-live/TiltGame.ts:1392-1393, :1428-1430 (both call returnToMenu)
+	for quit_name: String in ["QuitToMenuButton", "GameOverMenuButton"]:
+		var quit: Button = find_child(quit_name, true, false) as Button
+		if quit != null:
+			quit.pressed.connect(_on_quit_to_menu_pressed)
+	var pause_settings: Button = find_child("PauseSettingsButton", true, false) as Button
+	if pause_settings != null:
+		pause_settings.pressed.connect(_on_settings_pressed)
 	var calibrate: Button = find_child("CalibrateButton", true, false) as Button
 	if calibrate != null:
 		calibrate.pressed.connect(_on_calibrate_pressed)
@@ -391,7 +397,7 @@ static func run_result_for(
 		result.time_text = GameStateMachine.format_time(stats.survival_time)  # PORT: :2090
 	if run != null:
 		# PORT-NOTE: :2091 reads settings.mode; the run's captured mode is the
-		# same value in the TS and the only correct one here (M10 R1/R4).
+		# same value in the TS and the only correct one here (M10 R4).
 		var mode: GameOptionsManager.ModeConfig = run.options.get_mode_config(run.mode)
 		result.mode_name = mode.name
 		result.mode_multiplier = mode.score_multiplier
@@ -526,6 +532,9 @@ func _on_run_over_timer_timeout() -> void:
 	# player changes it. Re-syncing whenever this surface opens covers it.
 	_sync_pickers()
 	_run_over.show_result(run_result_for(_pending_final_score, _pending_stats, _run))
+	if _run != null:
+		# PORT: web/src/tilt-to-live/TiltGame.ts:2124-2130 (M11a R17)
+		_run_over.set_coins(_run.coins.coins_collected, _run.coins.points_from_coins)
 	_game_over_panel.visible = true
 
 
@@ -628,7 +637,6 @@ func _refresh_pause_sheet() -> void:
 	_pause_sheet.set_switches(
 		root.options.settings.sfx_enabled, root.options.settings.music_enabled
 	)
-	_pause_sheet.set_mode_choices(root.options.modes, root.options.settings.mode)
 
 
 ## Restart run (Pause.dc.html; interface spec §5 — backed by GameRoot.restart_run()).
@@ -669,11 +677,19 @@ func _on_scheme_chosen(scheme: Types.ControlScheme) -> void:
 	_sync_pickers()
 
 
-## DIVERGENCE(M10 R1): the Pause mode picker. TODO(M11): remove with it.
-func _on_mode_chosen(mode: Types.GameMode) -> void:
+## Quit to menu (Pause) and Menu (Run over). PORT: web/src/tilt-to-live/TiltGame.ts:1392-1393,
+## :1428-1430
+func _on_quit_to_menu_pressed() -> void:
 	var root: GameRoot = get_tree().get_first_node_in_group("game_root") as GameRoot
 	if root != null:
-		root.set_game_mode(mode)
+		root.return_to_menu()
+
+
+## Pause's Settings. PORT: web/src/tilt-to-live/TiltGame.ts:1418-1420
+func _on_settings_pressed() -> void:
+	var root: GameRoot = get_tree().get_first_node_in_group("game_root") as GameRoot
+	if root != null:
+		root.open_options_from_pause()
 
 
 func _sync_pickers() -> void:

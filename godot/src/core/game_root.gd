@@ -361,11 +361,10 @@ func set_control_scheme(scheme: Types.ControlScheme) -> void:
 	_joystick.reset()
 
 
-## The temporary Pause mode picker's write (M10 R1). The choice applies at the
-## next reset_run; the running run keeps its captured mode (R4).
-## PORT: web/src/tilt-to-live/TiltMenu.ts:220-222 (options.setMode on a card click)
-func set_game_mode(mode: Types.GameMode) -> void:
-	options.set_mode(mode)
+## Pause's Settings opens the menu's options modal over the paused run.
+## PORT: web/src/tilt-to-live/TiltGame.ts:1418-1420
+func open_options_from_pause() -> void:
+	_menu.open_options_modal()
 
 
 ## The menu Steer row picked a scheme (Main.dc.html, M11a ruling R7): write it,

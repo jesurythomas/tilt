@@ -7,9 +7,6 @@ extends Control
 ## The Pause overlay: a void scrim and a two-column Sheet, built in code so each
 ## board literal carries its citation. The Theme comes from the Hud above it.
 
-## Emitted when the player picks a mode on the temporary picker (M10 R1).
-signal mode_chosen(mode: Types.GameMode)
-
 const CONTROL_PICKER: PackedScene = preload("res://scenes/control_picker.tscn")
 
 ## DIVERGENCE(UI-SYSTEM): Pause.dc.html — scrim rgba(8,9,14,0.8), sheet 620×342,
@@ -36,6 +33,7 @@ var _title_spacer: Control = null
 var _stats: Label = null
 var _resume: Button = null
 var _restart: Button = null
+var _quit: Button = null
 var _steer_row: HBoxContainer = null
 var _picker: ControlPicker = null
 var _calibrate: Button = null
@@ -43,12 +41,7 @@ var _sound: CheckButton = null
 var _music: CheckButton = null
 var _bottom: HBoxContainer = null
 var _armory: Button = null
-
-# DIVERGENCE(M10 R1): a stand-in for Main.dc.html's mode cards (TiltMenu.ts:140-160,
-# :217-240), user ruling 2026-09-24. TODO(M11): remove when the menu's mode cards land.
-var _mode_picker: PanelContainer = null
-var _mode_row: HBoxContainer = null
-var _mode_buttons: Dictionary[Types.GameMode, Button] = {}
+var _settings: Button = null
 
 
 func _ready() -> void:
@@ -69,7 +62,7 @@ func set_ui_scale(scale: float) -> void:
 	_stats.add_theme_font_size_override("font_size", UiTheme.px(STATS_FONT, scale))
 	_resume.custom_minimum_size.y = UiTheme.HERO_TARGET * scale
 	_resume.add_theme_font_size_override("font_size", UiTheme.px(RESUME_FONT, scale))
-	for button: Button in [_restart, _armory]:
+	for button: Button in [_restart, _quit, _armory, _settings]:
 		button.custom_minimum_size.y = UiTheme.TOUCH_TARGET * scale
 	for row: HBoxContainer in [_steer_row, _bottom]:
 		row.add_theme_constant_override("separation", UiTheme.px(ROW_GAP, scale))
@@ -77,11 +70,6 @@ func set_ui_scale(scale: float) -> void:
 	_calibrate.icon = UiTheme.svg_texture(UiTheme.ICON_CALIBRATE, scale)
 	for switch: CheckButton in [_sound, _music]:
 		switch.custom_minimum_size.y = SWITCH_ROW * scale
-	_mode_row.add_theme_constant_override(
-		"separation", UiTheme.px(ControlPicker.SEGMENT_GAP, scale)
-	)
-	for mode: Types.GameMode in _mode_buttons:
-		_mode_buttons[mode].custom_minimum_size.y = UiTheme.TOUCH_TARGET * scale
 	_picker.set_ui_scale(scale)
 
 
@@ -107,13 +95,6 @@ func set_switches(sfx_on: bool, music_on: bool) -> void:
 	_music.set_pressed_no_signal(music_on)
 
 
-## Labels the mode segments from the catalog and marks the saved mode (M10 R1).
-func set_mode_choices(modes: Array[GameOptionsManager.ModeConfig], active: Types.GameMode) -> void:
-	for config: GameOptionsManager.ModeConfig in modes:
-		_mode_buttons[config.id].text = config.name
-	_mark_mode(active)
-
-
 func _build() -> void:
 	_sheet = UiTheme.build_sheet(self, SCRIM_ALPHA)
 	_columns = HBoxContainer.new()
@@ -132,19 +113,9 @@ func _build() -> void:
 	_left.add_child(_resume)
 	_restart = _button("RestartRunButton", "SecondaryButton", "Restart run")
 	_left.add_child(_restart)
-	# DIVERGENCE(M10 R1): the mode picker, under Restart run.
-	_left.add_child(UiTheme.caps("Mode"))
-	_mode_picker = PanelContainer.new()
-	_mode_picker.name = "ModePicker"
-	_mode_picker.theme_type_variation = "Segmented"
-	_mode_row = HBoxContainer.new()
-	_mode_row.name = "ModeButtons"
-	_mode_picker.add_child(_mode_row)
-	_mode_row.add_child(_mode_button(Types.GameMode.CLASSIC, "ModeClassicButton"))
-	_mode_row.add_child(_mode_button(Types.GameMode.GAUNTLET, "ModeGauntletButton"))
-	_mode_row.add_child(_mode_button(Types.GameMode.CODE_RED, "ModeCodeRedButton"))
-	_left.add_child(_mode_picker)
-	# TODO(M11): "Quit to menu" (Pause.dc.html) — no menu until M11 (interface spec §5).
+	# PORT: web/src/tilt-to-live/TiltGame.ts:1153 (btn-tilt-menu-pause)
+	_quit = _button("QuitToMenuButton", "SecondaryButton", "Quit to menu")
+	_left.add_child(_quit)
 	_columns.add_child(_left)
 	# DIVERGENCE(UI-SYSTEM): Pause.dc.html — column rule in line
 	_columns.add_child(UiTheme.hairline(true, UiTheme.COLOR_LINE))
@@ -176,7 +147,11 @@ func _build() -> void:
 	_armory = _button("PauseArmoryButton", "SecondaryButton", "Armory")
 	_armory.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_bottom.add_child(_armory)
-	# TODO(M11): "Settings" (Pause.dc.html) — no settings screen until M11 (interface spec §5).
+	# PORT: web/src/tilt-to-live/TiltGame.ts:1169 (btn-tilt-all-settings, "All settings").
+	# DIVERGENCE(UI-SYSTEM): Pause.dc.html — a "Settings" button beside Armory.
+	_settings = _button("PauseSettingsButton", "SecondaryButton", "Settings")
+	_settings.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_bottom.add_child(_settings)
 	_right.add_child(_bottom)
 	_columns.add_child(_right)
 
@@ -196,23 +171,3 @@ func _switch(switch_name: String, label: String) -> CheckButton:
 	switch.text = label
 	switch.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	return switch
-
-
-func _mode_button(mode: Types.GameMode, button_name: String) -> Button:
-	var button: Button = _button(button_name, "SegmentButton", "")
-	# button_pressed is ignored unless toggle_mode is true.
-	button.toggle_mode = true
-	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	button.pressed.connect(_on_mode_button_pressed.bind(mode))
-	_mode_buttons[mode] = button
-	return button
-
-
-func _mark_mode(active: Types.GameMode) -> void:
-	for mode: Types.GameMode in _mode_buttons:
-		_mode_buttons[mode].set_pressed_no_signal(mode == active)
-
-
-func _on_mode_button_pressed(mode: Types.GameMode) -> void:
-	_mark_mode(mode)
-	mode_chosen.emit(mode)

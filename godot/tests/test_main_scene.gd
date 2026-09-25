@@ -525,20 +525,6 @@ func test_play_launches_the_selected_mode() -> void:
 	assert_almost_eq(root._maze.scale, expected, 0.0001, "TiltGame.ts:2435")
 
 
-func test_pause_mode_pick_saves_and_applies_on_restart() -> void:
-	var root: GameRoot = await _boot_into_run()
-	assert_eq(root._run_controller.mode, Types.GameMode.CLASSIC)
-	var gauntlet: Button = root.find_child("ModeGauntletButton", true, false) as Button
-	gauntlet.pressed.emit()
-	assert_eq(root.options.settings.mode, Types.GameMode.GAUNTLET)
-	assert_eq(GameOptionsManager.new().settings.mode, Types.GameMode.GAUNTLET, "saved")
-	assert_eq(root._run_controller.mode, Types.GameMode.CLASSIC, "the running run keeps its mode")
-	root.restart_run()
-	assert_eq(root._run_controller.mode, Types.GameMode.GAUNTLET, "applies on Restart run (R1)")
-	assert_almost_eq(root._scores.mode_multiplier, 1.25, 0.0001)
-	assert_true(root._entity_layer.is_maze_drawn())
-
-
 func test_game_root_attaches_the_audio_bank() -> void:
 	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
 	add_child_autofree(root)
@@ -778,3 +764,37 @@ func test_the_menu_calibrate_icon_opens_the_screen_and_set_level_calibrates() ->
 	var toast: Control = root.find_child("ToastSlot", true, false) as Control
 	assert_true(toast.get_child_count() > 0, "calibrate_gyro's toast shows on the menu (R12)")
 	assert_false(root._tilt.is_listening, "back in the menu the sensor stops (R4)")
+
+
+func test_pause_quit_to_menu_hides_everything_and_stops_music() -> void:
+	var root: GameRoot = await _boot_into_run()
+	(root.find_child("PauseButton", true, false) as Button).pressed.emit()
+	(root.find_child("QuitToMenuButton", true, false) as Button).pressed.emit()
+	assert_true(root.is_in_menu(), "TiltGame.ts:1392-1393")
+	assert_false((root.find_child("PausePanel", true, false) as Control).visible, ":1502")
+	assert_false(root._audio._music_player.playing, ":1501")
+	assert_true(root._menu.is_menu_visible(), ":1509")
+
+
+func test_run_over_menu_returns_to_the_menu() -> void:
+	var root: GameRoot = await _boot_into_run()
+	root._run_controller.lives = 1
+	root._run_controller.lose_life()
+	(root.find_child("GameOverMenuButton", true, false) as Button).pressed.emit()
+	assert_true(root.is_in_menu(), "TiltGame.ts:1428-1430")
+	assert_false((root.find_child("GameOverPanel", true, false) as Control).visible, ":1503")
+
+
+func test_pause_settings_opens_the_options_modal_over_pause() -> void:
+	var root: GameRoot = await _boot_into_run()
+	(root.find_child("PauseButton", true, false) as Button).pressed.emit()
+	(root.find_child("PauseSettingsButton", true, false) as Button).pressed.emit()
+	assert_true(root._menu.is_options_open(), "TiltGame.ts:1418-1420")
+	assert_true(root.is_paused(), "the run stays paused")
+	(root._menu.find_child("ResetButton", true, false) as Button).pressed.emit()
+	(root.find_child("OptionsBackButton", true, false) as Button).pressed.emit()
+	assert_false(
+		(root.find_child("ResetConfirm", true, false) as Control).visible,
+		"closing the modal takes its confirm with it"
+	)
+	assert_true((root.find_child("PausePanel", true, false) as Control).visible, "back to Pause")
