@@ -72,6 +72,8 @@ var _touch: TouchInput = null
 var _tilt: TiltInput = null
 var _joystick: FloatingJoystick = null
 var _state: GameStateMachine = null
+## The menu's attract-mode sim. PORT: web/src/tilt-to-live/TiltGame.ts:69-75
+var _backdrop: MenuBackdrop = null
 var _bounds: Vector2 = Vector2.ZERO
 
 @onready var _grid_layer: GridLayer = %GridLayer
@@ -83,6 +85,7 @@ var _bounds: Vector2 = Vector2.ZERO
 @onready var _goals_hud: GoalsHUD = %GoalsHud
 @onready var _hud_frame: Control = %Frame
 @onready var _toast_slot: Control = %ToastSlot
+@onready var _menu: TiltMenu = %Menu
 
 
 func _ready() -> void:
@@ -99,6 +102,7 @@ func _ready() -> void:
 	progression = ProgressionManager.new()
 	options = GameOptionsManager.new()
 	_coins = CoinSystem.new()
+	_backdrop = MenuBackdrop.new()
 	_run_controller = RunController.new(
 		_player, _swarm, _weapons, _particles, _grid, _scores, _audio, progression, options, _coins
 	)
@@ -121,9 +125,6 @@ func _ready() -> void:
 
 	_grid_layer.bind(_grid)
 	apply_readability()
-	_entity_layer.bind_entities(_player, _swarm, _weapons, _coins)
-	_entity_layer.bind_maze(_maze)
-	_effect_layer.bind(_particles, _scores, _weapons)
 	_joystick_layer.bind(_joystick)
 	_hud.bind_run(_run_controller, _state)
 
@@ -137,7 +138,13 @@ func _ready() -> void:
 	# Goal completion & point reward listeners. These override the ones
 	# GoalsHUD.bind installed, as TiltGame.ts:200-209 overrides GoalsHUD.ts:109-115 (R4).
 	goals.set_callbacks(_on_goal_completed, _on_goal_points_awarded)
-	_apply_equipped_cosmetics()
+	# PORT: web/src/tilt-to-live/TiltGame.ts:188-197 (new TiltMenu and its callbacks)
+	_menu.bind(options, progression, goals, _scores, settings)
+	_menu.launch_requested.connect(launch_run)
+	# open_armory's default tab is not applied through Callable.bind, so bind it (:194).
+	_menu.armory_requested.connect(open_armory.bind(""))
+	_menu.all_goals_requested.connect(open_all_goals_modal)  # PORT: :195
+	_menu.scheme_chosen.connect(_on_menu_scheme_chosen)
 	GameEvents.run_ended.connect(_on_run_ended)
 
 	resize_canvas()
@@ -148,17 +155,19 @@ func _ready() -> void:
 		Log.info("tilt sensor start requested: %s" % started)
 
 	_state.start()
+	# PORT: web/src/tilt-to-live/TiltGame.ts:1477-1479
+	_goals_hud.set_menu_mode(true)
+	_menu.show_menu()
+	_goals_hud.render()
+	# PORT-NOTE: updateCursor (:1480) — no pointer on Android (M11a R16).
+	_bind_menu_layers()
+	GameEvents.phase_changed.emit(Types.GamePhase.MENU)
 	# DIVERGENCE(M2.5 §5.3): this requests calibration; TiltInput now waits for
 	# a real gravity sample rather than falling back to a hardcoded pose.
 	_tilt.calibrate_current_position()
-	# PORT: web/src/tilt-to-live/TiltGame.ts:1486-1488 — the menu launches with
-	# settings.mode (TiltMenu.ts:240); M11's menu replaces this boot launch.
-	_state.launch_run(options.settings.mode)
-	_run_controller.reset_run(_bounds)
-	_apply_game_mode()
 	Log.info(
 		(
-			"M2 boot: bounds=%s arena_scale=%f"
+			"boot: bounds=%s arena_scale=%f"
 			% [_bounds, effective_arena_scale(_bounds.x, _bounds.y, OS.has_feature("mobile"))]
 		)
 	)
@@ -184,19 +193,34 @@ func _unhandled_input(event: InputEvent) -> void:
 	else:
 		_touch.handle_event(event, _router, arena_origin)
 
-	# PORT: web/src/tilt-to-live/TiltGame.ts:1319-1328 — b/u toggle, Escape closes.
-	# TODO(M11): 'p'/Escape pause toggle (:1329-1330) lands with the menu's key map.
+	# PORT: web/src/tilt-to-live/TiltGame.ts:1311-1331 — the key map, in its order.
 	if event is InputEventKey:
 		var armory_key: InputEventKey = event
 		if armory_key.pressed and not armory_key.echo:
+			# PORT: web/src/tilt-to-live/TiltGame.ts:1311-1316
+			var is_restart_key: bool = (
+				armory_key.keycode == KEY_SPACE
+				or armory_key.keycode == KEY_ENTER
+				or armory_key.keycode == KEY_R
+			)
+			if is_restart_key and _state.phase == Types.GamePhase.GAME_OVER:
+				restart_run()  # TODO(M11b): startCinematic (:1313).
+				return
+			# PORT: web/src/tilt-to-live/TiltGame.ts:1319-1324 — b/u toggle.
 			if armory_key.keycode == KEY_B or armory_key.keycode == KEY_U:
 				if _armory.is_open():
 					close_armory()
 				else:
 					open_armory()
 				return
-			if armory_key.keycode == KEY_ESCAPE and _armory.is_open():
-				close_armory()
+			# PORT: web/src/tilt-to-live/TiltGame.ts:1325-1331
+			if armory_key.keycode == KEY_P or armory_key.keycode == KEY_ESCAPE:
+				if _armory.is_open():
+					close_armory()
+				elif _state.phase == Types.GamePhase.PLAYING or is_paused():
+					toggle_pause()
+					# set_pause_panel_visible(true) refreshes the sheet, as _on_pause_pressed does.
+					_hud.set_pause_panel_visible(is_paused())
 				return
 
 	if event is InputEventKey:
@@ -224,6 +248,8 @@ func _physics_process(delta: float) -> void:
 		Types.GamePhase.CINEMATIC:
 			_grid.update(delta)
 			_particles.update(delta)
+		Types.GamePhase.MENU:
+			_update_menu(delta)
 		_:
 			pass
 
@@ -280,6 +306,14 @@ func _update(dt: float) -> void:
 	_effect_layer.set_elapsed(_run_controller.elapsed)
 
 
+## PORT: web/src/tilt-to-live/TiltGame.ts:1829-1830 — the real delta, no GAME_SPEED (M11a R14).
+func _update_menu(delta: float) -> void:
+	_backdrop.update(delta, _bounds, _grid, _particles)
+	_entity_layer.set_elapsed(_backdrop.elapsed)
+	_grid_layer.set_elapsed(_backdrop.elapsed)
+	_effect_layer.set_elapsed(_backdrop.elapsed)
+
+
 ## PORT: web/src/tilt-to-live/TiltRenderer.ts:15-17
 func trigger_shake(amount: float) -> void:
 	camera_shake = amount
@@ -317,6 +351,53 @@ func set_control_scheme(scheme: Types.ControlScheme) -> void:
 ## PORT: web/src/tilt-to-live/TiltMenu.ts:220-222 (options.setMode on a card click)
 func set_game_mode(mode: Types.GameMode) -> void:
 	options.set_mode(mode)
+
+
+## The menu Steer row picked a scheme (Main.dc.html, M11a ruling R7): write it,
+## then redraw the menu, whose picker marks the active scheme.
+func _on_menu_scheme_chosen(scheme: Types.ControlScheme) -> void:
+	set_control_scheme(scheme)
+	_menu.render()
+
+
+## launchRun plus startCinematic's reset.
+## PORT: web/src/tilt-to-live/TiltGame.ts:1486-1494, :1523-1530
+func launch_run(mode: Types.GameMode) -> void:
+	_state.launch_run(mode)
+	# PORT: web/src/tilt-to-live/TiltGame.ts:1490-1491 (idempotent after Play)
+	_goals_hud.set_menu_mode(false)
+	_menu.hide_menu()
+	_tilt.calibrate_current_position()
+	_joystick.reset()
+	_run_controller.reset_run(_bounds)
+	_state.mode = _run_controller.mode
+	_bind_run_layers()
+	_apply_game_mode()
+	# TODO(M11b): start the entrance cinematic here (:1526-1529).
+	GameEvents.phase_changed.emit(Types.GamePhase.PLAYING)
+
+
+## returnToMenu. PORT: web/src/tilt-to-live/TiltGame.ts:1496-1517
+func return_to_menu() -> void:
+	if _state.phase == Types.GamePhase.MENU:
+		return
+	_state.return_to_menu()
+	_joystick.reset()
+	# M11a R2: the menu render never decays the shake, so a death shake would
+	# otherwise resume on the next run's first frame.
+	camera_shake = 0.0
+	# PORT: web/src/tilt-to-live/TiltGame.ts:1502-1510 — the modals hide on
+	# phase_changed(MENU) (HudController._on_phase_changed, M11a R12).
+	_goals_hud.set_menu_mode(true)
+	_menu.show_menu()
+	_goals_hud.render()
+	_bind_menu_layers()
+	GameEvents.phase_changed.emit(Types.GamePhase.MENU)
+
+
+## True while the menu is up. PORT: web/src/tilt-to-live/TiltGame.ts:42 (phase === 'menu')
+func is_in_menu() -> bool:
+	return _state.phase == Types.GamePhase.MENU
 
 
 ## Toggles the paused phase. Delegates to the ported state machine.
@@ -471,6 +552,7 @@ func resize_canvas() -> void:
 	var ui_scale: float = HudController.ui_scale_for(viewport)
 	_armory.set_ui_scale(ui_scale, arena_origin)
 	_goals_hud.set_ui_scale(ui_scale, arena_origin)
+	_menu.set_ui_scale(ui_scale, arena_origin)
 	_effect_layer.set_ui_scale(ui_scale)
 
 
@@ -484,6 +566,7 @@ func _on_run_ended(_final_score: int, _stats: Types.GameStats) -> void:
 	_state.phase = Types.GamePhase.GAME_OVER
 	_effect_layer.set_banner_shown(false)
 	_goals_hud.render()  # PORT: web/src/tilt-to-live/TiltGame.ts:2146
+	_menu.render()  # PORT: web/src/tilt-to-live/TiltGame.ts:2147
 
 
 ## PORT: web/src/tilt-to-live/TiltGame.ts:200-204 (the onGoalCompleted callback)
@@ -501,15 +584,18 @@ func _on_goal_points_awarded(pts: int) -> void:
 
 ## handleProgressionChanged. PORT: web/src/tilt-to-live/TiltGame.ts:2356-2361
 # PORT-NOTE: updateHUD (:2357) is signal-driven here and has nothing to
-# refresh; goalsHUD.render (:2358) is the first call below; menu.render
-# (:2359) is M11's; updateCursor (:2360) has no pointer on Android. What a
-# purchase does change on this platform is the equipped cosmetics the layers
-# draw.
+# refresh; goalsHUD.render (:2358) and menu.render (:2359) are the first calls
+# below; updateCursor (:2360) has no pointer on Android. What a purchase does
+# change on this platform is the equipped cosmetics the layers draw.
 func _on_armory_state_changed() -> void:
 	_goals_hud.render()
+	_menu.render()  # PORT: web/src/tilt-to-live/TiltGame.ts:2359
 	# Interface spec §6.4: the Handling tab's tilt slider edits settings.tilt_sensitivity.
 	_tilt.tilt_sensitivity = settings.tilt_sensitivity
-	_apply_equipped_cosmetics()
+	# PORT-NOTE: the menu render takes no skin (:2274-2276), so an Armory opened
+	# from the menu must not re-skin the backdrop.
+	if not is_in_menu():
+		_apply_equipped_cosmetics()
 
 
 ## handleArmoryClosed. PORT: web/src/tilt-to-live/TiltGame.ts:2379-2385
@@ -517,8 +603,10 @@ func _on_armory_closed() -> void:
 	if _state.phase == Types.GamePhase.PAUSED:
 		_hud.set_pause_panel_visible(true)
 	_goals_hud.render()  # PORT: :2383
-	# TODO(M11): menu.render (:2384).
-	_apply_equipped_cosmetics()
+	_menu.render()  # PORT: web/src/tilt-to-live/TiltGame.ts:2384
+	# PORT-NOTE: the menu render takes no skin (:2274-2276); see _on_armory_state_changed.
+	if not is_in_menu():
+		_apply_equipped_cosmetics()
 
 
 ## PORT: web/src/tilt-to-live/TiltGame.ts:2310-2312 — the render call reads the
@@ -526,11 +614,32 @@ func _on_armory_closed() -> void:
 # PORT-NOTE: pushed into the layers on boot and after each Armory change
 # instead of read per frame: equipping happens nowhere else, and the layers
 # never hold a ProgressionManager (spec §5.2 keeps them dumb). The menu
-# backdrop (M11) passes null for all three (:2274-2276).
+# backdrop passes null for all three (:2274-2276; _bind_menu_layers).
 func _apply_equipped_cosmetics() -> void:
 	_entity_layer.set_ship_skin(progression.get_equipped_ship())
 	_entity_layer.set_enemy_skin(progression.get_equipped_enemy_skin())
 	_grid_layer.set_arena_theme(progression.get_equipped_arena_theme())
+
+
+## The run's layer bindings (the TiltRenderer.render arm, TiltGame.ts:2285-2318).
+func _bind_run_layers() -> void:
+	_entity_layer.bind_entities(_player, _swarm, _weapons, _coins)
+	_entity_layer.bind_maze(_maze)
+	_effect_layer.bind(_particles, _scores, _weapons)
+	_apply_equipped_cosmetics()
+
+
+## renderMenuBackground's bindings (TiltGame.ts:2265-2282, TiltRenderer.ts:158-220; M11a R13).
+func _bind_menu_layers() -> void:
+	_entity_layer.bind_entities(_backdrop.menu_player, _backdrop.menu_swarm, _backdrop.menu_weapons)
+	_entity_layer.set_ship_skin(null)
+	_entity_layer.set_enemy_skin(null)
+	_entity_layer.set_game_mode(Types.GameMode.CLASSIC)
+	_grid_layer.set_arena_theme(null)
+	_grid_layer.set_game_mode(Types.GameMode.CLASSIC)
+	_effect_layer.bind(_particles, null, _backdrop.menu_weapons)
+	_effect_layer.set_game_mode(Types.GameMode.CLASSIC)
+	_effect_layer.set_banner_shown(false)
 
 
 ## Tells the layers which mode the run just reset into.

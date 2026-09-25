@@ -226,7 +226,9 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-	if _run == null:
+	# M11a R12: the menu hides LivesRow and WeaponTimer; reading the idle run here
+	# would show them again.
+	if _run == null or (_state != null and _state.phase == Types.GamePhase.MENU):
 		return
 	_show_lives(lives_pips(_run.lives, _run.max_lives))
 	_show_weapon_timer(weapon_timer_for(_run.player, _run.weapons.active_weapons))
@@ -528,7 +530,18 @@ func _on_run_over_timer_timeout() -> void:
 
 
 func _on_phase_changed(phase: Types.GamePhase) -> void:
-	if phase != Types.GamePhase.PLAYING:
+	# M11a R12: the in-run HUD shows only outside the menu.
+	var in_menu: bool = phase == Types.GamePhase.MENU
+	for node: Control in [_score_block, _pause_button]:
+		if node != null:
+			node.visible = not in_menu
+	if in_menu:
+		for node: Control in [_lives_row, _weapon_timer]:
+			if node != null:
+				node.visible = false
+		# The next run's first reading must redraw the row, even with the same pips.
+		_is_lives_dirty = true
+	if phase != Types.GamePhase.PLAYING and not in_menu:
 		return
 	_run_over_timer.stop()
 	if _game_over_panel != null:

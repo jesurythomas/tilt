@@ -61,14 +61,17 @@ func start() -> void:
 	# no canvas or animation frame in Godot's fixed-step model.
 	_is_running = true
 	phase = Types.GamePhase.MENU
-	# TODO(M11): goalsHUD.setMenuMode(true), menu.show(), updateCursor().
+	# PORT-NOTE: goalsHUD.setMenuMode, menu.show and updateCursor (:1477-1480) are
+	# GameRoot's — this machine holds no UI (spec §5.1). updateCursor has no pointer
+	# on Android (M11a R16).
 
 
 ## Switches to the requested mode and begins the entrance cinematic.
 ## PORT: web/src/tilt-to-live/TiltGame.ts:1486-1494
 func launch_run(new_mode: Types.GameMode) -> void:
 	mode = new_mode
-	# TODO(M11): goalsHUD.setMenuMode(false), menu.hide().
+	# PORT-NOTE: goalsHUD.setMenuMode(false) and menu.hide (:1490-1491) are
+	# GameRoot's — this machine holds no UI (spec §5.1).
 	_audio.unlock()  # PORT: web/src/tilt-to-live/TiltGame.ts:1492
 	start_cinematic()
 
@@ -82,9 +85,10 @@ func return_to_menu() -> void:
 	_router.clear_movement_keys()
 	_tilt.stop_listening()
 	_audio.stop_music()  # PORT: web/src/tilt-to-live/TiltGame.ts:1501
-	# TODO(M11): hide the pause and game-over modals, skip the cinematic,
-	# goalsHUD.setMenuMode(true), menu.show(), updateCursor().
-	# TODO(M11): document.body.classList.remove('tilt-playing') (TiltGame.ts:1512).
+	# PORT-NOTE: hiding the pause and game-over modals, goalsHUD.setMenuMode(true),
+	# menu.show and the 'tilt-playing' class (:1502-1512) are GameRoot's, via
+	# phase_changed(MENU) and M11a R12; updateCursor has no pointer (R16).
+	# TODO(M11b): cinematic.skip (:1504-1506).
 	# PORT-NOTE: TiltGame.ts:1514-1516's onReturnToPortal callback has no
 	# port — the Godot build has no host portal to return to.
 
@@ -98,13 +102,14 @@ func restart() -> void:
 ## Resets the run and begins the entrance cinematic for the active mode.
 ## PORT: web/src/tilt-to-live/TiltGame.ts:1523-1530
 func start_cinematic() -> void:
-	# TODO(M11): goalsHUD.setMenuMode(false) (TiltGame.ts:1524).
+	# PORT-NOTE: goalsHUD.setMenuMode(false) (TiltGame.ts:1524) is GameRoot's
+	# (GameRoot.launch_run) — this machine holds no UI (spec §5.1).
 	reset_run(mode)
 	# PORT-NOTE: TiltGame.ts:1526 sets phase = 'cinematic' here and
 	# TiltEntranceCinematic drives the 600 ms cold open. The cinematic is M11
 	# (spec §8), so M1 leaves the phase where reset_run() put it — PLAYING —
 	# rather than entering a phase nothing can leave.
-	# TODO(M11): set phase = CINEMATIC and start the entrance cinematic.
+	# TODO(M11b): set phase = CINEMATIC and start the entrance cinematic.
 
 
 ## Stops the sim and clears input and the tilt sensor.
@@ -114,7 +119,7 @@ func stop() -> void:
 	_router.clear_movement_keys()
 	_tilt.stop_listening()
 	_audio.stop_music()  # PORT: web/src/tilt-to-live/TiltGame.ts:1536
-	# TODO(M11): skip the cinematic.
+	# TODO(M11b): skip the cinematic.
 	# PORT-NOTE: the rAF cancellation (ts:1541-1544) belongs to GameRoot,
 	# same as the loop start noted in start().
 
@@ -134,7 +139,8 @@ func reset_run(new_mode: Types.GameMode) -> void:
 		_tilt.stop_listening()
 
 	phase = Types.GamePhase.PLAYING
-	# TODO(M11): document.body.classList.add('tilt-playing') (TiltGame.ts:1563).
+	# PORT-NOTE: document.body.classList.add('tilt-playing') (TiltGame.ts:1563) is
+	# GameRoot's: the run HUD shows on phase_changed(PLAYING) (M11a R12).
 	elapsed = 0.0
 	# PORT-NOTE: TiltGame.ts:1565 also zeroes this.accumulator, the manual
 	# rAF-loop accumulator driving fixed updates. Godot's fixed physics step
@@ -157,9 +163,10 @@ func reset_run(new_mode: Types.GameMode) -> void:
 	# PORT-NOTE: setMuted/setSfxVolume/setMusicVolume (:1607-1610) are ported in
 	# run_controller.gd::reset_run, which Retry and Restart run also reach (M5 R11).
 	# TODO(M2): updateHUD().
-	# TODO(M11): hide the pause and game-over modals (TiltGame.ts:1612-1613).
+	# PORT-NOTE: the pause and game-over modals (TiltGame.ts:1612-1613) hide on
+	# phase_changed(PLAYING) in HudController._on_phase_changed (M11a R12).
 	# PORT-NOTE: goalsHUD.updateLive (:1615) is ported in run_controller.gd::reset_run.
-	# TODO(M11): updateCursor() (TiltGame.ts:1616).
+	# PORT-NOTE: updateCursor() (TiltGame.ts:1616) — no pointer on Android (M11a R16).
 
 
 ## Toggles between the playing and paused phases; no-op in any other phase.
@@ -168,10 +175,12 @@ func toggle_pause() -> void:
 	if phase == Types.GamePhase.PLAYING:
 		phase = Types.GamePhase.PAUSED
 		_audio.stop_music()  # PORT: web/src/tilt-to-live/TiltGame.ts:1622
-		# TODO(M11): populate and show the pause modal.
+		# PORT-NOTE: HudController._on_pause_pressed and set_pause_panel_visible
+		# populate and show the pause sheet (hud_controller.gd _refresh_pause_sheet).
 	elif phase == Types.GamePhase.PAUSED:
 		phase = Types.GamePhase.PLAYING
-		# TODO(M11): hide the pause modal.
+		# PORT-NOTE: HudController._on_pause_pressed hides the pause sheet, as
+		# GameRoot's p/Escape path does through set_pause_panel_visible.
 		# PORT: web/src/tilt-to-live/TiltGame.ts:1638-1640
 		if _options.settings.music_enabled:
 			_audio.start_music()

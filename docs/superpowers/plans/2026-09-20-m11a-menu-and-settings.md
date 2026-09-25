@@ -828,7 +828,7 @@ git commit -m "M11a: build the menu screen from TiltMenu.ts on Main board; next:
   - `GameRoot._backdrop: MenuBackdrop`, `GameRoot._menu: TiltMenu` (tests read them).
   - `main.tscn`: `CanvasLayer/Menu` (`Control`, full rect, script `tilt_menu.gd`, `unique_name_in_owner = true`), ordered **after `Hud` and before `GoalsHud`**. The Settings modal must draw over Pause, and the Milestones modal and Armory over the menu.
 
-- [ ] **Step 1: Update the boot-dependent tests, then write the new ones.**
+- [x] **Step 1: Update the boot-dependent tests, then write the new ones.**
 
 In `test_main_scene.gd`, add a helper under `after_each`:
 
@@ -966,9 +966,9 @@ func test_menu_phase_hides_the_run_hud_but_keeps_the_frame_and_toasts() -> void:
 
 Use the file's own HUD builder (read its top for the helper's name). `LivesRow` and `WeaponTimer` have their own data-driven visibility (`_show_lives`, `_show_weapon_timer`). So on `PLAYING`, only `ScoreBlock` and `PauseButton` are forced visible, and the other two are left to their next reading. The test asserts only those two after `PLAYING`. (+1 test.)
 
-- [ ] **Step 2: Run to verify.** The new tests fail on missing members. The edited boot tests fail on `launch_run` not existing.
+- [x] **Step 2: Run to verify.** The new tests fail on missing members. The edited boot tests fail on `launch_run` not existing.
 
-- [ ] **Step 3: Implement.**
+- [x] **Step 3: Implement.**
 
 `main.tscn`: add, after the `Hud` subtree and before `GoalsHud`:
 
@@ -1105,14 +1105,14 @@ func _on_phase_changed(phase: Types.GamePhase) -> void:
 
 `_score_block` and `_pause_button` are already found in `_ready`. Check that the variable names match, and that `_pause_button` is a member, not a local.
 
-- [ ] **Step 4: Run the tests.** 52 scripts, **+8 tests** (587: 7 main-scene + 1 HUD). Then run a headless boot and read its log:
+- [x] **Step 4: Run the tests.** 52 scripts, **+8 tests** (587: 7 main-scene + 1 HUD). Then run a headless boot and read its log:
 
 ```bash
 "$GODOT" --headless --path godot --quit-after 240 2>&1 | grep -cE "SCRIPT ERROR|ERROR:"   # expect 0
 git checkout godot/project.godot
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git checkout godot/project.godot

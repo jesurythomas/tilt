@@ -253,3 +253,44 @@ func test_weapon_timer_hidden_without_a_timed_weapon() -> void:
 	player.shield_timer = 0.0
 	var none: Array[Types.ActiveWeapon] = []
 	assert_false(HudController.weapon_timer_for(player, none).is_shown, "TiltGame.ts:2212-2213")
+
+
+## Builds a HUD with main.tscn's in-run nodes (Frame, ScoreBlock, LeftColumn/LivesRow,
+## LeftColumn/ToastSlot, PauseButton, WeaponTimer), unbound from any run.
+func _make_hud() -> HudController:
+	var hud: HudController = HudController.new()
+	var frame: Panel = Panel.new()
+	frame.name = "Frame"
+	hud.add_child(frame)
+	var score_block: VBoxContainer = VBoxContainer.new()
+	score_block.name = "ScoreBlock"
+	frame.add_child(score_block)
+	var left: VBoxContainer = VBoxContainer.new()
+	left.name = "LeftColumn"
+	frame.add_child(left)
+	var lives: HBoxContainer = HBoxContainer.new()
+	lives.name = "LivesRow"
+	left.add_child(lives)
+	var toast: VBoxContainer = VBoxContainer.new()
+	toast.name = "ToastSlot"
+	left.add_child(toast)
+	var pause: Button = Button.new()
+	pause.name = "PauseButton"
+	frame.add_child(pause)
+	var timer: VBoxContainer = VBoxContainer.new()
+	timer.name = "WeaponTimer"
+	frame.add_child(timer)
+	add_child_autofree(hud)
+	return hud
+
+
+func test_menu_phase_hides_the_run_hud_but_keeps_the_frame_and_toasts() -> void:
+	var hud: HudController = _make_hud()
+	GameEvents.phase_changed.emit(Types.GamePhase.MENU)
+	for node_name: String in ["ScoreBlock", "LivesRow", "PauseButton", "WeaponTimer"]:
+		assert_false((hud.find_child(node_name, true, false) as Control).visible, node_name)
+	assert_true((hud.find_child("Frame", true, false) as Control).visible, "R12")
+	assert_true((hud.find_child("ToastSlot", true, false) as Control).visible, "R12")
+	GameEvents.phase_changed.emit(Types.GamePhase.PLAYING)
+	assert_true((hud.find_child("ScoreBlock", true, false) as Control).visible)
+	assert_true((hud.find_child("PauseButton", true, false) as Control).visible)

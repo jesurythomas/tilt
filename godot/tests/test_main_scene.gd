@@ -36,6 +36,15 @@ func after_each() -> void:
 	_remove(SaveStore.corrupt_path_for(GoalManager.CUMULATIVE_SAVE_PATH))
 
 
+## Boots the scene and starts a run from the menu, as Play does (TiltMenu.ts:238-241).
+func _boot_into_run() -> GameRoot:
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	root.launch_run(root.options.settings.mode)
+	return root
+
+
 func test_main_scene_exposes_required_hud_nodes() -> void:
 	var root: Node = MAIN_SCENE.instantiate()
 	add_child_autofree(root)
@@ -70,14 +79,14 @@ func test_main_scene_exposes_required_hud_nodes() -> void:
 		var node: Node = root.find_child(layer_name, true, false)
 		assert_true(node is Node2D, "%s must exist and be a Node2D" % layer_name)
 
-	var pickers: Array[Node] = root.find_children("*", "ControlPicker", true, false)
+	# The menu's Steer row carries a third picker (M11a R7); this counts the HUD's.
+	var hud: Node = root.find_child("Hud", true, false)
+	var pickers: Array[Node] = hud.find_children("*", "ControlPicker", true, false)
 	assert_eq(pickers.size(), 2, "one picker on the pause overlay, one on the death screen")
 
 
 func test_pause_overlay_marks_the_active_scheme_on_open() -> void:
-	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
-	add_child_autofree(root)
-	await get_tree().process_frame
+	var root: GameRoot = await _boot_into_run()
 
 	var pause_button: Button = root.find_child("PauseButton", true, false) as Button
 	assert_not_null(pause_button, "PauseButton must exist")
@@ -164,9 +173,7 @@ func test_pause_armory_button_leaves_the_pause_panel_under_the_overlay() -> void
 	# branch at :2344 is skipped and the pause modal is never hidden; on the
 	# web the Armory's z-100 overlay (game.css:1603) simply draws over it, and
 	# handleArmoryClosed's classList.remove('hidden') (:2380) is then a no-op.
-	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
-	add_child_autofree(root)
-	await get_tree().process_frame
+	var root: GameRoot = await _boot_into_run()
 	var pause_button: Button = root.find_child("PauseButton", true, false) as Button
 	pause_button.pressed.emit()
 	assert_true(root.is_paused())
@@ -190,9 +197,7 @@ func test_pause_armory_button_leaves_the_pause_panel_under_the_overlay() -> void
 
 
 func test_opening_the_armory_while_playing_pauses() -> void:
-	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
-	add_child_autofree(root)
-	await get_tree().process_frame
+	var root: GameRoot = await _boot_into_run()
 	assert_false(root.is_paused())
 	root.open_armory("boosts")
 	assert_true(root.is_paused(), "openArmory pauses a live run (:2344-2345)")
@@ -205,9 +210,7 @@ func test_opening_the_armory_while_playing_pauses() -> void:
 
 
 func test_game_over_armory_button_opens_without_touching_phase() -> void:
-	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
-	add_child_autofree(root)
-	await get_tree().process_frame
+	var root: GameRoot = await _boot_into_run()
 	var stats: Types.GameStats = Types.GameStats.new()
 	GameEvents.run_ended.emit(0, stats)
 	var button: Button = root.find_child("GameOverArmoryButton", true, false) as Button
@@ -223,9 +226,7 @@ func test_game_over_armory_button_opens_without_touching_phase() -> void:
 
 func test_b_key_toggles_and_escape_closes_the_armory() -> void:
 	# PORT: web/src/tilt-to-live/TiltGame.ts:1319-1328
-	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
-	add_child_autofree(root)
-	await get_tree().process_frame
+	var root: GameRoot = await _boot_into_run()
 	var pause_panel: Control = root.find_child("PausePanel", true, false) as Control
 	var key: InputEventKey = InputEventKey.new()
 	key.keycode = KEY_B
@@ -246,9 +247,7 @@ func test_b_key_toggles_and_escape_closes_the_armory() -> void:
 
 
 func test_armory_state_change_pushes_cosmetics_to_the_layers() -> void:
-	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
-	add_child_autofree(root)
-	await get_tree().process_frame
+	var root: GameRoot = await _boot_into_run()
 	root.progression.equip_ship("tactical")
 	var armory: ArmoryUI = root.find_child("Armory", true, false) as ArmoryUI
 	armory.state_changed.emit()
@@ -298,9 +297,7 @@ func test_hud_sits_inside_the_arena_frame() -> void:
 
 
 func test_hud_shows_lives_and_the_weapon_timer_from_the_run() -> void:
-	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
-	add_child_autofree(root)
-	await get_tree().process_frame
+	var root: GameRoot = await _boot_into_run()
 	root.toggle_pause()  # the sim stops ticking, so the shield timer holds still
 	root._run_controller.max_lives = 3
 	root._run_controller.lives = 2
@@ -317,9 +314,7 @@ func test_hud_shows_lives_and_the_weapon_timer_from_the_run() -> void:
 
 func test_pause_calibrate_shows_only_for_tilt() -> void:
 	# PORT: web/src/tilt-to-live/TiltGame.ts:2226-2244
-	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
-	add_child_autofree(root)
-	await get_tree().process_frame
+	var root: GameRoot = await _boot_into_run()
 	var pause_panel: Control = root.find_child("PausePanel", true, false) as Control
 	var touch: Button = pause_panel.find_child("TouchButton", true, false) as Button
 	touch.pressed.emit()
@@ -332,9 +327,7 @@ func test_pause_calibrate_shows_only_for_tilt() -> void:
 
 func test_pause_switches_write_settings_through_game_root() -> void:
 	# PORT: web/src/tilt-to-live/TiltGame.ts:1396-1416, :1626-1630
-	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
-	add_child_autofree(root)
-	await get_tree().process_frame
+	var root: GameRoot = await _boot_into_run()
 	(root.find_child("PauseButton", true, false) as Button).pressed.emit()
 	var sound: CheckButton = root.find_child("SoundSwitch", true, false) as CheckButton
 	assert_eq(sound.button_pressed, root.options.settings.sfx_enabled, "mirrors the save on open")
@@ -347,9 +340,7 @@ func test_pause_switches_write_settings_through_game_root() -> void:
 
 
 func test_pause_restart_run_starts_a_fresh_run() -> void:
-	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
-	add_child_autofree(root)
-	await get_tree().process_frame
+	var root: GameRoot = await _boot_into_run()
 	(root.find_child("PauseButton", true, false) as Button).pressed.emit()
 	assert_true(root.is_paused())
 	(root.find_child("RestartRunButton", true, false) as Button).pressed.emit()
@@ -358,9 +349,7 @@ func test_pause_restart_run_starts_a_fresh_run() -> void:
 
 
 func test_pause_stats_show_score_time_and_mode() -> void:
-	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
-	add_child_autofree(root)
-	await get_tree().process_frame
+	var root: GameRoot = await _boot_into_run()
 	(root.find_child("PauseButton", true, false) as Button).pressed.emit()
 	var stats: Label = root.find_child("PauseStats", true, false) as Label
 	var mode: String = root.options.get_mode_config(root.options.settings.mode).name
@@ -369,9 +358,7 @@ func test_pause_stats_show_score_time_and_mode() -> void:
 
 func test_run_over_shows_points_and_spend() -> void:
 	# PORT: web/src/tilt-to-live/TiltGame.ts:2118-2122
-	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
-	add_child_autofree(root)
-	await get_tree().process_frame
+	var root: GameRoot = await _boot_into_run()
 	var balance: int = root.progression.data.points
 	GameEvents.run_ended.emit(0, Types.GameStats.new())
 	# PORT: web/src/tilt-to-live/TiltGame.ts:2089-2151 — the sheet fills 450 ms
@@ -409,9 +396,7 @@ func test_armory_tilt_slider_reaches_the_tilt_input() -> void:
 
 
 func test_an_armory_unlock_completes_its_goal_through_game_root() -> void:
-	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
-	add_child_autofree(root)
-	await get_tree().process_frame
+	var root: GameRoot = await _boot_into_run()
 	watch_signals(GameEvents)
 	root.progression.data.unlocked_cursors.append("solar")
 	var armory: ArmoryUI = root.find_child("Armory", true, false) as ArmoryUI
@@ -446,9 +431,7 @@ func test_calibrate_reports_through_a_message_toast() -> void:
 
 
 func test_run_over_lists_the_runs_milestones_and_opens_the_screen() -> void:
-	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
-	add_child_autofree(root)
-	await get_tree().process_frame
+	var root: GameRoot = await _boot_into_run()
 	var rc: RunController = root._run_controller
 	rc.run_tracker.score = 1000
 	rc.trigger_player_death()
@@ -476,9 +459,7 @@ func test_run_over_lists_the_runs_milestones_and_opens_the_screen() -> void:
 
 
 func test_run_over_hides_an_empty_milestones_list() -> void:
-	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
-	add_child_autofree(root)
-	await get_tree().process_frame
+	var root: GameRoot = await _boot_into_run()
 	root._run_controller.trigger_player_death()
 	# PORT: web/src/tilt-to-live/TiltGame.ts:2089-2151 — the sheet fills 450 ms
 	# after the death tick (I-1).
@@ -495,9 +476,7 @@ func test_run_over_hides_an_empty_milestones_list() -> void:
 ## tick itself. Run over's 450 ms delay (TiltGame.ts:2089-2151) must still
 ## show that completion's points in "Points earned" and the balance.
 func test_run_over_includes_a_total_goal_completed_on_the_death_tick() -> void:
-	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
-	add_child_autofree(root)
-	await get_tree().process_frame
+	var root: GameRoot = await _boot_into_run()
 	var rc: RunController = root._run_controller
 	var balance_before: int = rc.progression.data.points
 	# One point short of total_points_10's target of 10 (goal_manager.gd:697);
@@ -527,11 +506,12 @@ func test_run_over_includes_a_total_goal_completed_on_the_death_tick() -> void:
 	)
 
 
-func test_boot_launches_the_saved_mode() -> void:
-	GameOptionsManager.new().set_mode(Types.GameMode.GAUNTLET)
+func test_play_launches_the_selected_mode() -> void:
 	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
 	add_child_autofree(root)
 	await get_tree().process_frame
+	(root._menu.find_child("ModeCard_gauntlet", true, false) as Button).pressed.emit()
+	(root._menu.find_child("PlayButton", true, false) as Button).pressed.emit()
 	assert_eq(root._run_controller.mode, Types.GameMode.GAUNTLET, "TiltGame.ts:1486-1488")
 	assert_not_null(root._run_controller.maze)
 	assert_eq(root._run_controller.maze, root._maze)
@@ -544,9 +524,7 @@ func test_boot_launches_the_saved_mode() -> void:
 
 
 func test_pause_mode_pick_saves_and_applies_on_restart() -> void:
-	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
-	add_child_autofree(root)
-	await get_tree().process_frame
+	var root: GameRoot = await _boot_into_run()
 	assert_eq(root._run_controller.mode, Types.GameMode.CLASSIC)
 	var gauntlet: Button = root.find_child("ModeGauntletButton", true, false) as Button
 	gauntlet.pressed.emit()
@@ -568,11 +546,13 @@ func test_game_root_attaches_the_audio_bank() -> void:
 	assert_eq(bank._streams.size(), AudioBank.SFX_STEMS.size(), "every baked file loaded")
 
 
-func test_the_boot_run_starts_the_music_when_it_is_on() -> void:
+func test_a_launched_run_starts_the_music_when_it_is_on() -> void:
 	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
 	add_child_autofree(root)
 	await get_tree().process_frame
 	var bank: AudioBank = root._audio
+	assert_false(bank._music_player.playing, "no music in the menu")
+	root.launch_run(root.options.settings.mode)
 	assert_eq(
 		bank._music_player.playing,
 		root.options.settings.music_enabled,
@@ -584,6 +564,7 @@ func test_shake_offsets_the_arena_layers_and_decays() -> void:
 	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
 	add_child_autofree(root)
 	await get_tree().process_frame
+	root.launch_run(root.options.settings.mode)
 	root.trigger_shake(10.0)
 	assert_eq(root.camera_shake, 10.0, "TiltRenderer.ts:16")
 	await get_tree().process_frame
@@ -607,3 +588,99 @@ func test_halo_option_reaches_the_entity_layer() -> void:
 	root.options.settings.high_contrast_halo = true
 	root.apply_readability()
 	assert_true(root._entity_layer._high_contrast_halo)
+
+
+func test_boot_shows_the_menu_and_no_run() -> void:
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	assert_true(root.is_in_menu(), "TiltGame.ts:1476")
+	assert_true(root._menu.is_menu_visible(), ":1478")
+	assert_false(root._audio._music_player.playing, "no music in the menu")
+	assert_true(root._goals_hud.in_menu_mode, ":1477")
+	assert_false(
+		(root.find_child("ScoreBlock", true, false) as Control).is_visible_in_tree(), "R12"
+	)
+
+
+func test_the_backdrop_steps_only_in_the_menu() -> void:
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	var before: float = root._backdrop.elapsed
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	assert_gt(root._backdrop.elapsed, before, "TiltGame.ts:1829-1830")
+	root.launch_run(root.options.settings.mode)
+	var frozen: float = root._backdrop.elapsed
+	await get_tree().physics_frame
+	assert_eq(root._backdrop.elapsed, frozen, "only the run steps while playing")
+
+
+func test_return_to_menu_rebinds_the_backdrop_and_back() -> void:
+	var root: GameRoot = await _boot_into_run()
+	assert_eq(root._entity_layer._player, root._player, "run bindings")
+	root.return_to_menu()
+	assert_true(root.is_in_menu())
+	assert_eq(root._entity_layer._player, root._backdrop.menu_player, "R13")
+	assert_null(root._entity_layer._ship_skin, "renderMenuBackground passes no skin (:2274)")
+	assert_null(root._grid_layer.get_arena_theme(), ":2276")
+	assert_false(root._effect_layer.is_banner_drawn())
+	root.launch_run(root.options.settings.mode)
+	assert_eq(root._entity_layer._player, root._player, "rebound for the run")
+	assert_eq(root._entity_layer._ship_skin, root.progression.get_equipped_ship())
+
+
+func test_return_to_menu_from_the_menu_is_a_no_op() -> void:
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	watch_signals(GameEvents)
+	root.return_to_menu()
+	assert_signal_not_emitted(GameEvents, "phase_changed", "TiltGame.ts:1497")
+
+
+func test_p_and_escape_follow_the_ts_key_map() -> void:
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	var key: InputEventKey = InputEventKey.new()
+	key.keycode = KEY_P
+	key.pressed = true
+	root._unhandled_input(key)
+	assert_true(root.is_in_menu(), "menu: p does nothing (:1327-1329)")
+	root.launch_run(root.options.settings.mode)
+	root._unhandled_input(key)
+	assert_true(root.is_paused(), "playing → paused")
+	var esc: InputEventKey = InputEventKey.new()
+	esc.keycode = KEY_ESCAPE
+	esc.pressed = true
+	root._unhandled_input(esc)
+	assert_false(root.is_paused(), "paused → playing (:1325)")
+	root.open_armory()
+	root._unhandled_input(esc)
+	assert_false(root.is_armory_open(), "Armory open → Escape closes it first (:1326-1327)")
+	assert_true(root.is_paused(), "and the run stays paused")
+
+
+func test_space_enter_and_r_restart_after_death() -> void:
+	var root: GameRoot = await _boot_into_run()
+	root._run_controller.lives = 1
+	root._run_controller.lose_life()
+	assert_eq(root._state.phase, Types.GamePhase.GAME_OVER)
+	var key: InputEventKey = InputEventKey.new()
+	key.keycode = KEY_R
+	key.pressed = true
+	root._unhandled_input(key)
+	assert_eq(root._state.phase, Types.GamePhase.PLAYING, "TiltGame.ts:1311-1316 (M11b: cinematic)")
+
+
+func test_menu_settles_under_milestones_and_armory() -> void:
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	var menu: Node = root.find_child("Menu", true, false)
+	var hud: Node = root.find_child("Hud", true, false)
+	var goals: Node = root.find_child("GoalsHud", true, false)
+	assert_gt(menu.get_index(), hud.get_index(), "over Pause (Settings from Pause, Task 7)")
+	assert_lt(menu.get_index(), goals.get_index(), "under Milestones and Armory")
