@@ -6,7 +6,8 @@
 class_name AudioBank
 extends RefCounted
 ## Sound effects played from the files tools/bake-audio/bake_sfx.mjs renders out
-## of TiltAudio.ts (spec D5, §8 M5). The music half is M6.
+## of TiltAudio.ts (spec D5, §8 M5), and the music loop tools/bake-audio/
+## bake_music.mjs renders from its scheduler (spec §8 M6, M6 R1).
 ##
 ## Instantiated by GameRoot, which attaches it to the scene tree; the sim systems
 ## receive it as a parameter, as the TS passes its TiltAudio. An unattached bank
@@ -15,7 +16,8 @@ extends RefCounted
 ## PORT-NOTE: each file is its play* method rendered through the TS gain graph,
 ## so it already carries sfxGain 1.0 and masterGain 0.28 (TiltAudio.ts:35, :39).
 ## Playback applies only what the TS changes at run time: the sfx gain and the
-## master mute (M5 R4).
+## master mute (M5 R4). The music loop carries musicGain 0.35 and masterGain 0.28
+## the same way (M6 R4).
 
 ## Where the bake writes (spec §4.2; WAV per M5 R1).
 const SFX_DIR: String = "res://assets/audio/sfx/"
@@ -75,21 +77,25 @@ const SFX_STEMS: Array[String] = [
 	"invasion_alarm",
 ]
 
-## The music gain M6's sequencer plays at. PORT: web/src/tilt-to-live/TiltAudio.ts:43
+## The music gain; the player plays at music_gain / MUSIC_GAIN (M6 R4).
+## PORT: web/src/tilt-to-live/TiltAudio.ts:43
 var music_gain: float = MUSIC_GAIN
 
 var _muted: bool = false
+var _is_music_playing: bool = false  # PORT: web/src/tilt-to-live/TiltAudio.ts:13
 var _sfx_volume: float = 1.0  # PORT: web/src/tilt-to-live/TiltAudio.ts:39
 var _streams: Dictionary[String, AudioStream] = {}
 var _player: AudioStreamPlayer = null
 var _playback: AudioStreamPlaybackPolyphonic = null
+var _music_stream: AudioStream = null
+var _music_player: AudioStreamPlayer = null
 
 
-## Hangs the SFX player on `host` and loads every baked file. A missing file
+## Hangs the SFX and music players on `host` and loads every baked file. A missing file
 ## logs a warning and plays silence (spec §6.4). `host` must be in the tree.
 ## PORT-NOTE: stands in for unlock()'s context and gain creation
 ## (TiltAudio.ts:30-45); Godot needs a node in the tree, not a user gesture (M5 R10).
-func attach(host: Node, sfx_dir: String = SFX_DIR) -> void:
+func attach(host: Node, sfx_dir: String = SFX_DIR, music_path: String = MUSIC_PATH) -> void:
 	for stem: String in SFX_STEMS:
 		var path: String = sfx_dir + stem + ".wav"
 		if ResourceLoader.exists(path):
@@ -103,6 +109,13 @@ func attach(host: Node, sfx_dir: String = SFX_DIR) -> void:
 	host.add_child(_player)
 	_player.play()
 	_playback = _player.get_stream_playback() as AudioStreamPlaybackPolyphonic
+	if ResourceLoader.exists(music_path):
+		_music_stream = load(music_path) as AudioStream
+	else:
+		Log.warn("AudioBank: missing baked music %s; it plays silence" % music_path)
+	_music_player = AudioStreamPlayer.new()
+	_music_player.stream = _music_stream
+	host.add_child(_music_player)
 	_apply_volume()
 
 
@@ -135,6 +148,7 @@ func set_sfx_volume(vol: float) -> void:
 ## Sets background music volume. PORT: web/src/tilt-to-live/TiltAudio.ts:72-76
 func set_music_volume(vol: float) -> void:
 	music_gain = clampf(vol, 0.0, 1.0) * MUSIC_GAIN
+	_apply_volume()
 
 
 ## Reports whether audio is muted. PORT: web/src/tilt-to-live/TiltAudio.ts:78-80
@@ -142,16 +156,34 @@ func is_muted() -> bool:
 	return _muted
 
 
-## Starts the background music sequencer. PORT: web/src/tilt-to-live/TiltAudio.ts:84-95
+## Starts the background music. PORT: web/src/tilt-to-live/TiltAudio.ts:84-95
+# PORT-NOTE: the TS calls unlock() first (:85); attach() did its work (M5 R10) and
+# unlock() is a no-op, so it is not called here (M6 R5). currentStep = 0 (:88) is
+# the loop's first frame.
+# DIVERGENCE(M6 R8): the TS waits 50 ms before step 0 (:89) and its first cycle has
+# no bar-15 tails at its head; the loop starts at once, tails included.
 func start_music() -> void:
-	# TODO(M6): port startMusic's lookahead scheduler (TiltAudio.ts:84-95).
-	Log.debug("AudioBank.start_music()")
+	if _is_music_playing:
+		return
+	_is_music_playing = true
+	if _music_player != null and _music_stream != null:
+		_music_player.play(0.0)
 
 
-## Stops the background music sequencer. PORT: web/src/tilt-to-live/TiltAudio.ts:97-103
+## Stops the background music. PORT: web/src/tilt-to-live/TiltAudio.ts:97-103
+# DIVERGENCE(M6 R8): notes the TS already scheduled (up to scheduleAheadSec, :20)
+# still sound after clearInterval; stop() cuts the loop at once.
 func stop_music() -> void:
-	# TODO(M6): port stopMusic (TiltAudio.ts:97-103).
-	Log.debug("AudioBank.stop_music()")
+	_is_music_playing = false
+	if _music_player != null:
+		_music_player.stop()
+
+
+# PORT-NOTE: scheduler, getNoiseBuffer, scheduleStep, scheduleDrums, triggerKick,
+# triggerSnare, triggerHiHat, triggerCrash, scheduleBassLine, scheduleArpeggio,
+# scheduleLeadMelody and schedulePadChord (TiltAudio.ts:105-479), with the fields
+# currentStep..scheduleAheadSec (:14-20), run inside tools/bake-audio/bake_music.mjs;
+# their output is music_loop.wav, so they have no GDScript counterpart (M6 R1).
 
 
 ## Plays the orb pickup sound. PORT: web/src/tilt-to-live/TiltAudio.ts:483-500
@@ -278,7 +310,12 @@ func _play(stem: String, pitch_scale: float = 1.0) -> int:
 	return _playback.play_stream(stream, 0.0, 0.0, pitch_scale)
 
 
-## masterGain is 0 while muted (TiltAudio.ts:54, :62); otherwise the sfx gain.
+## masterGain is 0 while muted (TiltAudio.ts:54, :62); otherwise the sfx gain, and
+## for music its gain relative to the baked MUSIC_GAIN (M6 R4).
 func _apply_volume() -> void:
 	if _player != null:
 		_player.volume_linear = 0.0 if _muted else _sfx_volume
+	if _music_player != null:
+		# DIVERGENCE(M6 R6): the TS scheduler skips steps while muted (:106) and bursts
+		# the backlog on unmute; the loop plays on at volume 0 instead.
+		_music_player.volume_linear = 0.0 if _muted else music_gain / MUSIC_GAIN

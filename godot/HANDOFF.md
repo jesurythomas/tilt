@@ -11,11 +11,11 @@ Rewritten at every module stop. Written for a session with zero context.
 still `TODO(M6)`. Full section: `## M5 — what landed` below. Device checks:
 `VERIFY-ME.md` §M5 (A55 absent on 2026-09-25).
 
-**M6 — Generative music: in progress — Task 1 landed (music bake + loop import); next Task 2.** Plan
+**M6 — Generative music: in progress — Tasks 1–2 landed (music bake, loop playback in AudioBank); next Task 3.** Plan
 `docs/superpowers/plans/2026-09-20-m6-generative-music.md` (Tasks 1–4). User ruling
 M6 R1 (2026-09-25): the TS arrangement has no game input, so it bakes to one seamless
 loop WAV. There are no stems and no `music_sequencer.gd` (this amends spec D5/§8 M6 at Task 1).
-**Next: M6 Task 2** (plan approved by the user 2026-09-25).
+**Next: M6 Task 3** (plan approved by the user 2026-09-25).
 
 **M10 — Modes: code-complete, device pass pending.** Final commit `2e6b2d2`
 (exit commit for the whole module — final review fixes F-1..F-4 landed at
@@ -1108,7 +1108,7 @@ under the dummy driver.
 
 **First step, literally:** the plan is approved (2026-09-25). Read its first unticked task and
 the ledger `.superpowers/sdd/2026-09-20-m6-generative-music/progress.md` (if it exists), then
-continue from there. Task 1 is done.
+continue from there. Tasks 1–2 are done.
 
 Before starting: `git status --short` must be clean under `godot/`
 (the user may leave device tuning uncommitted — never stash or revert it),

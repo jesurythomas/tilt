@@ -1,3 +1,4 @@
+# gdlint:disable=max-public-methods
 ## test_audio_bank.gd
 ## PORTS: nothing — covers src/audio/audio_bank.gd (spec §8 M5, §6.4)
 extends GutTest
@@ -17,9 +18,11 @@ func before_each() -> void:
 	add_child_autofree(_host)
 
 
-func _attached(sfx_dir: String = AudioBank.SFX_DIR) -> AudioBank:
+func _attached(
+	sfx_dir: String = AudioBank.SFX_DIR, music_path: String = AudioBank.MUSIC_PATH
+) -> AudioBank:
 	var bank: AudioBank = AudioBank.new()
-	bank.attach(_host, sfx_dir)
+	bank.attach(_host, sfx_dir, music_path)
 	return bank
 
 
@@ -219,3 +222,65 @@ func test_missing_files_log_and_play_silence() -> void:
 	bank.play_nuke()
 	bank.play_dot_pop(3)
 	assert_not_null(bank._player, "the player still exists; only the files are missing")
+
+
+func test_start_music_plays_the_loop_from_the_top() -> void:
+	var bank: AudioBank = _attached()
+	assert_false(bank._music_player.playing, "attach() does not start the music")
+	assert_eq(bank._music_player.get_parent(), _host)
+	bank.start_music()
+	assert_true(bank._music_player.playing)
+	assert_lt(bank._music_player.get_playback_position(), 0.1, "currentStep = 0 (TiltAudio.ts:88)")
+
+
+func test_start_music_while_playing_does_not_restart() -> void:
+	var bank: AudioBank = _attached()
+	bank.start_music()
+	bank._music_player.seek(5.0)
+	bank.start_music()
+	assert_gt(bank._music_player.get_playback_position(), 4.9, "the :86 guard")
+
+
+func test_stop_then_start_restarts_from_the_top() -> void:
+	var bank: AudioBank = _attached()
+	bank.start_music()
+	bank._music_player.seek(5.0)
+	bank.stop_music()
+	assert_false(bank._music_player.playing, "TiltAudio.ts:97-103")
+	bank.start_music()
+	assert_true(bank._music_player.playing)
+	assert_lt(bank._music_player.get_playback_position(), 0.1, "resume restarts at step 0 (M6 R5)")
+
+
+func test_mute_silences_music_but_keeps_it_running() -> void:
+	var bank: AudioBank = _attached()
+	bank.set_music_volume(0.5)
+	bank.start_music()
+	bank.set_muted(true)
+	assert_eq(bank._music_player.volume_linear, 0.0, "masterGain 0 (TiltAudio.ts:62)")
+	assert_true(bank._music_player.playing, "the loop plays on silently (M6 R6)")
+	bank.set_music_volume(0.8)
+	assert_eq(bank._music_player.volume_linear, 0.0, "a volume change does not unmute")
+	bank.set_muted(false)
+	assert_almost_eq(bank._music_player.volume_linear, 0.8, 0.0001, "the saved music volume")
+	bank.toggle_mute()
+	assert_eq(bank._music_player.volume_linear, 0.0, "toggle_mute mutes music too (:54)")
+
+
+func test_music_volume_applies_live_relative_to_the_baked_gain() -> void:
+	var bank: AudioBank = _attached()
+	assert_almost_eq(bank._music_player.volume_linear, 1.0, 0.0001, "0.35 is baked in (M6 R4)")
+	bank.set_music_volume(0.7)
+	assert_almost_eq(bank._music_player.volume_linear, 0.7, 0.0001, "0.245 / 0.35")
+	bank.set_music_volume(1.5)
+	assert_almost_eq(bank._music_player.volume_linear, 1.0, 0.0001, "clamped (TiltAudio.ts:74)")
+
+
+func test_missing_music_file_logs_and_stays_silent() -> void:
+	var bank: AudioBank = _attached(AudioBank.SFX_DIR, "res://tests/fixtures/no_such_music.wav")
+	assert_null(bank._music_stream, "nothing loaded")
+	assert_not_null(bank._music_player, "the player still exists; only the file is missing")
+	bank.start_music()
+	assert_false(bank._music_player.playing, "silence, no error (spec §6.4)")
+	bank.stop_music()
+	assert_eq(bank._streams.size(), AudioBank.SFX_STEMS.size(), "the SFX are unaffected")

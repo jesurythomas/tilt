@@ -351,7 +351,7 @@ git log -1 --format=%B
 - Consumes: `AudioBank.MUSIC_PATH` and the looping `music_loop.wav` (Task 1).
 - Produces: `attach(host: Node, sfx_dir: String = SFX_DIR, music_path: String = MUSIC_PATH) -> void`; private `_music_player: AudioStreamPlayer`, `_music_stream: AudioStream`, `_is_music_playing: bool`. `start_music()`/`stop_music()` keep their signatures, so `SpyAudioBank` is unchanged.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Change `_attached` in `godot/tests/test_audio_bank.gd` to:
 
@@ -429,12 +429,12 @@ func test_missing_music_file_logs_and_stays_silent() -> void:
 	assert_eq(bank._streams.size(), AudioBank.SFX_STEMS.size(), "the SFX are unaffected")
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `tools/run_tests.sh`
 Expected: the six new tests fail (`_music_player` is not a member, or `attach` takes 2 arguments), and the other 550 pass.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `godot/src/audio/audio_bank.gd`:
 
@@ -521,17 +521,17 @@ func _apply_volume() -> void:
 		_music_player.volume_linear = 0.0 if _muted else music_gain / MUSIC_GAIN
 ```
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `tools/run_tests.sh`
 Expected: `OK: 50/50 scripts collected, all tests passed` with **556** tests. `test_unattached_bank_is_silent_and_every_method_is_safe` still passes, which proves the null guards.
 
-- [ ] **Step 5: Check the markers**
+- [x] **Step 5: Check the markers**
 
 Run: `grep -rn "TODO(M6)" godot/src godot/tests; grep -rn "DIVERGENCE" godot/src | wc -l; grep -rn "DIVERGENCE(M6" godot/src | wc -l`
 Expected: nothing; `181`; `3`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git checkout godot/project.godot
@@ -667,6 +667,7 @@ git log -1 --format=%B
 Inline execution (executing-plans); ledger at `.superpowers/sdd/2026-09-20-m6-generative-music/progress.md` (git-ignored), copied here.
 
 - **Task 1 (2026-09-25).** (a) The test gained `if stream == null: return` after `assert_not_null`, so the red run fails on the assertion rather than a null dereference. (b) Chrome's offline render is not bit-exact between runs: two bakes differed in 4 of 1 263 761 samples, each by 1 LSB (float jitter at int16 rounding boundaries). `bake_music.mjs` therefore keeps the existing `music_loop.wav` when a fresh render is within 1 LSB of it in every sample (it prints `kept`), so the exit check "`git status --short godot/assets/audio/` empty" holds. R3's "byte-deterministic" is true to ±1 LSB. The bake printed 1263761 frames and peak 0.0580. Per-bar RMS ×1000 was `4.6 4.3 4.3 4.4 5.3 5.1 5.1 5.2 5.3 5.1 5.1 5.1 2.2 1.6 2.9 4.6`: the lead adds level in bars 4–11, and the breakdown dips in bars 12–14.
+- **Task 2 (2026-09-25).** `test_audio_bank.gd` went past gdlint's 20 public methods (22 tests). It gains `# gdlint:disable=max-public-methods` as line 1, the `test_run_controller.gd` precedent. Tests 556, DIVERGENCE 181 (`DIVERGENCE(M6` 3), `TODO(M6)` grep empty.
 
 ### Task 4: Module exit protocol (CONVENTIONS §9)
 
