@@ -294,3 +294,43 @@ func test_menu_phase_hides_the_run_hud_but_keeps_the_frame_and_toasts() -> void:
 	GameEvents.phase_changed.emit(Types.GamePhase.PLAYING)
 	assert_true((hud.find_child("ScoreBlock", true, false) as Control).visible)
 	assert_true((hud.find_child("PauseButton", true, false) as Control).visible)
+
+
+func _hud_with_multiplier() -> Array:
+	var hud: HudController = HudController.new()
+	var mult_lbl: Label = Label.new()
+	mult_lbl.name = "MultiplierLabel"
+	hud.add_child(mult_lbl)
+	add_child_autofree(hud)
+	return [hud, mult_lbl]
+
+
+func test_same_tier_multiplier_keeps_the_chip_style() -> void:
+	# DIVERGENCE(M11c P6): the chip restyles only when its tier colour changes.
+	var mult_lbl: Label = _hud_with_multiplier()[1]
+	GameEvents.score_changed.emit(10, 2, 0)
+	var style: StyleBox = mult_lbl.get_theme_stylebox("normal")
+	GameEvents.score_changed.emit(20, 3, 0)
+	assert_same(mult_lbl.get_theme_stylebox("normal"), style, "2× → 3× is the same tier")
+	assert_eq(mult_lbl.text, "3×")
+
+
+func test_tier_change_restyles_the_chip() -> void:
+	var mult_lbl: Label = _hud_with_multiplier()[1]
+	GameEvents.score_changed.emit(10, 4, 0)
+	var style: StyleBox = mult_lbl.get_theme_stylebox("normal")
+	GameEvents.score_changed.emit(20, 5, 0)
+	assert_ne(mult_lbl.get_theme_stylebox("normal"), style, "4× → 5× crosses a tier")
+	assert_eq(
+		mult_lbl.get_theme_color("font_color"), HudController.tier_color_for(5), "new tier text"
+	)
+
+
+func test_dropping_to_one_hides_the_chip_and_rising_again_restyles_it() -> void:
+	var mult_lbl: Label = _hud_with_multiplier()[1]
+	GameEvents.score_changed.emit(10, 20, 0)
+	GameEvents.score_changed.emit(10, 1, 0)
+	assert_false(mult_lbl.visible, "hidden at 1×")
+	GameEvents.score_changed.emit(10, 20, 0)
+	assert_true(mult_lbl.visible)
+	assert_eq(mult_lbl.get_theme_color("font_color"), HudController.tier_color_for(20))

@@ -105,6 +105,8 @@ var _pickers: Array[ControlPicker] = []
 # DIVERGENCE(HUD-FEEDBACK §4): last multiplier seen from score_changed, so the
 # kill pulse's tier agrees with the multiplier chip's tier.
 var _current_multiplier: int = 1
+## DIVERGENCE(M11c P6): the tier colour the chip was last styled with.
+var _styled_tier: Color = Color(0.0, 0.0, 0.0, 0.0)
 var _score_pulse_tween: Tween = null
 # PORT: web/src/tilt-to-live/TiltGame.ts:2089-2151 — the game-over modal fills
 # 450 ms after the death tick, so the death tick's own live-goal completion
@@ -425,7 +427,9 @@ func _on_score_changed(score: int, multiplier: int, best_score: int) -> void:
 	if _multiplier_label != null:
 		_multiplier_label.text = "%d×" % multiplier
 		_multiplier_label.visible = multiplier > 1
-		_style_multiplier()
+		# DIVERGENCE(M11c P6): rebuild the chip only when its tier colour changes.
+		if tier_color_for(multiplier) != _styled_tier:
+			_style_multiplier()
 	if _best_label != null:
 		_best_label.text = "BEST %s" % UiTheme.group_digits(best_score)
 
@@ -434,6 +438,7 @@ func _on_score_changed(score: int, multiplier: int, best_score: int) -> void:
 # colour (D2), now as a Chip: tier text, 12% fill, 45% border (System.dc.html).
 func _style_multiplier() -> void:
 	var tier: Color = tier_color_for(_current_multiplier)
+	_styled_tier = tier
 	_multiplier_label.add_theme_color_override("font_color", tier)
 	_multiplier_label.add_theme_stylebox_override("normal", UiTheme.chip_style(tier, _ui_scale))
 

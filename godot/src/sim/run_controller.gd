@@ -5,6 +5,9 @@ extends RefCounted
 ## In-run coordinator executing frame order steps 1-11, collision detection,
 ## scoring integration, life loss, and player death.
 
+## DIVERGENCE(M11c P6): no emission yet this run — forces the next score_changed.
+const NO_HUD_VALUES: Vector3i = Vector3i(-1, -1, -1)
+
 var player: PlayerShip = null
 var swarm: EnemySwarm = null
 var weapons: WeaponSystem = null
@@ -51,6 +54,8 @@ var run_completed_goals: Array[GoalManager.Goal] = []
 ## renderer.triggerShake. GameRoot sets it; an empty Callable skips the shake (tests).
 ## PORT: web/src/tilt-to-live/TiltGame.ts:2064, :2081 (the TS calls the renderer directly)
 var trigger_shake: Callable = Callable()
+## The (score, multiplier, best) last sent on score_changed (M11c P6).
+var _last_hud_values: Vector3i = NO_HUD_VALUES
 
 
 # PORT-NOTE: ten parameters is gdlint's limit and exactly the systems
@@ -85,6 +90,7 @@ func _init(
 ## PORT: web/src/tilt-to-live/TiltGame.ts:1547-1610
 func reset_run(arena_bounds: Vector2) -> void:
 	bounds = arena_bounds
+	_last_hud_values = NO_HUD_VALUES
 	mode = options.settings.mode
 	# PORT: web/src/tilt-to-live/TiltGame.ts:1548-1551
 	var mode_config: GameOptionsManager.ModeConfig = options.get_mode_config(mode)
@@ -272,9 +278,15 @@ func update(
 
 	# 9. Emit HUD signal
 	var pt_hud: int = PerfProbe.now()
-	GameEvents.score_changed.emit(
+	# DIVERGENCE(M11c P6): emit only when a HUD value changed (the TS re-renders every tick).
+	var hud_values: Vector3i = Vector3i(
 		scores.stats.score, scores.stats.multiplier, scores.stats.best_score
 	)
+	if hud_values != _last_hud_values:
+		_last_hud_values = hud_values
+		GameEvents.score_changed.emit(
+			scores.stats.score, scores.stats.multiplier, scores.stats.best_score
+		)
 	PerfProbe.add("s_hud_signal", pt_hud)
 
 

@@ -465,3 +465,24 @@ func test_death_shakes_by_24_times_the_option() -> void:
 	_rc.lives = 1
 	_rc.lose_life()
 	assert_eq(amounts, [0.0] as Array[float], "24 x 0 (TiltGame.ts:2081)")
+
+
+func test_score_changed_fires_only_when_the_hud_values_change() -> void:
+	# DIVERGENCE(M11c P6): the TS re-renders the HUD every tick; the port emits on change.
+	_rc.reset_run(_bounds)
+	watch_signals(GameEvents)
+	_rc.update(1.0 / 120.0, Types.ControlMode.MOUSE, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO)
+	_rc.update(1.0 / 120.0, Types.ControlMode.MOUSE, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO)
+	assert_signal_emit_count(GameEvents, "score_changed", 1, "first tick after reset, then nothing")
+	_scores.stats.multiplier = 3
+	_rc.update(1.0 / 120.0, Types.ControlMode.MOUSE, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO)
+	assert_signal_emit_count(GameEvents, "score_changed", 2, "a multiplier change alone emits")
+
+
+func test_reset_run_forces_the_next_score_emission() -> void:
+	_rc.reset_run(_bounds)
+	_rc.update(1.0 / 120.0, Types.ControlMode.MOUSE, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO)
+	_rc.reset_run(_bounds)
+	watch_signals(GameEvents)
+	_rc.update(1.0 / 120.0, Types.ControlMode.MOUSE, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO)
+	assert_signal_emit_count(GameEvents, "score_changed", 1, "the new run's first HUD write")
