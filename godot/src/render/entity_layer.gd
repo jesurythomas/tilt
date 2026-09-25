@@ -530,12 +530,15 @@ func _draw_enemies() -> void:
 
 
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:1204-1222
+# DIVERGENCE(M11c P5): circles and the ring draw from CircleSprites' shared textures.
 func _draw_frozen_dot(e: Types.Enemy) -> void:
 	_begin_entity(Vector2(e.x, e.y))
 	var pos: Vector2 = Vector2.ZERO
-	draw_circle(pos, e.radius + 3.0, Color(136.0 / 255.0, 238.0 / 255.0, 1.0, 0.45))
-	draw_arc(pos, e.radius + 1.0, 0.0, TAU, 24, Color.WHITE, 1.5)
-	draw_circle(pos, e.radius - 1.0, Color("#4488aa"))
+	CircleSprites.draw_disc(
+		self, pos, e.radius + 3.0, Color(136.0 / 255.0, 238.0 / 255.0, 1.0, 0.45)
+	)
+	CircleSprites.draw_ring(self, pos, e.radius + 1.0, 1.5, Color.WHITE)
+	CircleSprites.draw_disc(self, pos, e.radius - 1.0, Color("#4488aa"))
 	_end_entity()
 
 
@@ -806,6 +809,8 @@ func _draw_specter(e: Types.Enemy) -> void:
 
 
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:1554-1643 (default dot + turret indicator)
+# DIVERGENCE(M11c P5): circles and rings draw from CircleSprites' shared textures,
+# same layers, order and colours.
 func _draw_default_dot(e: Types.Enemy) -> void:
 	var e_pos: Vector2 = Vector2(e.x, e.y)
 	_begin_entity(e_pos)
@@ -822,7 +827,7 @@ func _draw_default_dot(e: Types.Enemy) -> void:
 			halo_col = Color(1.0, 180.0 / 255.0, 0.0, 0.7)
 		else:
 			halo_col = Color(1.0, 30.0 / 255.0, 60.0 / 255.0, 0.7)
-		draw_arc(Vector2.ZERO, (e.radius + 5.0) * pulse, 0.0, TAU, 24, halo_col, 1.2)
+		CircleSprites.draw_ring(self, Vector2.ZERO, (e.radius + 5.0) * pulse, 1.2, halo_col)
 
 	# Outer glow color (PORT: EnemySwarm.ts:1574-1586)
 	var glow_col: Color
@@ -834,7 +839,7 @@ func _draw_default_dot(e: Types.Enemy) -> void:
 		glow_col = Color(1.0, 170.0 / 255.0, 0.0, 0.45)
 	else:
 		glow_col = Color(1.0, 30.0 / 255.0, 60.0 / 255.0, 0.35)
-	draw_circle(Vector2.ZERO, (e.radius + 4.0) * pulse, glow_col)
+	CircleSprites.draw_disc(self, Vector2.ZERO, (e.radius + 4.0) * pulse, glow_col)
 
 	# Core vibrant body (PORT: EnemySwarm.ts:1588-1610)
 	var body_col: Color
@@ -851,8 +856,8 @@ func _draw_default_dot(e: Types.Enemy) -> void:
 	else:
 		body_col = Color("#ee1133")
 		inner_col = Color("#ff6677")
-	draw_circle(Vector2.ZERO, e.radius, body_col)
-	draw_circle(Vector2.ZERO, e.radius * 0.65, inner_col)
+	CircleSprites.draw_disc(self, Vector2.ZERO, e.radius, body_col)
+	CircleSprites.draw_disc(self, Vector2.ZERO, e.radius * 0.65, inner_col)
 
 	# Border (PORT: EnemySwarm.ts:1612-1620)
 	var border_col: Color
@@ -864,7 +869,7 @@ func _draw_default_dot(e: Types.Enemy) -> void:
 		border_col = Color("#ffd555")
 	else:
 		border_col = Color("#ff8899")
-	draw_arc(Vector2.ZERO, e.radius, 0.0, TAU, 24, border_col, 1.2)
+	CircleSprites.draw_ring(self, Vector2.ZERO, e.radius, 1.2, border_col)
 
 	# Pupil / core dot (PORT: EnemySwarm.ts:1622-1632)
 	var pupil_col: Color
@@ -876,7 +881,7 @@ func _draw_default_dot(e: Types.Enemy) -> void:
 		pupil_col = Color("#221100")
 	else:
 		pupil_col = Color("#110005")
-	draw_circle(Vector2.ZERO, e.radius * 0.38, pupil_col)
+	CircleSprites.draw_disc(self, Vector2.ZERO, e.radius * 0.38, pupil_col)
 
 	# Turret dot warning indicator (PORT: EnemySwarm.ts:1635-1643)
 	if (
