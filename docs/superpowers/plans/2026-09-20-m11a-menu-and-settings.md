@@ -55,8 +55,8 @@ Planning rulings (precedent-based, not re-asked):
 - **R6 — Words come from the TS, layout from the board.** The board's mock text is not an authority (interface spec §6.6). Mode names, taglines, multipliers (`toFixed(m % 1 === 0 ? 1 : 2)` + `×`, which gives `"1.0×"`, `"1.25×"` and `"1.50×"`), stat labels, "Play", "Armory", "Milestones", "Screen shake", "Reset progress" and the confirm text are all TS strings. Two exceptions follow the M8.5 pre-flight M14 rule ("spec-quoted explain lines win over TS strings"). First, where a board shows its own string for the **same control**, the board's string wins: the "Enemy outlines" hint `"White ring on every dot."`, the Data hint `"Cannot be undone."` and the Handling link `"Turn rate and sensitivity live in Armory › Handling"`. Second, the title is `"PERIL\nPOINT"` (app identity, `HANDOFF.md` §App identity; the TS `"TILT\nTO LIVE"` names the web game).
 - **R7 — The control cards follow Rule P.** Settings shows Touch (`"drag anywhere"`, board) and Tilt (`"phone gyroscope"`, `TiltMenu.ts:291`), plus Keys (`"WASD / arrows"`, `:289`) off mobile, the same set as `ControlPicker`. There is no Mouse or Both card: the port's scheme lives in `ControlSettings` (M2.5 §4.2), not `options.settings.control_scheme`. A card writes through `GameRoot.set_control_scheme`. The menu's Steer row (a board element with no TS counterpart) is the existing `ControlPicker` scene. The Settings calibrate link shows only while the scheme is Tilt (`TiltMenu.ts:378`, as Rule E does for Pause).
 - **R8 — TS content with no board slot is kept (Rule N).** The next-milestone teaser (`TiltMenu.ts:96-126`, `:198-207`) goes in the menu's left block, above the Steer row. The Background grid row goes in the Readability column. Both are styled from `System.dc.html` tokens and tagged `DIVERGENCE(UI-SYSTEM)`. The stats row stays hidden while `best_score == 0` (`TiltMenu.ts:180`), although the board always draws it.
-- **R9 — The options modal only saves, as in the TS.** The Sound and Music switches in Settings set the option and call `options.save()` (`TiltMenu.ts:460-470`). They do **not** call `set_muted`/`start_music`/`stop_music`. The next `reset_run` applies them (`TiltGame.ts:1607-1610`), which differs from Pause's switches (`:1396-1416`). PORT-NOTE. The halo and grid switches apply at once through `GameRoot` (R2): the TS render reads them every frame (`:2280-2281`, `:2313-2317`).
-- **R10 — Reset progress is ported exactly, bug included.** Confirm → remove the six TS keys → reload. The TS removes `tilt_to_live_progression_v1` and `tilt_to_live_scores_v1` (`TiltMenu.ts:515-516`), but its real keys are `_progression_v3` (`ProgressionManager.ts:119`) and `tilt_to_live_best` (`ScoreManager.ts:162`). So a TS reset keeps points, unlocks and the best score, although its prompt says it deletes them. The port removes only the port files that those six keys name: `GameOptionsManager.SAVE_PATH`, `GoalManager.SAVE_PATH` and `GoalManager.CUMULATIVE_SAVE_PATH`. `_v1`, `scores_v1` and `tilt_goals_hud_collapsed` have no port file. PORT-NOTE + **Open question Q1** for the user. `ControlSettings.SETTINGS_PATH` and the calibration file are kept, because the TS keeps `tilt_gyro_calibration` and the port's scheme file postdates the TS. The reload (`window.location.reload()`) becomes `get_tree().reload_current_scene()`, deferred.
+- **R9 — The options modal's audio switches apply at once (user, Q2, 2026-09-25).** The TS Sound and Music switches in Settings only set the option and save (`TiltMenu.ts:460-470`); the next `reset_run` applies them (`TiltGame.ts:1607-1610`). The user ruled that they apply at once, like Pause's (`:1396-1416`): `TiltMenu` emits `sfx_toggled(is_on)` / `music_toggled(is_on)`, and `GameRoot` routes them to its existing `set_sfx_enabled` / `set_music_enabled` (save + `set_muted` / `start_music` only while `PLAYING` / `stop_music`). Tagged `DIVERGENCE(M11a Q2)` once, at the modal's audio handlers. The halo and grid switches also apply at once through `GameRoot` (R2): the TS render reads them every frame (`:2280-2281`, `:2313-2317`).
+- **R10 — Reset progress deletes what its prompt says (user, Q1, 2026-09-25).** The TS confirm (`TiltMenu.ts:508`) promises to delete scores, points, milestones and armory unlocks, but `:515-516` remove `tilt_to_live_progression_v1` and `tilt_to_live_scores_v1`, while the real keys are `_progression_v3` (`ProgressionManager.ts:119`) and `tilt_to_live_best` (`ScoreManager.ts:162`), so a TS reset keeps them. The user ruled the port fixes this. Confirm → remove `GameOptionsManager.SAVE_PATH`, `GoalManager.SAVE_PATH`, `GoalManager.CUMULATIVE_SAVE_PATH`, **`ProgressionManager.SAVE_PATH` and `ScoreManager.BEST_SCORE_PATH`** → reload. Tagged `DIVERGENCE(M11a Q1)` once, at `reset_progress_files`. `tilt_goals_hud_collapsed` has no port file. `ControlSettings.SETTINGS_PATH` and the calibration file are kept: the TS keeps `tilt_gyro_calibration`, the prompt names neither, and the port's scheme file postdates the TS. The reload (`window.location.reload()`) becomes `get_tree().reload_current_scene()`, deferred.
 - **R11 — The confirm is a board-styled sheet.** `window.confirm` has no board. It is a `UiTheme.build_sheet` with the TS text (`:507-509`), **Reset** (`SecondaryButton`) and **Cancel** (`PrimaryButton`, the safe default). It is built inside `tilt_menu.gd` and tagged `DIVERGENCE(UI-SYSTEM)`.
 - **R12 — The HUD in `MENU`.** The TS hides the in-run HUD whenever the body lacks `tilt-playing`. On `phase_changed(MENU)`, `HudController` hides `ScoreBlock`, `LivesRow`, `PauseButton` and `WeaponTimer`, plus the Pause and Run over sheets. On `PLAYING` it shows them again. `Frame` (the arena outline) and `ToastSlot` stay visible, so the Calibrate toast shows on the menu. `GoalsHUD.set_menu_mode` is called where the TS calls it (`:1477`, `:1490`, `:1508`, `:1524`).
 - **R13 — The menu backdrop render.** In `MENU`, `GameRoot` rebinds its layers as `renderMenuBackground` draws (`TiltRenderer.ts:158-220`). The grid layer gets theme `null` and mode `CLASSIC`, and `show_gridlines` is still honoured. The entity layer gets the backdrop's player, swarm and weapons, with no coins, ship skin `null`, enemy skin `null` and mode `CLASSIC`, so no maze. The effect layer gets the shared particles, scores `null` (no floating text) and the backdrop's weapons, with the banner off. `launch_run` restores the run bindings (`_bind_run_layers`). The backdrop entities are never `set_scale`d, as in the TS (`resizeCanvas` scales only the run's): PORT-NOTE.
@@ -80,7 +80,7 @@ Copied from `CONVENTIONS.md`, the index plan and the M6 plan. Every task implici
 - **Tests run only via `tools/run_tests.sh`.** Baseline at the M6 exit: `OK: 50/50 scripts (559 tests, 17696 asserts)`. This plan adds three scripts (`test_menu_backdrop.gd`, `test_tilt_menu.gd`, `test_calibrate_screen.gd`), so 53. Each task below states its **delta** in tests. If a delta differs, reconcile it before committing and never change the expectation to match. A test deleted for a removed feature (the M10 R1 picker, Task 7) is named in that task's commit message.
 - **Format/lint:** `gdformat --check godot/src godot/tests` (90 files at baseline; +6 new files → 96) and `gdlint godot/src godot/tests` must be clean before every commit. Never run bare `gdformat` on existing files. Never touch `godot/addons/`. gdlint `max-line-length` is 100. A file whose public-method count trips gdlint opens with `# gdlint:ignore=max-public-methods`, as `audio_bank.gd` does.
 - **Headless runs strip one line from `godot/project.godot`.** Every commit step begins with `git checkout godot/project.godot`.
-- **`DIVERGENCE` count:** 181 at the M6 exit. M11a adds `DIVERGENCE(M11a R1)` ×4 plus the new `DIVERGENCE(UI-SYSTEM)` board literals, and removes `DIVERGENCE(M10 R1)` ×3 (Task 7). Each task's commit step records the new total with `grep -rn "DIVERGENCE" godot/src/ | wc -l`, and the exit writes it into `HANDOFF.md`.
+- **`DIVERGENCE` count:** 181 at the M6 exit. M11a adds `DIVERGENCE(M11a R1)` ×4, `DIVERGENCE(M11a Q1)` ×1, `DIVERGENCE(M11a Q2)` ×1, plus the new `DIVERGENCE(UI-SYSTEM)` board literals, and removes `DIVERGENCE(M10 R1)` ×3 (Task 7). Each task's commit step records the new total with `grep -rn "DIVERGENCE" godot/src/ | wc -l`, and the exit writes it into `HANDOFF.md`.
 - **`user://` on the test host** is `%APPDATA%\Godot\app_userdata\Peril Point\`. A spec that builds `GameRoot` or a manager clears the saves in `before_each`/`after_each`, as `test_main_scene.gd` does.
 - **Randomness:** the port uses the global `randf()`/`randi()` for `Math.random()` (`weapon_system.gd:97`). A test that needs determinism calls `seed(<n>)` first. It never asserts one random draw.
 
@@ -91,8 +91,8 @@ These are the inputs the spec implies that are most likely to bite a player. Eac
 1. **Cold boot with no saves.** The menu shows with no stats row (best 0), the saved mode's card is selected, no run is live, music is off, and the backdrop is moving. Pressing Play starts the run in that mode. Task 4 `test_boot_shows_the_menu_and_no_run`, `test_play_launches_the_selected_mode`; Task 3 `test_stats_row_hides_until_a_best_exists`.
 2. **Quit to menu mid-run, then Play again.** Nothing leaks from the old run: no pause sheet, no Run over sheet, no HUD score, and no music while in the menu. The backdrop layers are bound, and the new run's layers are rebound to the run's entities with the equipped cosmetics. Task 4 `test_return_to_menu_rebinds_the_backdrop_and_back`; Task 7 `test_pause_quit_to_menu_hides_everything_and_stops_music`.
 3. **Escape/p pressed in each phase.** In `MENU` nothing happens, in `PLAYING` the run pauses, in `PAUSED` it resumes, and with the Armory open the Armory closes but the run stays paused. Task 4 `test_p_and_escape_follow_the_ts_key_map`.
-4. **Reset progress, then Cancel; and Reset, then confirm.** Cancel deletes nothing. Confirm deletes exactly the three R10 files, keeps progression, best score and control settings, and reloads. Task 5 `test_reset_cancel_keeps_every_file`, `test_reset_confirm_removes_only_the_ts_keys`.
-5. **Settings opened from Pause.** It draws above the Pause sheet, its Back returns to Pause (still paused), and a halo/grid change shows at once. Sound/Music save without muting until the next run (R9). Task 7 `test_pause_settings_opens_the_options_modal_over_pause`; Task 5 `test_halo_and_grid_switches_apply_at_once`, `test_audio_switches_only_save`.
+4. **Reset progress, then Cancel; and Reset, then confirm.** Cancel deletes nothing. Confirm deletes exactly the five R10 files (options, both goal files, progression, best score), keeps control settings and calibration, and reloads. Task 5 `test_reset_cancel_keeps_every_file`, `test_reset_confirm_removes_progress_and_keeps_controls`.
+5. **Settings opened from Pause.** It draws above the Pause sheet, its Back returns to Pause (still paused), and a halo/grid change shows at once. Sound/Music apply at once (R9, Q2 ruling). Task 7 `test_pause_settings_opens_the_options_modal_over_pause`; Task 5 `test_settings_switches_apply_at_once`, `test_audio_switches_announce`.
 
 ---
 
@@ -1131,7 +1131,7 @@ git commit -m "M11a: boot into the menu and step its backdrop; next: Task 5"
 - Test: `godot/tests/test_tilt_menu.gd`, `godot/tests/test_main_scene.gd`
 
 **Interfaces:**
-- Produces on `TiltMenu`: `func open_options_modal() -> void`, `func close_options_modal() -> void`, `func is_options_open() -> bool`, and signals `readability_changed`, `reset_confirmed`, `armory_requested` (reused, `:500-503`) and `calibrate_screen_requested` (reused, for Settings' Calibrate link). Node names: `OptionsModal`, `OptionsBackButton`, `SchemeCard_touch`, `SchemeCard_tilt`, `SchemeCard_keys`, `SettingsCalibrateButton`, `ArmoryLink`, `HaloSwitch`, `GridSwitch`, `ShakeOff`, `ShakeLow`, `ShakeFull`, `SfxSwitch`, `MusicSwitch`, `ResetButton`, `ResetConfirm`, `ResetConfirmButton`, `ResetCancelButton`.
+- Produces on `TiltMenu`: `func open_options_modal() -> void`, `func close_options_modal() -> void`, `func is_options_open() -> bool`, and signals `readability_changed`, `sfx_toggled(is_on: bool)`, `music_toggled(is_on: bool)` (R9), `reset_confirmed`, `armory_requested` (reused, `:500-503`) and `calibrate_screen_requested` (reused, for Settings' Calibrate link). Node names: `OptionsModal`, `OptionsBackButton`, `SchemeCard_touch`, `SchemeCard_tilt`, `SchemeCard_keys`, `SettingsCalibrateButton`, `ArmoryLink`, `HaloSwitch`, `GridSwitch`, `ShakeOff`, `ShakeLow`, `ShakeFull`, `SfxSwitch`, `MusicSwitch`, `ResetButton`, `ResetConfirm`, `ResetConfirmButton`, `ResetCancelButton`.
 - Produces on `GameRoot`: `static func reset_progress_files() -> void` (R10) and `func reset_progress() -> void` (files, then a deferred `reload_current_scene`).
 
 **Layout** (`Settings.dc.html`). `OptionsModal` is full-rect over everything in `TiltMenu`, with background `COLOR_SHELL` (a "shell" surface, interface spec §4 table).
@@ -1187,15 +1187,14 @@ func test_the_default_normal_shake_marks_full() -> void:
 		"isCurrentShake: normal counts as full (TiltMenu.ts:280-285)")
 
 
-func test_audio_switches_only_save() -> void:
+func test_audio_switches_announce() -> void:
 	var menu: TiltMenu = _settings_open()
 	watch_signals(menu)
 	(menu.find_child("SfxSwitch", true, false) as CheckButton).toggled.emit(false)
 	(menu.find_child("MusicSwitch", true, false) as CheckButton).toggled.emit(false)
-	var saved: GameOptionsManager = GameOptionsManager.new()
-	assert_false(saved.settings.sfx_enabled, "TiltMenu.ts:460-464")
-	assert_false(saved.settings.music_enabled, "TiltMenu.ts:466-470")
-	assert_signal_not_emitted(menu, "readability_changed", "R9: audio waits for reset_run")
+	assert_signal_emitted_with_parameters(menu, "sfx_toggled", [false], "R9 (Q2 ruling)")
+	assert_signal_emitted_with_parameters(menu, "music_toggled", [false], "R9 (Q2 ruling)")
+	assert_signal_not_emitted(menu, "readability_changed", "audio is not readability")
 
 
 func test_aim_line_is_omitted() -> void:
@@ -1247,7 +1246,7 @@ func test_reset_cancel_keeps_every_file() -> void:
 	assert_true(FileAccess.file_exists(ProgressionManager.SAVE_PATH))
 
 
-func test_reset_confirm_removes_only_the_ts_keys() -> void:
+func test_reset_confirm_removes_progress_and_keeps_controls() -> void:
 	GameOptionsManager.new().save()
 	var goals: GoalManager = GoalManager.new()
 	goals.save_completed_goals()
@@ -1255,26 +1254,31 @@ func test_reset_confirm_removes_only_the_ts_keys() -> void:
 	var progression: ProgressionManager = ProgressionManager.new()
 	progression.add_points(5)
 	ControlSettings.new().save_settings()
+	SaveStore.save_dict(ScoreManager.BEST_SCORE_PATH, {"bestScore": 1200})
 	GameRoot.reset_progress_files()
 	assert_false(FileAccess.file_exists(GameOptionsManager.SAVE_PATH), "settings_v1 (:512)")
 	assert_false(FileAccess.file_exists(GoalManager.SAVE_PATH), "completed_goals_v1 (:513)")
 	assert_false(FileAccess.file_exists(GoalManager.CUMULATIVE_SAVE_PATH), "cumulative_stats_v1 (:514)")
-	assert_true(FileAccess.file_exists(ProgressionManager.SAVE_PATH), "R10: :515 names _v1, the key is _v3")
-	assert_true(FileAccess.file_exists(ControlSettings.SETTINGS_PATH), "R10: not a TS key")
+	assert_false(FileAccess.file_exists(ProgressionManager.SAVE_PATH), "R10 (Q1 ruling): :515's intent")
+	assert_false(FileAccess.file_exists(ScoreManager.BEST_SCORE_PATH), "R10 (Q1 ruling): :516's intent")
+	assert_true(FileAccess.file_exists(ControlSettings.SETTINGS_PATH), "R10: not in the prompt")
 
 
-func test_halo_and_grid_switches_apply_at_once() -> void:
+func test_settings_switches_apply_at_once() -> void:
 	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
 	add_child_autofree(root)
 	await get_tree().process_frame
 	root._menu.open_options_modal()
 	(root.find_child("HaloSwitch", true, false) as CheckButton).toggled.emit(false)
 	(root.find_child("GridSwitch", true, false) as CheckButton).toggled.emit(true)
+	(root.find_child("SfxSwitch", true, false) as CheckButton).toggled.emit(false)
 	assert_false(root._entity_layer._high_contrast_halo, "R2/R9")
 	assert_true(root._grid_layer.show_gridlines)
+	assert_true(root._audio.is_muted(), "R9 (Q2 ruling): set_sfx_enabled at once")
+	assert_false(GameOptionsManager.new().settings.sfx_enabled, "and saved")
 ```
 
-(Read `goal_manager.gd` for the real save-method names. If they differ, write the files with whatever public call persists them, and keep the assertions. If `ScoreManager.BEST_SCORE_PATH` is written by the run, add an `assert_true(... BEST_SCORE_PATH ...)` "kept" line once a best has been saved: `ScoreManager.new()` + `finalize_game()` with a nonzero score, or the file's public save call.)
+(Read `goal_manager.gd` for the real save-method names. If they differ, write the files with whatever public call persists them, and keep the assertions. If `SaveStore.save_dict` is not how the port writes the best score, use `ScoreManager`'s own save call with a nonzero best. Add `ScoreManager.BEST_SCORE_PATH` to `test_main_scene.gd`'s save-clearing list if it is missing. If `root._audio` is named differently, read `game_root.gd` for the `AudioBank` field.)
 
 (+8 tests in `test_tilt_menu.gd`, +3 in `test_main_scene.gd`.)
 
@@ -1282,7 +1286,7 @@ func test_halo_and_grid_switches_apply_at_once() -> void:
 
 - [ ] **Step 3: Implement.** In `tilt_menu.gd`, `open_options_modal()` ports `:257-413`. It rebuilds `OptionsModal`'s contents from `_options.settings` and `_settings.scheme` each time it opens, as the TS re-renders on every toggle (`this.openOptionsModal()` at the end of each handler), and then shows it. The handlers in `_bind_options_events()` port `:415-522`:
   - Halo, grid, shake: mutate, `_options.save()`, `readability_changed.emit()` (R9), then `open_options_modal()` (re-render).
-  - Sound and Music: mutate, `_options.save()`, then re-render. No signal (R9, PORT-NOTE with `TiltGame.ts:1607-1610`).
+  - Sound and Music: `sfx_toggled.emit(is_on)` / `music_toggled.emit(is_on)`, then re-render. `GameRoot` connects them to `set_sfx_enabled` / `set_music_enabled`, which mutate, save and apply (R9, Q2 ruling). Tag: `# DIVERGENCE(M11a Q2): TiltMenu.ts:460-470 only saves; the user ruled Settings applies audio at once, as Pause does (TiltGame.ts:1396-1416).`
   - Scheme card: `scheme_chosen.emit(scheme)`, then re-render after GameRoot writes it. GameRoot's `_on_menu_scheme_chosen` calls `set_control_scheme`. Because `_settings` is the same `ControlSettings` object, the re-render reads the new scheme.
   - `SettingsCalibrateButton`: `calibrate_screen_requested.emit()` (R5). The TS button calibrates in place (`:485-497`). The board sends it to Calibrate instead, so add a PORT-NOTE citing `:485-497`, R4 and R5.
   - `ArmoryLink`: `close_options_modal()` then `armory_requested.emit()` (`:500-503`).
@@ -1292,15 +1296,19 @@ func test_halo_and_grid_switches_apply_at_once() -> void:
 In `game_root.gd`:
 
 ```gdscript
-## Deletes the port files the TS reset names. PORT: web/src/tilt-to-live/TiltMenu.ts:511-517
-# PORT-NOTE: :515-516 remove 'tilt_to_live_progression_v1' and 'tilt_to_live_scores_v1',
-# neither of which the TS ever writes (ProgressionManager.ts:119 is _v3, ScoreManager.ts:162
-# is 'tilt_to_live_best'), so a TS reset keeps points, unlocks and the best score despite
-# its prompt — preserved deliberately (M11a R10, open question Q1).
-# 'tilt_goals_hud_collapsed' (:517) has no port file.
+## Deletes the progress files the TS reset prompt names. PORT: web/src/tilt-to-live/TiltMenu.ts:507-517
+# DIVERGENCE(M11a Q1): :515-516 remove 'tilt_to_live_progression_v1' and
+# 'tilt_to_live_scores_v1', which the TS never writes (ProgressionManager.ts:119 is _v3,
+# ScoreManager.ts:162 is 'tilt_to_live_best'), so a TS reset keeps points, unlocks and the
+# best score despite its prompt (:508). The user ruled the port deletes them.
+# 'tilt_goals_hud_collapsed' (:517) has no port file; control settings and calibration stay.
 static func reset_progress_files() -> void:
 	for path: String in [
-		GameOptionsManager.SAVE_PATH, GoalManager.SAVE_PATH, GoalManager.CUMULATIVE_SAVE_PATH
+		GameOptionsManager.SAVE_PATH,
+		GoalManager.SAVE_PATH,
+		GoalManager.CUMULATIVE_SAVE_PATH,
+		ProgressionManager.SAVE_PATH,
+		ScoreManager.BEST_SCORE_PATH,
 	]:
 		var absolute: String = ProjectSettings.globalize_path(path)
 		if FileAccess.file_exists(absolute):
@@ -1313,7 +1321,7 @@ func reset_progress() -> void:
 	get_tree().reload_current_scene.call_deferred()
 ```
 
-In `_ready`, connect `_menu.reset_confirmed.connect(reset_progress)` and `_menu.readability_changed.connect(apply_readability)`. The main-scene tests do not press Confirm through `GameRoot`: that would reload the test scene. They call the static method instead.
+In `_ready`, connect `_menu.reset_confirmed.connect(reset_progress)`, `_menu.readability_changed.connect(apply_readability)`, `_menu.sfx_toggled.connect(set_sfx_enabled)` and `_menu.music_toggled.connect(set_music_enabled)`. The main-scene tests do not press Confirm through `GameRoot`: that would reload the test scene. They call the static method instead.
 
 - [ ] **Step 4: Run the tests.** 52 scripts, **+11 tests** (598). Format and lint.
 
@@ -1588,9 +1596,9 @@ grep -rn "TODO(M11b)\|TODO(M11c)" godot/src | wc -l   # record the count
   3. Pause → Quit to menu → the menu, with no HUD score, no music and the backdrop running. Play again → the run has the equipped ship skin and arena theme.
   4. Death → Run over → Menu → the menu. The Coins row appears only when coins were picked up.
   5. Settings from the menu and from Pause: each switch reads correctly; Enemy outlines off removes the white rings at once; Background grid on shows the grid at once. Screen shake Off/Low/Full visibly changes the hit and death shake in the next run.
-  6. Settings → Sound/Music off → no change until the next run starts (R9, TS behaviour). Record whether this feels wrong: **open question Q2**.
+  6. Settings → Sound off mutes at once; Music off stops the loop at once; Music on from Pause's Settings starts nothing until Resume (R9, Q2 ruling, same as Pause's own switch).
   7. Calibrate from the menu icon, and from Settings' "Calibrate tilt" (Tilt scheme only): the dot moves with the phone and stops at the dashed ring. Set level → toast "TILT CALIBRATED" on the menu. The next Tilt run is level at that pose.
-  8. Reset progress → Cancel changes nothing. Reset → confirm → the app reloads to the menu, settings are back to defaults and milestones are cleared, **but points, unlocks and best score remain** (R10, TS bug). Decide Q1.
+  8. Reset progress → Cancel changes nothing. Reset → confirm → the app reloads to the menu, settings are back to defaults; milestones, points, unlocks and the best score are cleared; the control scheme and calibration remain (R10, Q1 ruling).
   9. The 48 rule: every menu, Settings and Calibrate target is comfortably tappable. Nothing overlaps at the A55's size.
   10. Android back gesture/button in the menu, Settings and Calibrate: record what happens. The TS has no back button; if it quits the app from Settings, raise it as **Q3**.
 
@@ -1612,6 +1620,7 @@ grep -rn "TODO(M11)" godot/src godot/tests      # expect: nothing
 grep -rn "M10 R1" godot/src                     # expect: nothing
 grep -rniE "ff4757" godot/src/ui/               # expect: nothing (rule 01)
 grep -rn "DIVERGENCE(M11a R1)" godot/src | wc -l   # expect: 4
+grep -rn "DIVERGENCE(M11a Q[12])" godot/src | wc -l   # expect: 2
 grep -rn "DIVERGENCE" godot/src/ | wc -l        # record
 "$GODOT" --headless --path godot --quit-after 240 2>&1 | grep -c "SCRIPT ERROR"   # expect: 0
 git checkout godot/project.godot
@@ -1638,6 +1647,6 @@ git commit -m "M11a done: next read godot/HANDOFF.md + VERIFY-ME.md, then plan M
 
 ## Open questions
 
-- **Q1 (R10):** The TS "Reset progress" keeps points, unlocks and the best score, because it names the wrong keys. It is ported as written. Should the port fix it, which is a Law 2 spec change?
-- **Q2 (R9):** The options modal's Sound and Music switches take effect only at the next run start, as in the TS. Should they apply at once, like Pause's switches?
+- **Q1 (R10): ruled 2026-09-25 — fix it.** Reset also deletes progression and the best score (`DIVERGENCE(M11a Q1)`).
+- **Q2 (R9): ruled 2026-09-25 — apply at once**, like Pause's switches (`DIVERGENCE(M11a Q2)`).
 - **Q3:** Android's system back has no TS counterpart. What should it do on the menu, in Settings and in Calibrate? Decide at the M11a device pass.
