@@ -140,7 +140,7 @@ These are the inputs the spec implies that are most likely to bite a player. Eac
 - Consumes: `PlayerShip.new(x, y)`, `PlayerShip.update(dt, target, bounds, particles, control_mode, move_vector, sensitivity, deadzone, hitbox_scale, turn_rate, thruster_color, gyro_vector)`, `EnemySwarm.update(dt, player_pos, bounds, particles, current_score, game_mode)`, `EnemySwarm.spawn_seeker(bounds)`, `EnemySwarm.on_enemy_killed(enemy, particles)`, `WeaponSystem.update(dt, player, enemies, bounds, particles, grid, audio, on_enemy_killed)`, `WeaponSystem.spawn_orb(bounds, type, x, y)`, `VectorGrid.update/apply_explosion`, `ParticleEngine.update/emit_explosion`.
 - Produces: `class_name MenuBackdrop extends RefCounted` with `var menu_player: PlayerShip`, `var menu_swarm: EnemySwarm`, `var menu_weapons: WeaponSystem`, `var elapsed: float`, and `func update(dt: float, bounds: Vector2, grid: VectorGrid, particles: ParticleEngine) -> void`.
 
-- [ ] **Step 1: Write the failing tests** — `godot/tests/test_menu_backdrop.gd`:
+- [x] **Step 1: Write the failing tests** — `godot/tests/test_menu_backdrop.gd`:
 
 ```gdscript
 ## test_menu_backdrop.gd
@@ -236,11 +236,11 @@ func test_the_autopilot_steers_away_from_the_panel_side() -> void:
 
 (7 tests. `assert_between`, `assert_lt`, `assert_gt` and `assert_ne` are GUT 9 built-ins. If `spawn_seeker`'s custom-position arguments are named or ordered differently, read `enemy_swarm.gd:61` and adapt the call without changing what the test asserts.)
 
-- [ ] **Step 2: Run to verify they fail**
+- [x] **Step 2: Run to verify they fail**
 
 Run: `tools/run_tests.sh`. Expected: `collected 50 of 51`, because the script fails to parse while `MenuBackdrop` does not exist. Confirm with `"$GODOT" --headless --path godot --check-only -s tests/test_menu_backdrop.gd`, which should print `Identifier "MenuBackdrop" not declared` or similar.
 
-- [ ] **Step 3: Implement** — `godot/src/render/menu_backdrop.gd`:
+- [x] **Step 3: Implement** — `godot/src/render/menu_backdrop.gd`:
 
 ```gdscript
 ## menu_backdrop.gd
@@ -425,11 +425,11 @@ func _on_killed(dead: Types.Enemy, _weapon_type: Types.WeaponType) -> void:
 
 Notes for the implementer. `14` (`:1779`) must also carry its citation: put `# PORT: web/src/tilt-to-live/TiltGame.ts:1779` on the `emit_explosion` line, and wrap the line if it passes 100 columns. The literals at `:1740` and `:1742` repeat the `380` of `:1740`/`:1742`, so cite both lines. If `Types.Enemy` has no `radius` field, read `types.gd:142-` for the name the port uses and keep the TS expression.
 
-- [ ] **Step 4: Run the tests**
+- [x] **Step 4: Run the tests**
 
 Run: `tools/run_tests.sh`. Expected: `OK: 51/51 scripts`, **+7 tests** (566). Then `gdformat --check godot/src godot/tests` (92 files) and `gdlint godot/src godot/tests`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git checkout godot/project.godot
