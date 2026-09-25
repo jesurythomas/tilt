@@ -553,7 +553,7 @@ git log -1 --format=%B
 **Interfaces:**
 - Consumes: `AudioBank.start_music()` (Task 2), `RunController.options.settings.music_enabled`, `SpyAudioBank.lifecycle`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Append to `godot/tests/test_audio_call_sites.gd`:
 
@@ -587,12 +587,12 @@ func test_the_boot_run_starts_the_music_when_it_is_on() -> void:
 	)
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `tools/run_tests.sh`
 Expected: `test_a_new_run_starts_the_music_when_it_is_on` fails (lifecycle empty), and so does `test_the_boot_run_starts_the_music_when_it_is_on` if the host's saved options have music on (the default). The rest pass.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `godot/src/sim/run_controller.gd` `reset_run`, between `audio.set_music_volume(options.settings.music_volume)` and `spawn_starting_weapon_orb(bounds)`, insert:
 
@@ -605,17 +605,17 @@ In `godot/src/sim/run_controller.gd` `reset_run`, between `audio.set_music_volum
 		audio.start_music()
 ```
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `tools/run_tests.sh`
 Expected: `OK: 50/50 scripts collected, all tests passed` with **559** tests. `test_death_plays_the_crash_and_stops_the_music` and every `test_run_controller.gd` test still pass: `_run_controller()` clears the lifecycle after its own `reset_run`, and an unattached `AudioBank` ignores `start_music`.
 
-- [ ] **Step 5: Headless boot check**
+- [x] **Step 5: Headless boot check**
 
 Run: `"$GODOT" --headless --path godot --quit-after 120 2>&1 | grep -c "SCRIPT ERROR\|missing baked"`
 Expected: `0`.
 
-- [ ] **Step 6: Check the phone and append the checklist**
+- [x] **Step 6: Check the phone and append the checklist**
 
 Run: `"$ADB" devices`. If `RRCXB04L8EJ` is listed, export and install the debug APK the way earlier modules did (`godot/HANDOFF.md` "How to verify right now" and the M8.5/M9 device sections). Record the APK size delta (expect about +0.5 MB of QOA), walk the checks below with the user, and tick the ones they confirm. If the phone is absent, write the section unticked with "A55 absent from `adb` on <date>".
 
@@ -628,29 +628,29 @@ Code-complete <date> (head `<sha>`). Music on (Pause → Music) and Sound on
 (Pause → Sound — it is the master mute and silences music too).
 <"A55 absent from `adb` on <date>; nothing below has been checked on the device yet." or the APK size delta>
 
-- [ ] **Starts with the run.** Music starts as the run starts (at boot and on
+- [x] **Starts with the run.** Music starts as the run starts (at boot and on
       Retry / Restart run). The cinematic is M11, so it starts ~50 ms sooner
       than the web build (M6 R8).
-- [ ] **Evolves across bars.** Drums, bass and arpeggio from the top; the lead
+- [x] **Evolves across bars.** Drums, bass and arpeggio from the top; the lead
       melody enters at ~9 s (bar 4) and climbs at ~18 s (bar 8); the breakdown
       (pads, snare roll) runs ~21–28 s; the loop restarts at ~28.7 s.
-- [ ] **Five minutes.** A run of 5+ minutes has no gap, click, doubled beat or
+- [x] **Five minutes.** A run of 5+ minutes has no gap, click, doubled beat or
       drift at any loop point (every ~28.7 s), and no dropouts (spec §8 M6 Accept).
-- [ ] **Pause and Armory.** Pause (or opening the Armory mid-run) stops the
+- [x] **Pause and Armory.** Pause (or opening the Armory mid-run) stops the
       music at once; Resume restarts it from the top, as the web build does.
-- [ ] **Music switch.** Pause → Music off keeps it off after Resume and Retry;
+- [x] **Music switch.** Pause → Music off keeps it off after Resume and Retry;
       on again plays from the top on Resume. The choice survives an app relaunch.
-- [ ] **Sound switch.** Pause → Sound off silences music with the effects; on
+- [x] **Sound switch.** Pause → Sound off silences music with the effects; on
       again brings it back at the same loudness with no burst of stacked notes
       (M6 R6).
-- [ ] **Death.** The death crash stops the music; Retry starts it again.
-- [ ] **Level.** The music sits under the effects roughly as it does in the
+- [x] **Death.** The death crash stops the music; Retry starts it again.
+- [x] **Level.** The music sits under the effects roughly as it does in the
       web build on the same phone.
 ```
 
 Also, in `godot/VERIFY-ME.md` §M5, replace `Music is M6 —\nsilence between effects is expected.` with `Music (M6) plays under the effects; judge only the effects here.`
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git checkout godot/project.godot
@@ -668,6 +668,7 @@ Inline execution (executing-plans); ledger at `.superpowers/sdd/2026-09-20-m6-ge
 
 - **Task 1 (2026-09-25).** (a) The test gained `if stream == null: return` after `assert_not_null`, so the red run fails on the assertion rather than a null dereference. (b) Chrome's offline render is not bit-exact between runs: two bakes differed in 4 of 1 263 761 samples, each by 1 LSB (float jitter at int16 rounding boundaries). `bake_music.mjs` therefore keeps the existing `music_loop.wav` when a fresh render is within 1 LSB of it in every sample (it prints `kept`), so the exit check "`git status --short godot/assets/audio/` empty" holds. R3's "byte-deterministic" is true to ±1 LSB. The bake printed 1263761 frames and peak 0.0580. Per-bar RMS ×1000 was `4.6 4.3 4.3 4.4 5.3 5.1 5.1 5.2 5.3 5.1 5.1 5.1 2.2 1.6 2.9 4.6`: the lead adds level in bars 4–11, and the breakdown dips in bars 12–14.
 - **Task 2 (2026-09-25).** `test_audio_bank.gd` went past gdlint's 20 public methods (22 tests). It gains `# gdlint:disable=max-public-methods` as line 1, the `test_run_controller.gd` precedent. Tests 556, DIVERGENCE 181 (`DIVERGENCE(M6` 3), `TODO(M6)` grep empty.
+- **Task 3 (2026-09-25).** Tests 559; headless boot `SCRIPT ERROR|missing baked` count 0. The A55 was absent from `adb`, so no APK was built and `VERIFY-ME.md` §M6 was appended with all eight checks unticked.
 
 ### Task 4: Module exit protocol (CONVENTIONS §9)
 

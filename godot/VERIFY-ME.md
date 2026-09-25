@@ -497,8 +497,8 @@ A55 absent from `adb` on 2026-09-25; every check below is pending.
 
 ## M5 — Audio bake and SFX
 
-Code-complete 2026-09-25 (head `acce4a5`). Sound on (Pause → Sound). Music is M6 —
-silence between effects is expected. A55 absent from `adb` on 2026-09-25; no
+Code-complete 2026-09-25 (head `acce4a5`). Sound on (Pause → Sound). Music (M6) plays under
+the effects; judge only the effects here. A55 absent from `adb` on 2026-09-25; no
 APK was installed, so nothing below has been checked on the device yet.
 
 - [ ] **Weapons.** Each orb pickup plays its weapon's sound, then the pickup
@@ -520,3 +520,29 @@ APK was installed, so nothing below has been checked on the device yet.
       the choice survives Retry and an app relaunch.
 - [ ] **Sync and level.** Sounds land on their events with no noticeable
       lag, and their loudness roughly matches the web build on the same phone.
+
+## M6 — Generative music
+
+Code-complete 2026-09-25 (head: the M6 exit commit, see `PORT-PROGRESS.md`).
+Music on (Pause → Music) and Sound on (Pause → Sound — it is the master mute and
+silences music too). A55 absent from `adb` on 2026-09-25; no APK was installed, so
+nothing below has been checked on the device yet.
+
+- [ ] **Starts with the run.** Music starts as the run starts (at boot and on
+      Retry / Restart run). The cinematic is M11, so it starts ~50 ms sooner
+      than the web build (M6 R8).
+- [ ] **Evolves across bars.** Drums, bass and arpeggio from the top; the lead
+      melody enters at ~9 s (bar 4) and climbs at ~18 s (bar 8); the breakdown
+      (pads, snare roll) runs ~21–28 s; the loop restarts at ~28.7 s.
+- [ ] **Five minutes.** A run of 5+ minutes has no gap, click, doubled beat or
+      drift at any loop point (every ~28.7 s), and no dropouts (spec §8 M6 Accept).
+- [ ] **Pause and Armory.** Pause (or opening the Armory mid-run) stops the
+      music at once; Resume restarts it from the top, as the web build does.
+- [ ] **Music switch.** Pause → Music off keeps it off after Resume and Retry;
+      on again plays from the top on Resume. The choice survives an app relaunch.
+- [ ] **Sound switch.** Pause → Sound off silences music with the effects; on
+      again brings it back at the same loudness with no burst of stacked notes
+      (M6 R6).
+- [ ] **Death.** The death crash stops the music; Retry starts it again.
+- [ ] **Level.** The music sits under the effects roughly as it does in the
+      web build on the same phone.

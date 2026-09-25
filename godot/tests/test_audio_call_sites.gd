@@ -194,3 +194,17 @@ func test_death_plays_the_crash_and_stops_the_music() -> void:
 	rc.check_collisions()
 	assert_eq(_spy.requested, ["player_death"] as Array[String], "TiltGame.ts:2075")
 	assert_eq(_spy.lifecycle, ["stop_music"] as Array[String], "TiltGame.ts:2076")
+
+
+func test_a_new_run_starts_the_music_when_it_is_on() -> void:
+	var rc: RunController = _run_controller()
+	rc.options.settings.music_enabled = true
+	rc.reset_run(BOUNDS)
+	assert_eq(_spy.lifecycle, ["start_music"] as Array[String], "TiltGame.ts:170-172 (M6 R7)")
+
+
+func test_a_new_run_stays_silent_when_music_is_off() -> void:
+	var rc: RunController = _run_controller()
+	rc.options.settings.music_enabled = false
+	rc.reset_run(BOUNDS)
+	assert_true(_spy.lifecycle.is_empty(), "the musicEnabled guard (TiltGame.ts:170)")

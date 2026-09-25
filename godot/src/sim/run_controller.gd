@@ -118,6 +118,12 @@ func reset_run(arena_bounds: Vector2) -> void:
 	audio.set_muted(not options.settings.sfx_enabled)
 	audio.set_sfx_volume(options.settings.sfx_volume)
 	audio.set_music_volume(options.settings.music_volume)
+	# PORT: web/src/tilt-to-live/TiltGame.ts:170-172 — the cinematic's completion
+	# callback starts music, then spawns the starting orb; reset_run stands in for
+	# that callback until the cinematic exists (M6 R7).
+	# TODO(M11): move this and spawn_starting_weapon_orb to the cinematic's end.
+	if options.settings.music_enabled:
+		audio.start_music()
 
 	spawn_starting_weapon_orb(bounds)
 	GameEvents.score_changed.emit(0, 1, scores.stats.best_score)

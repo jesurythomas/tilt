@@ -566,3 +566,15 @@ func test_game_root_attaches_the_audio_bank() -> void:
 	var bank: AudioBank = root._audio
 	assert_not_null(bank._playback, "GameRoot._ready attaches the bank (M5 R10)")
 	assert_eq(bank._streams.size(), AudioBank.SFX_STEMS.size(), "every baked file loaded")
+
+
+func test_the_boot_run_starts_the_music_when_it_is_on() -> void:
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	var bank: AudioBank = root._audio
+	assert_eq(
+		bank._music_player.playing,
+		root.options.settings.music_enabled,
+		"reset_run starts it at the cinematic's stand-in (M6 R7)"
+	)
