@@ -4,6 +4,8 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
+**M5 — Audio bake + SFX: planned (plan committed, no code yet).** Plan `docs/superpowers/plans/2026-09-20-m5-audio-bake-and-sfx.md`; see `## Next`.
+
 **M10 — Modes: code-complete, device pass pending.** Final commit `2e6b2d2`
 (exit commit for the whole module — final review fixes F-1..F-4 landed at
 this same SHA). Plan `docs/superpowers/plans/2026-09-20-m10-modes.md`. Full
@@ -1045,10 +1047,18 @@ opening).
 **M10 is closed (device pass pending). M5 — Audio bake + SFX is the only
 module left before M11.**
 
-**First step, literally:** read `web/src/tilt-to-live/TiltAudio.ts` in full,
-then spec §8 Module 5's acceptance lines, then write
-`docs/superpowers/plans/2026-09-20-m5-audio-bake-and-sfx.md` before touching
-code.
+**M5 plan written 2026-09-25:**
+`docs/superpowers/plans/2026-09-20-m5-audio-bake-and-sfx.md` (6 tasks,
+rulings R1–R11). User rulings at plan time: **R1** bake to 16-bit mono WAV
+(QOA import), not `.ogg` (no Ogg encoder on this host); **R2** 32-voice cap
+(`AudioStreamPolyphonic` default), overflow dropped. The bake runs
+`TiltAudio.ts` unmodified in headless Chrome via Puppeteer's
+`OfflineAudioContext` (spiked and working 2026-09-25).
+
+**First step, literally:** read the M5 plan in full (including its
+Rulings and Global Constraints), then read `web/src/tilt-to-live/TiltAudio.ts`,
+then execute Task 1 (`tools/bake-audio/bake_sfx.mjs`). Follow the plan's
+tasks in order; tick each and commit per `CLAUDE.md`.
 
 Before starting: `git status --short` must be clean under `godot/`
 (the user may leave device tuning uncommitted — never stash or revert it),
