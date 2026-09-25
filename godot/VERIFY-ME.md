@@ -642,7 +642,8 @@ nothing below has run on it. Debug builds print one `PERF` line per second:
 - [ ] 3. **Dots look the same.** Enemy dots (halo, glow, body, inner,
       border, pupil), frozen dots and particles now draw from shared
       textures (P5). Edges are smoother than before; anything else that
-      looks different is a finding.
+      looks different is a finding. The kill shockwave ring keeps `draw_arc`
+      once it grows large (final review): it should look exactly as before.
 - [ ] 4. **Grid on.** Settings → Background grid on, mid-run: the grid
       appears (flat), ripples on the next kills, and the PERF line shows
       the awake-grid cost (`s_grid`).

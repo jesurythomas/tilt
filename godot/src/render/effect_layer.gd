@@ -303,11 +303,14 @@ func _draw_particles() -> void:
 
 		match p.shape:
 			ParticleEngine.Shape.RING:
-				# DIVERGENCE(M11c P5): a shared ring texture replaces the arc (M2.5 §10 had cut
-				# it from 32 to 16 segments for the same reason).
-				CircleSprites.draw_ring(
-					self, Vector2(p.x, p.y), p.size, maxf(1.0, 2.5 * alpha), col
-				)
+				var ring_width: float = maxf(1.0, 2.5 * alpha)
+				if CircleSprites.ring_is_faithful(p.size, ring_width):
+					# DIVERGENCE(M11c P5): a shared ring texture replaces the arc.
+					CircleSprites.draw_ring(self, Vector2(p.x, p.y), p.size, ring_width, col)
+				else:
+					# Large thin rings blur as textures (final review), so they keep the arc.
+					# DIVERGENCE(M2.5 §10): reduced arc segments from 32 to 16 for mobile GPU throughput.
+					draw_arc(Vector2(p.x, p.y), p.size, 0.0, TAU, 16, col, ring_width)
 			ParticleEngine.Shape.STREAK:
 				# PORT: web/src/tilt-to-live/ParticleEngine.ts:213-218
 				var p_to: Vector2 = Vector2(p.x - p.vx * 0.04, p.y - p.vy * 0.04)

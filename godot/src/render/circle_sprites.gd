@@ -78,6 +78,18 @@ static func ring(key: int) -> Texture2D:
 	return tex
 
 
+## True when ring(key) reproduces draw_arc at this size: one texel spans at most a
+## screen pixel (in the caller's local space) and the stroke ratio is not clamped.
+## DIVERGENCE(M11c P5, final review): large thin rings (the kill shockwave) blur
+## past this, so callers fall back to draw_arc for them.
+static func ring_is_faithful(radius: float, width: float) -> bool:
+	if radius <= 0.0 or width / radius < RATIO_STEP:
+		return false
+	var key: int = ring_key(radius, width)
+	var texel_px: float = (radius / ring_centre(key)) / (TEX_SIZE * 0.5)
+	return texel_px <= 1.0
+
+
 ## Rect that draws ring(key) with its centre line on radius around centre.
 static func ring_rect(centre: Vector2, radius: float, key: int) -> Rect2:
 	var half: float = radius / ring_centre(key)

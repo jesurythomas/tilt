@@ -37,7 +37,25 @@ headless `--quit-after 240` 0 SCRIPT ERROR; `DIVERGENCE` total 264. The A55
 dropped off `adb` at 02:11 and did not return, so `VERIFY-ME.md` §M11c part 1
 (6 checks) is unrun. Finding, not fixed (options parked): `calibrate_screen.gd:175`
 anchors a block `PRESET_CENTER_LEFT`, the same grow-direction pattern as the
-cold-open bug. **Next: see Next below.**
+cold-open bug.
+
+**Final whole-branch review** (fresh opus reviewer, `fbf7e94..1151785`): 0
+Critical, 1 Important, 6 Minor; both bit-exact claims and the grid-sleep/P6
+wiring verified. **Fixed:** large thin texture rings blurred (one texel ≈ 2.9
+px on the 85 px kill shockwave). `CircleSprites.ring_is_faithful` (texel ≤ 1
+px, ratio ≥ 0.02) now gates particle rings; unfaithful ones keep `draw_arc`
+(2 tests RED→GREEN, 654 tests). **Deferred minors** (for the user):
+`circle_sprites.gd` `AA`/`DISC_EDGE`/`0.001` lack per-line Law 1 tags;
+`PerfProbe.now()` still calls `Time.get_ticks_usec()` in release (~2,500/s,
+negligible); **P3 wording**: waking the grid resumes its frozen ripple, it
+is not "flat" as the plan says — the code's behaviour is the intended one, do
+not change it to match the plan; `reset_run` emits `score_changed` twice on
+the first tick (harmless); no test pins `apply_readability` → `_grid.awake`;
+`godot/bench/bench_visual.gd` is scratch, and `export_presets.cfg` has no
+`exclude_filter`, so `bench/` and `tests/` ship in the APK. Declined by the
+reviewer: whether a freshly made `GradientTexture2D` shows a placeholder for
+one frame (pre-warm at boot if the A55 shows a flicker). **Next: see Next
+below.**
 
 **M11b — Entrance cinematic: code-complete, device pass pending.** Exit: the
 commit carrying this text (2026-09-26) — a commit cannot cite its own SHA.

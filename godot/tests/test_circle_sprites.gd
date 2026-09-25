@@ -47,3 +47,16 @@ func test_ring_rect_maps_the_centre_line_onto_the_radius() -> void:
 	var key: int = CircleSprites.ring_key(13.0, 1.2)
 	var rect: Rect2 = CircleSprites.ring_rect(Vector2.ZERO, 13.0, key)
 	assert_almost_eq(rect.size.x * 0.5 * CircleSprites.ring_centre(key), 13.0, 0.0001)
+
+
+func test_small_rings_are_faithful_as_textures() -> void:
+	# Dot halo and border: one texel stays under a screen pixel.
+	assert_true(CircleSprites.ring_is_faithful(13.0, 1.2), "dot halo")
+	assert_true(CircleSprites.ring_is_faithful(8.75, 1.2), "dot border")
+
+
+func test_large_thin_rings_are_not_faithful_as_textures() -> void:
+	# Final review (Important): the kill shockwave grows to ~85 px at width 1 — one
+	# texel would span ~2.9 px and the stroke ratio falls below RATIO_STEP.
+	assert_false(CircleSprites.ring_is_faithful(85.0, 1.0), "late shockwave")
+	assert_false(CircleSprites.ring_is_faithful(40.0, 2.0), "mid shockwave, texel > 1 px")
