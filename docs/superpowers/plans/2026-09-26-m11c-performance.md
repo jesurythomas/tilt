@@ -48,6 +48,10 @@ The user asked on 2026-09-26: "we need to optimize the game". That request is th
 - **P4 — Separation prefilters, bit-exact.** Each tick, `apply_flocking_separation` builds the list of eligible indices once (the same five conditions, in the same order), then runs the same `i < j` pair loop over that list. The visiting order and every arithmetic step are unchanged, so positions match the current code bit for bit (oracle test). A spatial hash would change the pair order and is **not** taken unless Task 3's measurement shows the prefilter falls short. If it does, stop and ask (Law 5).
 - **P5 — Enemy dots draw from a cached sprite.** `_draw_default_dot` and `_draw_frozen_dot` bake their layers (body, inner, border, pupil) once per colour set into an `ImageTexture` and draw them with one `draw_texture_rect`. The halo and glow draw with a second, shared white ring/disc texture, scaled by the per-enemy `pulse` and tinted. That makes 2–3 batched texture draws per dot instead of 7 tessellated commands. Charger, artillery, carrier, pulsar, specter, satellite and bullet keep their code. They are a small share of the swarm; the probe decides whether they need the same treatment later. The device pass judges the visual parity; a close screenshot compare is Task 5's step.
 - **P6 — `score_changed` fires only on change.** `RunController` emits `score_changed` when score, multiplier or best differ from the last emission, and `_style_multiplier` rebuilds the chip only when the multiplier's tier changes. What the HUD shows is unchanged.
+- **User rulings, 2026-09-26 (answers to the Open questions):**
+  - **Q3 → P2 is withdrawn.** "It should be at regular speed. No slow motion." `max_physics_steps_per_frame` stays at Godot's default 8. Task 2 is dropped. The spiral is removed at its cause instead: Tasks 3–6 must bring a late-run frame under budget.
+  - **Q2 → options display is out of scope** for now ("lets focus on performance").
+  - **Q1 → P8, the start ring moves out.** It is the 8 seekers that surround the ship at the start of a Classic run (`TiltEntranceCinematic.ts:203-210`, M11b R12). "Having them further away would make it easier for players to evade." `SEEKER_RADIUS` becomes `maxf(260, 0.42 × min(width, height))`, tagged `DIVERGENCE(M11c P8)`. Keeping the TS 260 px as the floor leaves desktop-sized arenas unchanged, while the A55's 1056 px arena gets ~443 px. That is still inside the existing 40 px clamp: 528 − 443 = 85 > 40. Task 8.
 - **P7 — `GoalManager.evaluate_live_total_goals` is left alone.** It costs 0.1–1.0 ms per frame at load. Re-measure after P2–P6. If it matters then, it gets its own ruling.
 
 ## Global Constraints
@@ -278,7 +282,10 @@ In `VERIFY-ME.md`, replace every `dumpsys gfxinfo … | grep -A3 50th` line with
 - [ ] **Step 7: Baseline on the A55.** Record the late-run median (en 100–120) in `HANDOFF.md`, next to the Evidence table above.
 - [ ] **Step 8: Commit** `M11c: add debug perf probe and SurfaceFlinger sampler; next: Task 2`.
 
-### Task 2: Cap the catch-up (P2)
+### Task 2: DROPPED (user ruling Q3, 2026-09-26 — no catch-up cap)
+
+The steps below are kept for the record only; do not execute them.
+
 
 **Files:** Modify `godot/project.godot` (`[physics]`), test `godot/tests/test_main_scene.gd` (or the existing project-settings test, if one exists; `grep -rn "physics_ticks_per_second" godot/tests`).
 
@@ -436,7 +443,28 @@ Eligibility cannot change inside the loop, since the loop only writes `x`/`y`, s
 - [ ] **Step 2: Find the cause** (systematic-debugging): the `ColdOpen` anchors, the stack's layout under `UiTheme.px` scaling, or the `arena_origin` inset. Write a headless test that lays the `ColdOpen` out at 2340 × 1080 physical px (the A55's `ui_scale`) and asserts the ship/title/bar centres within 1 px of the viewport centre. It must fail before the fix.
 - [ ] **Step 3: Fix, re-run, verify on the A55, commit** `M11c: centre the cold open at phone scale; next: Task 8`.
 
-### Task 8: Ring spawns and options display (user report — needs the user first)
+### Task 8: Move the start ring out (P8)
+
+**Files:** Modify `godot/src/ui/entrance_cinematic.gd:30-33` and its seeker loop (`:200-212`); test `godot/tests/test_entrance_cinematic.gd` (`test_classic_hands_over_eight_ringed_seekers_a_nuke_and_a_shield`, :80).
+
+- [ ] **Step 1: Failing test.** Add `test_start_ring_scales_with_the_arena`: finish a Classic cold open with bounds 2162 × 1056 (the A55). Assert that every seeker's distance from (1081, 528) is `0.42 × 1056` ± 0.01, and that none is closer than 443. With bounds 1280 × 720, assert the radius is exactly 302.4 (0.42 × 720), since that is above the 260 floor. With 600 × 500, assert 260 (the floor). Existing assertions in `:80` that pin 260 get updated to the new formula; record that in the ledger.
+- [ ] **Step 2: Run** → FAIL (the radius is 260).
+- [ ] **Step 3: Implement.**
+
+```gdscript
+## PORT: web/src/tilt-to-live/TiltEntranceCinematic.ts:205 — now the floor.
+const SEEKER_RADIUS: float = 260.0
+## DIVERGENCE(M11c P8): user ruling 2026-09-26, "further away would make it easier
+## for players to evade" — the ring scales with the arena's short side.
+const SEEKER_RADIUS_FRACTION: float = 0.42
+```
+
+and in the loop, `var radius: float = maxf(SEEKER_RADIUS, minf(width, height) * SEEKER_RADIUS_FRACTION)`, used in place of `SEEKER_RADIUS`.
+- [ ] **Step 4: Run** → PASS; full suite green.
+- [ ] **Step 5: A55.** Start 3 Classic runs and screenshot the handover. The ring sits well away from the ship. Record in `VERIFY-ME.md` §M11b check 4 that the ring was moved (P8).
+- [ ] **Step 6: Commit** `M11c: widen the classic start ring on large arenas; next: Task 7`.
+
+### (Superseded) Ring spawns and options display (user report — needs the user first)
 
 - [ ] **Step 1: Ask the user** (Open questions 1–2) which ring and which options, with a screenshot of each.
 - [ ] **Step 2: Measure the ring on the A55.**
