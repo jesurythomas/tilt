@@ -216,16 +216,14 @@ func _draw_grid() -> void:
 		var row: PackedVector2Array = PackedVector2Array()
 		var row_offset: int = r * _grid.cols
 		for c: int in range(_grid.cols):
-			var p: VectorGrid.GridPoint = _grid.points[row_offset + c]
-			row.append(Vector2(p.x, p.y))
+			row.append(Vector2(_grid.px[row_offset + c], _grid.py[row_offset + c]))
 		if row.size() > 1:
 			draw_polyline(row, grid_color(), 1.0)
 
 	for c: int in range(_grid.cols):
 		var col: PackedVector2Array = PackedVector2Array()
 		for r: int in range(_grid.rows):
-			var p: VectorGrid.GridPoint = _grid.points[r * _grid.cols + c]
-			col.append(Vector2(p.x, p.y))
+			col.append(Vector2(_grid.px[r * _grid.cols + c], _grid.py[r * _grid.cols + c]))
 		if col.size() > 1:
 			draw_polyline(col, grid_color(), 1.0)
 

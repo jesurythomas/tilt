@@ -8,7 +8,7 @@ extends RefCounted
 ## must never become an autoload.
 ##
 ## PORT-NOTE: VectorGrid.ts:86-117 defines render(); per spec §4.2/D4 that body
-## relocates to render/grid_layer.gd, which is why cols/rows/points are public
+## relocates to render/grid_layer.gd, which is why cols/rows and the point arrays are public
 ## here and private in the TypeScript (VectorGrid.ts:16-18).
 ##
 ## PORT-NOTE: update() ignores its dt (VectorGrid.ts:45 names the parameter
@@ -24,8 +24,21 @@ const DAMPING: float = 0.90  # PORT: web/src/tilt-to-live/VectorGrid.ts:47
 var cols: int = 0
 ## Lattice height in points.
 var rows: int = 0
-## Row-major lattice: index = row * cols + col.
-var points: Array[GridPoint] = []
+## DIVERGENCE(M11c P3): the TS GridPoint objects (VectorGrid.ts:5-12) become six
+## row-major packed arrays (index = row * cols + col). 64-bit, so every value is
+## what the object grid computed, bit for bit.
+var px: PackedFloat64Array = PackedFloat64Array()
+var py: PackedFloat64Array = PackedFloat64Array()
+var ox: PackedFloat64Array = PackedFloat64Array()
+var oy: PackedFloat64Array = PackedFloat64Array()
+var vx: PackedFloat64Array = PackedFloat64Array()
+var vy: PackedFloat64Array = PackedFloat64Array()
+## DIVERGENCE(M11c P3): false while nothing draws the grid (gridlines off); update()
+## and apply_explosion() then do nothing. GameRoot.apply_readability sets it.
+var awake: bool = true
+## Largest |x - ox| or |y - oy| after the last update() — bounds apply_explosion's
+## scan window. Positions move only in update(), so it stays valid until the next one.
+var _max_displacement: float = 0.0
 
 
 func _init(width: float, height: float) -> void:
@@ -36,60 +49,74 @@ func _init(width: float, height: float) -> void:
 func resize(width: float, height: float) -> void:
 	cols = ceili(width / SPACING) + 1  # PORT: web/src/tilt-to-live/VectorGrid.ts:25
 	rows = ceili(height / SPACING) + 1  # PORT: web/src/tilt-to-live/VectorGrid.ts:26
-	points = []
-
+	var n: int = cols * rows
+	px.resize(n)
+	py.resize(n)
+	ox.resize(n)
+	oy.resize(n)
+	vx.resize(n)
+	vy.resize(n)
+	vx.fill(0.0)
+	vy.fill(0.0)
 	for r: int in range(rows):
 		for c: int in range(cols):
-			var point: GridPoint = GridPoint.new()
-			point.x = c * SPACING
-			point.y = r * SPACING
-			point.orig_x = point.x
-			point.orig_y = point.y
-			points.append(point)
+			var i: int = r * cols + c
+			px[i] = c * SPACING
+			py[i] = r * SPACING
+			ox[i] = px[i]
+			oy[i] = py[i]
+	_max_displacement = 0.0
 
 
 ## Advances the spring one step. PORT: web/src/tilt-to-live/VectorGrid.ts:45-63
 func update(_dt: float) -> void:
-	for point: GridPoint in points:
-		var dx: float = point.orig_x - point.x
-		var dy: float = point.orig_y - point.y
+	if not awake:
+		return
+	var max_d: float = 0.0
+	for i: int in range(px.size()):
+		var dx: float = ox[i] - px[i]
+		var dy: float = oy[i] - py[i]
 
-		point.vx += dx * STIFFNESS
-		point.vy += dy * STIFFNESS
+		vx[i] += dx * STIFFNESS
+		vy[i] += dy * STIFFNESS
 
-		point.vx *= DAMPING
-		point.vy *= DAMPING
+		vx[i] *= DAMPING
+		vy[i] *= DAMPING
 
-		point.x += point.vx
-		point.y += point.vy
+		px[i] += vx[i]
+		py[i] += vy[i]
+		max_d = maxf(max_d, maxf(absf(px[i] - ox[i]), absf(py[i] - oy[i])))
+	_max_displacement = max_d
 
 
 ## Pushes points away from (cx, cy). PORT: web/src/tilt-to-live/VectorGrid.ts:65-80
+# DIVERGENCE(M11c P3): scans only the rows/columns whose rest position lies within
+# radius + the current largest displacement of the centre; a point outside that
+# window is provably farther than radius, so the result is the full scan's.
 func apply_explosion(cx: float, cy: float, force: float, radius: float) -> void:
+	if not awake or cols == 0 or rows == 0:
+		return
 	var r2: float = radius * radius
-	for point: GridPoint in points:
-		var dx: float = point.x - cx
-		var dy: float = point.y - cy
-		var dist2: float = dx * dx + dy * dy
+	var reach: float = radius + _max_displacement
+	var c0: int = clampi(floori((cx - reach) / SPACING), 0, cols - 1)
+	var c1: int = clampi(ceili((cx + reach) / SPACING), 0, cols - 1)
+	var r0: int = clampi(floori((cy - reach) / SPACING), 0, rows - 1)
+	var r1: int = clampi(ceili((cy + reach) / SPACING), 0, rows - 1)
+	for r: int in range(r0, r1 + 1):
+		var row_offset: int = r * cols
+		for c: int in range(c0, c1 + 1):
+			var i: int = row_offset + c
+			var dx: float = px[i] - cx
+			var dy: float = py[i] - cy
+			var dist2: float = dx * dx + dy * dy
 
-		if dist2 < r2 and dist2 > 0.001:  # PORT: web/src/tilt-to-live/VectorGrid.ts:73
-			var dist: float = sqrt(dist2)
-			var factor: float = (1.0 - dist / radius) * force
-			point.vx += (dx / dist) * factor
-			point.vy += (dy / dist) * factor
+			if dist2 < r2 and dist2 > 0.001:  # PORT: web/src/tilt-to-live/VectorGrid.ts:73
+				var dist: float = sqrt(dist2)
+				var factor: float = (1.0 - dist / radius) * force
+				vx[i] += (dx / dist) * factor
+				vy[i] += (dy / dist) * factor
 
 
 ## Explosion with a negated force. PORT: web/src/tilt-to-live/VectorGrid.ts:82-84
 func apply_implosion(cx: float, cy: float, force: float, radius: float) -> void:
 	apply_explosion(cx, cy, -force, radius)
-
-
-## PORT: web/src/tilt-to-live/VectorGrid.ts:5-12
-class GridPoint:
-	extends RefCounted
-	var x: float = 0.0
-	var y: float = 0.0
-	var orig_x: float = 0.0
-	var orig_y: float = 0.0
-	var vx: float = 0.0
-	var vy: float = 0.0

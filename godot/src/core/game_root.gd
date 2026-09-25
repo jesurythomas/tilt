@@ -407,6 +407,8 @@ func trigger_shake(amount: float) -> void:
 ## frame (TiltGame.ts:2280-2281, :2313-2317).
 func apply_readability() -> void:
 	_grid_layer.show_gridlines = options.settings.show_gridlines
+	# DIVERGENCE(M11c P3): the grid only simulates while it is drawn.
+	_grid.awake = options.settings.show_gridlines
 	_entity_layer.set_high_contrast_halo(options.settings.high_contrast_halo)
 
 
