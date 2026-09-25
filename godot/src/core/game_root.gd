@@ -91,6 +91,7 @@ var _bounds: Vector2 = Vector2.ZERO
 @onready var _toast_slot: Control = %ToastSlot
 @onready var _menu: TiltMenu = %Menu
 @onready var _calibrate_screen: CalibrateScreen = %Calibrate
+@onready var _cinematic: EntranceCinematic = %ColdOpen
 
 
 func _ready() -> void:
@@ -164,6 +165,9 @@ func _ready() -> void:
 	_menu.calibrate_screen_requested.connect(open_calibrate_screen)
 	_calibrate_screen.set_level_requested.connect(calibrate_gyro_from_screen)
 	_calibrate_screen.closed.connect(_on_calibrate_closed)
+	# PORT: web/src/tilt-to-live/TiltGame.ts:160-178 (new TiltEntranceCinematic, its onFinish)
+	_cinematic.bind(_audio, _player, _swarm, _grid, _particles, _weapons, _on_cinematic_finished)
+	_cinematic.skip_requested.connect(skip_cinematic)
 	GameEvents.run_ended.connect(_on_run_ended)
 
 	resize_canvas()
@@ -192,6 +196,9 @@ func _ready() -> void:
 	)
 
 
+# M11b R7's cinematic-skip early return joins six pre-existing returns that
+# together mirror the TS key map's early exits (LAW 3); see goal_manager.gd:310-312.
+# gdlint:disable=max-returns
 func _unhandled_input(event: InputEvent) -> void:
 	# DIVERGENCE(M2.5 §8.1): the TOUCH scheme drives the floating joystick;
 	# every other scheme keeps TiltGame.ts's steer-toward-pointer behaviour.
@@ -224,13 +231,26 @@ func _unhandled_input(event: InputEvent) -> void:
 		var armory_key: InputEventKey = event
 		if armory_key.pressed and not armory_key.echo:
 			# PORT: web/src/tilt-to-live/TiltGame.ts:1311-1316
+			# PORT: web/src/tilt-to-live/TiltGame.ts:1302-1309 — before the restart and
+			# pause keys, so Escape skips and never pauses (M11b R7).
+			if (
+				_state.phase == Types.GamePhase.CINEMATIC
+				and (
+					armory_key.keycode == KEY_SPACE
+					or armory_key.keycode == KEY_ENTER
+					or armory_key.keycode == KEY_KP_ENTER
+					or armory_key.keycode == KEY_ESCAPE
+				)
+			):
+				skip_cinematic()
+				return
 			var is_restart_key: bool = (
 				armory_key.keycode == KEY_SPACE
 				or armory_key.keycode == KEY_ENTER
 				or armory_key.keycode == KEY_R
 			)
 			if is_restart_key and _state.phase == Types.GamePhase.GAME_OVER:
-				restart_run()  # TODO(M11b): startCinematic (:1313).
+				restart_run()  # startCinematic (:1315, M11b R10)
 				return
 			# PORT: web/src/tilt-to-live/TiltGame.ts:1319-1324 — b/u toggle.
 			if armory_key.keycode == KEY_B or armory_key.keycode == KEY_U:
@@ -267,13 +287,18 @@ func _unhandled_input(event: InputEvent) -> void:
 			_router.release_movement_key(dir)
 
 
+# gdlint:enable=max-returns
+
+
 func _physics_process(delta: float) -> void:
 	match _state.phase:
 		Types.GamePhase.PLAYING:
 			_update(delta * Tuning.GAME_SPEED)
 		Types.GamePhase.CINEMATIC:
+			# PORT: web/src/tilt-to-live/TiltGame.ts:1831-1836 — the raw dt (M11b R11).
 			_grid.update(delta)
 			_particles.update(delta)
+			_cinematic.update(delta, _bounds.x, _bounds.y)
 		Types.GamePhase.MENU:
 			_update_menu(delta)
 		_:
@@ -410,13 +435,8 @@ func launch_run(mode: Types.GameMode) -> void:
 	# calibrating here silently overwrote whatever pose the player just set on
 	# the Calibrate board (R4/R5), since Play always follows it back to the
 	# menu. The gyro keeps whatever calibration Calibrate/Pause last set.
-	_joystick.reset()
-	_run_controller.reset_run(_bounds)
-	_state.mode = _run_controller.mode
 	_bind_run_layers()
-	_apply_game_mode()
-	# TODO(M11b): start the entrance cinematic here (:1526-1529).
-	GameEvents.phase_changed.emit(Types.GamePhase.PLAYING)
+	_begin_cinematic()
 
 
 ## returnToMenu. PORT: web/src/tilt-to-live/TiltGame.ts:1496-1517
@@ -424,6 +444,11 @@ func return_to_menu() -> void:
 	if _state.phase == Types.GamePhase.MENU:
 		return
 	_state.return_to_menu()
+	# PORT: web/src/tilt-to-live/TiltGame.ts:1504-1506 — after the phase flip, as written.
+	# PORT-NOTE: were a cold open playing, its onFinish would set PLAYING (:169) under
+	# the menu. No path reaches this: the opaque overlay covers Pause and Run over,
+	# return_to_menu's only callers (M11b R8) — preserved deliberately.
+	_cinematic.skip(_bounds.x, _bounds.y)
 	_joystick.reset()
 	# PORT: web/src/tilt-to-live/TiltGame.ts:1502-1510 — the modals hide on
 	# phase_changed(MENU) (HudController._on_phase_changed, M11a R12).
@@ -449,17 +474,45 @@ func is_paused() -> bool:
 	return _state.phase == Types.GamePhase.PAUSED
 
 
-## Restarts the run cleanly into playing state.
+## restart → startCinematic: a fresh run behind a fresh cold open (M11b R10).
+## PORT: web/src/tilt-to-live/TiltGame.ts:1519-1530
 func restart_run() -> void:
 	_tilt.calibrate_current_position()
+	_state.restart()
+	_goals_hud.set_menu_mode(false)  # PORT: web/src/tilt-to-live/TiltGame.ts:1524
+	_begin_cinematic()
+
+
+## startCinematic's run half: the sim reset and the cold open (M11b R5).
+## PORT: web/src/tilt-to-live/TiltGame.ts:1525-1529
+func _begin_cinematic() -> void:
 	_joystick.reset()
-	_state.phase = Types.GamePhase.PLAYING
 	_run_controller.reset_run(_bounds)
 	# PORT-NOTE(M10 final review F-2): the machine's mode follows the run's
-	# captured mode (R4), so M11b's _state.restart() does not pass a stale mode.
+	# captured mode (R4), so _state.restart() never passes a stale mode.
 	_state.mode = _run_controller.mode
 	_apply_game_mode()
+	_cinematic.start(_bounds.x, _bounds.y, _state.mode)
+	GameEvents.phase_changed.emit(Types.GamePhase.CINEMATIC)
+
+
+## The TS cinematic's onFinish, GameRoot's half (M11b R6).
+## PORT: web/src/tilt-to-live/TiltGame.ts:168-177
+func _on_cinematic_finished() -> void:
+	_state.phase = Types.GamePhase.PLAYING  # PORT: web/src/tilt-to-live/TiltGame.ts:169
+	_run_controller.finish_cinematic(_bounds)
 	GameEvents.phase_changed.emit(Types.GamePhase.PLAYING)
+
+
+## cinematic.skip from a tap or Space/Enter/Escape; a no-op outside the cold open.
+## PORT: web/src/tilt-to-live/TiltGame.ts:1302-1309, TiltEntranceCinematic.ts:96-102
+# PORT-NOTE: the .tilt-cinematic-skip listener (:1349-1356) has no element in
+# web/index.html, and the canvas pointerdown (:1358-1364) sits under the
+# full-screen overlay whose tap stands for it (M11b R7).
+func skip_cinematic() -> void:
+	if _state.phase != Types.GamePhase.CINEMATIC:
+		return
+	_cinematic.skip(_bounds.x, _bounds.y)
 
 
 ## calibrateGyro. PORT: web/src/tilt-to-live/TiltGame.ts:2331-2341
@@ -636,6 +689,7 @@ func resize_canvas() -> void:
 	_goals_hud.set_ui_scale(ui_scale, arena_origin)
 	_menu.set_ui_scale(ui_scale, arena_origin)
 	_calibrate_screen.set_ui_scale(ui_scale, arena_origin)
+	_cinematic.set_ui_scale(ui_scale)
 	_effect_layer.set_ui_scale(ui_scale)
 
 

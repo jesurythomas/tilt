@@ -73,13 +73,21 @@ func after_each() -> void:
 	_remove(SaveStore.corrupt_path_for(GoalManager.CUMULATIVE_SAVE_PATH))
 
 
-func test_reset_run_initializes_state_and_spawns_orb() -> void:
+func test_reset_run_initializes_state() -> void:
 	_rc.reset_run(_bounds)
 	assert_true(_rc.is_run_active, "run should be active")
 	assert_eq(_rc.lives, 1, "lives should match max_lives")
 	assert_eq(_player.x, _bounds.x * 0.5)
 	assert_eq(_player.y, _bounds.y * 0.5)
-	assert_eq(_weapons.orbs.size(), 1, "starting weapon orb must spawn")
+	assert_eq(
+		_weapons.orbs.size(), 0, "the starting orb waits for the cinematic (TiltGame.ts:173-176)"
+	)
+
+
+func test_finish_cinematic_spawns_the_starting_orb() -> void:
+	_rc.reset_run(_bounds)
+	_rc.finish_cinematic(_bounds)
+	assert_eq(_weapons.orbs.size(), 1, "TiltGame.ts:176")
 	assert_eq(
 		_weapons.orbs[0].type,
 		Types.WeaponType.SHIELD,
@@ -193,6 +201,7 @@ func test_reset_run_resets_the_coins() -> void:
 func test_starting_orb_is_the_equipped_ships_weapon() -> void:
 	_progression.equip_ship("tactical")
 	_rc.reset_run(_bounds)
+	_rc.finish_cinematic(_bounds)  # M11b: the starting orb now spawns at the cinematic's end
 	assert_eq(_weapons.orbs.size(), 1)
 	assert_eq(_weapons.orbs[0].type, Types.WeaponType.MISSILES, "the Viper's startingWeapon (:159)")
 

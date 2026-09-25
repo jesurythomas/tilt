@@ -40,12 +40,14 @@ func after_each() -> void:
 	_remove(TiltInput.CALIBRATION_PATH)
 
 
-## Boots the scene and starts a run from the menu, as Play does (TiltMenu.ts:238-241).
+## Boots the scene and starts a run from the menu, as Play does (TiltMenu.ts:238-241),
+## then skips the cold open (M11b) so the run is PLAYING.
 func _boot_into_run() -> GameRoot:
 	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
 	add_child_autofree(root)
 	await get_tree().process_frame
 	root.launch_run(root.options.settings.mode)
+	root.skip_cinematic()
 	return root
 
 
@@ -543,10 +545,11 @@ func test_a_launched_run_starts_the_music_when_it_is_on() -> void:
 	var bank: AudioBank = root._audio
 	assert_false(bank._music_player.playing, "no music in the menu")
 	root.launch_run(root.options.settings.mode)
+	root.skip_cinematic()  # M11b: the cold open ends before the run plays
 	assert_eq(
 		bank._music_player.playing,
 		root.options.settings.music_enabled,
-		"reset_run starts it at the cinematic's stand-in (M6 R7)"
+		"the cinematic's handover starts it (TiltGame.ts:170-172, M11b R6)"
 	)
 
 
@@ -640,6 +643,7 @@ func test_p_and_escape_follow_the_ts_key_map() -> void:
 	root._unhandled_input(key)
 	assert_true(root.is_in_menu(), "menu: p does nothing (:1327-1329)")
 	root.launch_run(root.options.settings.mode)
+	root.skip_cinematic()  # M11b: the cold open ends before the run plays
 	root._unhandled_input(key)
 	assert_true(root.is_paused(), "playing → paused")
 	var pause_panel: Control = root.find_child("PausePanel", true, false) as Control
@@ -658,6 +662,7 @@ func test_p_and_escape_follow_the_ts_key_map() -> void:
 
 func test_space_enter_and_r_restart_after_death() -> void:
 	var root: GameRoot = await _boot_into_run()
+	root._player.shield_timer = 0.0  # M11b: past the cold open's spawn shield (:216)
 	root._run_controller.lives = 1
 	root._run_controller.lose_life()
 	assert_eq(root._state.phase, Types.GamePhase.GAME_OVER)
@@ -665,7 +670,105 @@ func test_space_enter_and_r_restart_after_death() -> void:
 	key.keycode = KEY_R
 	key.pressed = true
 	root._unhandled_input(key)
-	assert_eq(root._state.phase, Types.GamePhase.PLAYING, "TiltGame.ts:1311-1316 (M11b: cinematic)")
+	assert_eq(root._state.phase, Types.GamePhase.CINEMATIC, "TiltGame.ts:1311-1316, :1523-1530")
+	root.skip_cinematic()
+	assert_eq(root._state.phase, Types.GamePhase.PLAYING, "TiltGame.ts:1311-1316, :1523-1530")
+
+
+func test_play_opens_the_cold_open_and_hands_over_to_the_run() -> void:
+	# DEVIATION(brief): GUT's default headless viewport snaps to a tiny size
+	# (test_hud_sits_inside_the_arena_frame's "Global Constraints"), so the
+	# cinematic's classic seekers spawn on top of the player, who still carries
+	# the cold open's spawn shield (:216) — every seeker dies to a shield ram
+	# the instant PLAYING ticks. Hosting in an explicit-size SubViewport, as
+	# that test does, gives the handover a real arena. No assertion changed.
+	var host: SubViewport = SubViewport.new()
+	host.size = Vector2i(1280, 720)
+	add_child_autofree(host)
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	host.add_child(root)
+	await get_tree().process_frame
+	watch_signals(GameEvents)
+	root.launch_run(Types.GameMode.CLASSIC)
+	var cold_open: EntranceCinematic = root.find_child("ColdOpen", true, false) as EntranceCinematic
+	assert_eq(root._state.phase, Types.GamePhase.CINEMATIC, "TiltGame.ts:1526")
+	assert_true(cold_open.visible)
+	assert_signal_emitted_with_parameters(GameEvents, "phase_changed", [Types.GamePhase.CINEMATIC])
+	assert_eq(root._weapons.orbs.size(), 0, "nothing in the arena yet (:60-61)")
+	for i: int in range(40):
+		root._physics_process(1.0 / 60.0)
+	assert_eq(root._state.phase, Types.GamePhase.PLAYING, "onFinish (:169)")
+	assert_false(cold_open.visible)
+	assert_eq(root._swarm.enemies.size(), 8, "the Classic handover (:204)")
+	assert_eq(root._weapons.orbs.size(), 2, "the nuke (:212) + the starting orb (:176)")
+
+
+func test_music_starts_once_at_the_handover() -> void:
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	root.options.settings.music_enabled = true
+	root.launch_run(Types.GameMode.CLASSIC)
+	assert_false(root._audio._music_player.playing, "not during the cold open (:168-172)")
+	root.skip_cinematic()
+	root.skip_cinematic()
+	assert_true(root._audio._music_player.playing, "TiltGame.ts:170-172")
+	assert_eq(root._weapons.orbs.size(), 2, "Review Focus 1: one handover, one starting orb")
+
+
+func test_space_enter_and_escape_skip_the_cold_open_and_escape_does_not_pause() -> void:
+	for keycode: Key in [KEY_SPACE, KEY_ENTER, KEY_KP_ENTER, KEY_ESCAPE]:
+		var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+		add_child_autofree(root)
+		await get_tree().process_frame
+		root.launch_run(Types.GameMode.CLASSIC)
+		var key: InputEventKey = InputEventKey.new()
+		key.keycode = keycode
+		key.pressed = true
+		root._unhandled_input(key)
+		assert_eq(
+			root._state.phase, Types.GamePhase.PLAYING, "TiltGame.ts:1302-1309 (%d)" % keycode
+		)
+		assert_false(root.is_paused(), "Review Focus 4: the skip returns before p/Escape")
+
+
+func test_a_tap_on_the_cold_open_skips_it() -> void:
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	root.launch_run(Types.GameMode.CLASSIC)
+	var cold_open: EntranceCinematic = root.find_child("ColdOpen", true, false) as EntranceCinematic
+	var touch: InputEventScreenTouch = InputEventScreenTouch.new()
+	touch.pressed = true
+	cold_open._gui_input(touch)
+	assert_eq(root._state.phase, Types.GamePhase.PLAYING, "TiltEntranceCinematic.ts:96-102")
+
+
+func test_restart_inside_the_run_over_delay_keeps_the_sheet_shut() -> void:
+	var root: GameRoot = await _boot_into_run()
+	root._player.shield_timer = 0.0  # M11b: past the cold open's spawn shield (:216)
+	root._run_controller.lose_life()
+	assert_eq(root._state.phase, Types.GamePhase.GAME_OVER)
+	var key: InputEventKey = InputEventKey.new()
+	key.keycode = KEY_SPACE
+	key.pressed = true
+	root._unhandled_input(key)
+	assert_eq(root._state.phase, Types.GamePhase.CINEMATIC, "TiltGame.ts:1315")
+	var timer: Timer = root._hud._run_over_timer
+	assert_true(timer.is_stopped(), "R9: resetRun hides the modals (:1612-1613)")
+	var sheet: Control = root.find_child("GameOverPanel", true, false) as Control
+	assert_false(sheet.visible, "Review Focus 3")
+
+
+func test_retry_replays_the_cold_open_with_a_fresh_arena() -> void:
+	var root: GameRoot = await _boot_into_run()
+	root._swarm.spawn_seeker(root._bounds, 10.0, 10.0)
+	root.restart_run()
+	assert_eq(root._state.phase, Types.GamePhase.CINEMATIC, "TiltGame.ts:1519-1521 (R10)")
+	assert_eq(root._swarm.enemies.size(), 0, "the cold open clears the arena (:60)")
+	root.skip_cinematic()
+	assert_eq(root._swarm.enemies.size(), 8, "Review Focus 5: only the new handover")
+	assert_eq(root._weapons.orbs.size(), 2)
 
 
 func test_menu_settles_under_milestones_and_armory() -> void:

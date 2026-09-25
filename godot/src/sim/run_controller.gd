@@ -122,18 +122,20 @@ func reset_run(arena_bounds: Vector2) -> void:
 	audio.set_muted(not options.settings.sfx_enabled)
 	audio.set_sfx_volume(options.settings.sfx_volume)
 	audio.set_music_volume(options.settings.music_volume)
-	# PORT: web/src/tilt-to-live/TiltGame.ts:170-172 — the cinematic's completion
-	# callback starts music, then spawns the starting orb; reset_run stands in for
-	# that callback until the cinematic exists (M6 R7).
-	# TODO(M11b): move this and spawn_starting_weapon_orb to the cinematic's end.
-	if options.settings.music_enabled:
-		audio.start_music()
 
-	spawn_starting_weapon_orb(bounds)
 	GameEvents.score_changed.emit(0, 1, scores.stats.best_score)
 	# PORT: web/src/tilt-to-live/TiltGame.ts:1615 — goalsHUD.updateLive's
 	# evaluation half; see step 8 in update() for the split.
 	goals.evaluate_live_total_goals(run_tracker)
+
+
+## The run half of the cinematic's onFinish: music, then the starting orb, which
+## lands after both resetRun and the cinematic's arena reset (M11b R6, M6 R7).
+## PORT: web/src/tilt-to-live/TiltGame.ts:170-176
+func finish_cinematic(arena_bounds: Vector2) -> void:
+	if options.settings.music_enabled:
+		audio.start_music()
+	spawn_starting_weapon_orb(arena_bounds)
 
 
 ## Spawns the equipped ship's starting weapon orb offset from the spawn point.

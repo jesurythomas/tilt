@@ -88,7 +88,7 @@ func return_to_menu() -> void:
 	# PORT-NOTE: hiding the pause and game-over modals, goalsHUD.setMenuMode(true),
 	# menu.show and the 'tilt-playing' class (:1502-1512) are GameRoot's, via
 	# phase_changed(MENU) and M11a R12; updateCursor has no pointer (R16).
-	# TODO(M11b): cinematic.skip (:1504-1506).
+	# PORT-NOTE: cinematic.skip (:1504-1506) is GameRoot's (return_to_menu, M11b R5, R8).
 	# PORT-NOTE: TiltGame.ts:1514-1516's onReturnToPortal callback has no
 	# port — the Godot build has no host portal to return to.
 
@@ -105,11 +105,9 @@ func start_cinematic() -> void:
 	# PORT-NOTE: goalsHUD.setMenuMode(false) (TiltGame.ts:1524) is GameRoot's
 	# (GameRoot.launch_run) — this machine holds no UI (spec §5.1).
 	reset_run(mode)
-	# PORT-NOTE: TiltGame.ts:1526 sets phase = 'cinematic' here and
-	# TiltEntranceCinematic drives the 600 ms cold open. The cinematic is M11b
-	# (spec §8), so M1 leaves the phase where reset_run() put it — PLAYING —
-	# rather than entering a phase nothing can leave.
-	# TODO(M11b): set phase = CINEMATIC and start the entrance cinematic.
+	phase = Types.GamePhase.CINEMATIC  # PORT: web/src/tilt-to-live/TiltGame.ts:1526
+	# PORT-NOTE: cinematic.start (:1527-1529) is GameRoot's (_begin_cinematic) —
+	# this machine holds no UI and the cinematic is a Control (M11b R5).
 
 
 ## Stops the sim and clears input and the tilt sensor.
@@ -119,7 +117,8 @@ func stop() -> void:
 	_router.clear_movement_keys()
 	_tilt.stop_listening()
 	_audio.stop_music()  # PORT: web/src/tilt-to-live/TiltGame.ts:1536
-	# TODO(M11b): skip the cinematic.
+	# PORT-NOTE: cinematic.skip (:1538-1540) is GameRoot's (M11b R5); stop() has
+	# no caller in the port.
 	# PORT-NOTE: the rAF cancellation (ts:1541-1544) belongs to GameRoot,
 	# same as the loop start noted in start().
 

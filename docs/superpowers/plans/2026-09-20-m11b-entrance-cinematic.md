@@ -661,7 +661,7 @@ git commit -m "M11b: port the entrance cinematic on the ColdOpen board; next: Ta
   - `GameRoot.skip_cinematic() -> void` (no-op outside `CINEMATIC`)
   - `GameRoot.launch_run` / `restart_run` leave `phase == CINEMATIC` and emit `phase_changed(CINEMATIC)`. `PLAYING` follows at the handover.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 In `test_game_state_machine.gd`, add:
 
@@ -803,9 +803,9 @@ func test_retry_replays_the_cold_open_with_a_fresh_arena() -> void:
 
 The existing `test_a_launched_run_starts_the_music_when_it_is_on` (≈:539) asserts `bank._music_player.playing` right after `launch_run`. Add `root.skip_cinematic()` before that assertion and change its message to `"the cinematic's handover starts it (TiltGame.ts:170-172, M11b R6)"`. If the headless `AudioStreamPlayer` never reports `playing` (the existing test compares it to `music_enabled`, so it does), use `SpyAudioBank`-style lifecycle checks instead and record that in the ledger.
 
-- [ ] **Step 2: Run them to verify they fail.** `tools/run_tests.sh`: the new tests fail. `skip_cinematic`, `finish_cinematic` and `ColdOpen` do not exist yet, so expect a parse drop of `test_main_scene.gd` and `test_run_controller.gd`. Confirm each with `--check-only`.
+- [x] **Step 2: Run them to verify they fail.** `tools/run_tests.sh`: the new tests fail. `skip_cinematic`, `finish_cinematic` and `ColdOpen` do not exist yet, so expect a parse drop of `test_main_scene.gd` and `test_run_controller.gd`. Confirm each with `--check-only`.
 
-- [ ] **Step 3: `RunController`.** In `reset_run`, delete lines 125-132 (the M6 R7 stand-in comment, the `TODO(M11b)`, the music block and `spawn_starting_weapon_orb(bounds)`). Add after `reset_run`:
+- [x] **Step 3: `RunController`.** In `reset_run`, delete lines 125-132 (the M6 R7 stand-in comment, the `TODO(M11b)`, the music block and `spawn_starting_weapon_orb(bounds)`). Add after `reset_run`:
 
 ```gdscript
 ## The run half of the cinematic's onFinish: music, then the starting orb, which
@@ -817,7 +817,7 @@ func finish_cinematic(arena_bounds: Vector2) -> void:
 	spawn_starting_weapon_orb(arena_bounds)
 ```
 
-- [ ] **Step 4: `GameStateMachine`.** Replace `start_cinematic`'s body after `reset_run(mode)` (the PORT-NOTE and the `TODO(M11b)`, lines 108-112) with:
+- [x] **Step 4: `GameStateMachine`.** Replace `start_cinematic`'s body after `reset_run(mode)` (the PORT-NOTE and the `TODO(M11b)`, lines 108-112) with:
 
 ```gdscript
 	phase = Types.GamePhase.CINEMATIC  # PORT: web/src/tilt-to-live/TiltGame.ts:1526
@@ -827,7 +827,7 @@ func finish_cinematic(arena_bounds: Vector2) -> void:
 
 In `return_to_menu`, replace `# TODO(M11b): cinematic.skip (:1504-1506).` with `# PORT-NOTE: cinematic.skip (:1504-1506) is GameRoot's (return_to_menu, M11b R5, R8).` In `stop`, replace `# TODO(M11b): skip the cinematic.` with `# PORT-NOTE: cinematic.skip (:1538-1540) is GameRoot's (M11b R5); stop() has no caller in the port.` Before you write that last clause, run `grep -rn "_state.stop()\|\.stop()" godot/src/core` and confirm it. If there is a caller, write `GameRoot.<caller> skips it` and make that caller call `_cinematic.skip(_bounds.x, _bounds.y)` after `_state.stop()`.
 
-- [ ] **Step 5: `main.tscn`.** Change `load_steps=13` to `load_steps=14`. Add `[ext_resource type="Script" path="res://src/ui/entrance_cinematic.gd" id="14"]` after id `13`. Between the `GoalsHud` node block and the `Armory` node, add:
+- [x] **Step 5: `main.tscn`.** Change `load_steps=13` to `load_steps=14`. Add `[ext_resource type="Script" path="res://src/ui/entrance_cinematic.gd" id="14"]` after id `13`. Between the `GoalsHud` node block and the `Armory` node, add:
 
 ```
 [node name="ColdOpen" type="Control" parent="CanvasLayer"]
@@ -844,7 +844,7 @@ script = ExtResource("14")
 
 (`mouse_filter` stays at its default, STOP. The script also sets it in `_ready`.)
 
-- [ ] **Step 6: `GameRoot`.**
+- [x] **Step 6: `GameRoot`.**
 
 Add `@onready var _cinematic: EntranceCinematic = %ColdOpen` after `_calibrate_screen`.
 
@@ -948,7 +948,7 @@ In `return_to_menu`, right after `_state.return_to_menu()`:
 
 In `resize_canvas`, after `_calibrate_screen.set_ui_scale(...)`, add `_cinematic.set_ui_scale(ui_scale)`.
 
-- [ ] **Step 7: `HudController._on_phase_changed` (R9).** Replace `if phase != Types.GamePhase.PLAYING and not in_menu:` with:
+- [x] **Step 7: `HudController._on_phase_changed` (R9).** Replace `if phase != Types.GamePhase.PLAYING and not in_menu:` with:
 
 ```gdscript
 	# PORT: web/src/tilt-to-live/TiltGame.ts:1612-1613 — resetRun hides both modals
@@ -956,11 +956,11 @@ In `resize_canvas`, after `_calibrate_screen.set_ui_scale(...)`, add `_cinematic
 	if phase != Types.GamePhase.PLAYING and phase != Types.GamePhase.CINEMATIC and not in_menu:
 ```
 
-- [ ] **Step 8: `EnemySwarm`.** Replace `## TODO(M11b): the cinematic's handover calls this (TiltEntranceCinematic.ts:196, :200); M10 R3.` with `## Called by the cinematic's handover (TiltEntranceCinematic.ts:196, :200; EntranceCinematic._finish, M10 R3).`
+- [x] **Step 8: `EnemySwarm`.** Replace `## TODO(M11b): the cinematic's handover calls this (TiltEntranceCinematic.ts:196, :200); M10 R3.` with `## Called by the cinematic's handover (TiltEntranceCinematic.ts:196, :200; EntranceCinematic._finish, M10 R3).`
 
-- [ ] **Step 9: Run the tests.** `tools/run_tests.sh` → `OK: 54/54 scripts`, **+9 tests** (630: state machine +1, run controller +1, audio call sites +1, main scene +6). Then run `gdformat --check`, `gdlint` and `grep -rn "TODO(M11b)" godot/src godot/tests` (expect nothing). Then `"$GODOT" --headless --path godot --quit-after 240 2>&1 | grep -c "SCRIPT ERROR"` (expect 0) and `git checkout godot/project.godot`.
+- [x] **Step 9: Run the tests.** `tools/run_tests.sh` → `OK: 54/54 scripts`, **+9 tests** (630: state machine +1, run controller +1, audio call sites +1, main scene +6). Then run `gdformat --check`, `gdlint` and `grep -rn "TODO(M11b)" godot/src godot/tests` (expect nothing). Then `"$GODOT" --headless --path godot --quit-after 240 2>&1 | grep -c "SCRIPT ERROR"` (expect 0) and `git checkout godot/project.godot`.
 
-- [ ] **Step 10: Commit.**
+- [x] **Step 10: Commit.**
 
 ```bash
 git checkout godot/project.godot

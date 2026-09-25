@@ -550,7 +550,9 @@ func _on_phase_changed(phase: Types.GamePhase) -> void:
 				node.visible = false
 		# The next run's first reading must redraw the row, even with the same pips.
 		_is_lives_dirty = true
-	if phase != Types.GamePhase.PLAYING and not in_menu:
+	# PORT: web/src/tilt-to-live/TiltGame.ts:1612-1613 — resetRun hides both modals
+	# before startCinematic sets 'cinematic' (:1525-1526), so CINEMATIC hides them too (M11b R9).
+	if phase != Types.GamePhase.PLAYING and phase != Types.GamePhase.CINEMATIC and not in_menu:
 		return
 	_run_over_timer.stop()
 	if _game_over_panel != null:

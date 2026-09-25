@@ -109,6 +109,7 @@ func test_pausing_stops_the_music_and_resuming_restarts_it() -> void:
 	_options.settings.music_enabled = true
 	_machine.start()
 	_machine.launch_run(Types.GameMode.CLASSIC)
+	_machine.phase = Types.GamePhase.PLAYING  # the cinematic's handover (GameRoot, M11b R6)
 	_audio.lifecycle.clear()
 	_machine.toggle_pause()
 	_machine.toggle_pause()
@@ -123,7 +124,14 @@ func test_resuming_with_music_off_leaves_it_off() -> void:
 	_options.settings.music_enabled = false
 	_machine.start()
 	_machine.launch_run(Types.GameMode.CLASSIC)
+	_machine.phase = Types.GamePhase.PLAYING  # the cinematic's handover (GameRoot, M11b R6)
 	_audio.lifecycle.clear()
 	_machine.toggle_pause()
 	_machine.toggle_pause()
 	assert_eq(_audio.lifecycle, ["stop_music"] as Array[String], "the musicEnabled guard (:1638)")
+
+
+func test_start_cinematic_resets_then_enters_the_cinematic_phase() -> void:
+	_machine.start_cinematic()
+	assert_eq(_machine.phase, Types.GamePhase.CINEMATIC, "TiltGame.ts:1526")
+	assert_almost_eq(_player.x, 640.0, 0.0001, "resetRun ran first (:1525)")
