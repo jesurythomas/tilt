@@ -102,7 +102,7 @@
   - `func set_ui_scale(scale: float) -> void`
   - Node names: `Void`, `Glow`, `Stack`, `Ship`, `Title`, `BarTrack`, `BarFill`
 
-- [ ] **Step 1: Write the failing test.** Create `godot/tests/test_entrance_cinematic.gd`:
+- [x] **Step 1: Write the failing test.** Create `godot/tests/test_entrance_cinematic.gd`:
 
 ```gdscript
 ## test_entrance_cinematic.gd
@@ -278,9 +278,9 @@ func test_a_resize_mid_cinematic_keeps_it_showing_and_filled() -> void:
 	assert_almost_eq(fill.size.x, 160.0, 0.001, "still half full after the rebuild")
 ```
 
-- [ ] **Step 2: Run it to verify it fails.** `tools/run_tests.sh` should report `collected 53 of 54`, because the script fails to parse while `EntranceCinematic` does not exist. Confirm with `"$GODOT" --headless --path godot --check-only -s tests/test_entrance_cinematic.gd`, which should print that `EntranceCinematic` is not declared.
+- [x] **Step 2: Run it to verify it fails.** `tools/run_tests.sh` should report `collected 53 of 54`, because the script fails to parse while `EntranceCinematic` does not exist. Confirm with `"$GODOT" --headless --path godot --check-only -s tests/test_entrance_cinematic.gd`, which should print that `EntranceCinematic` is not declared.
 
-- [ ] **Step 3: Write `godot/src/ui/entrance_cinematic.gd`.**
+- [x] **Step 3: Write `godot/src/ui/entrance_cinematic.gd`.**
 
 ```gdscript
 ## entrance_cinematic.gd
@@ -628,9 +628,9 @@ Implementation notes for this step:
 - If `UiTheme.flat`'s `border_width` of `0` still draws a border, pass the same colour for the border (as above). The visual result is the same.
 - If `stack.get_combined_minimum_size()` is zero before the node enters the tree, set the stack's anchors to `PRESET_CENTER` with `grow_horizontal`/`grow_vertical = GROW_DIRECTION_BOTH` instead, and let the container size itself. The `test_the_board_is_built_as_drawn` test only checks the bar and the nodes' existence and sizes, so either approach passes. Record which one you used in the ledger.
 
-- [ ] **Step 4: Run the tests.** `tools/run_tests.sh` → `OK: 54/54 scripts`, **+10 tests** (621). Then `gdformat --check godot/src godot/tests` (98 files) and `gdlint godot/src godot/tests`.
+- [x] **Step 4: Run the tests.** `tools/run_tests.sh` → `OK: 54/54 scripts`, **+10 tests** (621). Then `gdformat --check godot/src godot/tests` (98 files) and `gdlint godot/src godot/tests`.
 
-- [ ] **Step 5: Commit.**
+- [x] **Step 5: Commit.**
 
 ```bash
 git checkout godot/project.godot
