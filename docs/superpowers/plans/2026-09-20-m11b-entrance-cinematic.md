@@ -1033,6 +1033,8 @@ git commit -m "M11b done: next read godot/HANDOFF.md + VERIFY-ME.md, then plan M
 
 (Filled during execution: any ruling taken while running a task, one line each, with the task number.)
 
+- User review (2026-09-26): execution subagent-driven; R1 (board wins), R8, R10 and R12 approved as written. Ledger: `.superpowers/sdd/2026-09-20-m11b-entrance-cinematic/progress.md`.
+
 ## Open questions
 
 1. **R8's unreachable quirk.** The TS `returnToMenu` and `stop` call `cinematic.skip` after leaving the cinematic phase. A playing cold open would then spawn its armada and set `PLAYING` under the menu. Nothing reaches this today, so it is ported as written. If M11a's Q3 ruling makes Android back call `return_to_menu`, the back handler must be a no-op during `CINEMATIC`, or this needs its own ruling.

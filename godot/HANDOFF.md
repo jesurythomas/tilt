@@ -1462,7 +1462,7 @@ headless `--quit-after 240` 0 SCRIPT ERROR. Full report:
 
 ## Next
 
-**M11b plan written (2026-09-26), awaiting the user's review:**
+**M11b plan approved by the user (2026-09-26), executing subagent-driven:**
 `docs/superpowers/plans/2026-09-20-m11b-entrance-cinematic.md` (3 tasks,
 planning rulings R1–R12, 3 open questions). Do not start Task 1 until the
 user has reviewed the plan and chosen an execution method
