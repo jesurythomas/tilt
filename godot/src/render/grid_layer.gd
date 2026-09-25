@@ -86,6 +86,7 @@ func _ready() -> void:
 func _draw() -> void:
 	if _grid == null:
 		return
+	var pt_draw: int = PerfProbe.now()
 	var viewport: Vector2 = get_viewport_rect().size
 	# DIVERGENCE(M2.5 §6.1): the background still covers the whole viewport so
 	# the inset reads as a frame rather than black bars; the grid and the
@@ -121,6 +122,7 @@ func _draw() -> void:
 	halo.a = BOUNDARY_HALO_ALPHA
 	draw_rect(frame, halo, false, 8.0)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	PerfProbe.add("d_grid", pt_draw)
 
 
 ## Gives this layer the grid it draws. Called by GameRoot.

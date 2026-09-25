@@ -74,12 +74,14 @@ var _model_scale: float = 1.0
 
 func _draw() -> void:
 	draw_set_transform(_arena_origin, 0.0, Vector2.ONE)
+	var pt_draw: int = PerfProbe.now()
 	if is_maze_drawn():
 		_draw_maze()
 	_draw_coins()
 	_draw_weapons()
 	_draw_enemies()
 	_draw_player()
+	PerfProbe.add("d_entity", pt_draw)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 

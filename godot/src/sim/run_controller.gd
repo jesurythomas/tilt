@@ -168,13 +168,18 @@ func update(
 	elapsed += dt
 
 	# 1. Update Grid
+	var pt_grid: int = PerfProbe.now()
 	grid.update(dt)
+	PerfProbe.add("s_grid", pt_grid)
 
 	# 2. Update Particles
+	var pt_particles: int = PerfProbe.now()
 	particles.update(dt)
+	PerfProbe.add("s_particles", pt_particles)
 
 	# 3. Update Player Ship
 	# PORT: web/src/tilt-to-live/TiltGame.ts:1881-1891
+	var pt_player: int = PerfProbe.now()
 	var ship: ProgressionManager.ShipSkinConfig = progression.get_equipped_ship()
 	player.update(
 		dt,
@@ -190,6 +195,7 @@ func update(
 		ship.thruster_color,
 		tilt_vector
 	)
+	PerfProbe.add("s_player", pt_player)
 
 	# 3.5 Update Gauntlet Descending Maze Walls (blocks player, pushes downwards)
 	# PORT: web/src/tilt-to-live/TiltGame.ts:1893-1904 — spec §5.4 step 4
@@ -198,9 +204,12 @@ func update(
 
 	# 4. Update Swarm Enemies
 	# PORT: web/src/tilt-to-live/TiltGame.ts:1906-1914
+	var pt_swarm: int = PerfProbe.now()
 	swarm.update(dt, Vector2(player.x, player.y), bounds, particles, scores.stats.score, mode)
+	PerfProbe.add("s_swarm", pt_swarm)
 
 	# 5. Update Weapons
+	var pt_weapons: int = PerfProbe.now()
 	# PORT: web/src/tilt-to-live/TiltGame.ts:1916-1928
 	weapons.update(
 		dt,
@@ -214,12 +223,14 @@ func update(
 		progression.data.perks,
 		mode
 	)
+	PerfProbe.add("s_weapons", pt_weapons)
 
 	# 5.5 Update Coin Pickups (own spawn timer, independent of weapon orbs)
 	# PORT: web/src/tilt-to-live/TiltGame.ts:1930-1940 — spec §5.4 step 7
 	# PORT-NOTE: the Run over coins row (:2108, :2123-2130) reads coins.coins_collected
 	# in HudController (M11a R17).
 	var mode_config: GameOptionsManager.ModeConfig = options.get_mode_config(mode)
+	var pt_coins: int = PerfProbe.now()
 	coins.update(
 		dt,
 		player,
@@ -229,12 +240,15 @@ func update(
 		mode_config.score_multiplier,
 		progression.add_points_credited
 	)
+	PerfProbe.add("s_coins", pt_coins)
 
 	# 6. Update Scores and Combos
 	scores.update(dt, mode)  # PORT: web/src/tilt-to-live/TiltGame.ts:1943
 
 	# 7. Check Collisions & Near-Misses
+	var pt_collide: int = PerfProbe.now()
 	check_collisions()
+	PerfProbe.add("s_collide", pt_collide)
 
 	# 8. Update Run Tracker & Goals HUD
 	# PORT: web/src/tilt-to-live/TiltGame.ts:1949-1954
@@ -252,12 +266,16 @@ func update(
 	# metrics count this run twice for this one call and can complete a
 	# cumulative goal early. TiltGame.update() does the same (:2086 then :1954).
 	# Preserved deliberately (LAW 2); raised in HANDOFF open questions.
+	var pt_goals: int = PerfProbe.now()
 	goals.evaluate_live_total_goals(run_tracker)
+	PerfProbe.add("s_goals", pt_goals)
 
 	# 9. Emit HUD signal
+	var pt_hud: int = PerfProbe.now()
 	GameEvents.score_changed.emit(
 		scores.stats.score, scores.stats.multiplier, scores.stats.best_score
 	)
+	PerfProbe.add("s_hud_signal", pt_hud)
 
 
 ## Collision detection between player ship and enemy swarm.

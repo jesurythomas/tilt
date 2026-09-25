@@ -115,6 +115,7 @@ static func banner_rect(arena_width: float, scale: float) -> Rect2:
 
 func _draw() -> void:
 	draw_set_transform(_arena_origin, 0.0, Vector2.ONE)
+	var pt_draw: int = PerfProbe.now()
 	# PORT-NOTE: weapons draw before particles (TiltRenderer.ts:135, :141) but, per
 	# spec §5.5, above enemies and the player, where TiltRenderer.ts:138/:144 drew
 	# them below — the spec's explicit render order.
@@ -123,6 +124,7 @@ func _draw() -> void:
 	_draw_floating_texts()
 	if is_banner_drawn():
 		_draw_mode_banner()
+	PerfProbe.add("d_effect", pt_draw)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 

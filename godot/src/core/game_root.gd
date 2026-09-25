@@ -291,6 +291,14 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	PerfProbe.step()
+	var pt_phys: int = PerfProbe.now()
+	_physics_phase(delta)
+	PerfProbe.add("phys", pt_phys)
+
+
+## The phase dispatch of _physics_process, split out so the probe can time it whole.
+func _physics_phase(delta: float) -> void:
 	match _state.phase:
 		Types.GamePhase.PLAYING:
 			_update(delta * Tuning.GAME_SPEED)
@@ -300,7 +308,9 @@ func _physics_process(delta: float) -> void:
 			_particles.update(delta)
 			_cinematic.update(delta, _bounds.x, _bounds.y)
 		Types.GamePhase.MENU:
+			var pt_menu: int = PerfProbe.now()
 			_update_menu(delta)
+			PerfProbe.add("s_menu", pt_menu)
 		_:
 			pass
 
@@ -309,6 +319,7 @@ func _process(_delta: float) -> void:
 	# PORT: web/src/tilt-to-live/TiltRenderer.ts:46-56 — once per rendered frame,
 	# around everything inside ctx.save()..restore() (:53-156). renderMenuBackground
 	# never reads cameraShake (M11a R2).
+	_report_perf()
 	var offset: Vector2 = Vector2.ZERO
 	if _state.phase != Types.GamePhase.MENU and camera_shake > 0.1:  # PORT: :48
 		offset = Vector2(randf() * 2.0 - 1.0, randf() * 2.0 - 1.0) * camera_shake  # PORT: :49-50
@@ -320,6 +331,28 @@ func _process(_delta: float) -> void:
 	_entity_layer.queue_redraw()
 	_effect_layer.queue_redraw()
 	_joystick_layer.queue_redraw()
+
+
+## DIVERGENCE(M11c P1): feeds the debug perf probe once per rendered frame.
+func _report_perf() -> void:
+	if not PerfProbe.enabled:
+		return
+	var vp: RID = get_viewport().get_viewport_rid()
+	RenderingServer.viewport_set_measure_render_time(vp, true)
+	(
+		PerfProbe
+		. frame(
+			(
+				"gpu=%.2f en=%d pa=%d draws=%d"
+				% [
+					RenderingServer.viewport_get_measured_render_time_gpu(vp),
+					_run_controller.swarm.enemies.size(),
+					_particles.particles.size(),
+					Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),
+				]
+			)
+		)
+	)
 
 
 ## Advances simulation systems via RunController.

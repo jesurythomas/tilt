@@ -29,8 +29,9 @@ ADB="/c/Users/Jesury/AppData/Local/Android/Sdk/platform-tools/adb.exe"
 > `Total frames rendered: 0` for this app. It cannot see Godot's Vulkan
 > SurfaceView, so every `gfxinfo … 50th` check below measures nothing. Use
 > `dumpsys SurfaceFlinger --latency '<the app's SurfaceView (BLAST) layer>'`
-> instead; `tools/frametime.sh` wraps it once M11c part 1 Task 1 lands
-> (`docs/superpowers/plans/2026-09-26-m11c-performance.md`).
+> instead: `tools/frametime.sh <seconds> <label>` wraps it (M11c P1). Debug
+> builds also print one `PERF` line per second (`adb logcat -s godot:I | grep PERF`):
+> per-section CPU ms, GPU ms, enemies, particles, draw calls.
 
 The APK at `godot/build/peril-point-debug.apk` was exported from a tree one
 temporary log line ahead of HEAD; re-export as above rather than reusing it.
@@ -158,7 +159,7 @@ so every item below needs a thumb.
 - [ ] Every enemy shape sits exactly on its hitbox (all rotated draws now
       carry the arena origin) — nudge into a charger and an artillery unit.
 - [ ] Frame time with a wall sweep plus a carrier on screen:
-      `"$ADB" -s RRCXB04L8EJ shell dumpsys gfxinfo com.jtg.perilpoint | grep -A3 50th`
+      `tools/frametime.sh 30 <label>` (p50 ≤ 16.7 ms, >20ms under 2%)
       — 50th percentile at or under 16 ms. The carrier's tether loop is
       O(carriers × enemies) per frame, as in the TS.
 
@@ -205,7 +206,7 @@ vortex 5 of 109), so a vortex orb takes a few runs to see.
 - [ ] Frame time with a vortex and eight missiles live, and again when a
       nuke clears a big cluster (your `MAX_PARTICLES 400` / `emit_sparks 6`
       tuning is what M4 inherited):
-      `"$ADB" -s RRCXB04L8EJ shell dumpsys gfxinfo com.jtg.perilpoint | grep -A3 50th`
+      `tools/frametime.sh 30 <label>` (p50 ≤ 16.7 ms, >20ms under 2%)
       — 50th percentile at or under 16 ms.
 
 Not observable yet (no rank source until M7): every perk-rank change. They
@@ -258,7 +259,7 @@ fallback, coins, and the classic ship's shield orb.
 - [ ] **Tilt calibration and control scheme still persist** across a
       relaunch (they now go through SaveStore — M2.5's checks 1 and 2 again).
 - [ ] Frame time with six coins and a vortex live:
-      `adb -s RRCXB04L8EJ shell dumpsys gfxinfo com.jtg.perilpoint | grep -A3 50th`
+      `tools/frametime.sh 30 <label>` (p50 ≤ 16.7 ms, >20ms under 2%)
       — 50th percentile at or under 16 ms.
 
 Not observable yet: perk ranks, extra lives, hull compact, enemy slow and the
@@ -357,7 +358,7 @@ Facts from execution (not in the brief):
       bug.
 - [ ] Frame time with the Armory open over a paused run and, separately, in
       a run with the Solar hull and Toxic skin:
-      `adb -s RRCXB04L8EJ shell dumpsys gfxinfo com.jtg.perilpoint | grep -A3 50th`
+      `tools/frametime.sh 30 <label>` (p50 ≤ 16.7 ms, >20ms under 2%)
       — 50th percentile at or under 16 ms in both.
 
 Not observable yet: the HUD's own Armory button (`btn-tilt-armory-hud`,
@@ -392,7 +393,7 @@ Both constants are guesses until you look at them.
       drawn 1.5× longer on mobile because it lives under the entity
       transform. Fine or distracting?
 - [ ] Frame time under a mass explosion is unchanged:
-      `adb -s RRCXB04L8EJ shell dumpsys gfxinfo com.jtg.perilpoint | grep -A3 50th`.
+      `tools/frametime.sh 30 <label>` (p50 ≤ 16.7 ms, >20ms under 2%).
 
 ## M8.5 — Interface rework (device pass, plan Task 8; interface spec §7)
 
