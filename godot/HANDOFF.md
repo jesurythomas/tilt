@@ -6,7 +6,7 @@ Rewritten at every module stop. Written for a session with zero context.
 
 **M11c part 1 — Performance: code-complete, A55 measurement pending
 (2026-09-26).** Plan `docs/superpowers/plans/2026-09-26-m11c-performance.md`;
-ledger `.superpowers/sdd/2026-09-26-m11c-performance/progress.md` (git-ignored).
+its execution rulings are in the plan's task Status lines and below (the git-ignored ledger was cleared after the final review).
 The user played HEAD `fbf7e94` on the A55 and reported frame collapse with
 many things on screen, spikes on wall-formation spawns and power-up mass
 kills, an off-centre cold open, a start ring too tight to escape, and
