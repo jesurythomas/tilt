@@ -26,9 +26,12 @@ const RIPPLE_RADIUS: float = 60.0
 ## PORT: web/src/tilt-to-live/TiltEntranceCinematic.ts:71
 const BURST_COLOR: Color = Color("#5B8CFF")
 const BURST_COUNT: int = 24
-## PORT: web/src/tilt-to-live/TiltEntranceCinematic.ts:204-205
+## PORT: web/src/tilt-to-live/TiltEntranceCinematic.ts:204-205 (the radius is now the floor)
 const SEEKER_COUNT: int = 8
 const SEEKER_RADIUS: float = 260.0
+## DIVERGENCE(M11c P8): user ruling 2026-09-26, "further away would make it easier for
+## players to evade" — the ring scales with the arena's short side, never below 260.
+const SEEKER_RADIUS_FRACTION: float = 0.42
 ## PORT: web/src/tilt-to-live/TiltEntranceCinematic.ts:208-209
 const SEEKER_MARGIN: float = 40.0
 ## PORT: web/src/tilt-to-live/TiltEntranceCinematic.ts:197-198
@@ -200,13 +203,14 @@ func _finish(width: float, height: float) -> void:
 		_swarm.spawn_mode_armada(Types.GameMode.GAUNTLET, bounds, player_pos)
 		_weapons.spawn_orb(bounds, Types.WeaponType.NUKE, width / 2.0, orb_y)  # PORT: :201
 	else:
+		var radius: float = maxf(SEEKER_RADIUS, minf(width, height) * SEEKER_RADIUS_FRACTION)
 		for i: int in range(SEEKER_COUNT):
 			var ang: float = (float(i) / float(SEEKER_COUNT)) * PI * 2.0  # PORT: :207
 			var x: float = clampf(
-				width / 2.0 + cos(ang) * SEEKER_RADIUS, SEEKER_MARGIN, width - SEEKER_MARGIN
+				width / 2.0 + cos(ang) * radius, SEEKER_MARGIN, width - SEEKER_MARGIN
 			)  # PORT: web/src/tilt-to-live/TiltEntranceCinematic.ts:208
 			var y: float = clampf(
-				height / 2.0 + sin(ang) * SEEKER_RADIUS, SEEKER_MARGIN, height - SEEKER_MARGIN
+				height / 2.0 + sin(ang) * radius, SEEKER_MARGIN, height - SEEKER_MARGIN
 			)  # PORT: web/src/tilt-to-live/TiltEntranceCinematic.ts:209
 			_swarm.spawn_seeker(bounds, x, y)
 		_weapons.spawn_orb(bounds, Types.WeaponType.NUKE, width / 2.0, orb_y)  # PORT: :212

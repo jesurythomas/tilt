@@ -194,3 +194,17 @@ func test_a_resize_mid_cinematic_keeps_it_showing_and_filled() -> void:
 	var fill: Control = c.find_child("BarFill", true, false) as Control
 	assert_eq(track.size, Vector2(320.0, 4.0))
 	assert_almost_eq(fill.size.x, 160.0, 0.001, "still half full after the rebuild")
+
+
+func test_start_ring_scales_with_the_arena_on_large_screens() -> void:
+	# DIVERGENCE(M11c P8): user ruling 2026-09-26 — further away, easier to evade.
+	for size: Vector2 in [Vector2(2162.0, 1056.0), Vector2(1280.0, 720.0)]:
+		_swarm.enemies.clear()
+		var c: EntranceCinematic = _cinematic()
+		c.start(size.x, size.y, Types.GameMode.CLASSIC)
+		c.skip(size.x, size.y)
+		var expected: float = minf(size.x, size.y) * 0.42
+		assert_gt(expected, 260.0, "above the TS floor at %s" % size)
+		for e: Types.Enemy in _swarm.enemies:
+			var d: float = Vector2(e.x, e.y).distance_to(size / 2.0)
+			assert_almost_eq(d, expected, 0.01, "ring radius at %s" % size)
