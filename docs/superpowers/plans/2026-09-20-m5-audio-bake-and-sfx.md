@@ -1422,12 +1422,20 @@ git log -1 --format=%B
 
 ---
 
+## Execution rulings
+
+No SDD ledger was kept for M5; every ruling made during execution is recorded here.
+
+- **Task 4 (2026-09-25).** (a) `_spy.requested.front()` returns an untyped `Variant` and fails under warnings-as-errors; the test indexes `_spy.requested[0]`. (b) The plan's milestone expectation `[10, 16, 25, 40]` was wrong: `ScoreManager.ts:128` chimes at 25 and at every `comboCount > 25 && comboCount % 15 === 0`, so the test expects `[10, 16, 25, 30, 45]`. No production change.
+- **Task 5 (2026-09-25).** The A55 was absent from `adb`, so no APK was built and `VERIFY-ME.md` §M5 was appended with all seven checks unticked.
+- **Task 6 (2026-09-25).** Exit verification passed fresh: bake re-run left `godot/assets/audio/sfx/` unchanged; `OK: 50/50 scripts` (Tests 549, Asserts 17667); 90 files unchanged; gdlint clean; `TODO(M5)` and ff4757 greps empty; DIVERGENCE 178, `DIVERGENCE(M5 R2)` 1; headless `--quit-after 120` SCRIPT ERROR 0, "missing baked sfx" 0. No open questions raised.
+
 ### Task 6: Module exit protocol (CONVENTIONS §9)
 
 **Files:**
 - Modify: `godot/PORT-PROGRESS.md` (the M5 box and its `.ogg` acceptance line, R1), `godot/HANDOFF.md` (rewrite `## State`, add `## M5 — what landed`, rewrite `## Next`), `docs/superpowers/plans/2026-09-20-peril-point-godot-port-index.md` (row 5: plan filename and status)
 
-- [ ] **Step 1: Verify, fresh, and read every output**
+- [x] **Step 1: Verify, fresh, and read every output**
 
 ```bash
 cd /c/Users/Jesury/Documents/Personal/dread-flock
@@ -1449,7 +1457,7 @@ git status --short                        # expect: empty
 
 If any command differs from its expectation, the module is not done: fix it or stop and report.
 
-- [ ] **Step 2: Tick `PORT-PROGRESS.md`**
+- [x] **Step 2: Tick `PORT-PROGRESS.md`**
 
 Replace the M5 entry with:
 
@@ -1466,7 +1474,7 @@ Replace the M5 entry with:
 
 Change the M6 entry's stem wording only if it names `.ogg` (it does not at the time of writing).
 
-- [ ] **Step 3: Rewrite `HANDOFF.md`**
+- [x] **Step 3: Rewrite `HANDOFF.md`**
 
 Rewrite it for a session with zero context:
 - `## State`: M5 is code-complete with the device pass pending; give the final commit SHA.
@@ -1484,7 +1492,7 @@ Copy every execution ruling from the SDD ledger (if one was kept) into this plan
 
 In the index plan, set row 5 to `| 5 | Audio bake + SFX | M2 | \`2026-09-20-m5-audio-bake-and-sfx.md\` | **code complete** — device pass pending (\`godot/VERIFY-ME.md\`) |`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add godot/PORT-PROGRESS.md godot/HANDOFF.md docs/superpowers/plans/2026-09-20-peril-point-godot-port-index.md docs/superpowers/plans/2026-09-20-m5-audio-bake-and-sfx.md
@@ -1492,4 +1500,4 @@ git commit -m "M5 done: next read godot/HANDOFF.md + VERIFY-ME.md, then plan M6"
 git log -1 --format=%B
 ```
 
-- [ ] **Step 5: Stop.** Report to the user and do not begin M6 (CONVENTIONS §9 step 5).
+- [x] **Step 5: Stop.** Report to the user and do not begin M6 (CONVENTIONS §9 step 5).

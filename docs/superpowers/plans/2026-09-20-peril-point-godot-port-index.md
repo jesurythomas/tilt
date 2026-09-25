@@ -68,7 +68,7 @@ Copied verbatim from the spec and `CONVENTIONS.md`. Every task in every module p
 | 2.5 | **Mobile feel** — input, HUD, arena inset | M2 | `2026-09-20-m2.5-mobile-feel.md` | **code complete** — device pass pending (`godot/VERIFY-ME.md`) |
 | 3 | Enemy roster (12 remaining types, 8 formations) | M2 | `2026-09-20-m3-enemy-roster.md` | **code complete** — device pass pending (`godot/VERIFY-ME.md`) |
 | 4 | Weapons (6 remaining) | M2 | `2026-09-20-m4-weapons.md` | **code complete** — device pass pending (`godot/VERIFY-ME.md`) |
-| 5 | Audio bake + SFX | M2 | `2026-09-20-m5-audio-bake-and-sfx.md` | planned 2026-09-25 |
+| 5 | Audio bake + SFX | M2 | `2026-09-20-m5-audio-bake-and-sfx.md` | **code complete** — device pass pending (`godot/VERIFY-ME.md`) |
 | 6 | Generative music sequencer | M5 | not yet written | — |
 | 7 | Persistence and economy | M2 | `2026-09-20-m7-persistence-and-economy.md` | **code complete** — device pass pending (`godot/VERIFY-ME.md`) |
 | 8 | Armory UI (+ cosmetics in the renderer, user ruling 2026-09-22) | M7 | `2026-09-20-m8-armory-ui.md` | **code complete** — device pass pending (`godot/VERIFY-ME.md`) |

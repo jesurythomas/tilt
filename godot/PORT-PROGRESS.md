@@ -128,9 +128,14 @@ Dependency map and resume instructions:
             it stays false.
       --  NOT run on a phone (A55 off adb all session). See VERIFY-ME.md §M4.
 
-- [ ] **M5 — Audio bake and SFX**  deps: M2
-      -- every `play*` method in TiltAudio.ts has a baked .ogg that fires correctly
-      -- a missing file logs and continues without crashing
+- [x] **M5 — Audio bake and SFX**  deps: M2  done 2026-09-25  539d654  DEVICE PASS PENDING
+      ok  every `play*` method in TiltAudio.ts has a baked .wav (M5 R1: WAV,
+          not .ogg) — 37 files from tools/bake-audio/bake_sfx.mjs.
+      ok  each live SFX fires at its TS moment (test_audio_call_sites.gd);
+          a missing file logs and plays silence (test_audio_bank.gd).
+      ok  50/50 GUT scripts (549 tests); gdformat/gdlint clean; `TODO(M5)`
+          grep empty; headless 0 SCRIPT ERROR.
+      --  device pass pending — `VERIFY-ME.md` §M5.
 
 - [ ] **M6 — Generative music**  deps: M5
       -- music plays and evolves across bars

@@ -4,7 +4,12 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**M5 in progress: Tasks 1–5 landed; next Task 6 (exit protocol).** Plan `docs/superpowers/plans/2026-09-20-m5-audio-bake-and-sfx.md`; see `## Next`. Task 1: `tools/bake-audio/bake_sfx.mjs` wrote 37 deterministic WAVs to `godot/assets/audio/sfx/` (imported as QOA, `.import` sidecars committed); spec §4.2/§8 M5 amended to `.wav`. Task 2: `AudioBank` now plays them — `attach(host)` (called in `GameRoot._ready`, M5 R10) loads the 37 files into a 32-voice `AudioStreamPolyphonic` (`DIVERGENCE(M5 R2)`, overflow dropped); mute/sfx volume drive the player's `volume_linear`; lightning pitch-randomised (R6); music still `TODO(M6)`. `tests/spy_audio_bank.gd` (`SpyAudioBank`) records requests for Tasks 3–4. Task 3: `GameStateMachine._init` now takes `audio, options`; `unlock` at `launch_run`, `stop_music` at `return_to_menu`/`stop`/pause/`open_armory`, `start_music` on resume when music is on (both still `TODO(M6)` bodies); sound options applied in `RunController.reset_run` (R11). No `TODO(M5)` remains. Task 4: `tests/test_audio_call_sites.gd` (10 tests, no production change) proves each live SFX fires at its TS moment; the plan's milestone expectation was corrected to the TS (`ScoreManager.ts:128`: 10, 16, 25, 30, 45 — never 40). Suite 50/50 scripts, 549 tests; DIVERGENCE 178. Task 5: A55 absent from `adb` on 2026-09-25, so `VERIFY-ME.md` §M5 was appended with all seven checks unticked (no APK built).
+**M5 — Audio bake and SFX: code-complete, device pass pending.** Exit verified at
+`539d654` (2026-09-25); the exit commit is the one carrying this text. Plan
+`docs/superpowers/plans/2026-09-20-m5-audio-bake-and-sfx.md`. 37 SFX baked from
+`TiltAudio.ts` to WAV (M5 R1) and played through a 32-voice `AudioBank`; music is
+still `TODO(M6)`. Full section: `## M5 — what landed` below. Device checks:
+`VERIFY-ME.md` §M5 (A55 absent on 2026-09-25). **Next: plan M6** (see Next below).
 
 **M10 — Modes: code-complete, device pass pending.** Final commit `2e6b2d2`
 (exit commit for the whole module — final review fixes F-1..F-4 landed at
@@ -88,15 +93,17 @@ Branch: `feat/godot-port` (no upstream; nothing pushed).
 cd /c/Users/Jesury/Documents/Personal/dread-flock
 GODOT="/c/Users/Jesury/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe"
 
-tools/run_tests.sh                        # expect: OK: 49/49 scripts (520 tests, 17359 asserts)
-gdformat --check godot/src godot/tests    # expect: 88 files would be left unchanged
+node tools/bake-audio/bake_sfx.mjs | tail -1   # expect: OK: 37 files in …
+git status --short godot/assets/audio/sfx/     # expect: empty (the bake is deterministic)
+tools/run_tests.sh                        # expect: OK: 50/50 scripts (549 tests, 17667 asserts)
+gdformat --check godot/src godot/tests    # expect: 90 files would be left unchanged
 gdlint godot/src godot/tests              # expect: Success: no problems found
-grep -rn "TODO(M10)" godot/src/ godot/tests/  # expect: nothing
+grep -rn "TODO(M5)" godot/src/ godot/tests/   # expect: nothing
 grep -rniE "ff4757" godot/src/ui/         # expect: nothing (rule 01)
-grep -rn "DIVERGENCE" godot/src/ | wc -l  # expect: 177
-grep -rn "DIVERGENCE(UI-SYSTEM)" godot/src/ | wc -l   # expect: 106
-grep -rn "DIVERGENCE(M10 R1)" godot/src/ | wc -l   # expect: 3
+grep -rn "DIVERGENCE" godot/src/ | wc -l  # expect: 178
+grep -rn "DIVERGENCE(M5 R2)" godot/src/ | wc -l   # expect: 1
 "$GODOT" --headless --path godot --quit-after 120 2>&1 | grep -c "SCRIPT ERROR"   # expect: 0
+"$GODOT" --headless --path godot --quit-after 120 2>&1 | grep -c "missing baked sfx"   # expect: 0
 git checkout godot/project.godot          # headless runs strip one default-valued line; never commit that
 ```
 
@@ -139,6 +146,14 @@ headless `--quit-after 120` SCRIPT ERROR count **0**; `git status --short`
 empty both before this task's own doc changes were staged and after
 `git checkout godot/project.godot`. This is the module's exit evidence —
 M10 is now code-complete, device pass pending.
+
+Re-run fresh at **M5 Task 6's exit** (2026-09-25, at `539d654`): bake printed
+`OK: 37 files` and left `godot/assets/audio/sfx/` unchanged; `OK: 50/50 scripts
+collected, all tests passed` (Tests **549**, Passing 549, Asserts **17667**);
+`90 files would be left unchanged`; `Success: no problems found`; TODO(M5) and
+ff4757 greps empty; DIVERGENCE **178**, `DIVERGENCE(M5 R2)` **1**; headless
+SCRIPT ERROR **0**, "missing baked sfx" **0**; `git status --short` empty after
+`git checkout godot/project.godot`. This is M5's exit evidence.
 
 `--check-only -s` on `src/meta/progression_manager.gd`, `game_options.gd`,
 `save_store.gd`, `sim/coin_system.gd` each fail with `Identifier not found:
@@ -1042,28 +1057,68 @@ cinematic handover** (R3 — `TiltEntranceCinematic.ts:192-215`'s
 `spawn_mode_armada` call plus Classic's 8-seeker/nuke-orb/2.5 s-shield
 opening).
 
+## M5 — what landed
+
+Plan `docs/superpowers/plans/2026-09-20-m5-audio-bake-and-sfx.md` (Tasks 1–6,
+commits `160ebb2`..exit). No SDD ledger was kept; execution rulings are in the
+plan's `## Execution rulings`.
+
+| File | What |
+|---|---|
+| `tools/bake-audio/bake_sfx.mjs` | Runs `TiltAudio.ts` unmodified in headless Chrome (Puppeteer from `web/node_modules`), renders each `play*` through `OfflineAudioContext`, and writes 37 16-bit mono 44.1 kHz WAVs. Deterministic. |
+| `godot/assets/audio/sfx/*.wav` (+ `.import`) | 37 baked files (15 `dot_pop_NN`, 4 `space_invader_step_N`, 18 singles), imported as QOA. |
+| `godot/src/audio/audio_bank.gd` | `attach(host)` builds a 32-voice `AudioStreamPolyphonic` player and loads the bank. Every `play_*` plays its file. Mute and sfx volume drive `volume_linear`. Lightning is pitch-randomised. `music_gain` is stored for M6. `start_music`/`stop_music` are still `TODO(M6)`. |
+| `godot/src/core/game_root.gd` | Calls `audio.attach(self)` in `_ready` (R10). |
+| `godot/src/core/game_state_machine.gd` | `_init` takes `audio, options`. `unlock` fires at `launch_run`, `stop_music` at menu/stop/pause/armory, and `start_music` on resume when music is on. |
+| `godot/src/sim/run_controller.gd` | Applies the mute/sfx/music options in `reset_run` (R11). |
+| `godot/tests/spy_audio_bank.gd` | `SpyAudioBank`, a helper that records play and music-lifecycle requests. |
+| `godot/tests/test_audio_bank.gd`, `test_audio_call_sites.gd` | Bank behaviour, plus proof that each live SFX fires at its TS moment. `test_game_state_machine.gd`, `test_run_controller.gd` and `test_main_scene.gd` were extended. |
+| spec §4.2, §8 M5 | `.ogg` changed to `.wav`. |
+
+Rulings, one line each:
+- **R1** WAV (QOA import), not Ogg: this host has no Ogg encoder.
+- **R2** 32-voice cap; overflow is dropped (`DIVERGENCE(M5 R2)`).
+- **R3** The bake runs `TiltAudio.ts` unmodified, with only three page shims (offline context, instant `resume`, `Math.random` = 0.5).
+- **R4** The baked level is the full TS graph (sfx 1.0 × master 0.28). At run time only sfx volume and mute are applied.
+- **R5** Render length is each method's last `stop()` time, with no trim and no added tail.
+- **R6** `dot_pop` ×15 and `space_invader_step` ×4. Lightning is baked at 1400 Hz and pitch-scaled at play time.
+- **R7** No `GameEvents` wiring: the sim calls `AudioBank` directly, as the TS does.
+- **R8** `ice_cascade`, `gauntlet_klaxon`, `space_invader_step`, `invasion_alarm` and `warp_in` are baked but not called. `play_warp_in` belongs to M11's cinematic.
+- **R9** Music stays in M6. `music_gain` = clamp(vol) × 0.35 is public for M6.
+- **R10** `attach()` stands in for `unlock()`'s context creation. `unlock()` is a no-op called at its TS site.
+- **R11** Sound options are applied in `RunController.reset_run`, because Retry bypasses the state machine.
+
+## Open questions (M5)
+
+None raised during execution. The Task 4 milestone correction (a plan error,
+not a port change) is recorded in the plan's `## Execution rulings`.
+
 ## Next
 
-**M10 is closed (device pass pending). M5 — Audio bake + SFX is the only
-module left before M11.**
+**M5 is closed (device pass pending). Next module: M6 — Generative music**
+(deps M5). No plan exists yet.
 
-**M5 plan written 2026-09-25:**
-`docs/superpowers/plans/2026-09-20-m5-audio-bake-and-sfx.md` (6 tasks,
-rulings R1–R11). User rulings at plan time: **R1** bake to 16-bit mono WAV
-(QOA import), not `.ogg` (no Ogg encoder on this host); **R2** 32-voice cap
-(`AudioStreamPolyphonic` default), overflow dropped. The bake runs
-`TiltAudio.ts` unmodified in headless Chrome via Puppeteer's
-`OfflineAudioContext` (spiked and working 2026-09-25).
+**First step, literally:** read `web/src/tilt-to-live/TiltAudio.ts:12-20` and
+`:82-479` in full, then spec §8 Module 6, then write
+`docs/superpowers/plans/2026-09-20-m6-generative-music.md`. Commit the plan and
+stop for review before executing it.
 
-**First step, literally:** Tasks 1–5 landed 2026-09-25 (`VERIFY-ME.md` §M5
-appended unticked; A55 absent). Read the M5 plan's Global Constraints and
-Task 6, then execute Task 6 (module exit protocol) and stop. Tick each task and
-commit per `CLAUDE.md`. Re-bake (only if `TiltAudio.ts` changes):
-`node tools/bake-audio/bake_sfx.mjs`, then `godot --headless --path godot --import`.
+Carry into the M6 plan:
+- M6 fills `AudioBank.start_music`/`stop_music` (`TODO(M6)`), reads
+  `AudioBank.music_gain`, and must honour `_muted`: the TS master mute silences
+  music too (`:54`, `:106`).
+- The music drums use a noise buffer (`:114-124`, `Math.random`), so an M6 bake
+  is not deterministic unless it pins `Math.random`. Decide this at plan time.
+- The TS starts music when the cinematic ends (`TiltGame.ts:169-172`). The
+  cinematic is M11, so M6 must choose where a run's music starts until then.
+- M11 must call `play_warp_in` from the cinematic (`TiltEntranceCinematic.ts:74`, M5 R8).
+- `tools/bake-audio/bake_sfx.mjs` is the pattern for any music-stem bake.
+  Re-bake the SFX only if `TiltAudio.ts` changes: run `node tools/bake-audio/bake_sfx.mjs`,
+  then `godot --headless --path godot --import`.
 
 Before starting: `git status --short` must be clean under `godot/`
 (the user may leave device tuning uncommitted — never stash or revert it),
 and read `godot/VERIFY-ME.md` for the outstanding M2.5/M3/M4/M5/M7/M8.5/M9/M10
 and "Mobile scale split" device checks. If the A55 is back on `adb`, offer
-the device pass first — it would clear eight modules' pending boxes in one
-session (absent since 2026-09-21, still absent on 2026-09-25).
+the device pass first. It would clear the pending boxes of eight modules and
+the scale split in one session (absent since 2026-09-21, still absent on 2026-09-25).
