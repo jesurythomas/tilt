@@ -889,8 +889,13 @@ func test_pause_quit_to_menu_hides_everything_and_stops_music() -> void:
 
 func test_run_over_menu_returns_to_the_menu() -> void:
 	var root: GameRoot = await _boot_into_run()
+	root._player.shield_timer = 0.0  # M11b: past the cold open's spawn shield (:216)
 	root._run_controller.lives = 1
 	root._run_controller.lose_life()
+	assert_eq(root._state.phase, Types.GamePhase.GAME_OVER)
+	# PORT: web/src/tilt-to-live/TiltGame.ts:2089-2151 — the sheet fills 450 ms
+	# after the death tick (I-1).
+	await get_tree().create_timer(0.5).timeout
 	(root.find_child("GameOverMenuButton", true, false) as Button).pressed.emit()
 	assert_true(root.is_in_menu(), "TiltGame.ts:1428-1430")
 	assert_false((root.find_child("GameOverPanel", true, false) as Control).visible, ":1503")
