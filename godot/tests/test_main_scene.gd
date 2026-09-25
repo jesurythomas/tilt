@@ -798,3 +798,48 @@ func test_pause_settings_opens_the_options_modal_over_pause() -> void:
 		"closing the modal takes its confirm with it"
 	)
 	assert_true((root.find_child("PausePanel", true, false) as Control).visible, "back to Pause")
+
+
+func test_closing_settings_from_pause_refreshes_the_pause_sheet() -> void:
+	# Final review I-2 (DIVERGENCE(M11a I-2)): closing Settings over Pause
+	# emitted nothing, so Pause's own Sound switch kept showing whatever it
+	# read when Pause first opened, even after Settings changed the option.
+	var root: GameRoot = await _boot_into_run()
+	(root.find_child("PauseButton", true, false) as Button).pressed.emit()
+	root.open_options_from_pause()
+	(root._menu.find_child("SfxSwitch", true, false) as CheckButton).toggled.emit(false)
+	(root.find_child("OptionsBackButton", true, false) as Button).pressed.emit()
+	var pause_sound: CheckButton = (
+		(root.find_child("PausePanel", true, false) as Control).find_child(
+			"SoundSwitch", true, false
+		)
+		as CheckButton
+	)
+	assert_eq(
+		pause_sound.button_pressed,
+		root.options.settings.sfx_enabled,
+		"Pause's own switch must reflect a change made in Settings (final review I-2)"
+	)
+
+
+func test_launch_run_does_not_recalibrate_the_gyro() -> void:
+	# Final review I-1(b): launch_run's uncited calibrate_current_position()
+	# call (TiltGame.ts launchRun/resetRun never recalibrate) silently
+	# overwrote whatever pose the player had just set on the Calibrate
+	# board, because Play always follows Calibrate back to the menu.
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	root._tilt.start_listening()
+	root._tilt.calibrate_current_position()
+	var pose: Vector3 = Vector3(2.0, -8.0, -5.7)
+	root._tilt.apply_gravity(pose, 90)
+	assert_false(root._tilt.is_calibration_pending(), "the pose is captured before Play")
+	var calibrated_before: Vector3 = root._tilt._calibrated_gravity
+	root.launch_run(root.options.settings.mode)
+	assert_false(root._tilt.is_calibration_pending(), "launch_run must not re-arm a calibration")
+	assert_eq(
+		root._tilt._calibrated_gravity,
+		calibrated_before,
+		"launch_run must not recalibrate the gyro (final review I-1)"
+	)

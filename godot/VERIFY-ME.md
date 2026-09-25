@@ -575,7 +575,16 @@ Run §0 first.
 - [ ] 7. Calibrate from the menu icon, and from Settings' "Calibrate tilt"
       (Tilt scheme only): the dot moves with the phone and stops at the
       dashed ring. Set level → toast "TILT CALIBRATED" on the menu. The next
-      Tilt run is level at that pose.
+      Tilt run is level at that pose — **but only the first Play from the
+      menu.** Restart run and Play again both re-run `restart_run`'s own
+      calibrate (an M2.5 decision, VERIFY-ME check 4, "PLAY AGAIN
+      recalibrates to the pose held at that moment"), which overwrites a
+      Set-level pose with whatever the phone is doing at that instant.
+      `launch_run` (the menu's own Play) does not recalibrate (final review
+      I-1), so a Set-level pose only survives the very next Play, not a
+      later Restart/PLAY AGAIN. Judge on device whether this asymmetry feels
+      wrong — if so it is a one-line change (add or drop the calibrate call
+      at either site) once you say which behaviour you want.
 - [ ] 8. Reset progress → Cancel changes nothing. Reset → confirm → the app
       reloads to the menu, settings are back to defaults; milestones,
       points, unlocks and the best score are cleared; the control scheme and

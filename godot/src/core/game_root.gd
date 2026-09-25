@@ -155,8 +155,9 @@ func _ready() -> void:
 	_menu.sfx_toggled.connect(set_sfx_enabled)
 	_menu.music_toggled.connect(set_music_enabled)
 	_menu.reset_confirmed.connect(reset_progress)  # PORT: web/src/tilt-to-live/TiltMenu.ts:510
-	# PORT-NOTE: no TS counterpart — Settings closing over Pause left its
-	# switches/picker/Calibrate-visibility stale (final review I-2).
+	# Settings closing over Pause left its switches/picker/Calibrate-visibility
+	# stale (final review I-2); see options_closed's own citation and
+	# _on_options_closed below.
 	_menu.options_closed.connect(_on_options_closed)
 	# The Calibrate board (M11a R4, R5).
 	_calibrate_screen.bind(_tilt)
@@ -370,10 +371,11 @@ func open_options_from_pause() -> void:
 	_menu.open_options_modal()
 
 
-## PORT-NOTE: Settings has no TS re-render to keep Pause's own
+## DIVERGENCE(M11a I-2): Settings has no TS re-render to keep Pause's own
 ## switches/picker/Calibrate-visibility in sync once it closes back over a
 ## paused run — re-run the same refresh `_on_pause_pressed` does (final
-## review I-2). A no-op when Pause was never the opener (is_paused() false).
+## review I-2). Harmless when Pause was never the opener: `is_paused()` is
+## false, so this just re-hides an already-hidden panel.
 func _on_options_closed() -> void:
 	_hud.set_pause_panel_visible(is_paused())
 

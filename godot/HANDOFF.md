@@ -215,8 +215,35 @@ Asserts 17968 — unchanged from Task 7); `96 files would be left unchanged`;
 `Success: no problems found`; every grep above matched its expected count;
 DIVERGENCE total **232** (unchanged from Task 7); headless `--quit-after 240`
 SCRIPT ERROR count **0**; `"$ADB" devices` listed nothing (A55 absent from
-`adb`). This is M11a's exit evidence — M11a is now code-complete, device
-pass pending.
+`adb`). This was M11a's first exit-evidence pass, before the controller's own
+review of `91ea153` (below).
+
+Re-run fresh after the **controller's fix-round 1** (2026-09-25, same-day
+follow-up commit): the I-2 addition got retagged `DIVERGENCE(M11a I-2)` (Law
+4 — new behaviour, no TS counterpart, so `PORT-NOTE` was the wrong tag), and
+two regression tests were added (I-2's stale-Pause-switch fix,
+I-1(b)'s launch_run-must-not-recalibrate fix), both proven RED before the fix
+and GREEN after by temporarily reverting each fix in turn.
+
+```bash
+tools/run_tests.sh                              # OK: 53/53 scripts (611 tests, 17972 asserts)
+gdformat --check godot/src godot/tests          # 96 files would be left unchanged
+gdlint godot/src godot/tests                    # Success: no problems found
+grep -rn "DIVERGENCE(M11a I-2)" godot/src | wc -l  # 2
+grep -rn "DIVERGENCE" godot/src/ | wc -l        # 234
+"$GODOT" --headless --path godot --quit-after 240 2>&1 | grep -c "SCRIPT ERROR"   # 0
+git checkout godot/project.godot
+```
+
+`OK: 53/53 scripts collected, all tests passed` (Tests **611**, Passing 611,
+Asserts **17972** — +2 over the first pass, the two new regression tests);
+`96 files would be left unchanged`; `Success: no problems found`; DIVERGENCE
+total **234** (+2 over the first pass — the `options_closed` signal
+declaration and the `_on_options_closed` doc comment, the two I-2 sites; the
+`.connect()` call site keeps a plain comment, not its own tag, so the count
+isn't triple-counted); headless `--quit-after 240` SCRIPT ERROR count **0**.
+This is M11a's exit evidence — M11a is now code-complete, device pass
+pending.
 
 `--check-only -s` on `src/meta/progression_manager.gd`, `game_options.gd`,
 `save_store.gd`, `sim/coin_system.gd` each fail with `Identifier not found:
@@ -1314,8 +1341,13 @@ clean; `TODO(M11)` grep empty; the boundary-aware `M10 R1` grep
 (`grep -rnE "M10 R1([^0-9]|$)"`) empty; `ff4757` grep empty; `DIVERGENCE(M11a
 R1)` ×3; `DIVERGENCE(M11a Q[12])` ×2; `DIVERGENCE` total 232 (unchanged from
 Task 7); headless `--quit-after 240` 0 SCRIPT ERROR; `"$ADB" devices` listed
-nothing (A55 absent). Full command block and fresh output: "## How to verify
-right now" above.
+nothing (A55 absent). **After the controller's own review of this exit
+commit (fix-round 1, same day):** DIVERGENCE total **234** (+2,
+`DIVERGENCE(M11a I-2)`, retagged from `PORT-NOTE` per Law 4 — new behaviour
+with no TS counterpart requires a divergence tag, not a plain note), tests
+**611** (+2, regression coverage for I-2 and I-1(b), both proven RED before
+their fix and GREEN after). Full command block and fresh output: "## How to
+verify right now" above.
 
 ## Open questions (M11a)
 
@@ -1346,9 +1378,21 @@ over `b65eb14..HEAD`): 0 Critical, 2 Important, 5 Minor.
 - **I-2 — fixed.** `TiltMenu.close_options_modal()` emitted nothing, so
   closing Settings from Pause left Pause's Sound/Music switches, its
   `ControlPicker` scheme and its Calibrate-button visibility stale. Fixed: a
-  new `TiltMenu.options_closed` signal (`DIVERGENCE(UI-SYSTEM)`), connected in
-  `GameRoot._ready` to `_on_options_closed` → `_hud.set_pause_panel_visible(is_paused())`,
-  the same refresh `_on_pause_pressed` already does.
+  new `TiltMenu.options_closed` signal, connected in `GameRoot._ready` to
+  `_on_options_closed` → `_hud.set_pause_panel_visible(is_paused())`, the
+  same refresh `_on_pause_pressed` already does; harmless (not a true no-op)
+  when Pause was never the opener — `is_paused()` reads false, so it just
+  re-hides an already-hidden panel.
+- **Controller review round 1 of this exit commit** (same day, follow-up
+  commit): the I-2 signal/handler is new behaviour with no TS counterpart, so
+  Law 4 requires `DIVERGENCE(M11a I-2)`, not `PORT-NOTE` — retagged both
+  sites (DIVERGENCE total 232 → 234). Added regression tests for I-2 and
+  I-1(b), both RED-then-GREEN verified by temporarily reverting each fix
+  (tests 609 → 611). VERIFY-ME §M11a check 7 amended to flag the
+  Restart/PLAY AGAIN-vs-first-Play calibration asymmetry the I-1 fix leaves
+  (M2.5's `restart_run` still recalibrates on every restart; the menu's
+  `launch_run` no longer does on the very first Play) for the device pass to
+  judge.
 - **Deferred Minors** (recorded, not fixed — full text in the plan's
   `## Execution rulings`, Task 8 entries): M-1 `return_to_menu`'s
   `camera_shake = 0.0` reset is miscredited to R2 in its comment; M-2 four
