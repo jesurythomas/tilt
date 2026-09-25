@@ -578,3 +578,32 @@ func test_the_boot_run_starts_the_music_when_it_is_on() -> void:
 		root.options.settings.music_enabled,
 		"reset_run starts it at the cinematic's stand-in (M6 R7)"
 	)
+
+
+func test_shake_offsets_the_arena_layers_and_decays() -> void:
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	root.trigger_shake(10.0)
+	assert_eq(root.camera_shake, 10.0, "TiltRenderer.ts:16")
+	await get_tree().process_frame
+	assert_almost_eq(root.camera_shake, 8.8, 0.0001, "x0.88 per rendered frame (:51)")
+	var grid_layer: Node2D = root.find_child("GridLayer", true, false) as Node2D
+	var entity_layer: Node2D = root.find_child("EntityLayer", true, false) as Node2D
+	var effect_layer: Node2D = root.find_child("EffectLayer", true, false) as Node2D
+	assert_eq(grid_layer.position, entity_layer.position, "one offset for the whole ctx.save")
+	assert_eq(grid_layer.position, effect_layer.position)
+	assert_true(absf(grid_layer.position.x) <= 10.0 and absf(grid_layer.position.y) <= 10.0)
+
+
+func test_halo_option_reaches_the_entity_layer() -> void:
+	var saved: GameOptionsManager = GameOptionsManager.new()
+	saved.settings.high_contrast_halo = false
+	saved.save()
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	assert_false(root._entity_layer._high_contrast_halo, "TiltGame.ts:2281/:2314")
+	root.options.settings.high_contrast_halo = true
+	root.apply_readability()
+	assert_true(root._entity_layer._high_contrast_halo)

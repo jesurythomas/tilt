@@ -44,6 +44,9 @@ const TOUCH_JOYSTICK_SPEED_SCALE: float = 0.72
 ## by this; the simulation never sees it (M2.5 spec §6.1).
 var arena_origin: Vector2 = Vector2.ZERO
 
+## TiltRenderer.cameraShake. PORT: web/src/tilt-to-live/TiltRenderer.ts:12
+var camera_shake: float = 0.0
+
 ## Player control settings, persisted across launches.
 var settings: ControlSettings = null
 
@@ -101,6 +104,7 @@ func _ready() -> void:
 	)
 	goals = GoalManager.new()  # PORT: web/src/tilt-to-live/TiltGame.ts:66
 	_run_controller.goals = goals
+	_run_controller.trigger_shake = trigger_shake
 	_maze = GauntletMaze.new()  # PORT: web/src/tilt-to-live/TiltGame.ts:62
 	_run_controller.maze = _maze
 	_router = InputRouter.new()
@@ -116,8 +120,7 @@ func _ready() -> void:
 	_state = GameStateMachine.new(_player, _grid, _particles, _router, _tilt, _audio, options)
 
 	_grid_layer.bind(_grid)
-	# PORT: web/src/tilt-to-live/TiltGame.ts:2280 (showGridlines into the renderer)
-	_grid_layer.show_gridlines = options.settings.show_gridlines
+	apply_readability()
 	_entity_layer.bind_entities(_player, _swarm, _weapons, _coins)
 	_entity_layer.bind_maze(_maze)
 	_effect_layer.bind(_particles, _scores, _weapons)
@@ -226,6 +229,16 @@ func _physics_process(delta: float) -> void:
 
 
 func _process(_delta: float) -> void:
+	# PORT: web/src/tilt-to-live/TiltRenderer.ts:46-56 — once per rendered frame,
+	# around everything inside ctx.save()..restore() (:53-156). renderMenuBackground
+	# never reads cameraShake (M11a R2).
+	var offset: Vector2 = Vector2.ZERO
+	if _state.phase != Types.GamePhase.MENU and camera_shake > 0.1:  # PORT: :48
+		offset = Vector2(randf() * 2.0 - 1.0, randf() * 2.0 - 1.0) * camera_shake  # PORT: :49-50
+		camera_shake *= 0.88  # PORT: web/src/tilt-to-live/TiltRenderer.ts:51
+	_grid_layer.position = offset
+	_entity_layer.position = offset
+	_effect_layer.position = offset
 	_grid_layer.queue_redraw()
 	_entity_layer.queue_redraw()
 	_effect_layer.queue_redraw()
@@ -265,6 +278,18 @@ func _update(dt: float) -> void:
 	_entity_layer.set_elapsed(_run_controller.elapsed)
 	_grid_layer.set_elapsed(_run_controller.elapsed)
 	_effect_layer.set_elapsed(_run_controller.elapsed)
+
+
+## PORT: web/src/tilt-to-live/TiltRenderer.ts:15-17
+func trigger_shake(amount: float) -> void:
+	camera_shake = amount
+
+
+## Pushes the readability options into the layers; the TS render reads them per
+## frame (TiltGame.ts:2280-2281, :2313-2317).
+func apply_readability() -> void:
+	_grid_layer.show_gridlines = options.settings.show_gridlines
+	_entity_layer.set_high_contrast_halo(options.settings.high_contrast_halo)
 
 
 ## Switches the active control scheme and persists the choice.

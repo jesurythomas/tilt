@@ -48,6 +48,10 @@ var points_earned_this_run: int = 0
 # (:2111-2144); kept here so HudController's run_ended handler can read it.
 var run_completed_goals: Array[GoalManager.Goal] = []
 
+## renderer.triggerShake. GameRoot sets it; an empty Callable skips the shake (tests).
+## PORT: web/src/tilt-to-live/TiltGame.ts:2064, :2081 (the TS calls the renderer directly)
+var trigger_shake: Callable = Callable()
+
 
 # PORT-NOTE: ten parameters is gdlint's limit and exactly the systems
 # TiltGame.update()/resetRun() touch that this class owns.
@@ -329,6 +333,7 @@ func lose_life() -> void:
 		audio.play_siren()
 		particles.emit_explosion(player.x, player.y, Color("#5b8cff"), 30)
 		grid.apply_explosion(player.x, player.y, 14.0, 220.0)
+		_shake(14.0 * options.get_shake_multiplier())  # PORT: web/src/tilt-to-live/TiltGame.ts:2064
 	else:
 		trigger_player_death()
 
@@ -344,6 +349,7 @@ func trigger_player_death() -> void:
 	particles.emit_explosion(player.x, player.y, Color.WHITE, 50)
 	particles.emit_explosion(player.x, player.y, Color("#5b8cff"), 30)
 	grid.apply_explosion(player.x, player.y, 22.0, 380.0)
+	_shake(24.0 * options.get_shake_multiplier())  # PORT: web/src/tilt-to-live/TiltGame.ts:2081
 
 	scores.finalize_game()
 	# Finalize run goals check (capped at 3 run milestones, plus any cumulative
@@ -363,3 +369,8 @@ func _on_weapon_activated(type: Types.WeaponType) -> void:
 	elif type == Types.WeaponType.MISSILES:
 		run_tracker.missiles_fired += 16  # PORT: :216
 	GameEvents.weapon_activated.emit(type)
+
+
+func _shake(amount: float) -> void:
+	if trigger_shake.is_valid():
+		trigger_shake.call(amount)

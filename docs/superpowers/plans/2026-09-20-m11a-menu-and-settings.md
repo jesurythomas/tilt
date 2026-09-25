@@ -44,7 +44,7 @@ Every `TODO(M11)` in `godot/src` is resolved by M11a or retagged to `TODO(M11b)`
 
 User rulings, taken 2026-09-25 by question before the plan was written:
 
-- **R1 — The backdrop is mirrored to the board (user).** The TS keeps the autopilot ship and its orbs out of the **left** `min(0.38w, 420)` px, because its sidebar was on the left (`TiltGame.ts:1664`, `:1702`, `:1731-1743`). `Main.dc.html` puts the mode panel on the **right** (372 of 844 px). Every x-term of the steering is mirrored as `x' = w - x`: the orb band, the wander centre and phase, and the side margins. Every constant is kept and cited. Tagged `DIVERGENCE(M11a R1)`, once per mirrored block (4 tags).
+- **R1 — The backdrop is mirrored to the board (user).** The TS keeps the autopilot ship and its orbs out of the **left** `min(0.38w, 420)` px, because its sidebar was on the left (`TiltGame.ts:1664`, `:1702`, `:1731-1743`). `Main.dc.html` puts the mode panel on the **right** (372 of 844 px). Every x-term of the steering is mirrored as `x' = w - x`: the orb band, the wander centre and phase, and the side margins. Every constant is kept and cited. Tagged `DIVERGENCE(M11a R1)`, once per mirrored block (3 tags: orb band, wander, side margins; execution ruling 2026-09-25 — the plan first said 4).
 - **R2 — Screen shake and Enemy outlines work (user).** `TiltRenderer.triggerShake` / `cameraShake` (`TiltRenderer.ts:12-17`, `:46-56`) are ported into `GameRoot`, the port's render dispatch (spec §5.1). Its two call sites (`TiltGame.ts:2064`, `:2081`) reach it through a `Callable` that `RunController` holds (`trigger_shake`), as the TS calls `renderer` directly. The offset is applied to the `position` of `GridLayer`, `EntityLayer` and `EffectLayer`, which is everything inside the TS `ctx.save()`…`ctx.restore()` at `:53-156`. It decays ×0.88 once per rendered frame (`_process`) and only outside `MENU`, because `renderMenuBackground` never reads `cameraShake`. `options.settings.high_contrast_halo` reaches `EntityLayer.set_high_contrast_halo` at boot and after every Settings change.
 - **R3 — Aim line is omitted (user).** The TS "Aim line" switch drives `renderMouseReticle`'s tether (`TiltRenderer.ts:229-243`), which the port never ported. On Android, Touch is a joystick, so there is no pointer to aim at. The Settings board has no such row. `open_options_modal` omits it, with a PORT-NOTE. `settings.tether_line` still loads and saves unchanged. **Background grid stays** (Rule N, M8.5), because it works.
 - **R4 — Calibrate shows a live dot (user).** The Calibrate board is built as drawn. Its dot is drawn every frame at `TiltInput.tilt_vector` × the top-speed ring's radius, clamped to that ring, and tagged `DIVERGENCE(UI-SYSTEM)`. **Set level** calls `GameRoot.calibrate_gyro()` (existing: calibrate + toast) and closes. **Cancel** closes. The screen starts the sensor as it opens (`request_permission_and_start`). If the phase is `MENU`, it stops the sensor as it closes, because `reset_run` owns the sensor during a run (`TiltGame.ts:1553-1557`).
@@ -80,7 +80,7 @@ Copied from `CONVENTIONS.md`, the index plan and the M6 plan. Every task implici
 - **Tests run only via `tools/run_tests.sh`.** Baseline at the M6 exit: `OK: 50/50 scripts (559 tests, 17696 asserts)`. This plan adds three scripts (`test_menu_backdrop.gd`, `test_tilt_menu.gd`, `test_calibrate_screen.gd`), so 53. Each task below states its **delta** in tests. If a delta differs, reconcile it before committing and never change the expectation to match. A test deleted for a removed feature (the M10 R1 picker, Task 7) is named in that task's commit message.
 - **Format/lint:** `gdformat --check godot/src godot/tests` (90 files at baseline; +6 new files → 96) and `gdlint godot/src godot/tests` must be clean before every commit. Never run bare `gdformat` on existing files. Never touch `godot/addons/`. gdlint `max-line-length` is 100. A file whose public-method count trips gdlint opens with `# gdlint:ignore=max-public-methods`, as `audio_bank.gd` does.
 - **Headless runs strip one line from `godot/project.godot`.** Every commit step begins with `git checkout godot/project.godot`.
-- **`DIVERGENCE` count:** 181 at the M6 exit. M11a adds `DIVERGENCE(M11a R1)` ×4, `DIVERGENCE(M11a Q1)` ×1, `DIVERGENCE(M11a Q2)` ×1, plus the new `DIVERGENCE(UI-SYSTEM)` board literals, and removes `DIVERGENCE(M10 R1)` ×3 (Task 7). Each task's commit step records the new total with `grep -rn "DIVERGENCE" godot/src/ | wc -l`, and the exit writes it into `HANDOFF.md`.
+- **`DIVERGENCE` count:** 181 at the M6 exit. M11a adds `DIVERGENCE(M11a R1)` ×3, `DIVERGENCE(M11a Q1)` ×1, `DIVERGENCE(M11a Q2)` ×1, plus the new `DIVERGENCE(UI-SYSTEM)` board literals, and removes `DIVERGENCE(M10 R1)` ×3 (Task 7). Each task's commit step records the new total with `grep -rn "DIVERGENCE" godot/src/ | wc -l`, and the exit writes it into `HANDOFF.md`.
 - **`user://` on the test host** is `%APPDATA%\Godot\app_userdata\Peril Point\`. A spec that builds `GameRoot` or a manager clears the saves in `before_each`/`after_each`, as `test_main_scene.gd` does.
 - **Randomness:** the port uses the global `randf()`/`randi()` for `Math.random()` (`weapon_system.gd:97`). A test that needs determinism calls `seed(<n>)` first. It never asserts one random draw.
 
@@ -450,7 +450,7 @@ git commit -m "M11a: port the menu backdrop sim, mirrored to the board; next: Ta
 **Interfaces:**
 - Produces: `RunController.trigger_shake: Callable` (default `Callable()`, meaning no shake), called with `amount: float`. `GameRoot.trigger_shake(amount: float) -> void`, `GameRoot.camera_shake: float` (read-only by convention, for tests), `GameRoot.apply_readability() -> void` (pushes `high_contrast_halo` and `show_gridlines` into the layers; Task 5 calls it after every Settings change).
 
-- [ ] **Step 1: Write the failing tests.** Append to `godot/tests/test_run_controller.gd`, using the file's existing `_make_run()`-style builder. Read its top first, and use its helper names.
+- [x] **Step 1: Write the failing tests.** Append to `godot/tests/test_run_controller.gd`, using the file's existing `_make_run()`-style builder. Read its top first, and use its helper names.
 
 ```gdscript
 func test_losing_a_life_shakes_by_14_times_the_option() -> void:
@@ -508,9 +508,9 @@ func test_halo_option_reaches_the_entity_layer() -> void:
 
 (`launch_run` arrives in Task 4. Until then, **omit** the `root.launch_run(...)` line, because the boot still launches a run. Task 4 Step 1 adds it back when it adds the `_launch` helper.)
 
-- [ ] **Step 2: Run to verify they fail.** `tools/run_tests.sh` should report 4 failures (`trigger_shake`/`camera_shake`/`apply_readability` not found), or a parse drop that `--check-only` confirms.
+- [x] **Step 2: Run to verify they fail.** `tools/run_tests.sh` should report 4 failures (`trigger_shake`/`camera_shake`/`apply_readability` not found), or a parse drop that `--check-only` confirms.
 
-- [ ] **Step 3: Implement.**
+- [x] **Step 3: Implement.**
 
 `run_controller.gd`: add a public var near the other callbacks:
 
@@ -581,9 +581,9 @@ In `_process`, before the `queue_redraw` calls:
 
 The layers translate their own drawing by `arena_origin` (`set_arena_origin`), so the node `position` is free. Confirm with `grep -n "position" godot/src/render/*.gd` that no layer already sets its own `position`. If one does, stop and record it (Law 5).
 
-- [ ] **Step 4: Run the tests.** `tools/run_tests.sh` → **+4 tests** (570), 51 scripts. Then format and lint.
+- [x] **Step 4: Run the tests.** `tools/run_tests.sh` → **+4 tests** (570), 51 scripts. Then format and lint.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git checkout godot/project.godot
@@ -1619,7 +1619,7 @@ gdlint godot/src godot/tests                    # expect: Success: no problems f
 grep -rn "TODO(M11)" godot/src godot/tests      # expect: nothing
 grep -rn "M10 R1" godot/src                     # expect: nothing
 grep -rniE "ff4757" godot/src/ui/               # expect: nothing (rule 01)
-grep -rn "DIVERGENCE(M11a R1)" godot/src | wc -l   # expect: 4
+grep -rn "DIVERGENCE(M11a R1)" godot/src | wc -l   # expect: 3
 grep -rn "DIVERGENCE(M11a Q[12])" godot/src | wc -l   # expect: 2
 grep -rn "DIVERGENCE" godot/src/ | wc -l        # record
 "$GODOT" --headless --path godot --quit-after 240 2>&1 | grep -c "SCRIPT ERROR"   # expect: 0

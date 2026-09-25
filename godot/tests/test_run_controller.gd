@@ -436,3 +436,23 @@ func test_reset_run_applies_the_sound_options() -> void:
 	_options.settings.sfx_enabled = true
 	_rc.reset_run(_bounds)
 	assert_false(_audio.is_muted(), "Retry re-applies the switch (M5 R11)")
+
+
+func test_losing_a_life_shakes_by_14_times_the_option() -> void:
+	_rc.reset_run(_bounds)
+	var amounts: Array[float] = []
+	_rc.trigger_shake = func(amount: float) -> void: amounts.append(amount)
+	_options.settings.screen_shake = GameOptionsManager.ScreenShake.LOW
+	_rc.lives = 3
+	_rc.lose_life()
+	assert_eq(amounts, [7.0] as Array[float], "14 x 0.5 (TiltGame.ts:2064, GameOptions.ts:123)")
+
+
+func test_death_shakes_by_24_times_the_option() -> void:
+	_rc.reset_run(_bounds)
+	var amounts: Array[float] = []
+	_rc.trigger_shake = func(amount: float) -> void: amounts.append(amount)
+	_options.settings.screen_shake = GameOptionsManager.ScreenShake.OFF
+	_rc.lives = 1
+	_rc.lose_life()
+	assert_eq(amounts, [0.0] as Array[float], "24 x 0 (TiltGame.ts:2081)")
