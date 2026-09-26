@@ -1688,6 +1688,20 @@ block and output: "## How to verify right now" above. Full report:
 
 ## Next
 
+**Review fixes in progress (2026-09-27) — plan
+`docs/superpowers/plans/2026-09-27-m11c-review-fixes.md`.** The user said "for
+now always proceed", so the rulings (P13–P16 and the UI calls) are Claude's,
+recorded in that plan. Done: baked dot sprites + batched circles/dashes (P13/P14),
+bit-exact windowed separation (P15), worker-thread saves (P16), HUD/menu
+outlines, the black Handling preview ship (SVG colour bug), close-call popup
+size, the "+0" payout hint, Armory scroll/purchase flash, wrapping taglines,
+Settings header inset. Clean emulator A/B: entity draw −55–67%, fps +30–70% per
+enemy bucket; at 150+ enemies the sim now dominates. **Next: plan Task 10 (sim
+cost per step), then the rest of Task 9's UI list.** Emulator notes: the arm64
+APK runs under translation; reboot the emulator if the sensors HAL crash-loops
+(it skewed one run); keep the host idle while measuring; a no-death build is a
+temporary one-line early return in `RunController.lose_life`, never committed.
+
 **Emulator UX review (2026-09-27):** the user asked for a nitpick pass by playing
 over `adb`. The A55 was absent, so it ran on the emulator (the arm64 APK installs
 and runs there under translation). Findings, ranked, in
