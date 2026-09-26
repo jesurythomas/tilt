@@ -1688,6 +1688,16 @@ block and output: "## How to verify right now" above. Full report:
 
 ## Next
 
+**Emulator UX review (2026-09-27):** the user asked for a nitpick pass by playing
+over `adb`. The A55 was absent, so it ran on the emulator (the arm64 APK installs
+and runs there under translation). Findings, ranked, in
+`docs/superpowers/reviews/2026-09-27-emulator-ux-review.md`: 11 flaws (top ones:
+entities draw over the HUD and menu text, the Handling preview ship draws black,
+the HUD hides the playfield corners, close-call popups are unreadable, and a "+0"
+payout has no explanation) plus UI/UX improvements for each screen. Nothing is
+fixed yet. **Get the user's rulings on which to fix**, then plan them. The A55
+hitch analysis (below) is still pending the phone.
+
 **A55 result (2026-09-26, build `580c854`):** the user played; no second
 below 55 fps at any enemy count, >20 ms frames 1.7% (VERIFY-ME §M11c check 1,
 ticked). The user then ruled **P9**: the ring formation keeps too little
