@@ -299,6 +299,11 @@ func check_collisions() -> void:
 	for i: int in range(swarm.enemies.size() - 1, -1, -1):
 		var e: Types.Enemy = swarm.enemies[i]
 		var dx: float = player.x - e.x
+		# DIVERGENCE(M11c P21): both tests below need dist < player.radius + e.radius + 16,
+		# and dist >= |dx|; an enemy that far off in x (1 px margin for rounding) can
+		# trigger neither, so it skips the rest. Every outcome is unchanged.
+		if absf(dx) > player.radius + e.radius + 16.0 + 1.0:
+			continue
 		var dy: float = player.y - e.y
 		var dist: float = sqrt(dx * dx + dy * dy)
 

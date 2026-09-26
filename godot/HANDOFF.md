@@ -1700,7 +1700,11 @@ enemy bucket; at 150+ enemies the sim now dominates. **Next: plan Task 10 (sim
 cost per step), then the rest of Task 9's UI list.** Emulator notes: the arm64
 APK runs under translation; reboot the emulator if the sensors HAL crash-loops
 (it skewed one run); keep the host idle while measuring; a no-death build is a
-temporary one-line early return in `RunController.lose_life`, never committed.
+temporary one-line early return in `RunController.lose_life`, never committed —
+remove it with the exact inverse edit, **not** `git checkout -- run_controller.gd`
+(that once wiped an uncommitted change in the same file). A/B protocol:
+`scratchpad/ab.sh <build-a> <build-b>` installs each god APK, starts Code Red, steers
+with `bot.sh` for 100 s and logs PERF; bucket by `en=`.
 
 **Emulator UX review (2026-09-27):** the user asked for a nitpick pass by playing
 over `adb`. The A55 was absent, so it ran on the emulator (the arm64 APK installs

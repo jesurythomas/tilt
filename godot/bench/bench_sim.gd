@@ -204,3 +204,61 @@ func test_bench_late_mix_split() -> void:
 	)
 	_particles.particles.clear()
 	pass_test("bench")
+
+
+func _full_tick_cost(with_wall: bool, carriers: int) -> Dictionary:
+	_rc.reset_run(BOUNDS)
+	_rc.player.activate_shield(1.0e9)  # survive the bench
+	_seed_swarm()
+	if with_wall:
+		_swarm.spawn_wall_formation(BOUNDS)
+	for i: int in range(carriers):
+		_swarm.spawn_carrier(BOUNDS, BOUNDS * 0.5)
+	PerfProbe.enabled = true
+	PerfProbe.reset()
+	var t0: int = Time.get_ticks_usec()
+	for i: int in range(240):
+		_rc.update(DT, Types.ControlMode.MOUSE, BOUNDS * 0.5, Vector2.ZERO, Vector2.ZERO)
+	var out: Dictionary = {"total": float(Time.get_ticks_usec() - t0) / 240.0}
+	for k: String in [
+		"s_swarm",
+		"s_collide",
+		"s_weapons",
+		"s_coins",
+		"s_goals",
+		"s_particles",
+		"s_grid",
+		"s_player",
+		"s_hud_signal"
+	]:
+		out[k] = float(PerfProbe.accumulated(k)) / 240.0
+	out["en"] = _swarm.enemies.size()
+	_particles.particles.clear()
+	return out
+
+
+func test_bench_wall_and_carriers() -> void:
+	# What one wall formation / eight carriers add to a full RunController tick (M11c).
+	for cfg: Vector2i in [Vector2i(0, 0), Vector2i(1, 0), Vector2i(0, 8)]:
+		var r: Dictionary = _full_tick_cost(cfg.x == 1, cfg.y)
+		print(
+			(
+				"BENCH tick wall=%s carriers=%d: total %.0f swarm %.0f collide %.0f weapons %.0f coins %.0f goals %.0f particles %.0f grid %.0f player %.0f hud %.0f us (en=%d)"
+				% [
+					cfg.x == 1,
+					cfg.y,
+					r.total,
+					r.s_swarm,
+					r.s_collide,
+					r.s_weapons,
+					r.s_coins,
+					r.s_goals,
+					r.s_particles,
+					r.s_grid,
+					r.s_player,
+					r.s_hud_signal,
+					r.en
+				]
+			)
+		)
+	pass_test("bench")

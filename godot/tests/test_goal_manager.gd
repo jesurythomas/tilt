@@ -374,3 +374,21 @@ func test_reset_all_progress_clears_and_saves() -> void:
 	assert_eq(_gm.cumulative.total_kills, 0)
 	assert_eq(SaveStore.load_string_list(GoalManager.SAVE_PATH), [] as Array[String])
 	assert_eq(GoalManager.new().cumulative.total_kills, 0, "saved (:980-981)")
+
+
+func test_live_total_goals_return_after_a_progress_reset() -> void:
+	# M11c P22: the cached live list must follow completions and resets.
+	_gm.cumulative.total_kills = 90
+	var t: GoalManager.RunTracker = _tracker()
+	t.kills = 10
+	assert_eq(_ids(_gm.evaluate_live_total_goals(t)), ["total_kills_100"] as Array[String])
+	assert_eq(
+		_gm.evaluate_live_total_goals(t), [] as Array[GoalManager.Goal], "cache rebuilt clean"
+	)
+	_gm.reset_all_progress()
+	_gm.cumulative.total_kills = 90
+	assert_eq(
+		_ids(_gm.evaluate_live_total_goals(t)),
+		["total_kills_100"] as Array[String],
+		"evaluated again after reset"
+	)

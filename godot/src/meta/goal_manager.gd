@@ -35,6 +35,11 @@ var _on_goal_completed_cb: Callable = Callable()  # PORT: :74
 var _on_points_awarded_cb: Callable = Callable()  # PORT: :75
 # Optional progression reference for the unlock-family goals (:77-81).
 var _progression: ProgressionManager = null
+## DIVERGENCE(M11c P22): the uncompleted total goals, in catalog order (see
+## evaluate_live_total_goals); rebuilt when the completed set changes (the catalog
+## is built once and never edited).
+var _live_goals: Array[Goal] = []
+var _live_goals_dirty: bool = true
 
 
 ## PORT: web/src/tilt-to-live/GoalManager.ts:649-653
@@ -63,6 +68,7 @@ func set_progression(progression: ProgressionManager) -> void:
 func _load_completed() -> void:
 	for id: String in SaveStore.load_string_list(SAVE_PATH):
 		_completed_goal_ids[id] = true
+		_live_goals_dirty = true
 
 
 ## PORT: web/src/tilt-to-live/GoalManager.ts:684-688
@@ -141,7 +147,22 @@ func get_active_goals(max_count: int = 3) -> Array[ActiveGoal]:
 func evaluate_live_total_goals(tracker: RunTracker) -> Array[Goal]:
 	var newly_completed: Array[Goal] = []
 
-	for goal: Goal in catalog:
+	# DIVERGENCE(M11c P22): this runs every sim tick; only the uncompleted total
+	# goals can pass the three skips below, so they are cached in catalog order and
+	# rebuilt when a completion changes (every goal the full walk visits beyond them
+	# was a `continue`). The skips stay, so the loop's outcome is unchanged.
+	if _live_goals_dirty:
+		_live_goals.clear()
+		for goal: Goal in catalog:
+			if (
+				not _completed_goal_ids.has(goal.id)
+				and not is_unlock_goal(goal)
+				and is_total_goal(goal)
+			):
+				_live_goals.append(goal)
+		_live_goals_dirty = false
+
+	for goal: Goal in _live_goals:
 		if _completed_goal_ids.has(goal.id):
 			continue
 		if is_unlock_goal(goal):
@@ -152,6 +173,7 @@ func evaluate_live_total_goals(tracker: RunTracker) -> Array[Goal]:
 		var current: float = get_metric_value(goal.metric, tracker)
 		if current >= goal.target:
 			_completed_goal_ids[goal.id] = true
+			_live_goals_dirty = true
 			cumulative.total_points_earned += goal.reward_points
 			newly_completed.append(goal)
 			save_completed()
@@ -193,6 +215,7 @@ func evaluate_run(tracker: RunTracker) -> Array[Goal]:
 		var current: float = get_metric_value(goal.metric, tracker)
 		if current >= goal.target:
 			_completed_goal_ids[goal.id] = true
+			_live_goals_dirty = true
 			cumulative.total_points_earned += goal.reward_points
 			newly_completed.append(goal)
 
@@ -214,6 +237,7 @@ func evaluate_run(tracker: RunTracker) -> Array[Goal]:
 	var awarded_run_goals: Array[Goal] = eligible_run_goals.slice(0, 3)  # PORT: :823
 	for goal: Goal in awarded_run_goals:
 		_completed_goal_ids[goal.id] = true
+		_live_goals_dirty = true
 		cumulative.total_points_earned += goal.reward_points
 		newly_completed.append(goal)
 
@@ -249,6 +273,7 @@ func evaluate_unlock_goals() -> Array[Goal]:
 
 		if _check_unlock_goal(goal, data):
 			_completed_goal_ids[goal.id] = true
+			_live_goals_dirty = true
 			cumulative.total_points_earned += goal.reward_points
 			newly_completed.append(goal)
 
@@ -356,6 +381,7 @@ func get_metric_value(metric: String, tracker: RunTracker) -> float:
 ## PORT: web/src/tilt-to-live/GoalManager.ts:972-982
 func reset_all_progress() -> void:
 	_completed_goal_ids.clear()
+	_live_goals_dirty = true
 	cumulative = CumulativeStats.new()
 	save_completed()
 	save_cumulative()

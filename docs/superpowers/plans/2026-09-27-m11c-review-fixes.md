@@ -129,3 +129,20 @@ list per frame. Old-vs-new renders compared (same shapes, colours, angles;
 anti-aliased). `bench_draw_types` per enemy: carrier+sats 61.8 → 13.9 µs, charger
 31.3 → 4.9, artillery 23.8 → 4.2, pulsar 25.8 → 14.1 (its growing pulse ring keeps
 the draw_arc fallback), specter 18.5 → 8.7. Late mix 890–980 → ~635 µs/frame.
+
+**P19 emulator A/B** (`18282d0` → `2dccdff`): 100–149 20.1 → 31.1 fps, 150–249
+10.9 → 18.4, 250+ 7.7 → 11.9; entity draw 43.9 → 14.1 ms/frame at 150–249. The sim
+now dominates. User report (2026-09-27): drops come with wall formations and
+carriers. Bench of a full tick: a wall adds ~115 µs (swarm +86, collisions +41),
+eight carriers ~106 µs.
+- **P21** (kept): `check_collisions` skips an enemy whose |dx| exceeds
+  player.radius + e.radius + 16 + 1 px (neither test can pass; outcomes unchanged).
+  Bench collide 73 → 48 µs/tick (114 → 69 with a wall); emulator 4.1–4.5 → 2.3
+  ms/frame.
+- **P22** (kept): `evaluate_live_total_goals` walks a cached list of uncompleted total
+  goals (catalog order, rebuilt on any completion or reset). 53 → 20 µs/tick; emulator
+  1.9 → 0.6 ms/frame. Test: a goal completed live comes back after a reset (fails
+  without the reset hook).
+- **P20** (reverted): glows-first draw order for batching made entity draw *slower*
+  on the emulator (14.3 → 17.9 ms/frame at 150–249; the extra pass costs more
+  GDScript than batching saves on its desktop GPU). Re-try only with A55 evidence.
