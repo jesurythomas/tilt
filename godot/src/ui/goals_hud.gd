@@ -586,13 +586,7 @@ func _render_milestones_modal_content() -> void:
 		_tier_columns.remove_child(child)
 		child.queue_free()
 
-	# Categorize goals into the 3 tiers: Score, Combat, Mastery (:319-360)
-	for tier_name: String in TIERS:
-		var goals: Array[GoalManager.Goal] = []
-		for goal: GoalManager.Goal in _goal_manager.catalog:
-			if _get_goal_tier(goal) == tier_name:
-				goals.append(goal)
-		_tier_columns.add_child(_tier_column(tier_name, goals))
+	_tier_columns.add_child(_milestone_list())
 
 
 ## The TS's local getGoalTier. PORT: web/src/tilt-to-live/GoalsHUD.ts:322-354
@@ -624,56 +618,38 @@ func _get_goal_tier(goal: GoalManager.Goal) -> String:
 	return "Mastery"
 
 
-## One tier column. PORT: web/src/tilt-to-live/GoalsHUD.ts:383-478
-## DIVERGENCE(UI-SYSTEM): Milestones.dc.html — three side-by-side columns, each
-## scrolling on its own under a 40 px shell fade (replaces game.css's grid).
-func _tier_column(tier_name: String, goals: Array[GoalManager.Goal]) -> Control:
+## The single scrolling column of tier sections.
+## DIVERGENCE(M11c P11): user ruling 2026-09-26 — one column, the three tiers stacked
+## under one scroll (Milestones.dc.html drew three side-by-side columns, each
+## scrolling on its own, replacing game.css's grid), under the 40 px shell fade.
+func _milestone_list() -> Control:
 	var s: float = _ui_scale
-	var open: Array[GoalManager.Goal] = []
-	var done: Array[GoalManager.Goal] = []
-	for g: GoalManager.Goal in goals:
-		if _goal_manager.is_completed(g.id):
-			done.append(g)
-		else:
-			open.append(g)
-
-	var column: Control = Control.new()
-	column.name = "Tier_" + tier_name
-	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	column.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	column.clip_contents = true
-	column.mouse_filter = Control.MOUSE_FILTER_PASS
-	var stack: VBoxContainer = VBoxContainer.new()
-	stack.add_theme_constant_override("separation", UiTheme.px(STACK_GAP, s))
-	column.add_child(stack)
-	stack.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-
-	var heading: HBoxContainer = HBoxContainer.new()
-	heading.add_theme_constant_override("separation", UiTheme.px(HEADING_GAP, s))
-	var name_label: Label = UiTheme.caps(tier_name)
-	name_label.name = "TierName"
-	name_label.add_theme_color_override("font_color", TIER_TINTS[tier_name])
-	heading.add_child(name_label)
-	# PORT: :384-391
-	var count: Label = UiTheme.text("%d of %d" % [done.size(), goals.size()], "MonoFaintText")
-	count.name = "TierCount"
-	heading.add_child(count)
-	stack.add_child(heading)
+	var list: Control = Control.new()
+	list.name = "MilestoneList"
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	list.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	list.clip_contents = true
+	list.mouse_filter = Control.MOUSE_FILTER_PASS
 
 	var scroll: ScrollContainer = ScrollContainer.new()
 	scroll.name = "TierScroll"
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var cards: VBoxContainer = VBoxContainer.new()
-	cards.name = "TierCards"
-	cards.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	cards.add_theme_constant_override("separation", UiTheme.px(STACK_GAP, s))
-	# DIVERGENCE(UI-SYSTEM): interface spec §6.5 — open goals first, then done
-	# ones, each in catalog order (departs from GoalsHUD.ts:394's catalog order).
-	for g: GoalManager.Goal in open + done:
-		cards.add_child(_milestone_card(g))
-	scroll.add_child(cards)
-	stack.add_child(scroll)
+	list.add_child(scroll)
+	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var sections: VBoxContainer = VBoxContainer.new()
+	sections.name = "TierSections"
+	sections.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sections.add_theme_constant_override("separation", UiTheme.px(COLUMN_GAP, s))
+	sections.mouse_filter = Control.MOUSE_FILTER_PASS
+	scroll.add_child(sections)
+
+	# Categorize goals into the 3 tiers: Score, Combat, Mastery (:319-360)
+	for tier_name: String in TIERS:
+		var goals: Array[GoalManager.Goal] = []
+		for goal: GoalManager.Goal in _goal_manager.catalog:
+			if _get_goal_tier(goal) == tier_name:
+				goals.append(goal)
+		sections.add_child(_tier_section(tier_name, goals))
 
 	var gradient: Gradient = Gradient.new()
 	gradient.set_color(0, UiTheme.tint(UiTheme.COLOR_SHELL, 0.0))
@@ -687,10 +663,53 @@ func _tier_column(tier_name: String, goals: Array[GoalManager.Goal]) -> Control:
 	fade.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	fade.stretch_mode = TextureRect.STRETCH_SCALE
 	fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	column.add_child(fade)
+	list.add_child(fade)
 	fade.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
 	fade.offset_top = -UiTheme.px(FADE_HEIGHT, s)
-	return column
+	return list
+
+
+## One tier section: heading, then its cards. PORT: web/src/tilt-to-live/GoalsHUD.ts:383-478
+func _tier_section(tier_name: String, goals: Array[GoalManager.Goal]) -> Control:
+	var s: float = _ui_scale
+	var open: Array[GoalManager.Goal] = []
+	var done: Array[GoalManager.Goal] = []
+	for g: GoalManager.Goal in goals:
+		if _goal_manager.is_completed(g.id):
+			done.append(g)
+		else:
+			open.append(g)
+
+	var section: VBoxContainer = VBoxContainer.new()
+	section.name = "Tier_" + tier_name
+	section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	section.add_theme_constant_override("separation", UiTheme.px(STACK_GAP, s))
+	section.mouse_filter = Control.MOUSE_FILTER_PASS
+
+	var heading: HBoxContainer = HBoxContainer.new()
+	heading.add_theme_constant_override("separation", UiTheme.px(HEADING_GAP, s))
+	heading.mouse_filter = Control.MOUSE_FILTER_PASS
+	var name_label: Label = UiTheme.caps(tier_name)
+	name_label.name = "TierName"
+	name_label.add_theme_color_override("font_color", TIER_TINTS[tier_name])
+	heading.add_child(name_label)
+	# PORT: :384-391
+	var count: Label = UiTheme.text("%d of %d" % [done.size(), goals.size()], "MonoFaintText")
+	count.name = "TierCount"
+	heading.add_child(count)
+	section.add_child(heading)
+
+	var cards: VBoxContainer = VBoxContainer.new()
+	cards.name = "TierCards"
+	cards.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cards.add_theme_constant_override("separation", UiTheme.px(STACK_GAP, s))
+	cards.mouse_filter = Control.MOUSE_FILTER_PASS
+	# DIVERGENCE(UI-SYSTEM): interface spec §6.5 — open goals first, then done
+	# ones, each in catalog order (departs from GoalsHUD.ts:394's catalog order).
+	for g: GoalManager.Goal in open + done:
+		cards.add_child(_milestone_card(g))
+	section.add_child(cards)
+	return section
 
 
 ## One card: done, open unlock or run goal, or open lifetime goal with progress.

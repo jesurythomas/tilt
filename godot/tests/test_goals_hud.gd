@@ -345,11 +345,27 @@ func test_screen_blocks_taps_but_lets_columns_scroll() -> void:
 	assert_eq(screen.mouse_filter, Control.MOUSE_FILTER_STOP, "nothing under it takes the tap")
 	var scroll: Node = _hud.find_child("TierScroll", true, false)
 	# B5: ScrollContainer's own internal scrollbars (mouse_filter STOP) are also
-	# under `scroll` — walk from its content node (TierCards) down, not from the
+	# under `scroll` — walk from its content node (TierSections) down, not from the
 	# ScrollContainer itself, so the assertion never inspects them.
-	var content: Node = scroll.find_child("TierCards", false, false)
+	var content: Node = scroll.find_child("TierSections", false, false)
 	var nodes: Array[Node] = [content]
 	nodes.append_array(content.find_children("*", "Control", true, false))
 	for node: Node in nodes:
 		var control: Control = node as Control
 		assert_ne(control.mouse_filter, Control.MOUSE_FILTER_STOP, "%s must pass drags" % node.name)
+
+
+func test_one_column_stacks_the_three_tiers_in_order() -> void:
+	# DIVERGENCE(M11c P11): user ruling 2026-09-26 — a single column, tiers stacked
+	# (Milestones.dc.html drew three side by side).
+	await _open()
+	await get_tree().process_frame
+	var scrolls: Array[Node] = _hud.find_children("TierScroll", "ScrollContainer", true, false)
+	assert_eq(scrolls.size(), 1, "one scroll view for every tier")
+	var ys: Array[float] = []
+	for tier: String in ["Score", "Combat", "Mastery"]:
+		var group: Control = _hud.find_child("Tier_" + tier, true, false) as Control
+		assert_true(scrolls[0].is_ancestor_of(group), "%s scrolls with the others" % tier)
+		ys.append(group.global_position.y)
+	assert_lt(ys[0], ys[1], "Score above Combat")
+	assert_lt(ys[1], ys[2], "Combat above Mastery")
