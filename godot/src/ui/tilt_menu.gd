@@ -132,6 +132,8 @@ const SHAKE_GAP: int = 8
 const DATA_TOP: int = 8
 const RESET_RADIUS: int = 4
 const RESET_FONT: int = 13
+## DIVERGENCE(M11c review): card sub-lines wrap to at most two lines before trimming.
+const WRAP_MAX_LINES: int = 2
 ## PORT: web/src/tilt-to-live/TiltMenu.ts:508 (the window.confirm text)
 const RESET_CONFIRM_TEXT: String = (
 	"Are you sure you want to reset all progress? Your scores, points, milestones, "
@@ -378,9 +380,11 @@ func _title_block() -> VBoxContainer:
 	title.add_theme_constant_override(
 		"line_spacing", roundi(WORDMARK_LINE_HEIGHT * size_px - wordmark.get_height(size_px))
 	)
+	UiTheme.legible_over_play(title, _px(UiTheme.OVER_PLAY_OUTLINE))
 	block.add_child(title)
 	var subtitle: Label = UiTheme.text("Move to dodge. The guns fire themselves.", "BodyText")  # :135
 	subtitle.add_theme_font_size_override("font_size", _px(SUBTITLE_SIZE))
+	UiTheme.legible_over_play(subtitle, _px(UiTheme.OVER_PLAY_OUTLINE))
 	block.add_child(subtitle)
 	block.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
 	block.offset_left = _px(TITLE_LEFT) + _inset.x
@@ -412,10 +416,12 @@ func _next_teaser() -> VBoxContainer:
 	teaser.add_theme_constant_override("separation", _px(STAT_GAP))
 	var tag: Label = UiTheme.caps("Next")  # PORT: :201
 	tag.add_theme_color_override("font_color", UiTheme.COLOR_FLARE)
+	UiTheme.legible_over_play(tag, _px(UiTheme.OVER_PLAY_OUTLINE))
 	teaser.add_child(tag)
 	var desc: Label = UiTheme.text("%s — %s" % [g.title, g.description], "HintText")  # PORT: :202
 	desc.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	desc.clip_text = true
+	UiTheme.legible_over_play(desc, _px(UiTheme.OVER_PLAY_OUTLINE))
 	teaser.add_child(desc)
 	var fill: ProgressBar = UiTheme.meter(
 		pct / 100.0, UiTheme.COLOR_FLARE, _px(LEFT_WIDTH), _px(TEASER_METER_HEIGHT)
@@ -590,8 +596,11 @@ func _mode_card(config: GameOptionsManager.ModeConfig, is_selected: bool) -> But
 	tagline.add_theme_color_override(
 		"font_color", UiTheme.COLOR_TEXT_MUTED if is_selected else UiTheme.TEXT_FAINT
 	)
+	# DIVERGENCE(M11c review): Code Red's tagline was cut to "first seco…"; wrap to a
+	# second line (the column has the height) before trimming.
+	tagline.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	tagline.max_lines_visible = WRAP_MAX_LINES
 	tagline.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	tagline.clip_text = true
 	info.add_child(tagline)
 	row.add_child(info)
 	var mult: Label = UiTheme.text(_format_multiplier(config.score_multiplier), "MonoText")
@@ -733,7 +742,9 @@ func _find_confirm_button(button_name: String) -> Button:
 func _options_header() -> MarginContainer:
 	var header: MarginContainer = MarginContainer.new()
 	header.custom_minimum_size.y = _px(HEADER_HEIGHT)
-	header.add_theme_constant_override("margin_top", _px(HEADER_PAD_Y))
+	# DIVERGENCE(M11c review): the top inset too, as the Armory and Milestones headers
+	# have it — the back button sat ~10 px higher on Settings than on those screens.
+	header.add_theme_constant_override("margin_top", _px(HEADER_PAD_Y) + roundi(_inset.y))
 	header.add_theme_constant_override("margin_bottom", _px(HEADER_PAD_Y))
 	header.add_theme_constant_override("margin_right", _px(HEADER_PAD_RIGHT) + roundi(_inset.x))
 	header.add_theme_constant_override("margin_left", _px(HEADER_PAD_LEFT) + roundi(_inset.x))
@@ -845,8 +856,10 @@ func _scheme_card(
 	)
 	info.add_child(name_label)
 	var keys_label: Label = UiTheme.text(keys, "MonoFaintText")
+	# DIVERGENCE(M11c review): "phone gyroscope" was cut to "phone gyrosc…"; wrap first.
+	keys_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	keys_label.max_lines_visible = WRAP_MAX_LINES
 	keys_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	keys_label.clip_text = true
 	info.add_child(keys_label)
 	face.add_child(info)
 	card.add_child(face)

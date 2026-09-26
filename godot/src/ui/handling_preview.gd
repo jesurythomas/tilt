@@ -117,20 +117,25 @@ func start(p: ProgressionManager) -> void:
 	# Path2D(equippedShip.svgPath) filled with tint, stroked white (:1088-1093),
 	# as one rasterised 48x48 SVG (the path's own coordinate space, :1087).
 	var ship: ProgressionManager.ShipSkinConfig = progression.get_equipped_ship()
-	_ship_texture = UiTheme.svg_texture(
-		(
-			"<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'>"
-			+ (
-				"<path d='%s' fill='%s' stroke='%s' stroke-width='%s'/></svg>"
-				% [
-					ship.svg_path,
-					ship.tint.to_html(false),
-					SHIP_STROKE.to_html(false),
-					SHIP_STROKE_WIDTH
-				]
-			)
-		),
-		SHIP_OVERSAMPLE
+	_ship_texture = (
+		UiTheme
+		. svg_texture(
+			(
+				"<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'>"
+				+ (
+					# to_html omits the '#'; without it the SVG fill falls back to black and
+					# the stroke to none (emulator review 2026-09-27: the ship drew black).
+					"<path d='%s' fill='#%s' stroke='#%s' stroke-width='%s'/></svg>"
+					% [
+						ship.svg_path,
+						ship.tint.to_html(false),
+						SHIP_STROKE.to_html(false),
+						SHIP_STROKE_WIDTH
+					]
+				)
+			),
+			SHIP_OVERSAMPLE
+		)
 	)
 	_running = true
 	set_process(true)

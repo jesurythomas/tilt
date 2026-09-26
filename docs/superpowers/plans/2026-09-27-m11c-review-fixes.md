@@ -54,16 +54,48 @@ off in `_exit_tree` (tests keep synchronous writes). Bench: death tick 1,622 →
 395 µs, `evaluate_run` 1,048 → 181, shield ram ×20 1,833 → 1,146. 670 tests (+3:
 flush reaches disk, last save wins, loads see queued saves).
 
-### Task 4: HUD and menu text above entities
-Enemies draw over the score, BEST, the shield bar and the menu tagline/title.
+### Task 4: HUD and menu text over the dots
+**Status:** done — correction to the review: the HUD is a CanvasLayer above the
+entity layers; dots showed *through* thin glyphs and between letters, not over
+them. `UiTheme.legible_over_play` (6 px void outline, ×ui scale on the menu) on
+the HUD score, BEST and weapon-timer labels and the menu title, subtitle and
+NEXT teaser.
 
 ### Task 5: Handling preview ship draws black
+**Status:** done — a real bug: the SVG was built with `to_html(false)` (no `#`),
+so `fill='00ddff'` was invalid (black fill, no stroke). Emulator: ship drawn in
+its tint with the white stroke.
 
 ### Task 6: Close-call popup legibility
+**Status:** done — floating texts scale by `_ui_scale` (TS sizes are CSS px) in
+Archivo 700 (`ScoreManager.ts:193`), shadow offset scaled, kept inside the arena
+width. Emulator: "CLOSE CALL! +375" large and legible.
 
 ### Task 7: Run-over payout explanation ("+0 → 5,531")
+**Status:** done — points come only from milestones and coins
+(`TiltGame.ts:2118`); a zero payout shows "Points come from milestones and coin
+pickups." under the row. Emulator-verified.
 
 ### Task 8: Armory purchase feedback and kept scroll position
+**Status:** done — every named scroll view (weapon list, card rows, page) keeps
+its x/y offsets across a re-render; a successful spend pulses the balance
+(1.15×, green, 0.45 s). Not yet exercised on the emulator (no purchase made in
+the check, to spare the save).
 
 ### Task 9: Truncations, Settings header alignment, small UI items
-The rest of the review's UI list, in its order.
+**Status:** partly done — mode taglines and the scheme cards' key lines wrap to
+two lines before trimming ("…from the first / second.", "phone / gyroscope");
+the Settings header adds the top inset (y≈83, as Armory). **Regression caught on
+the emulator and fixed:** wrap + `clip_text` hid every tagline (clip_text zeroes
+the label's minimum size); the new layout test did not reproduce it headless.
+**Remaining** from the review's UI list: Armory price verbs/affordability, maxed
+"MAX" state, Boosts titles, theme previews, name clash (Aegis), Milestones units
+and density, Reset styling, run-over spare space, pause subtitle, HUD BEST on a
+new best, orb vs enemy palette, cold-open glyph.
+
+### Task 10: Sim cost per step (next)
+The clean A/B (emulator, god builds of `5ed4a05` vs `4c3c7c5`): entity draw
+−55–67% per bucket, fps 38→49 (<50), 11.8→19.3 (100–149), 5.4→8.7 (150–249),
+3.7→6.4 (250+). At 150+ the sim now dominates (phys 62 ms vs draw 52) and both
+builds run at the 8-steps-per-frame ceiling. Profile `swarm.update`'s per-enemy
+loop at 150–250 enemies next.

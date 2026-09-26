@@ -223,6 +223,10 @@ const DEFAULT_SENSITIVITY: float = 1.0
 const DEFAULT_DEADZONE: float = 4.0
 ## ControlSettings' own default. PORT: control_settings.gd:27 (M2.5 spec §4.1)
 const DEFAULT_TILT_SENSITIVITY: float = 1.0
+## DIVERGENCE(M11c review): the purchase flash, slower than the HUD score pulse
+## (1.18, 0.22 s) so the colour change reads.
+const PURCHASE_PULSE_SCALE: float = 1.15
+const PURCHASE_PULSE_SECONDS: float = 0.45
 
 ## The save every tab reads and every purchase writes. PORT: web/src/tilt-to-live/ArmoryUI.ts:75
 var progression: ProgressionManager = null
@@ -240,6 +244,7 @@ var _ui_scale: float = 1.0
 var _tab_buttons: Array[Button] = []
 ## The live steering preview shown on the handling tab. PORT: web/src/tilt-to-live/ArmoryUI.ts:84
 var _preview: HandlingPreview = null
+var _balance_tween: Tween = null
 
 @onready var _overlay: ColorRect = %Overlay
 @onready var _panel_margin: MarginContainer = %PanelMargin
@@ -326,8 +331,13 @@ func render() -> void:
 	_stop_handling_preview()
 
 	# Preserve scroll position if re-rendering within the same tab (:334-336)
-	var prev_scroll: ScrollContainer = find_child("ScrollBody", true, false) as ScrollContainer
-	var prev_scroll_top: int = prev_scroll.scroll_vertical if prev_scroll != null else 0
+	# DIVERGENCE(M11c review, emulator play 2026-09-27): the TS page has one scroller;
+	# here the weapon list and the card rows scroll on their own, and a purchase
+	# re-render jumped them back to the start. Every named scroll view keeps its offsets.
+	var prev_scrolls: Dictionary[String, Vector2i] = {}
+	for s: Node in _body.find_children("*", "ScrollContainer", true, false):
+		var sc: ScrollContainer = s as ScrollContainer
+		prev_scrolls[str(sc.name)] = Vector2i(sc.scroll_horizontal, sc.scroll_vertical)
 
 	var points: int = progression.data.points
 	# PORT: :363 (formatPoints, singular at 1 per :70-72). DIVERGENCE(UI-SYSTEM):
@@ -351,9 +361,13 @@ func render() -> void:
 		_init_handling_preview()
 	_let_drags_scroll(_body)
 
-	var new_scroll: ScrollContainer = find_child("ScrollBody", true, false) as ScrollContainer
-	if new_scroll != null and prev_scroll_top > 0:
-		new_scroll.set_deferred("scroll_vertical", prev_scroll_top)  # PORT: :391-394
+	for s: Node in _body.find_children("*", "ScrollContainer", true, false):
+		var sc: ScrollContainer = s as ScrollContainer
+		var prev: Vector2i = prev_scrolls.get(str(sc.name), Vector2i.ZERO)
+		if prev.y > 0:
+			sc.set_deferred("scroll_vertical", prev.y)  # PORT: :391-394
+		if prev.x > 0:
+			sc.set_deferred("scroll_horizontal", prev.x)
 
 
 ## DIVERGENCE(M11c, A55 report 2026-09-26 "I cannot drag or move the armory"): the
@@ -495,6 +509,7 @@ func _weapon_list(perks: Dictionary, selected: WeaponConfig) -> Control:
 	box.custom_minimum_size.x = _px(LIST_WIDTH)
 	box.clip_contents = true
 	var scroll: ScrollContainer = ScrollContainer.new()
+	scroll.name = "WeaponListScroll"
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	box.add_child(scroll)
 	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -1334,6 +1349,7 @@ func _on_track_pressed(weapon: String, track: String) -> void:
 	if progression.upgrade_perk(weapon, track):
 		state_changed.emit()
 		render()
+		_flash_balance()
 
 
 ## PORT: web/src/tilt-to-live/ArmoryUI.ts:1171-1183
@@ -1341,6 +1357,7 @@ func _on_keystone_pressed(weapon: String, keystone: String) -> void:
 	if progression.upgrade_perk(weapon, keystone):
 		state_changed.emit()
 		render()
+		_flash_balance()
 
 
 ## PORT: web/src/tilt-to-live/ArmoryUI.ts:1186-1196
@@ -1350,6 +1367,7 @@ func _on_boost_pressed(boost_id: String) -> void:
 			if boost.buy.call():
 				state_changed.emit()
 				render()
+				_flash_balance()
 			return
 
 
@@ -1358,6 +1376,7 @@ func _on_buy_ship_pressed(id: String) -> void:
 	if progression.buy_ship(id):
 		state_changed.emit()
 		render()
+		_flash_balance()
 
 
 ## PORT: web/src/tilt-to-live/ArmoryUI.ts:1209-1217
@@ -1372,6 +1391,7 @@ func _on_buy_arena_pressed(id: String) -> void:
 	if progression.buy_arena_theme(id):
 		state_changed.emit()
 		render()
+		_flash_balance()
 
 
 ## PORT: web/src/tilt-to-live/ArmoryUI.ts:1230-1238
@@ -1386,6 +1406,7 @@ func _on_buy_enemy_pressed(id: String) -> void:
 	if progression.buy_enemy_skin(id):
 		state_changed.emit()
 		render()
+		_flash_balance()
 
 
 ## PORT: web/src/tilt-to-live/ArmoryUI.ts:1251-1259
@@ -1393,6 +1414,19 @@ func _on_equip_enemy_pressed(id: String) -> void:
 	if progression.equip_enemy_skin(id):
 		state_changed.emit()
 		render()
+
+
+## DIVERGENCE(M11c review, emulator play 2026-09-27): a purchase gave no feedback
+## beyond the numbers changing. The balance pulses and flashes green, then settles.
+func _flash_balance() -> void:
+	if _balance_tween != null:
+		_balance_tween.kill()
+	_balance_label.pivot_offset = _balance_label.size / 2.0
+	_balance_label.scale = Vector2.ONE * PURCHASE_PULSE_SCALE
+	_balance_label.modulate = UiTheme.COLOR_LOCKED_IN
+	_balance_tween = create_tween().set_parallel(true)
+	_balance_tween.tween_property(_balance_label, "scale", Vector2.ONE, PURCHASE_PULSE_SECONDS)
+	_balance_tween.tween_property(_balance_label, "modulate", Color.WHITE, PURCHASE_PULSE_SECONDS)
 
 
 ## PORT: web/src/tilt-to-live/ArmoryUI.ts:1262-1271 — updates the pill in place, no render().

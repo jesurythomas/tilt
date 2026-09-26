@@ -133,10 +133,12 @@ func _ready() -> void:
 		# pulse's pivot — size changes with digit count and font size, not
 		# only on viewport resize.
 		_score_label.resized.connect(_on_score_label_resized)
+		UiTheme.legible_over_play(_score_label)
 	if _best_label == null:
 		_best_label = find_child("BestLabel", true, false) as Label
 	if _best_label != null:
 		_best_label.theme_type_variation = "MonoFaintText"
+		UiTheme.legible_over_play(_best_label)
 	if _multiplier_label == null:
 		_multiplier_label = find_child("MultiplierLabel", true, false) as Label
 	if _multiplier_label != null:
@@ -162,6 +164,8 @@ func _ready() -> void:
 	_weapon_timer = find_child("WeaponTimer", true, false) as VBoxContainer
 	_weapon_timer_label = find_child("WeaponTimerLabel", true, false) as Label
 	_weapon_timer_meter = find_child("WeaponTimerMeter", true, false) as ProgressBar
+	if _weapon_timer_label != null:
+		UiTheme.legible_over_play(_weapon_timer_label)
 
 	if _game_over_panel != null:
 		_game_over_panel.visible = false

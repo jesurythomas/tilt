@@ -233,3 +233,21 @@ func test_reset_asks_first_and_cancel_emits_nothing() -> void:
 	(menu.find_child("ResetButton", true, false) as Button).pressed.emit()
 	(menu.find_child("ResetConfirmButton", true, false) as Button).pressed.emit()
 	assert_signal_emitted(menu, "reset_confirmed", "TiltMenu.ts:510")
+
+
+func test_mode_taglines_are_laid_out_with_height() -> void:
+	# M11c review: a general layout guard. The device regression (wrap + clip_text hid
+	# every tagline on the emulator) did not reproduce headless at scale 1.0.
+	var menu: TiltMenu = _menu()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	for mode: String in ["classic", "gauntlet", "code-red"]:
+		var card: Control = menu.find_child("ModeCard_" + mode, true, false) as Control
+		var tagline: Label = null
+		for label: Node in card.find_children("*", "Label", true, false):
+			if (label as Label).autowrap_mode != TextServer.AUTOWRAP_OFF:
+				tagline = label as Label
+		assert_not_null(tagline, mode)
+		if tagline != null:
+			assert_gt(tagline.size.y, 0.0, mode + " tagline has height")
+			assert_gt(tagline.size.x, 0.0, mode + " tagline has width")

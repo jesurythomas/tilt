@@ -328,16 +328,20 @@ func _draw_particles() -> void:
 				CircleSprites.draw_disc(self, Vector2(p.x, p.y), maxf(0.5, p.size), col)
 
 
+## PORT: web/src/tilt-to-live/ScoreManager.ts:186-205
+# DIVERGENCE(M11c review, emulator play 2026-09-27): "CLOSE CALL! +1250" drew ~12 px
+# tall on the phone and clipped at the arena edge. The TS sizes are CSS px in
+# '700 … "Archivo"' (:193); they now scale by _ui_scale like the banner (M10 R2),
+# use that font, and the text is kept inside the arena's width.
 func _draw_floating_texts() -> void:
 	if _scores == null:
 		return
-	var font: Font = ThemeDB.fallback_font
-	if font == null:
-		return
+	var font: Font = _banner_title_font
+	var arena_width: float = get_viewport_rect().size.x - _arena_origin.x * 2.0
 
 	for t: Types.FloatingText in _scores.floating_texts:
 		var alpha: float = clampf(t.alpha, 0.0, 1.0)
-		var font_size: int = int(t.size)
+		var font_size: int = roundi(t.size * _ui_scale)
 		var text_col: Color = t.color
 		text_col.a *= alpha
 		var shadow_col: Color = Color(0.0, 0.0, 0.0, 0.7 * alpha)
@@ -347,12 +351,13 @@ func _draw_floating_texts() -> void:
 			t.text, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size
 		)
 		var ascent: float = font.get_ascent(font_size)
-		var baseline_pos: Vector2 = Vector2(t.x - str_size.x * 0.5, t.y - str_size.y * 0.5 + ascent)
+		var left: float = clampf(t.x - str_size.x * 0.5, 0.0, maxf(0.0, arena_width - str_size.x))
+		var baseline_pos: Vector2 = Vector2(left, t.y - str_size.y * 0.5 + ascent)
 
-		# Shadow at (+2, +2)
+		# Shadow at (+2, +2) CSS px
 		draw_string(
 			font,
-			baseline_pos + Vector2(2.0, 2.0),
+			baseline_pos + Vector2(2.0, 2.0) * _ui_scale,
 			t.text,
 			HORIZONTAL_ALIGNMENT_LEFT,
 			-1,

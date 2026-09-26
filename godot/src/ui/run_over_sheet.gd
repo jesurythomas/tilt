@@ -45,11 +45,14 @@ const SPEND_GAP: int = 4
 const LIST_GAP: int = 6
 const ROW_GAP: int = 9
 const ROW_POINTS_SIZE: int = 12
+## DIVERGENCE(M11c review): shown under "Points earned" when a run earned none.
+const EARNED_HINT: String = "Points come from milestones and coin pickups."
 
 var _ui_scale: float = 1.0
 var _points_row: HBoxContainer = null
 var _coins_row: HBoxContainer = null
 var _coins_detail: Label = null
+var _earned_hint: Label = null
 var _milestones: VBoxContainer = null
 var _shown_milestones: Array[GoalManager.Goal] = []
 var _sheet: PanelContainer = null
@@ -144,6 +147,7 @@ func show_result(result: RunResult) -> void:
 	_chain.text = "%d×" % result.best_chain  # PORT: :2105
 	_time.text = result.time_text  # PORT: :2107
 	_earned.text = "+%s" % UiTheme.group_digits(result.earned)  # PORT: :2121
+	_earned_hint.visible = result.earned == 0
 	_balance.text = UiTheme.group_digits(result.balance)  # PORT: :2121
 	_spend_value.text = UiTheme.group_digits(result.balance)  # PORT: :2122
 	_fill_milestones(result.milestones)  # PORT: :2132-2144
@@ -238,6 +242,13 @@ func _build_right() -> VBoxContainer:
 	_points_row.mouse_filter = Control.MOUSE_FILTER_STOP
 	_points_row.gui_input.connect(_on_rows_gui_input)
 	_right.add_child(_points_row)
+	# DIVERGENCE(M11c review, emulator play 2026-09-27): "+0 → 5,531" after a 590-score
+	# run read as broken. Points come only from milestones and coins (the TS sums
+	# those, TiltGame.ts:2118), so a zero run says where points come from.
+	_earned_hint = UiTheme.text(EARNED_HINT, "HintText")
+	_earned_hint.name = "PointsEarnedHint"
+	_earned_hint.visible = false
+	_right.add_child(_earned_hint)
 
 	# M11a R17: the TS coins row (TiltGame.ts:1217-1220) under the points row.
 	# DIVERGENCE(UI-SYSTEM): RunOver.dc.html — Rule N: the board has no coins row; it

@@ -39,6 +39,9 @@ const PLASMA_TEXT: Color = Color("#C4B0FD")  # DIVERGENCE(UI-SYSTEM): ArmoryWeap
 const LOCKED_CARD: Color = Color("#10141B")  # DIVERGENCE(UI-SYSTEM): ArmoryWeapons.dc.html
 const STAT_CELL: Color = Color("#161B25")  # DIVERGENCE(UI-SYSTEM): RunOver.dc.html
 const DONE_CARD: Color = Color("#0F131B")  # DIVERGENCE(UI-SYSTEM): System.dc.html
+## DIVERGENCE(M11c review): outline thickness (px at 1x) that keeps text readable over
+## the moving dots behind it; the boards draw that text on a still, empty arena.
+const OVER_PLAY_OUTLINE: int = 6
 ## rgba() alphas. DIVERGENCE(UI-SYSTEM): System.dc.html — CostButton/Chip fill
 ## 12%, Chip border 45%, IconButton rgba(20,24,33,0.85); ArmoryShips.dc.html —
 ## Equipped fill 10%; Pause.dc.html — sheet shadow 0.6
@@ -277,6 +280,14 @@ static func ship_glyph_svg(color: Color, size: int) -> String:
 		)
 		% [size, size, color.to_html(false)]
 	)
+
+
+## DIVERGENCE(M11c review, emulator play 2026-09-27): dots showed through the HUD
+## score, BEST and weapon timer, and through the menu's hero text over the attract
+## backdrop. A void-coloured outline separates the glyphs from whatever is behind.
+static func legible_over_play(label: Label, outline_px: int = OVER_PLAY_OUTLINE) -> void:
+	label.add_theme_constant_override("outline_size", outline_px)
+	label.add_theme_color_override("font_outline_color", COLOR_VOID)
 
 
 ## `n` with en-US thousands commas (the boards' numerals; ArmoryUI.format_points' grouping).
