@@ -74,3 +74,33 @@ func test_emit_thruster_sparks_spawns_streak() -> void:
 	engine.emit_thruster_sparks(10.0, 10.0, 0.0)
 	assert_eq(engine.particles.size(), 1, "thruster spark emitted")
 	assert_eq(engine.particles[0].shape, ParticleEngine.Shape.STREAK, "thruster is STREAK shape")
+
+
+func test_retired_particles_are_reused_by_the_next_emit() -> void:
+	# DIVERGENCE(M11c P12): pooled particles — no allocation per spark after warm-up.
+	var pe: ParticleEngine = ParticleEngine.new()
+	pe.emit_sparks(0.0, 0.0, 5, Color.RED)
+	var retired: Array[ParticleEngine.Particle] = pe.particles.duplicate()
+	pe.update(10.0)
+	assert_eq(pe.particles.size(), 0, "everything retired")
+	assert_eq(pe.pooled_count(), 5, "retired particles wait in the pool")
+	pe.emit_sparks(0.0, 0.0, 1, Color.BLUE)
+	assert_eq(pe.pooled_count(), 4, "the emit took one back out")
+	assert_true(retired.has(pe.particles[0]), "the same object, reused")
+	assert_eq(pe.particles[0].color, Color.BLUE, "fully re-initialised")
+	assert_gt(pe.particles[0].life, 0.0)
+
+
+func test_update_keeps_survivors_oldest_first() -> void:
+	var pe: ParticleEngine = ParticleEngine.new()
+	for i: int in range(6):
+		pe.emit_smoke(float(i), 0.0)
+	pe.particles[1].life = 0.001
+	pe.particles[4].life = 0.001
+	var survivors: Array[ParticleEngine.Particle] = [
+		pe.particles[0], pe.particles[2], pe.particles[3], pe.particles[5]
+	]
+	pe.update(0.01)
+	assert_eq(pe.particles.size(), survivors.size())
+	for k: int in range(survivors.size()):
+		assert_same(pe.particles[k], survivors[k], "same objects, same order (%d)" % k)

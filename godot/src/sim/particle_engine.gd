@@ -23,16 +23,36 @@ const MAX_PARTICLES: int = 400
 # ParticleEngine.render() relocates to render/effect_layer.gd (spec §4.2/D4).
 ## Live particles, oldest first.
 var particles: Array[Particle] = []
+## DIVERGENCE(M11c P12): retired particles, reused by the next emit instead of
+## allocating (the TS relies on its GC; a GDScript object per spark costs ~2 us).
+var _pool: Array[Particle] = []
 
 
 ## Empties the pool. PORT: web/src/tilt-to-live/ParticleEngine.ts:23-25
 func reset() -> void:
+	_pool.append_array(particles)
 	particles = []
 
 
+## Retired particles waiting for reuse (M11c P12).
+func pooled_count() -> int:
+	return _pool.size()
+
+
+## A fresh or recycled particle; every emitter sets every field it reads.
+## DIVERGENCE(M11c P12): replaces Particle.new() at each emit site.
+func _take() -> Particle:
+	if _pool.is_empty():
+		return Particle.new()
+	return _pool.pop_back()
+
+
 ## Integrates and retires particles. PORT: web/src/tilt-to-live/ParticleEngine.ts:27-44
+# DIVERGENCE(M11c P12): one forward pass compacts survivors in place (oldest first,
+# as before) instead of remove_at per death, which shifted the array each time.
 func update(dt: float) -> void:
-	for i: int in range(particles.size() - 1, -1, -1):
+	var kept: int = 0
+	for i: int in range(particles.size()):
 		var p: Particle = particles[i]
 		p.x += p.vx * dt
 		p.y += p.vy * dt
@@ -44,7 +64,11 @@ func update(dt: float) -> void:
 			p.size += 220.0 * dt  # PORT: web/src/tilt-to-live/ParticleEngine.ts:37
 
 		if p.life <= 0.0:
-			particles.remove_at(i)
+			_pool.append(p)
+		else:
+			particles[kept] = p
+			kept += 1
+	particles.resize(kept)
 
 
 ## Emits omnidirectional sparks. PORT: web/src/tilt-to-live/ParticleEngine.ts:46-67
@@ -56,7 +80,7 @@ func emit_sparks(x: float, y: float, count: int, color: Color, speed_max: float 
 		var speed: float = 20.0 + randf() * speed_max  # PORT: web/src/tilt-to-live/ParticleEngine.ts:50
 		var life: float = 0.3 + randf() * 0.45  # PORT: web/src/tilt-to-live/ParticleEngine.ts:51
 
-		var p: Particle = Particle.new()
+		var p: Particle = _take()
 		p.x = x
 		p.y = y
 		p.vx = cos(angle) * speed
@@ -78,7 +102,7 @@ func emit_explosion(x: float, y: float, color: Color = Color("#ff3344"), count: 
 
 	# Add expanding shockwave ring. PORT: web/src/tilt-to-live/ParticleEngine.ts:72-87
 	if particles.size() < MAX_PARTICLES:
-		var p: Particle = Particle.new()
+		var p: Particle = _take()
 		p.x = x
 		p.y = y
 		p.vx = 0.0
@@ -103,7 +127,7 @@ func emit_smoke(
 	var speed: float = 10.0 + randf() * 30.0  # PORT: web/src/tilt-to-live/ParticleEngine.ts:93
 	var life: float = 0.4 + randf() * 0.3  # PORT: web/src/tilt-to-live/ParticleEngine.ts:94
 
-	var p: Particle = Particle.new()
+	var p: Particle = _take()
 	p.x = x
 	p.y = y
 	p.vx = cos(angle) * speed
@@ -127,7 +151,7 @@ func emit_ice_shatter(x: float, y: float, count: int = 18) -> void:
 		var speed: float = 60.0 + randf() * 220.0  # PORT: web/src/tilt-to-live/ParticleEngine.ts:115
 		var life: float = 0.4 + randf() * 0.4  # PORT: web/src/tilt-to-live/ParticleEngine.ts:116
 
-		var p: Particle = Particle.new()
+		var p: Particle = _take()
 		p.x = x
 		p.y = y
 		p.vx = cos(angle) * speed
@@ -152,7 +176,7 @@ func emit_blizzard_snow(bounds: Vector2, count: int = 2) -> void:
 		var y: float = -10.0  # PORT: web/src/tilt-to-live/ParticleEngine.ts:138
 		var life: float = 3.5 + randf() * 2.0  # PORT: web/src/tilt-to-live/ParticleEngine.ts:139
 
-		var p: Particle = Particle.new()
+		var p: Particle = _take()
 		p.x = x
 		p.y = y
 		# PORT: web/src/tilt-to-live/ParticleEngine.ts:143-144
@@ -179,7 +203,7 @@ func emit_kinetic_ice_shards(x: float, y: float, count: int = 8) -> void:
 		var speed: float = 340.0 + randf() * 100.0
 		var life: float = 0.45 + randf() * 0.25
 
-		var p: Particle = Particle.new()
+		var p: Particle = _take()
 		p.x = x
 		p.y = y
 		p.vx = cos(angle) * speed
@@ -205,7 +229,7 @@ func emit_thruster_sparks(
 	var speed: float = 70.0 + randf() * 120.0  # PORT: web/src/tilt-to-live/ParticleEngine.ts:182
 	var life: float = 0.2 + randf() * 0.2  # PORT: web/src/tilt-to-live/ParticleEngine.ts:183
 
-	var p: Particle = Particle.new()
+	var p: Particle = _take()
 	p.x = x
 	p.y = y
 	p.vx = cos(final_angle) * speed

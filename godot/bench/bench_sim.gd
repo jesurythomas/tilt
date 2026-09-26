@@ -76,3 +76,63 @@ func test_bench() -> void:
 	_report("30 kills (one tick)", Time.get_ticks_usec() - t0, 1)
 	_particles.particles.clear()
 	pass_test("bench")
+
+
+func test_bench_hits() -> void:
+	# Shield ram through 20 enemies in one tick, then the death tick.
+	_rc.reset_run(BOUNDS)
+	_seed_swarm()
+	var p: PlayerShip = _rc.player
+	for i: int in range(20):
+		_swarm.enemies[i].x = p.x
+		_swarm.enemies[i].y = p.y
+	p.activate_shield(5.0)
+	var t0: int = Time.get_ticks_usec()
+	_rc.check_collisions()
+	_report("shield ram x20", Time.get_ticks_usec() - t0, 1)
+	p.shield_timer = 0.0
+	_swarm.enemies[0].x = p.x
+	_swarm.enemies[0].y = p.y
+	t0 = Time.get_ticks_usec()
+	_rc.check_collisions()
+	_report("death tick", Time.get_ticks_usec() - t0, 1)
+	t0 = Time.get_ticks_usec()
+	_rc.goals.evaluate_run(_rc.run_tracker)
+	_report("  goals.evaluate_run", Time.get_ticks_usec() - t0, 1)
+	t0 = Time.get_ticks_usec()
+	_rc.scores.finalize_game()
+	_report("  scores.finalize_game", Time.get_ticks_usec() - t0, 1)
+	pass_test("bench")
+
+
+func test_bench_kill_parts() -> void:
+	_rc.reset_run(BOUNDS)
+	_seed_swarm()
+	var t0: int = Time.get_ticks_usec()
+	for i: int in range(20):
+		_rc.scores.register_kill(10.0, 10.0, Types.WeaponType.SHIELD, _rc.audio)
+	_report("20x register_kill", Time.get_ticks_usec() - t0, 1)
+	t0 = Time.get_ticks_usec()
+	for i: int in range(20):
+		_particles.emit_explosion(10.0, 10.0, Color.RED, 20)
+	_report("20x emit_explosion cold", Time.get_ticks_usec() - t0, 1)
+	_particles.update(10.0)  # retire all: the pool is now warm
+	t0 = Time.get_ticks_usec()
+	for i: int in range(20):
+		_particles.emit_explosion(10.0, 10.0, Color.RED, 20)
+	_report("20x emit_explosion warm", Time.get_ticks_usec() - t0, 1)
+	t0 = Time.get_ticks_usec()
+	_particles.update(0.01)
+	_report("update 400 particles", Time.get_ticks_usec() - t0, 1)
+	t0 = Time.get_ticks_usec()
+	_particles.update(10.0)
+	_report("retire 400 particles", Time.get_ticks_usec() - t0, 1)
+	t0 = Time.get_ticks_usec()
+	for i: int in range(20):
+		_swarm.on_enemy_killed(_swarm.enemies[i], _particles)
+	_report("20x on_enemy_killed", Time.get_ticks_usec() - t0, 1)
+	t0 = Time.get_ticks_usec()
+	for i: int in range(20):
+		GameEvents.enemy_killed.emit(_swarm.enemies[i], Types.WeaponType.SHIELD)
+	_report("20x enemy_killed.emit", Time.get_ticks_usec() - t0, 1)
+	pass_test("bench")
