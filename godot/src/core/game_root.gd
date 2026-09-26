@@ -79,6 +79,8 @@ var _state: GameStateMachine = null
 ## The menu's attract-mode sim. PORT: web/src/tilt-to-live/TiltGame.ts:69-75
 var _backdrop: MenuBackdrop = null
 var _bounds: Vector2 = Vector2.ZERO
+## DIVERGENCE(M11c P1): render-time measurement is switched on once, not per frame.
+var _perf_measuring: bool = false
 
 @onready var _grid_layer: GridLayer = %GridLayer
 @onready var _entity_layer: EntityLayer = %EntityLayer
@@ -352,11 +354,12 @@ func _report_perf() -> void:
 	if not PerfProbe.enabled:
 		return
 	var vp: RID = get_viewport().get_viewport_rid()
-	RenderingServer.viewport_set_measure_render_time(vp, true)
-	(
-		PerfProbe
-		. frame(
-			(
+	if not _perf_measuring:
+		RenderingServer.viewport_set_measure_render_time(vp, true)
+		_perf_measuring = true
+	PerfProbe.frame(
+		func() -> String:
+			return (
 				"gpu=%.2f en=%d pa=%d draws=%d"
 				% [
 					RenderingServer.viewport_get_measured_render_time_gpu(vp),
@@ -365,7 +368,6 @@ func _report_perf() -> void:
 					Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),
 				]
 			)
-		)
 	)
 
 

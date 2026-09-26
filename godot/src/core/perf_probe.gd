@@ -59,8 +59,10 @@ static func reset() -> void:
 	_window_start = 0
 
 
-## Counts one rendered frame; prints and resets once per window.
-static func frame(extra: String) -> void:
+## Counts one rendered frame; prints and resets once per window. `extra` builds the
+## report's extra fields and runs only when a line prints (M11c P24: a GPU-time query
+## every frame forces a RenderingServer sync once rendering has its own thread).
+static func frame(extra: Callable) -> void:
 	if not enabled:
 		return
 	var t: int = Time.get_ticks_usec()
@@ -72,7 +74,8 @@ static func frame(extra: String) -> void:
 		return
 	if t - _window_start < WINDOW_USEC:
 		return
-	print(format_line(_frames, _steps, _max_steps, _acc, _peak, extra))
+	var extra_text: String = extra.call()
+	print(format_line(_frames, _steps, _max_steps, _acc, _peak, extra_text))
 	reset()
 	_window_start = t
 

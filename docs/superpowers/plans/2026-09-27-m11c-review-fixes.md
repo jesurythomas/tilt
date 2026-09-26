@@ -150,3 +150,11 @@ eight carriers ~106 µs.
   expressions, same order) and inlines the seeker step (`update_seeker` stays for its
   callers). Golden state hash identical (`9dc5234a…`, 900 ticks with varying score and
   mode). Bench: loop 350 → 275 µs/tick; base swarm 302 → 255.
+- **P24** (kept, needs the A55 check VERIFY-ME §M11c 7): `rendering/driver/threads/
+  thread_model=2` (Separate — research: overlaps rendering with game logic; lightly
+  tested upstream; up to ~2 frames of input latency). The debug PerfProbe now builds
+  its extra fields (incl. `viewport_get_measured_render_time_gpu`, which forces an RS
+  sync per call when threaded) only when a line prints. Emulator A/B, fps by enemy
+  count: P22 → P23 → P23+Separate → P24: 150–249 16.6 → 20.5 → 31.3 → 30.8; 250+
+  9.6 → 11.6 → 13.3/14.1 → 23.4; 100–149 34.7 → 30.0 (3 samples) → 39.3/40.5 → 48.5.
+  Main-thread entity draw 15.5 → ~4 ms/frame. No errors or crashes in the runs.

@@ -1695,9 +1695,17 @@ recorded in that plan. Done: baked dot sprites + batched circles/dashes (P13/P14
 bit-exact windowed separation (P15), worker-thread saves (P16), HUD/menu
 outlines, the black Handling preview ship (SVG colour bug), close-call popup
 size, the "+0" payout hint, Armory scroll/purchase flash, wrapping taglines,
-Settings header inset. Clean emulator A/B: entity draw −55–67%, fps +30–70% per
-enemy bucket; at 150+ enemies the sim now dominates. **Next: plan Task 10 (sim
-cost per step), then the rest of Task 9's UI list.** Emulator notes: the arm64
+Settings header inset. Then Task 10 (FPS, the user's standing priority — "always
+take a look at the fps"): P17 carrier satellite maps, P18 pre-triangulated polygons,
+P19 baked carrier/pulsar/artillery/charger bodies, P21 collision early-out, P22 cached
+live goals, P23 inlined seeker step (all output-identical: golden hashes / pixel
+checks); P20 (glows-first batching) reverted — slower on the emulator. Emulator fps
+at 150–249 enemies across the day: 5.4 → ~18. The sim now dominates (separation
+~280 µs/tick desktop is near the GDScript floor). **Next:** read the P22/P23/
+Separate-render-thread A/B in the plan; remaining levers need the user: 60 Hz sim +
+interpolation (spec D8 says 120 Hz) or a GDExtension for the swarm tick; then the
+rest of Task 9's UI list. Wall formations and carriers were the user-reported drop
+points. Emulator notes: the arm64
 APK runs under translation; reboot the emulator if the sensors HAL crash-loops
 (it skewed one run); keep the host idle while measuring; a no-death build is a
 temporary one-line early return in `RunController.lose_life`, never committed —

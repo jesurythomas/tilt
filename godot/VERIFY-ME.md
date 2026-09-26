@@ -669,6 +669,26 @@ nothing below has run on it. Debug builds print one `PERF` line per second:
 - [ ] 6. **Cold open centred.** Ship, "PERIL POINT" and the glow sit in the
       middle of the screen (was ~530 px right and ~100 px low).
 
+### Review fixes (plan `2026-09-27-m11c-review-fixes.md`; emulator-verified only)
+
+- [ ] 7. **Render thread (P24).** `rendering/driver/threads/thread_model=2`
+      (Separate). Steering must still feel immediate (it can add up to ~2 frames of
+      latency); no flicker, no crash over a long run. If it feels laggy or crashes,
+      delete that one line from `project.godot` and report.
+- [ ] 8. **Late run with walls and carriers.** The user's drop points. Classic past
+      100 enemies: PERF `fps` at 150+ enemies and whether a wall formation still
+      causes a visible drop. Emulator (3.4× slower than the A55 per dot) went from
+      5.4 to ~18–31 fps at 150–249 enemies across P13–P24.
+- [ ] 9. **Baked enemies look right (P13, P19).** Seekers, frozen dots, carriers
+      and satellites, pulsars (star spins), artillery (flash at the muzzle), chargers
+      (charging vs aiming colours): same shapes and colours as before, edges smoother.
+- [ ] 10. **Text over the swarm.** HUD score, BEST, the weapon timer and the menu's
+      title/tagline/NEXT have a dark outline; "CLOSE CALL! +N" is large and bold.
+- [ ] 11. **UI fixes.** Armory → Handling preview ship is coloured (was black); a
+      purchase flashes the balance green and the list keeps its scroll; "+0" runs
+      show the points hint; Code Red's tagline wraps; Settings header aligns with
+      Armory's.
+
 ## M11b — Entrance cinematic
 
 Code-complete 2026-09-26 (Tasks 1-2, final review fixes F-1..F-3; exit
