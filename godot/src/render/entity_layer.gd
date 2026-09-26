@@ -48,6 +48,17 @@ const DASH_ARC_CHORDS: int = 3
 ## DIVERGENCE(M11c P14): points of the draw_arc fallback in _ring (the TS arcs are analytic;
 ## the replaced calls used 24-32).
 const RING_ARC_POINTS: int = 24
+## DIVERGENCE(M11c P18): triangle indices of the fixed enemy polygons, so they skip
+## draw_colored_polygon's per-call triangulation (renderer_canvas_cull.cpp). A
+## triangle; the charger's dart hull and core (concave at vertex 2); the diamond
+## and the hex (convex fans); the pulsar star as a fan around an appended centre.
+const TRI_ONE: PackedInt32Array = [0, 1, 2]
+const TRI_DART: PackedInt32Array = [0, 1, 2, 0, 2, 3]
+const TRI_QUAD: PackedInt32Array = [0, 1, 2, 0, 2, 3]
+const TRI_HEX: PackedInt32Array = [0, 1, 2, 0, 2, 3, 0, 3, 4, 0, 4, 5]
+const TRI_STAR: PackedInt32Array = [
+	8, 0, 1, 8, 1, 2, 8, 2, 3, 8, 3, 4, 8, 4, 5, 8, 5, 6, 8, 6, 7, 8, 7, 0
+]
 ## DIVERGENCE(M11c P17): the empty satellite list.
 const _NO_SATS: Array[Types.Enemy] = []
 
@@ -631,7 +642,7 @@ func _draw_charger(e: Types.Enemy) -> void:
 		var plume: PackedVector2Array = PackedVector2Array(
 			[Vector2(-8.0, -4.0), Vector2(-8.0 - jet_len, 0.0), Vector2(-8.0, 4.0)]
 		)  # PORT: EnemySwarm.ts:1250-1256
-		draw_colored_polygon(plume, Color("#ffaa00"))  # PORT: EnemySwarm.ts:1250
+		_fill(plume, TRI_ONE, Color("#ffaa00"))  # PORT: EnemySwarm.ts:1250
 
 	# Arrowhead delta dart chassis (PORT: EnemySwarm.ts:1259-1272)
 	# PORT: EnemySwarm.ts:1260-1261
@@ -644,7 +655,7 @@ func _draw_charger(e: Types.Enemy) -> void:
 	var hull: PackedVector2Array = PackedVector2Array(
 		[Vector2(14.0, 0.0), Vector2(-10.0, -11.0), Vector2(-6.0, 0.0), Vector2(-10.0, 11.0)]
 	)  # PORT: EnemySwarm.ts:1266-1269
-	draw_colored_polygon(hull, hull_col)
+	_fill(hull, TRI_DART, hull_col)
 	draw_polyline(_closed(hull), edge_col, 1.8)  # PORT: EnemySwarm.ts:1261-1264
 
 	# Cockpit / energy crystal core (PORT: EnemySwarm.ts:1274-1282)
@@ -657,7 +668,7 @@ func _draw_charger(e: Types.Enemy) -> void:
 	var core: PackedVector2Array = PackedVector2Array(
 		[Vector2(6.0, 0.0), Vector2(-2.0, -3.5), Vector2(0.0, 0.0), Vector2(-2.0, 3.5)]
 	)  # PORT: EnemySwarm.ts:1277-1280
-	draw_colored_polygon(core, core_col)
+	_fill(core, TRI_DART, core_col)
 
 	_end_entity()
 
@@ -695,7 +706,7 @@ func _draw_artillery(e: Types.Enemy) -> void:
 	var hex_fill: Color = _enemy_skin.body_gradient[2] if _has_alt_skin() else Color("#1c0a1a")
 	# PORT: EnemySwarm.ts:1312
 	var hex_stroke: Color = _enemy_skin.border_color if _has_alt_skin() else Color("#ff0077")
-	draw_colored_polygon(hex, hex_fill)
+	_fill(hex, TRI_HEX, hex_fill)
 	draw_polyline(_closed(hex), hex_stroke, 2.2)
 
 	# Armored cross struts (PORT: EnemySwarm.ts:1329-1335)
@@ -730,7 +741,7 @@ func _draw_bullet(e: Types.Enemy) -> void:
 			Color(1.0, 0.0, 180.0 / 255.0, 0.85)
 		]
 	)  # PORT: EnemySwarm.ts:1359-1360
-	draw_polygon(tail, tail_colors)
+	RenderingServer.canvas_item_add_triangle_array(get_canvas_item(), TRI_ONE, tail, tail_colors)
 
 	# Core plasma energy ball (PORT: EnemySwarm.ts:1370-1373, two-circle rule)
 	CircleSprites.draw_disc(self, Vector2.ZERO, e.radius, Color("#ff2299"))
@@ -778,7 +789,7 @@ func _draw_carrier(e: Types.Enemy) -> void:
 			Vector2(0.0, e.radius + 4.0)
 		]
 	)  # PORT: EnemySwarm.ts:1423-1426
-	draw_colored_polygon(diamond, diamond_fill)
+	_fill(diamond, TRI_QUAD, diamond_fill)
 	draw_polyline(_closed(diamond), diamond_stroke, 2.4)
 
 	# Inner glowing core (PORT: EnemySwarm.ts:1431-1440)
@@ -836,7 +847,8 @@ func _draw_pulsar(e: Types.Enemy) -> void:
 		var a: float = float(p) * PI / 4.0 + _elapsed * 3.0  # PORT: EnemySwarm.ts:1501
 		var r: float = e.radius * 0.55 if p % 2 == 0 else e.radius * 0.22  # PORT: EnemySwarm.ts:1502
 		star.append(pos + Vector2(cos(a) * r, sin(a) * r))
-	draw_colored_polygon(star, star_col)
+	star.append(pos)  # the fan centre
+	_fill(star, TRI_STAR, star_col)
 	_end_entity()
 
 
@@ -1081,6 +1093,14 @@ func _draw_dashed_arc(
 		s += period
 	if not points.is_empty():
 		draw_multiline(points, color, width)
+
+
+## DIVERGENCE(M11c P18): draw_colored_polygon with known triangles (pixel-identical,
+## checked 2026-09-27; follows draw_set_transform like any draw_* call).
+func _fill(points: PackedVector2Array, indices: PackedInt32Array, color: Color) -> void:
+	RenderingServer.canvas_item_add_triangle_array(
+		get_canvas_item(), indices, points, PackedColorArray([color])
+	)
 
 
 ## DIVERGENCE(M11c P14): a full circle outline from CircleSprites' shared ring

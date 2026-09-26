@@ -106,3 +106,16 @@ only). Ruling **P17**: the satellites of each carrier come from a per-tick map i
 per carrier; the loop tail reads the type once. State hash of a seeded 900-tick
 late-mix run identical before/after (`c3a7204d…`). Bench (212 enemies): loop
 470 → 350 µs/tick, swarm step 767 → 657; separation ~300 unchanged.
+
+**Task 10 — emulator A/B for P17** (clean emulator, god builds `4c3c7c5` vs
+`18282d0`): 100–149 enemies 14.5 → 27.1 fps (s_swarm 23.8 → 10.5 ms/frame),
+150–249 8.5 → 10.1, 250+ flat (6.4 / 6.3). Research (sourced report, 2026-09-27):
+polygons triangulate per call and never batch; 4.4+ batches consecutive same-texture
+draws; MultiMesh, Separate thread model, Perfetto (official Android templates in
+4.7), 60 Hz + interpolation and GDExtension are the larger levers — the last two
+conflict with the port's rules and are left for the user.
+Ruling **P18**: the fixed enemy polygons draw through
+`canvas_item_add_triangle_array` with known indices (pixel-identical, 0/1981
+pixels differ in a render test). Small desktop gain (mix ~890–900 µs vs 890–980).
+`bench_draw_types.gd` per enemy: seeker 3.2 µs, carrier+4 sats 61.8, charger 31.3,
+pulsar 25.8, artillery 23.8, specter 18.5 → next: bake the heavy types (P19).
