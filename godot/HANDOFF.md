@@ -1688,7 +1688,15 @@ block and output: "## How to verify right now" above. Full report:
 
 ## Next
 
-**Measure M11c part 1 on the A55.** When the phone is on `adb`: export and
+**A55 result (2026-09-26, build `580c854`):** the user played; no second
+below 55 fps at any enemy count, >20 ms frames 1.7% (VERIFY-ME §M11c check 1,
+ticked). The user then ruled **P9**: the ring formation keeps too little
+room, so it drops to 8–10 dots (Classic) and 11 (Code Red). Remaining: checks
+2–6 on the P9 build, and a longer late run (only 3 s above 100 enemies).
+Entity draw (7.1 ms at 100+) is now the largest cost; the other enemy types
+still use `draw_circle`/`draw_arc`.
+
+**Finish measuring M11c part 1 on the A55.** When the phone is on `adb`: export and
 install the debug APK (VERIFY-ME §0), then run `VERIFY-ME.md` §M11c part 1
 with the user playing. If check 1 misses the target (fps ≥ 58 at 100+
 enemies), read the largest remaining `PERF` section and stop for a ruling —

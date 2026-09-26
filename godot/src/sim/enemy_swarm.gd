@@ -467,8 +467,10 @@ func spawn_arrow_formation(bounds: Vector2, is_dual_pincer: bool = false) -> voi
 func spawn_circle_encirclement(
 	player_pos: Vector2, _bounds: Vector2, current_score: int = 0, is_tight: bool = false
 ) -> void:
-	# PORT: web/src/tilt-to-live/EnemySwarm.ts:890
-	var count: int = 16 if is_tight else mini(16, 12 + current_score / 10000)
+	# PORT: web/src/tilt-to-live/EnemySwarm.ts:890 — the shape (tight fixed, else a
+	# score ramp); DIVERGENCE(M11c P9): user ruling 2026-09-26, "too close together,
+	# near impossible to slip past" — fewer dots (TS: 16 tight, 12-16 ramp).
+	var count: int = 11 if is_tight else mini(10, 8 + current_score / 10000)
 	# PORT: web/src/tilt-to-live/EnemySwarm.ts:891
 	var radius: float = (180.0 if is_tight else 260.0) * scale
 	# PORT: web/src/tilt-to-live/EnemySwarm.ts:892

@@ -176,7 +176,7 @@ func test_code_red_waves_are_walls_pincers_or_tight_circles() -> void:
 		var circles: int = _count_type(Types.EnemyType.CIRCLE_DOT)
 		var walls: int = _count_type(Types.EnemyType.WALL_DOT)
 		assert_true(arrows == 0 or arrows == 14, "code red arrows are the dual pincer")
-		assert_true(circles == 0 or circles == 16, "code red circles are tight")
+		assert_true(circles == 0 or circles == 11, "code red circles are tight (M11c P9: TS 16)")
 		assert_eq(_count_type(Types.EnemyType.TURRET_DOT), 0)
 		assert_eq(_count_type(Types.EnemyType.SNAKE_SEGMENT), 0)
 		if arrows + circles + walls > 0:

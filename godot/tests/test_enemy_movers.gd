@@ -72,14 +72,15 @@ func test_arrow_drone_is_removed_after_leaving_the_arena() -> void:
 
 
 func test_circle_encirclement_count_scales_with_score() -> void:
+	# DIVERGENCE(M11c P9): user ruling 2026-09-26 — fewer dots, wider gaps (TS 12-16).
 	_swarm.spawn_circle_encirclement(PLAYER, BOUNDS, 0)
-	assert_eq(_count_type(Types.EnemyType.CIRCLE_DOT), 12, "12 + floor(0 / 10000)")
+	assert_eq(_count_type(Types.EnemyType.CIRCLE_DOT), 8, "8 + floor(0 / 10000)")
 	_swarm.reset()
-	_swarm.spawn_circle_encirclement(PLAYER, BOUNDS, 30000)
-	assert_eq(_count_type(Types.EnemyType.CIRCLE_DOT), 15, "12 + 3")
+	_swarm.spawn_circle_encirclement(PLAYER, BOUNDS, 15000)
+	assert_eq(_count_type(Types.EnemyType.CIRCLE_DOT), 9, "8 + 1")
 	_swarm.reset()
 	_swarm.spawn_circle_encirclement(PLAYER, BOUNDS, 90000)
-	assert_eq(_count_type(Types.EnemyType.CIRCLE_DOT), 16, "capped at 16")
+	assert_eq(_count_type(Types.EnemyType.CIRCLE_DOT), 10, "capped at 10")
 
 
 func test_circle_dots_ring_the_player_then_close_in() -> void:
@@ -98,7 +99,7 @@ func test_circle_dots_ring_the_player_then_close_in() -> void:
 
 func test_tight_circle_uses_the_code_red_values() -> void:
 	_swarm.spawn_circle_encirclement(PLAYER, BOUNDS, 0, true)
-	assert_eq(_swarm.enemies.size(), 16)
+	assert_eq(_swarm.enemies.size(), 11, "DIVERGENCE(M11c P9): user ruling, TS 16")
 	for e: Types.Enemy in _swarm.enemies:
 		assert_almost_eq(Vector2(e.x, e.y).distance_to(PLAYER), 180.0, 0.01)
 		assert_almost_eq(e.special_timer, 0.75, 0.001)

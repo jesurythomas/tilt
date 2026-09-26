@@ -631,7 +631,12 @@ Code-complete 2026-09-26. The A55 dropped off `adb` at 02:11 that day, so
 nothing below has run on it. Debug builds print one `PERF` line per second:
 `"$ADB" -s RRCXB04L8EJ logcat -s godot:I | grep PERF`.
 
-- [ ] 1. **Late run.** A Classic run past 100 enemies (`en=` in the PERF
+- [x] 1. **Late run** — run 2026-09-26 on the P1–P8 build (`580c854`): 75 s
+      of PERF lines, **no second below 55 fps** in any enemy bucket (up to
+      100+), sim ~2 ms/frame (was 46–54), entity draw 7.1 ms at 100+ (was
+      14–17), `maxsteps` ≤ 3 (target ≤ 2; was 8). `tools/frametime.sh 90`:
+      p50 16.67, p95 16.79, p99 25.0, >20ms **1.7%**. Only 3 s were above 100
+      enemies — repeat with a longer late run. Original target: a Classic run past 100 enemies (`en=` in the PERF
       line): `fps` ≥ 58, `maxsteps` ≤ 2. Before this pass: fps 12–14,
       maxsteps 8, swarm 22–27 ms, grid 18–19 ms, entity draw 14–17 ms per
       frame. Then `tools/frametime.sh 60 late-run`: p50 ≤ 16.7 ms, >20ms
@@ -647,6 +652,9 @@ nothing below has run on it. Debug builds print one `PERF` line per second:
 - [ ] 4. **Grid on.** Settings → Background grid on, mid-run: the grid
       appears (flat), ripples on the next kills, and the PERF line shows
       the awake-grid cost (`s_grid`).
+- [ ] 5a. **Ring formation (P9).** The mid-run ring that pauses, then closes
+      in, now has 8–10 dots in Classic and 11 in Code Red: is there room to
+      slip out? (After P8 the user found it still too tight.)
 - [ ] 5. **Start ring.** A Classic run opens with the 8 seekers much
       further out (0.42 × the arena's short side, ~443 px on the A55, P8).
       Is it now fair to escape?

@@ -153,7 +153,8 @@ func test_entity_layer_draws_every_enemy_type_without_error() -> void:
 	add_child_autofree(layer)
 	layer.queue_redraw()
 	await wait_frames(2)
-	assert_eq(swarm.enemies.size(), 1 + 7 + 38 + 12 + 1 + 6 + 8 + 2 + 1 + 1 + 5 + 1 + 1 + 1 + 1 + 1)
+	# The ring is 8 dots at score 0 (M11c P9 user ruling; the TS spawns 12).
+	assert_eq(swarm.enemies.size(), 1 + 7 + 38 + 8 + 1 + 6 + 8 + 2 + 1 + 1 + 5 + 1 + 1 + 1 + 1 + 1)
 
 
 func test_layers_draw_every_weapon_fx_and_every_orb_glyph_without_error() -> void:
