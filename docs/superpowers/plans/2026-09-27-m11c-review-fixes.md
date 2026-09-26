@@ -146,3 +146,7 @@ eight carriers ~106 µs.
 - **P20** (reverted): glows-first draw order for batching made entity draw *slower*
   on the emulator (14.3 → 17.9 ms/frame at 150–249; the extra pass costs more
   GDScript than batching saves on its desktop GPU). Re-try only with A55 evidence.
+- **P23** (kept): `update()` hoists `update_seeker`'s per-tick constants (same
+  expressions, same order) and inlines the seeker step (`update_seeker` stays for its
+  callers). Golden state hash identical (`9dc5234a…`, 900 ticks with varying score and
+  mode). Bench: loop 350 → 275 µs/tick; base swarm 302 → 255.

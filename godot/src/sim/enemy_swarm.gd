@@ -872,6 +872,19 @@ func update(
 	# DIVERGENCE(M11c P1): debug-only probe sections for the per-enemy loop and separation.
 	var pt_loop: int = PerfProbe.now()
 	_build_satellite_map()
+	# DIVERGENCE(M11c P23): update_seeker's per-tick constants (the same expressions,
+	# in the same order, so the same values) are computed once here, and its body is
+	# inlined below — a call per seeker per tick cost as much as the arithmetic.
+	# PORT: web/src/tilt-to-live/EnemySwarm.ts:235-240, :249
+	var score_speed_bonus: float = minf(25.0, (float(current_score) / 25000.0) * 25.0)
+	var seeker_speed: float = (
+		minf(195.0, 105.0 + _elapsed * 0.5 + score_speed_bonus) * maxf(0.72, scale)
+	)
+	if is_code_red:
+		seeker_speed *= 1.35  # PORT: web/src/tilt-to-live/EnemySwarm.ts:240
+	var seeker_steer: float = (4.5 if is_code_red else 3.2) * dt
+	var px: float = player_pos.x
+	var py: float = player_pos.y
 	# 3. Update Individual Enemy Physics & Logic.
 	# PORT: web/src/tilt-to-live/EnemySwarm.ts:134-217
 	for i: int in range(enemies.size() - 1, -1, -1):
@@ -886,7 +899,20 @@ func update(
 
 		match e.type:
 			Types.EnemyType.SEEKER:
-				update_seeker(e, player_pos, dt, current_score, is_code_red)
+				# update_seeker, inlined (P23). PORT: web/src/tilt-to-live/EnemySwarm.ts:223-256
+				var sdx: float = px - e.x
+				var sdy: float = py - e.y
+				var sdist: float = sqrt(sdx * sdx + sdy * sdy)
+				if sdist > 1.0:
+					var target_speed: float = seeker_speed
+					if e.chilled:
+						target_speed *= 0.45  # PORT: web/src/tilt-to-live/EnemySwarm.ts:243
+					var target_vx: float = (sdx / sdist) * target_speed
+					var target_vy: float = (sdy / sdist) * target_speed
+					e.vx += (target_vx - e.vx) * seeker_steer
+					e.vy += (target_vy - e.vy) * seeker_steer
+				e.x += e.vx * dt * speed_scale
+				e.y += e.vy * dt * speed_scale
 			Types.EnemyType.ARROW_DRONE:
 				update_arrow_drone(e, dt)
 			Types.EnemyType.CIRCLE_DOT:
@@ -950,11 +976,7 @@ func update(
 
 		# Clamp standard enemies inside playfield.
 		# PORT: web/src/tilt-to-live/EnemySwarm.ts:209-216
-		if (
-			not sweeps
-			and e.orbit_center == Vector2.ZERO
-			and e.parent_carrier_id == Types.ABSENT
-		):
+		if not sweeps and e.orbit_center == Vector2.ZERO and e.parent_carrier_id == Types.ABSENT:
 			var pad: float = e.radius
 			if e.x < pad:
 				e.x = pad
