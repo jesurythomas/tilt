@@ -739,3 +739,39 @@ func test_arena_tab_fits_the_board_frame() -> void:
 
 func test_arena_tab_fits_the_a55() -> void:
 	await _assert_tab_fits("arena", Vector2(2340, 1080), 1080.0 / 390.0)
+
+
+## Every control under a scroll view that would swallow a touch, except the ones
+## a drag must operate (sliders, the handling preview).
+func _swallowers_in_scrolls() -> Array[String]:
+	var out: Array[String] = []
+	var scrolls: Array[Node] = _armory.find_children("*", "ScrollContainer", true, false)
+	for scroll: Node in scrolls:
+		var stack: Array[Node] = scroll.get_children()
+		while not stack.is_empty():
+			var n: Node = stack.pop_back()
+			stack.append_array(n.get_children())
+			var c: Control = n as Control
+			if c == null or c is ScrollContainer or c is Range or c is HandlingPreview:
+				continue
+			if c.mouse_filter == Control.MOUSE_FILTER_STOP:
+				out.append("%s (%s)" % [c.name, c.get_class()])
+	return out
+
+
+func test_a_drag_starting_on_any_card_or_button_reaches_the_scroll_view() -> void:
+	# A55 report 2026-09-26: "I cannot drag or move the armory". A STOP control
+	# swallows the touch, so its ScrollContainer never sees the drag.
+	for tab: String in ["weapons", "ships", "arena", "handling", "boosts"]:
+		_armory.open(tab)
+		await get_tree().process_frame
+		assert_eq(_swallowers_in_scrolls(), [] as Array[String], "%s tab" % tab)
+
+
+func test_sliders_still_take_their_own_drags() -> void:
+	_armory.open("handling")
+	await get_tree().process_frame
+	var sliders: Array[Node] = _armory.find_children("*", "HSlider", true, false)
+	assert_gt(sliders.size(), 0)
+	for s: Node in sliders:
+		assert_eq((s as Control).mouse_filter, Control.MOUSE_FILTER_STOP, s.name)
