@@ -29,6 +29,13 @@ const FADE_WARNING_TIME: float = 3.0  # PORT: web/src/tilt-to-live/CoinSystem.ts
 const MIN_DISTANCE_FROM_PLAYER: float = 110.0  # PORT: web/src/tilt-to-live/CoinSystem.ts:34
 const SPAWN_INTERVAL_MIN: float = 2.5  # PORT: web/src/tilt-to-live/CoinSystem.ts:35
 const SPAWN_INTERVAL_MAX: float = 4.0  # PORT: web/src/tilt-to-live/CoinSystem.ts:36
+## DIVERGENCE(M11c P10): user ruling 2026-09-26 — coins near the ship fly to it (the
+## TS has no magnet). Arena px within which a coin is pulled.
+const MAGNET_RADIUS: float = 180.0
+## DIVERGENCE(M11c P10): pull speed (px/s) at the magnet's edge and at the ship; it
+## ramps linearly in between, so a coin accelerates as it closes.
+const MAGNET_SPEED_EDGE: float = 160.0
+const MAGNET_SPEED_CLOSE: float = 700.0
 
 ## Live coins. PORT: web/src/tilt-to-live/CoinSystem.ts:39
 var coins: Array[CoinPickup] = []
@@ -36,6 +43,9 @@ var coins: Array[CoinPickup] = []
 var coins_collected: int = 0
 ## Points actually credited from coins this run. PORT: web/src/tilt-to-live/CoinSystem.ts:41
 var points_from_coins: int = 0
+
+## DIVERGENCE(M11c P10): the pull radius; 0 disables the magnet (tests of the TS rules).
+var magnet_radius: float = MAGNET_RADIUS
 
 var _next_coin_id: int = 1  # PORT: web/src/tilt-to-live/CoinSystem.ts:43
 # PORT: web/src/tilt-to-live/CoinSystem.ts:44
@@ -86,6 +96,17 @@ func update(
 		var dx: float = player.x - coin.x
 		var dy: float = player.y - coin.y
 		var dist: float = sqrt(dx * dx + dy * dy)
+
+		# DIVERGENCE(M11c P10): the magnet, before the TS pickup test.
+		if dist < magnet_radius and dist > 0.0:
+			var closeness: float = 1.0 - dist / magnet_radius
+			var speed: float = (
+				MAGNET_SPEED_EDGE + (MAGNET_SPEED_CLOSE - MAGNET_SPEED_EDGE) * closeness
+			)
+			var step: float = minf(speed * dt, dist)
+			coin.x += dx / dist * step
+			coin.y += dy / dist * step
+			dist -= step
 
 		if dist < player.radius + coin.radius:
 			var value: int = roundi(float(COIN_BASE_VALUE) * mode_multiplier)  # PORT: :88

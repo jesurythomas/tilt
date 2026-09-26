@@ -16,6 +16,8 @@ var _credited: Array[int] = []
 func before_each() -> void:
 	seed(20260921)
 	_cs = CoinSystem.new()
+	# The TS rules below predate the magnet (M11c P10); the magnet has its own tests.
+	_cs.magnet_radius = 0.0
 	_player = PlayerShip.new(500.0, 300.0)
 	_particles = ParticleEngine.new()
 	_audio = AudioBank.new()
@@ -150,3 +152,39 @@ func test_reset_clears_everything_and_restarts_the_timer() -> void:
 	_step(1.7)
 	assert_eq(_cs.coins.size(), 1)
 	assert_eq(_cs.coins[0].id, 1, "ids restart at 1 (:50)")
+
+
+func _magnet_coin(offset: Vector2) -> CoinSystem.CoinPickup:
+	_cs.magnet_radius = CoinSystem.MAGNET_RADIUS
+	_cs.coins.clear()
+	var coin: CoinSystem.CoinPickup = CoinSystem.CoinPickup.new()
+	coin.x = _player.x + offset.x
+	coin.y = _player.y + offset.y
+	coin.radius = CoinSystem.COIN_RADIUS
+	coin.lifetime = CoinSystem.COIN_LIFETIME
+	coin.max_lifetime = CoinSystem.COIN_LIFETIME
+	_cs.coins.append(coin)
+	return coin
+
+
+func test_magnet_pulls_a_nearby_coin_toward_the_ship() -> void:
+	# DIVERGENCE(M11c P10): user ruling 2026-09-26 — nearby coins fly to the ship.
+	var coin: CoinSystem.CoinPickup = _magnet_coin(Vector2(170.0, 0.0))
+	_cs.update(0.01, _player, BOUNDS, _particles, _audio, 1.0, _bank())
+	assert_lt(coin.x, _player.x + 170.0, "moved toward the ship")
+	assert_almost_eq(coin.y, _player.y, 0.0001, "straight at it")
+	assert_eq(_cs.coins.size(), 1, "not collected in one tick")
+
+
+func test_magnet_collects_a_nearby_coin_without_the_ship_moving() -> void:
+	_magnet_coin(Vector2(0.0, -170.0))
+	for i: int in range(60):  # 0.6 s of sim time
+		_cs.update(0.01, _player, BOUNDS, _particles, _audio, 1.0, _bank())
+	assert_eq(_cs.coins_collected, 1)
+
+
+func test_magnet_ignores_coins_beyond_its_radius() -> void:
+	var coin: CoinSystem.CoinPickup = _magnet_coin(Vector2(CoinSystem.MAGNET_RADIUS + 5.0, 0.0))
+	var x0: float = coin.x
+	_cs.update(0.05, _player, BOUNDS, _particles, _audio, 1.0, _bank())
+	assert_eq(coin.x, x0)
