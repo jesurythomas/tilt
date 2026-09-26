@@ -119,3 +119,56 @@ static func _radial(offsets: PackedFloat32Array, alphas: PackedFloat32Array) -> 
 	tex.fill_from = Vector2(0.5, 0.5)
 	tex.fill_to = Vector2(1.0, 0.5)
 	return tex
+
+
+## DIVERGENCE(M11c P13): one texture holding concentric layers composited in order,
+## so an entity drawn as several circles costs one draw call. Texels are screen
+## pixels: layer i is a disc of radii[i] px (widths[i] == 0.0) or a ring centred on
+## radii[i] px, widths[i] px wide, filled with colors[i]. The texture is size x size
+## with the circles' centre in its middle; draw it at exactly that size.
+static func bake_layers(
+	size: int, radii: PackedFloat32Array, widths: PackedFloat32Array, colors: PackedColorArray
+) -> ImageTexture:
+	var canvas: Image = Image.create_empty(size, size, false, Image.FORMAT_RGBA8)
+	for i: int in range(radii.size()):
+		var layer: Image = _layer_image(size, radii[i], widths[i], colors[i])
+		canvas.blend_rect(layer, Rect2i(0, 0, size, size), Vector2i.ZERO)
+	return ImageTexture.create_from_image(canvas)
+
+
+## One anti-aliased disc or ring as a size x size image (see bake_layers).
+static func _layer_image(size: int, radius: float, width: float, color: Color) -> Image:
+	# GradientTexture2D maps pixel x to x / (size - 1), so one gradient unit is
+	# (size - 1) / 2 pixels (measured 2026-09-27).
+	var unit: float = maxf((size - 1) * 0.5, 1.0)
+	var offsets: PackedFloat32Array
+	var alphas: PackedFloat32Array
+	if width <= 0.0:
+		offsets = PackedFloat32Array([0.0, radius - 0.5, radius + 0.5])
+		alphas = PackedFloat32Array([1.0, 1.0, 0.0])
+	elif width < 1.0:
+		# A sub-pixel stroke covers at most `width` of a pixel.
+		offsets = PackedFloat32Array([radius - 0.5, radius, radius + 0.5])
+		alphas = PackedFloat32Array([0.0, width, 0.0])
+	else:
+		var inner: float = radius - width * 0.5
+		var outer: float = radius + width * 0.5
+		offsets = PackedFloat32Array([inner - 0.5, inner + 0.5, outer - 0.5, outer + 0.5])
+		alphas = PackedFloat32Array([0.0, 1.0, 1.0, 0.0])
+	var colors: PackedColorArray = PackedColorArray()
+	for i: int in range(offsets.size()):
+		offsets[i] = clampf(offsets[i] / unit, 0.0, 1.0)
+		colors.append(Color(color.r, color.g, color.b, color.a * alphas[i]))
+	var g: Gradient = Gradient.new()
+	g.offsets = offsets
+	g.colors = colors
+	var tex: GradientTexture2D = GradientTexture2D.new()
+	tex.gradient = g
+	tex.width = size
+	tex.height = size
+	tex.fill = GradientTexture2D.FILL_RADIAL
+	tex.fill_from = Vector2(0.5, 0.5)
+	tex.fill_to = Vector2(1.0, 0.5)
+	var img: Image = tex.get_image()
+	img.convert(Image.FORMAT_RGBA8)
+	return img

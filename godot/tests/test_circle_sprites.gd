@@ -60,3 +60,40 @@ func test_large_thin_rings_are_not_faithful_as_textures() -> void:
 	# texel would span ~2.9 px and the stroke ratio falls below RATIO_STEP.
 	assert_false(CircleSprites.ring_is_faithful(85.0, 1.0), "late shockwave")
 	assert_false(CircleSprites.ring_is_faithful(40.0, 2.0), "mid shockwave, texel > 1 px")
+
+
+func test_bake_layers_composites_in_order() -> void:
+	# A 20 px red disc under a 10 px blue disc, 48 px texture (M11c P13).
+	var tex: ImageTexture = CircleSprites.bake_layers(
+		48,
+		PackedFloat32Array([20.0, 10.0]),
+		PackedFloat32Array([0.0, 0.0]),
+		PackedColorArray([Color.RED, Color.BLUE])
+	)
+	var img: Image = tex.get_image()
+	assert_eq(img.get_size(), Vector2i(48, 48))
+	assert_true(img.get_pixel(24, 24).is_equal_approx(Color.BLUE), "later layer on top")
+	assert_true(img.get_pixel(24, 24 + 15).is_equal_approx(Color.RED), "earlier layer outside")
+	assert_almost_eq(img.get_pixel(0, 0).a, 0.0, 0.01, "clear corner")
+
+
+func test_bake_layers_ring_is_hollow() -> void:
+	var tex: ImageTexture = CircleSprites.bake_layers(
+		48, PackedFloat32Array([15.0]), PackedFloat32Array([2.0]), PackedColorArray([Color.WHITE])
+	)
+	var img: Image = tex.get_image()
+	assert_almost_eq(img.get_pixel(24, 24).a, 0.0, 0.01, "hollow centre")
+	assert_gt(img.get_pixel(24, 24 + 15).a, 0.9, "on the line")
+
+
+func test_dot_sprites_are_cached_until_the_look_changes() -> void:
+	var layer: EntityLayer = EntityLayer.new()
+	autofree(layer)
+	layer.set_model_scale(1.5)
+	var a: EntityLayer.DotSprites = layer._dot_sprites(10.0, false, false)
+	assert_same(layer._dot_sprites(10.0, false, false), a, "same look reuses the bake")
+	assert_ne(layer._dot_sprites(10.0, true, false), a, "chilled is its own look")
+	layer.set_model_scale(1.0)
+	assert_ne(layer._dot_sprites(10.0, false, false), a, "a new model scale rebakes")
+	# Sized to the drawn pixels: (radius + 0.6) * scale + 1 each side.
+	assert_eq(a.inner_half, ceilf(((10.0 + 0.6) * 1.5 + 1.0) * 2.0) * 0.5)
