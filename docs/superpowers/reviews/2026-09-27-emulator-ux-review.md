@@ -43,6 +43,52 @@ Side effect: one test tap bought Blackhole Duration rank 4 on the **emulator** s
 11. **Settings header is out of line.** It sits about 10 px higher (y≈72) than the
     Armory and Milestones headers (y≈83), so the back button jumps between screens.
 
+## FPS under load (emulator, Code Red)
+
+To reach high enemy counts, a **temporary, uncommitted** debug APK skipped
+`lose_life` (reverted right after export). A bot steered in loops for about 3 min.
+The emulator runs the arm64 build under translation: per enemy it is about 3.4×
+slower than the A55 (A55: 7.1 ms entity draw at 100+ enemies; emulator: about
+0.24 ms per dot). **Absolute fps here is pessimistic; the proportions are what
+carry over.** PERF averages per bucket:
+
+| enemies | fps | sim steps/s (of 120) | d_entity ms | phys ms | s_swarm ms | draws |
+|---|---|---|---|---|---|---|
+| <50 | 35.5 | 119 | 8.3 | 8.2 | 1.9 | 227 |
+| 50–99 | 18.8 | 108 | 32.6 | 20.6 | 10.4 | 407 |
+| 100–149 | 9.0 | 72 | 70.7 | 34.3 | 20.0 | 572 |
+| 150+ | 5.4 | 43 | 127.9 | 58.6 | 43.8 | 1,126 |
+
+Findings:
+1. **Entity draw is about two thirds of the frame at every load.** Scaled to the
+   A55 (÷3.4), 187 enemies would be about 30 ms of draw plus about 10 ms of swarm:
+   roughly 20–25 fps.
+2. **Wall formations double the count at once.** En went 102 → 181 within one
+   second (one wall is about 80 dots). This is the reported "formation spike": a
+   sustained load, not a one-tick cost. The A55 pass had only 3 s above 100
+   enemies and never measured a wall on top of a late swarm.
+3. **The run turns into slow motion when frames are long.** Godot's 8-steps-per-frame
+   ceiling holds the sim to 43–72 of 120 steps/s at 100+ enemies, so the game runs
+   at 35–60% speed (P2's catch-up cap was withdrawn; this is the engine's own cap).
+4. **The non-dot enemies still use `draw_circle`/`draw_arc`.** In `entity_layer.gd`:
+   carrier satellites (3 calls each, 4 per carrier), pulsar, specter, bullet,
+   artillery, coins, weapon orbs. Dashed aim lines issue one `draw_line` per dash,
+   and `_draw_dashed_arc` one `draw_arc` per dash. Carriers and artillery are
+   common late (see the 150+ screenshots).
+5. **The death tick hitches.** `s_collide` peaks at 36–45 ms on the death tick
+   (maxsteps 6–8 that second), from finalize, `evaluate_run` and the save.
+   About 12 ms on the A55: one visible hitch as the run ends.
+6. **The first run frame spikes.** `d_entity` max 25.6 ms with `en=0` on the
+   cinematic handover (first use of textures?). The reviewer's pre-warm idea
+   applies here.
+7. Smaller costs at 150+: `s_particles` 2–5 ms, `s_goals` about 2.3 ms per frame (P7).
+
+Candidates for a ruling (not started): MultiMesh or batched sprites for all dot-like
+enemies (spec §9; removes about 7 canvas commands and the per-dot GDScript for each
+dot); move the remaining enemy and pickup circles to `CircleSprites`; one
+polyline per dashed line; defer the save off the death tick; pre-warm the circle
+textures at boot.
+
 ## UI/UX improvements
 
 **Menu**

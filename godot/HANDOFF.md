@@ -1694,8 +1694,11 @@ and runs there under translation). Findings, ranked, in
 `docs/superpowers/reviews/2026-09-27-emulator-ux-review.md`: 11 flaws (top ones:
 entities draw over the HUD and menu text, the Handling preview ship draws black,
 the HUD hides the playfield corners, close-call popups are unreadable, and a "+0"
-payout has no explanation) plus UI/UX improvements for each screen. Nothing is
-fixed yet. **Get the user's rulings on which to fix**, then plan them. The A55
+payout has no explanation) plus UI/UX improvements for each screen. It also has
+an **FPS-under-load** section: a Code Red run with a temporary no-death build
+(reverted) reached 187–367 enemies. Entity draw is about 2/3 of the frame at every
+load; a wall formation adds about 80 dots at once; the non-dot enemies still use
+`draw_circle`/`draw_arc`; the death tick hitches. Nothing is fixed yet. **Get the user's rulings on which to fix**, then plan them. The A55
 hitch analysis (below) is still pending the phone.
 
 **A55 result (2026-09-26, build `580c854`):** the user played; no second
