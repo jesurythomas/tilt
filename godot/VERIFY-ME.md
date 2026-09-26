@@ -655,6 +655,14 @@ nothing below has run on it. Debug builds print one `PERF` line per second:
 - [ ] 5a. **Ring formation (P9).** The mid-run ring that pauses, then closes
       in, now has 8–10 dots in Classic and 11 in Code Red: is there room to
       slip out? (After P8 the user found it still too tight.)
+- [ ] 5b. **Armory drags** (fix `04224b2`): every tab scrolls when the drag
+      starts on a card or button; a tap still buys/equips; ship, theme and
+      enemy rows scroll sideways; a vertical drag starting on a row scrolls
+      the page; sliders and the handling preview still take their own drags.
+- [ ] 5c. **Coin magnet (P10):** coins within ~180 px fly to the ship and
+      are collected; coins further away stay put.
+- [ ] 5d. **Milestones (P11):** one scrolling column, Score then Combat then
+      Mastery, each with its "n of m" count; drag-scrolls from any card.
 - [ ] 5. **Start ring.** A Classic run opens with the 8 seekers much
       further out (0.42 × the arena's short side, ~443 px on the A55, P8).
       Is it now fair to escape?
