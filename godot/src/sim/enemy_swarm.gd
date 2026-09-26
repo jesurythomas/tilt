@@ -31,6 +31,8 @@ const SWEEP_OFFSET: float = 65536.0
 ## DIVERGENCE(M11c P15): low bits of an index key hold the candidate index.
 const SWEEP_INDEX_BITS: int = 20
 const SWEEP_INDEX_MASK: int = (1 << SWEEP_INDEX_BITS) - 1
+## DIVERGENCE(M11c P17): the empty satellite list.
+const _NO_SATELLITES: Array[Types.Enemy] = []
 
 ## Live active enemies. PORT: web/src/tilt-to-live/EnemySwarm.ts:9
 var enemies: Array[Types.Enemy] = []
@@ -46,6 +48,9 @@ var _spawn_timer: float = 0.5  # PORT: web/src/tilt-to-live/EnemySwarm.ts:39
 var _wave_timer: float = 4.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:40
 var _elapsed: float = 0.0
 var _wall_direction_cycle: int = 0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:14
+## DIVERGENCE(M11c P17): this tick's satellites per carrier id (see _build_satellite_map).
+var _sats_by_carrier: Dictionary[int, Array] = {}
+var _sats_by_carrier_valid: bool = false
 
 
 func _init() -> void:
@@ -864,6 +869,9 @@ func update(
 			var base_wave_interval: float = maxf(5.5, 10.0 - _elapsed * 0.02 - score_wave_reduction)
 			_wave_timer = base_wave_interval + randf() * 2.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:130
 
+	# DIVERGENCE(M11c P1): debug-only probe sections for the per-enemy loop and separation.
+	var pt_loop: int = PerfProbe.now()
+	_build_satellite_map()
 	# 3. Update Individual Enemy Physics & Logic.
 	# PORT: web/src/tilt-to-live/EnemySwarm.ts:134-217
 	for i: int in range(enemies.size() - 1, -1, -1):
@@ -924,14 +932,17 @@ func update(
 			Types.EnemyType.SPECTER:
 				update_specter(e, player_pos, dt)  # PORT: web/src/tilt-to-live/EnemySwarm.ts:195-197
 
+		# DIVERGENCE(M11c P17): the type is read once for both tests below (no update_*
+		# changes it).
+		var sweeps: bool = (
+			e.type == Types.EnemyType.ARROW_DRONE
+			or e.type == Types.EnemyType.WALL_DOT
+			or e.type == Types.EnemyType.BULLET
+		)
 		# Remove out of bounds drones that completed sweeps.
 		# PORT: web/src/tilt-to-live/EnemySwarm.ts:200-207
 		if (
-			(
-				e.type == Types.EnemyType.ARROW_DRONE
-				or e.type == Types.EnemyType.WALL_DOT
-				or e.type == Types.EnemyType.BULLET
-			)
+			sweeps
 			and (e.x < -140.0 or e.x > bounds.x + 140.0 or e.y < -140.0 or e.y > bounds.y + 140.0)
 		):
 			enemies.remove_at(i)
@@ -940,9 +951,7 @@ func update(
 		# Clamp standard enemies inside playfield.
 		# PORT: web/src/tilt-to-live/EnemySwarm.ts:209-216
 		if (
-			e.type != Types.EnemyType.ARROW_DRONE
-			and e.type != Types.EnemyType.WALL_DOT
-			and e.type != Types.EnemyType.BULLET
+			not sweeps
 			and e.orbit_center == Vector2.ZERO
 			and e.parent_carrier_id == Types.ABSENT
 		):
@@ -960,9 +969,27 @@ func update(
 				e.y = bounds.y - pad
 				e.vy = -absf(e.vy) * 0.5  # PORT: web/src/tilt-to-live/EnemySwarm.ts:215
 
+	_sats_by_carrier_valid = false
+	PerfProbe.add("s_swarm_loop", pt_loop)
+	var pt_sep: int = PerfProbe.now()
 	# 4. Inter-Dot Flocking Separation.
 	# PORT: web/src/tilt-to-live/EnemySwarm.ts:219-221
 	apply_flocking_separation()
+	PerfProbe.add("s_swarm_sep", pt_sep)
+
+
+## DIVERGENCE(M11c P17): carrier id -> its satellites in array order, for this tick's
+## update loop. Satellites never leave the array inside the loop (only bullets and
+## sweep dots do) and parent_carrier_id changes only in on_enemy_killed.
+func _build_satellite_map() -> void:
+	_sats_by_carrier.clear()
+	for e: Types.Enemy in enemies:
+		if e.parent_carrier_id != Types.ABSENT:
+			if not _sats_by_carrier.has(e.parent_carrier_id):
+				var list: Array[Types.Enemy] = []
+				_sats_by_carrier[e.parent_carrier_id] = list
+			_sats_by_carrier[e.parent_carrier_id].append(e)
+	_sats_by_carrier_valid = true
 
 
 ## Updates seeker velocity steering towards player position.
@@ -1239,8 +1266,13 @@ func update_carrier(e: Types.Enemy, player_pos: Vector2, dt: float) -> void:
 	# update_seeker first and is then overwritten here by its carrier, which
 	# always has the lower index — preserved deliberately.
 	# PORT: web/src/tilt-to-live/EnemySwarm.ts:459-470
-	for i: int in range(enemies.size()):
-		var sat: Types.Enemy = enemies[i]
+	# DIVERGENCE(M11c P17): inside update() the satellites come from the per-tick map
+	# (same enemies, same ascending order; each position depends only on its own
+	# carrier), not from a scan of every enemy per carrier.
+	var sats: Array[Types.Enemy] = enemies
+	if _sats_by_carrier_valid:
+		sats = _sats_by_carrier.get(e.id, _NO_SATELLITES)
+	for sat: Types.Enemy in sats:
 		if sat.parent_carrier_id == e.id:
 			if is_nan(sat.orbit_angle):
 				sat.orbit_angle = 0.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:462

@@ -99,3 +99,10 @@ The clean A/B (emulator, god builds of `5ed4a05` vs `4c3c7c5`): entity draw
 3.7→6.4 (250+). At 150+ the sim now dominates (phys 62 ms vs draw 52) and both
 builds run at the 8-steps-per-frame ceiling. Profile `swarm.update`'s per-enemy
 loop at 150–250 enemies next.
+
+**Task 10 progress:** probe sections `s_swarm_loop` / `s_swarm_sep` added (debug
+only). Ruling **P17**: the satellites of each carrier come from a per-tick map in
+`update()` (and a per-frame map for the renderer's tethers) instead of a full scan
+per carrier; the loop tail reads the type once. State hash of a seeded 900-tick
+late-mix run identical before/after (`c3a7204d…`). Bench (212 enemies): loop
+470 → 350 µs/tick, swarm step 767 → 657; separation ~300 unchanged.

@@ -174,3 +174,33 @@ func test_bench_late_mix() -> void:
 		_swarm.update(DT, centre, BOUNDS, _particles, 30000, Types.GameMode.CODE_RED)
 	_particles.particles.clear()
 	pass_test("bench")
+
+
+func test_bench_late_mix_split() -> void:
+	# Where the late-mix swarm step goes (probe sections, M11c Task 10).
+	var centre: Vector2 = BOUNDS * 0.5
+	_seed_swarm()
+	_swarm.spawn_wall_formation(BOUNDS)
+	for i: int in range(4):
+		_swarm.spawn_carrier(BOUNDS, centre)
+	for i: int in range(3):
+		_swarm.spawn_artillery(BOUNDS, centre)
+		_swarm.spawn_pulsar(BOUNDS, centre)
+		_swarm.spawn_specter(BOUNDS, centre)
+		_swarm.spawn_charger(BOUNDS, centre)
+	PerfProbe.enabled = true
+	PerfProbe.reset()
+	var t0: int = Time.get_ticks_usec()
+	for i: int in range(TICKS):
+		_swarm.update(DT, centre, BOUNDS, _particles, 30000, Types.GameMode.CODE_RED)
+	var total: float = float(Time.get_ticks_usec() - t0) / TICKS
+	var loop: float = float(PerfProbe.accumulated("s_swarm_loop")) / TICKS
+	var sep: float = float(PerfProbe.accumulated("s_swarm_sep")) / TICKS
+	print(
+		(
+			"BENCH late mix split: total %.1f  loop %.1f  sep %.1f  rest %.1f us/tick (en=%d)"
+			% [total, loop, sep, total - loop - sep, _swarm.enemies.size()]
+		)
+	)
+	_particles.particles.clear()
+	pass_test("bench")

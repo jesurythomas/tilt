@@ -48,6 +48,8 @@ const DASH_ARC_CHORDS: int = 3
 ## DIVERGENCE(M11c P14): points of the draw_arc fallback in _ring (the TS arcs are analytic;
 ## the replaced calls used 24-32).
 const RING_ARC_POINTS: int = 24
+## DIVERGENCE(M11c P17): the empty satellite list.
+const _NO_SATS: Array[Types.Enemy] = []
 
 
 ## DIVERGENCE(M11c P13): the two baked textures of one default-dot look. Each is
@@ -96,6 +98,8 @@ var _model_scale: float = 1.0
 var _dot_cache: Dictionary[int, DotSprites] = {}
 ## DIVERGENCE(M11c P13): baked frozen-dot sprites by radius.
 var _frozen_cache: Dictionary[int, ImageTexture] = {}
+## DIVERGENCE(M11c P17): this frame's satellites per carrier id, for the tethers.
+var _frame_sats: Dictionary[int, Array] = {}
 
 
 func _draw() -> void:
@@ -537,6 +541,14 @@ func _draw_enemies() -> void:
 	if _swarm == null:
 		return
 
+	_frame_sats.clear()
+	for e: Types.Enemy in _swarm.enemies:
+		if e.parent_carrier_id != Types.ABSENT:
+			if not _frame_sats.has(e.parent_carrier_id):
+				var list: Array[Types.Enemy] = []
+				_frame_sats[e.parent_carrier_id] = list
+			_frame_sats[e.parent_carrier_id].append(e)
+
 	for e: Types.Enemy in _swarm.enemies:
 		if e.frozen:
 			_draw_frozen_dot(e)
@@ -735,7 +747,9 @@ func _draw_carrier(e: Types.Enemy) -> void:
 
 	# Tether lines to child satellites, under the standing arena transform
 	# (PORT: EnemySwarm.ts:1390-1401)
-	for sat: Types.Enemy in _swarm.enemies:
+	# DIVERGENCE(M11c P17): satellites from this frame's map (same enemies, same
+	# order), not a scan of every enemy per carrier.
+	for sat: Types.Enemy in _frame_sats.get(e.id, _NO_SATS):
 		if sat.parent_carrier_id == e.id:
 			var tether_col: Color = Color(
 				0.0, 229.0 / 255.0, 1.0, 0.4 + 0.3 * sin(_elapsed * 12.0 + float(sat.id))
