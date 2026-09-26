@@ -94,8 +94,22 @@ var _bounds: Vector2 = Vector2.ZERO
 @onready var _cinematic: EntranceCinematic = %ColdOpen
 
 
+## DIVERGENCE(M11c P16): queued saves reach disk before Android backgrounds or
+## closes the app.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_WM_CLOSE_REQUEST:
+		SaveStore.flush()
+
+
+func _exit_tree() -> void:
+	SaveStore.flush()
+	SaveStore.write_behind = false
+
+
 func _ready() -> void:
 	add_to_group("game_root")
+	# DIVERGENCE(M11c P16): saves write on a worker thread while the game runs.
+	SaveStore.write_behind = true
 	_bounds = get_viewport_rect().size
 	_grid = VectorGrid.new(int(_bounds.x), int(_bounds.y))
 	_particles = ParticleEngine.new()

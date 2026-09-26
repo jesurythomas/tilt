@@ -44,9 +44,15 @@ late mix (212) 949 → 761. The 120 Hz tick stays: the TS substeps at 1/120 s
 (`TiltGame.ts:1843`, spec D8). 667 tests.
 
 ### Task 3: Death-tick hitch
-`s_collide` peaked at 36–45 ms (emulator) on the death tick. Measure
-`trigger_player_death` parts (bench `test_bench_hits`) and move work off the tick
-if it is the save or the goals.
+**Status:** done — the cost was file I/O: `save_completed` 317 µs + `save_cumulative`
+274 µs of `evaluate_run`'s 1,048 (desktop); the metric pass is 44 µs. Ruling
+**P16**: `SaveStore.write_behind` — saves serialise on the game thread and one
+`WorkerThreadPool` task writes them (last save of a path wins); loads flush
+first; `GameRoot` turns it on in `_ready`, flushes on
+`NOTIFICATION_APPLICATION_PAUSED` / `WM_CLOSE_REQUEST`, and flushes and turns it
+off in `_exit_tree` (tests keep synchronous writes). Bench: death tick 1,622 →
+395 µs, `evaluate_run` 1,048 → 181, shield ram ×20 1,833 → 1,146. 670 tests (+3:
+flush reaches disk, last save wins, loads see queued saves).
 
 ### Task 4: HUD and menu text above entities
 Enemies draw over the score, BEST, the shield bar and the menu tagline/title.

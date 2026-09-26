@@ -88,7 +88,8 @@ func test_bench() -> void:
 
 
 func test_bench_hits() -> void:
-	# Shield ram through 20 enemies in one tick, then the death tick.
+	# Shield ram through 20 enemies in one tick, then the death tick (saves write behind, as in-game).
+	SaveStore.write_behind = true
 	_rc.reset_run(BOUNDS)
 	_seed_swarm()
 	var p: PlayerShip = _rc.player
@@ -111,6 +112,8 @@ func test_bench_hits() -> void:
 	t0 = Time.get_ticks_usec()
 	_rc.scores.finalize_game()
 	_report("  scores.finalize_game", Time.get_ticks_usec() - t0, 1)
+	SaveStore.flush()
+	SaveStore.write_behind = false
 	pass_test("bench")
 
 

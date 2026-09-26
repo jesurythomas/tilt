@@ -23,6 +23,18 @@ extends RefCounted
 ## The extension a quarantined file gets, replacing ".json".
 const CORRUPT_SUFFIX: String = ".corrupt.json"
 
+## DIVERGENCE(M11c P16): when true, a save serialises on the caller's thread and one
+## WorkerThreadPool task writes the file, so saving costs the game thread no file I/O
+## (the death tick saves 3-5 files). Off by default, since tests read files back at once;
+## GameRoot turns it on and calls flush() on pause and quit. Loads flush first.
+static var write_behind: bool = false
+## Path -> text waiting for the writer (the latest save of a path wins).
+static var _pending: Dictionary[String, String] = {}
+static var _mutex: Mutex = Mutex.new()
+## True while a writer task is draining _pending (guarded by _mutex).
+static var _draining: bool = false
+static var _task: int = -1
+
 
 ## Where a corrupt copy of `path` is moved. "user://x.json" -> "user://x.corrupt.json".
 static func corrupt_path_for(path: String) -> String:
@@ -31,6 +43,7 @@ static func corrupt_path_for(path: String) -> String:
 
 ## Reads `path` as a JSON object. {} when absent, unreadable, or quarantined.
 static func load_dict(path: String) -> Dictionary:
+	flush()
 	if not FileAccess.file_exists(path):
 		return {}
 	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
@@ -51,14 +64,9 @@ static func load_dict(path: String) -> Dictionary:
 
 
 ## Writes `data` to `path` as JSON. False (and a warning) when the file cannot be opened.
+## With write_behind, true means queued (a failed write warns from the writer).
 static func save_dict(path: String, data: Dictionary) -> bool:
-	var file: FileAccess = FileAccess.open(path, FileAccess.WRITE)
-	if file == null:
-		Log.warn("SaveStore: %s could not be written" % path)
-		return false
-	file.store_string(JSON.stringify(data))
-	file.close()
-	return true
+	return _write(path, JSON.stringify(data))
 
 
 ## Reads `path` as a JSON array of strings; non-string elements are skipped.
@@ -68,6 +76,7 @@ static func save_dict(path: String, data: Dictionary) -> bool:
 # quarantines anything that is not an object, so this is its array twin.
 static func load_string_list(path: String) -> Array[String]:
 	var out: Array[String] = []
+	flush()
 	if not FileAccess.file_exists(path):
 		return out
 	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
@@ -90,11 +99,60 @@ static func load_string_list(path: String) -> Array[String]:
 
 ## Writes `items` to `path` as a JSON array. False (and a warning) when the file cannot be opened.
 static func save_string_list(path: String, items: Array[String]) -> bool:
+	return _write(path, JSON.stringify(items))
+
+
+## Writes every queued save now and waits for the writer. A no-op without write_behind.
+static func flush() -> void:
+	if _task != -1:
+		WorkerThreadPool.wait_for_task_completion(_task)
+		_task = -1
+	_mutex.lock()
+	var left: Dictionary[String, String] = _pending.duplicate()
+	_pending.clear()
+	_mutex.unlock()
+	for path: String in left:
+		_write_now(path, left[path])
+
+
+## Saves `text` to `path`: at once, or queued for the writer (DIVERGENCE(M11c P16)).
+static func _write(path: String, text: String) -> bool:
+	if not write_behind:
+		return _write_now(path, text)
+	_mutex.lock()
+	_pending[path] = text
+	var start: bool = not _draining
+	_draining = true
+	_mutex.unlock()
+	if start:
+		if _task != -1:
+			# The previous writer found nothing left and is returning.
+			WorkerThreadPool.wait_for_task_completion(_task)
+		_task = WorkerThreadPool.add_task(_drain)
+	return true
+
+
+## The writer task: writes queued saves until none are left.
+static func _drain() -> void:
+	while true:
+		_mutex.lock()
+		if _pending.is_empty():
+			_draining = false
+			_mutex.unlock()
+			return
+		var path: String = _pending.keys()[0]
+		var text: String = _pending[path]
+		_pending.erase(path)
+		_mutex.unlock()
+		_write_now(path, text)
+
+
+static func _write_now(path: String, text: String) -> bool:
 	var file: FileAccess = FileAccess.open(path, FileAccess.WRITE)
 	if file == null:
 		Log.warn("SaveStore: %s could not be written" % path)
 		return false
-	file.store_string(JSON.stringify(items))
+	file.store_string(text)
 	file.close()
 	return true
 

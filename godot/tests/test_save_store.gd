@@ -132,3 +132,38 @@ func test_string_list_quarantines_unparseable_text() -> void:
 	_write_raw(PATH, "[not json")
 	assert_eq(SaveStore.load_string_list(PATH), [] as Array[String])
 	assert_true(FileAccess.file_exists(SaveStore.corrupt_path_for(PATH)))
+
+
+func _read_raw(path: String) -> String:
+	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return ""
+	var text: String = file.get_as_text()
+	file.close()
+	return text
+
+
+func test_write_behind_saves_reach_disk_on_flush() -> void:
+	# M11c P16: queued on the game thread, written by the worker, flushed on demand.
+	SaveStore.write_behind = true
+	assert_true(SaveStore.save_dict(PATH, {"n": 1}))
+	SaveStore.flush()
+	SaveStore.write_behind = false
+	assert_eq(_read_raw(PATH), JSON.stringify({"n": 1}))
+
+
+func test_write_behind_keeps_the_last_save_of_a_path() -> void:
+	SaveStore.write_behind = true
+	for i: int in range(50):
+		SaveStore.save_dict(PATH, {"n": i})
+	SaveStore.flush()
+	SaveStore.write_behind = false
+	assert_eq(_read_raw(PATH), JSON.stringify({"n": 49}))
+
+
+func test_write_behind_loads_see_queued_saves() -> void:
+	SaveStore.write_behind = true
+	SaveStore.save_dict(PATH, {"n": 7})
+	var loaded: Dictionary = SaveStore.load_dict(PATH)
+	SaveStore.write_behind = false
+	assert_eq(SaveStore.read_int(loaded, "n", 0), 7)
