@@ -47,14 +47,23 @@ func _seed_swarm() -> void:
 
 
 func _report(label: String, usec: int, ticks: int) -> void:
-	print("BENCH %-22s %8.1f us/tick  (en=%d)" % [label, float(usec) / ticks, _swarm.enemies.size()])
+	print(
+		"BENCH %-22s %8.1f us/tick  (en=%d)" % [label, float(usec) / ticks, _swarm.enemies.size()]
+	)
 
 
 func test_bench() -> void:
 	# Swarm step (includes separation), from 115 seeded seekers.
 	var t0: int = Time.get_ticks_usec()
 	for i: int in range(TICKS):
-		_swarm.update(DT, Vector2(BOUNDS.x * 0.5, BOUNDS.y * 0.5), BOUNDS, _particles, 30000, Types.GameMode.CLASSIC)
+		_swarm.update(
+			DT,
+			Vector2(BOUNDS.x * 0.5, BOUNDS.y * 0.5),
+			BOUNDS,
+			_particles,
+			30000,
+			Types.GameMode.CLASSIC
+		)
 	_report("swarm.update", Time.get_ticks_usec() - t0, TICKS)
 
 	_seed_swarm()
@@ -135,4 +144,30 @@ func test_bench_kill_parts() -> void:
 	for i: int in range(20):
 		GameEvents.enemy_killed.emit(_swarm.enemies[i], Types.WeaponType.SHIELD)
 	_report("20x enemy_killed.emit", Time.get_ticks_usec() - t0, 1)
+	pass_test("bench")
+
+
+func test_bench_late_mix() -> void:
+	# The emulator's 150+ state (2026-09-27): seekers, a wall and the heavy types.
+	var centre: Vector2 = BOUNDS * 0.5
+	_seed_swarm()
+	_swarm.spawn_wall_formation(BOUNDS)
+	for i: int in range(4):
+		_swarm.spawn_carrier(BOUNDS, centre)
+	for i: int in range(3):
+		_swarm.spawn_artillery(BOUNDS, centre)
+		_swarm.spawn_pulsar(BOUNDS, centre)
+		_swarm.spawn_specter(BOUNDS, centre)
+		_swarm.spawn_charger(BOUNDS, centre)
+	var n: int = _swarm.enemies.size()
+	var t0: int = Time.get_ticks_usec()
+	for i: int in range(TICKS):
+		_swarm.update(DT, centre, BOUNDS, _particles, 30000, Types.GameMode.CODE_RED)
+	_report("swarm.update late mix", Time.get_ticks_usec() - t0, TICKS)
+	print("  (started with %d)" % n)
+	PerfProbe.enabled = true
+	PerfProbe.reset()
+	for i: int in range(TICKS):
+		_swarm.update(DT, centre, BOUNDS, _particles, 30000, Types.GameMode.CODE_RED)
+	_particles.particles.clear()
 	pass_test("bench")

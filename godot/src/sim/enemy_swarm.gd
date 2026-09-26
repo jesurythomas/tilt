@@ -16,6 +16,22 @@ extends RefCounted
 ## render/entity_layer.gd (spec §4.2/D4) because CanvasItem 2D drawing belongs
 ## to Node2D render layers.
 
+## DIVERGENCE(M11c P15): separation switches to the windowed sweep at this many
+## candidates (bench 2026-09-27: the sweep is 2-5x faster from 40 up).
+const SWEEP_MIN_CANDIDATES: int = 32
+## DIVERGENCE(M11c P15): how far xs[ii] may move within its own round before the
+## round falls back to the plain scan (px).
+const SWEEP_SLACK: float = 4.0
+## DIVERGENCE(M11c P15): re-index once any x has drifted this far (px).
+const SWEEP_REBUILD: float = 8.0
+## DIVERGENCE(M11c P15): the index quantises x to 1/16 px.
+const SWEEP_QUANT: float = 16.0
+## DIVERGENCE(M11c P15): keeps quantised x positive for positions off the arena.
+const SWEEP_OFFSET: float = 65536.0
+## DIVERGENCE(M11c P15): low bits of an index key hold the candidate index.
+const SWEEP_INDEX_BITS: int = 20
+const SWEEP_INDEX_MASK: int = (1 << SWEEP_INDEX_BITS) - 1
+
 ## Live active enemies. PORT: web/src/tilt-to-live/EnemySwarm.ts:9
 var enemies: Array[Types.Enemy] = []
 
@@ -1322,14 +1338,103 @@ func apply_flocking_separation() -> void:
 		xs[k] = enemies[idx[k]].x
 		ys[k] = enemies[idx[k]].y
 
+	if n >= SWEEP_MIN_CANDIDATES:
+		_separate_sweep(xs, ys, min_distance, min_distance2)
+	else:
+		for ii: int in range(n):
+			_separate_round(xs, ys, ii, ii + 1, n, min_distance, min_distance2)
+
+	for k: int in range(n):
+		enemies[idx[k]].x = xs[k]
+		enemies[idx[k]].y = ys[k]
+
+
+## One round of the pair loop: ii against every jj in [from, to), in order.
+func _separate_round(
+	xs: PackedFloat64Array,
+	ys: PackedFloat64Array,
+	ii: int,
+	from: int,
+	to: int,
+	min_distance: float,
+	min_distance2: float
+) -> void:
+	for jj: int in range(from, to):
+		# The dx reject inline (as _separate_pair's first test) keeps the scan call-free.
+		var dx: float = xs[jj] - xs[ii]
+		if dx * dx >= min_distance2:
+			continue
+		_separate_pair(xs, ys, ii, jj, min_distance, min_distance2)
+
+
+## One pair of the loop. True when it pushed.
+func _separate_pair(
+	xs: PackedFloat64Array,
+	ys: PackedFloat64Array,
+	ii: int,
+	jj: int,
+	min_distance: float,
+	min_distance2: float
+) -> bool:
+	var dx: float = xs[jj] - xs[ii]
+	if dx * dx >= min_distance2:
+		return false
+	var dy: float = ys[jj] - ys[ii]
+	var dist2: float = dx * dx + dy * dy
+
+	# PORT: web/src/tilt-to-live/EnemySwarm.ts:527-537
+	if dist2 < min_distance2 and dist2 > 0.0001:
+		var dist: float = sqrt(dist2)
+		var push: float = (min_distance - dist) * 0.15  # PORT: web/src/tilt-to-live/EnemySwarm.ts:529
+		var px: float = (dx / dist) * push
+		var py: float = (dy / dist) * push
+		xs[ii] -= px
+		ys[ii] -= py
+		xs[jj] += px
+		ys[jj] += py
+		return true
+	return false
+
+
+## DIVERGENCE(M11c P15): the pair loop visiting only the jj that can reach ii.
+## Pairs are still visited ii ascending, then jj ascending; a skipped pair is one
+## whose |dx| >= min_distance at its visit, which the loop above would also skip
+## (a no-op), so the result is bit-identical (oracle: test_enemy_swarm_separation).
+## Each round's window over an x-sorted index is padded by `drift` (how far any x
+## has moved since the index was built) and SWEEP_SLACK (how far xs[ii] may move
+## during its own round); if xs[ii] moves further, the round finishes with the
+## plain scan from where it is.
+func _separate_sweep(
+	xs: PackedFloat64Array, ys: PackedFloat64Array, min_distance: float, min_distance2: float
+) -> void:
+	var n: int = xs.size()
+	var built_x: PackedFloat64Array = xs.duplicate()
+	var order: PackedInt32Array = PackedInt32Array()
+	var sorted_q: PackedFloat64Array = PackedFloat64Array()
+	_sweep_index(xs, order, sorted_q)
+	var drift: float = 0.0
+	var window: PackedInt32Array = PackedInt32Array()
 	for ii: int in range(n):
-		for jj: int in range(ii + 1, n):
+		var x0: float = xs[ii]
+		var reach: float = min_distance + drift + SWEEP_SLACK + 1.0 / SWEEP_QUANT
+		var lo: int = sorted_q.bsearch(x0 - reach, true)
+		var hi: int = sorted_q.bsearch(x0 + reach, false)
+		window.clear()
+		for t: int in range(lo, hi):
+			var k: int = order[t]
+			if k > ii:
+				window.append(k)
+		var size: int = window.size()
+		if size > 1:
+			window.sort()
+		for w: int in range(size):
+			var jj: int = window[w]
+			# _separate_pair, inlined (a call per pair costs as much as the pair).
 			var dx: float = xs[jj] - xs[ii]
 			if dx * dx >= min_distance2:
 				continue
 			var dy: float = ys[jj] - ys[ii]
 			var dist2: float = dx * dx + dy * dy
-
 			# PORT: web/src/tilt-to-live/EnemySwarm.ts:527-537
 			if dist2 < min_distance2 and dist2 > 0.0001:
 				var dist: float = sqrt(dist2)
@@ -1340,10 +1445,40 @@ func apply_flocking_separation() -> void:
 				ys[ii] -= py
 				xs[jj] += px
 				ys[jj] += py
+				drift = maxf(drift, absf(xs[jj] - built_x[jj]))
+				if absf(xs[ii] - x0) >= SWEEP_SLACK:
+					# The window no longer covers ii: scan every later jj in order,
+					# still tracking how far each pushed jj drifts.
+					for later: int in range(jj + 1, n):
+						var ldx: float = xs[later] - xs[ii]
+						if ldx * ldx >= min_distance2:
+							continue
+						if _separate_pair(xs, ys, ii, later, min_distance, min_distance2):
+							drift = maxf(drift, absf(xs[later] - built_x[later]))
+					break
+		if drift >= SWEEP_REBUILD:
+			built_x = xs.duplicate()
+			_sweep_index(xs, order, sorted_q)
+			drift = 0.0
 
+
+## Fills order with 0..n-1 sorted by x (quantised to 1/SWEEP_QUANT px, rounded
+## down) and sorted_q with those quantised x values, ascending.
+func _sweep_index(
+	xs: PackedFloat64Array, order: PackedInt32Array, sorted_q: PackedFloat64Array
+) -> void:
+	var n: int = xs.size()
+	var keys: PackedInt64Array = PackedInt64Array()
+	keys.resize(n)
 	for k: int in range(n):
-		enemies[idx[k]].x = xs[k]
-		enemies[idx[k]].y = ys[k]
+		var q: int = floori((xs[k] + SWEEP_OFFSET) * SWEEP_QUANT)
+		keys[k] = (q << SWEEP_INDEX_BITS) | k
+	keys.sort()
+	order.resize(n)
+	sorted_q.resize(n)
+	for t: int in range(n):
+		order[t] = keys[t] & SWEEP_INDEX_MASK
+		sorted_q[t] = float(keys[t] >> SWEEP_INDEX_BITS) / SWEEP_QUANT - SWEEP_OFFSET
 
 
 ## Handles enemy-death reactions (child satellite flinging, pulsar split).

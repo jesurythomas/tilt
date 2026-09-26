@@ -33,9 +33,15 @@ enemies) 2,288 → 920 µs/frame. 665 tests (+3: bake composite order, hollow ri
 dot cache keys and rebakes). A visual comparison at 1:1 matched P5.
 
 ### Task 2: Sim cost under load
-Profile `bench_sim` with a wall formation on a late swarm (the emulator run had
-`s_swarm` 44 ms/frame at 150+). Fix what dominates, bit-exact where the sim is
-concerned.
+**Status:** done — ruling **P15**: separation visits only the jj an x-sorted window
+says can reach ii (same ii-then-jj order; skipped pairs are the no-ops the plain
+loop skips; falls back to the plain scan within a round when xs[ii] moves more
+than 4 px), from 32 candidates up. Bit-exact: two new oracle cases (300 seekers
+with a clump, 60 ticks; a 120-seeker pack that hit the fallback 72 times).
+Bench: separation 277 → 114 µs/tick (115 spread); plain vs sweep at 180
+candidates 646 → 138 (spread), 996 → 419 (converged); `swarm.update` 489 → 358;
+late mix (212) 949 → 761. The 120 Hz tick stays: the TS substeps at 1/120 s
+(`TiltGame.ts:1843`, spec D8). 667 tests.
 
 ### Task 3: Death-tick hitch
 `s_collide` peaked at 36–45 ms (emulator) on the death tick. Measure

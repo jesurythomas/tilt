@@ -105,3 +105,46 @@ func test_candidates_exclude_every_ineligible_kind() -> void:
 	assert_eq(idx.size(), 25, "only the plain seekers (i % 6 == 0) remain")
 	for i: int in idx:
 		assert_eq(i % KINDS, 0)
+
+
+## Plain seekers: `spread` across a 2162 x 1056 arena plus `clump` packed in a 60 px box.
+func _seekers(spread: int, clump: int) -> Array[Types.Enemy]:
+	seed(99)
+	var out: Array[Types.Enemy] = []
+	for i: int in range(spread + clump):
+		var e: Types.Enemy = Types.Enemy.new()
+		e.id = i
+		if i < spread:
+			e.x = randf() * 2162.0
+			e.y = randf() * 1056.0
+		else:
+			e.x = 1000.0 + randf() * 60.0
+			e.y = 500.0 + randf() * 60.0
+		out.append(e)
+	return out
+
+
+func _assert_sweep_matches(reference: Array[Types.Enemy], ticks: int) -> void:
+	var swarm: EnemySwarm = EnemySwarm.new()
+	swarm.enemies = _copy(reference)
+	assert_gte(
+		swarm.separation_candidates().size(), EnemySwarm.SWEEP_MIN_CANDIDATES, "sweep engaged"
+	)
+	for tick: int in range(ticks):
+		_reference_separation(reference)
+		swarm.apply_flocking_separation()
+	var mismatches: int = 0
+	for i: int in range(reference.size()):
+		if swarm.enemies[i].x != reference[i].x or swarm.enemies[i].y != reference[i].y:
+			mismatches += 1
+	assert_eq(mismatches, 0, "every x/y equal to the reference, bit for bit")
+
+
+func test_sweep_matches_the_pair_loop_on_a_late_swarm() -> void:
+	# M11c P15: 240 spread seekers and a 60-seeker clump, 60 ticks.
+	_assert_sweep_matches(_seekers(240, 60), 60)
+
+
+func test_sweep_matches_the_pair_loop_when_it_falls_back() -> void:
+	# M11c P15: 120 seekers in one 60 px box push far enough to exceed the slack.
+	_assert_sweep_matches(_seekers(0, 120), 30)
