@@ -45,6 +45,8 @@ const DOT_KEY_STEPS: float = 8.0
 const BAKE_MARGIN: float = 1.0
 ## DIVERGENCE(M11c P14): chords per dash of a dashed arc (a dash spans at most ~0.5 rad).
 const DASH_ARC_CHORDS: int = 3
+## DIVERGENCE(M11c P19): room for the charger tip's miter in its baked texture (px).
+const CHARGER_MITER: float = 3.0
 ## DIVERGENCE(M11c P14): points of the draw_arc fallback in _ring (the TS arcs are analytic;
 ## the replaced calls used 24-32).
 const RING_ARC_POINTS: int = 24
@@ -111,11 +113,22 @@ var _dot_cache: Dictionary[int, DotSprites] = {}
 var _frozen_cache: Dictionary[int, ImageTexture] = {}
 ## DIVERGENCE(M11c P17): this frame's satellites per carrier id, for the tethers.
 var _frame_sats: Dictionary[int, Array] = {}
+## DIVERGENCE(M11c P19): baked carrier bodies and satellites by radius; dash point
+## lists shared by every enemy drawing the same dashed shape this frame.
+var _carrier_cache: Dictionary[int, ImageTexture] = {}
+var _satellite_cache: Dictionary[int, ImageTexture] = {}
+var _dash_cache: Dictionary = {}
+## DIVERGENCE(M11c P19): baked pulsar bodies by radius, charger bodies by state, and
+## the artillery body.
+var _pulsar_cache: Dictionary[int, ImageTexture] = {}
+var _charger_cache: Dictionary[int, ImageTexture] = {}
+var _artillery_tex: ImageTexture = null
 
 
 func _draw() -> void:
 	draw_set_transform(_arena_origin, 0.0, Vector2.ONE)
 	var pt_draw: int = PerfProbe.now()
+	_dash_cache.clear()
 	if is_maze_drawn():
 		_draw_maze()
 	_draw_coins()
@@ -261,6 +274,10 @@ func get_ship_skin() -> ProgressionManager.ShipSkinConfig:
 func set_enemy_skin(skin: ProgressionManager.EnemySkinConfig) -> void:
 	if skin != _enemy_skin:
 		_dot_cache.clear()
+		_carrier_cache.clear()
+		_pulsar_cache.clear()
+		_charger_cache.clear()
+		_artillery_tex = null
 	_enemy_skin = skin
 
 
@@ -278,6 +295,11 @@ func set_model_scale(model_scale: float) -> void:
 	if model_scale != _model_scale:
 		_dot_cache.clear()
 		_frozen_cache.clear()
+		_carrier_cache.clear()
+		_satellite_cache.clear()
+		_pulsar_cache.clear()
+		_charger_cache.clear()
+		_artillery_tex = null
 	_model_scale = model_scale
 
 
@@ -644,33 +666,71 @@ func _draw_charger(e: Types.Enemy) -> void:
 		)  # PORT: EnemySwarm.ts:1250-1256
 		_fill(plume, TRI_ONE, Color("#ffaa00"))  # PORT: EnemySwarm.ts:1250
 
+	# DIVERGENCE(M11c P19): the dart hull, its edge and the core are one baked
+	# texture per state (charging or not), drawn under the charger's rotation.
+	var body: ImageTexture = _charger_body(e.state == Types.EnemyState.CHARGING)
+	var half: float = body.get_width() * 0.5 / _model_scale
+	draw_texture_rect(body, Rect2(-half, -half, half * 2.0, half * 2.0), false)
+
+	_end_entity()
+
+
+## DIVERGENCE(M11c P19): the charger's dart hull (fill + 1.8 px edge) and core for one
+## state, rasterised once from SVG, centred on the entity origin at angle 0. SVG
+## strokes join with miters, as the canvas default does (Godot's polyline did not).
+func _charger_body(charging: bool) -> ImageTexture:
+	var key: int = 1 if charging else 0
+	var cached: ImageTexture = _charger_cache.get(key)
+	if cached != null:
+		return cached
 	# Arrowhead delta dart chassis (PORT: EnemySwarm.ts:1259-1272)
 	# PORT: EnemySwarm.ts:1260-1261
 	var hull_col: Color = (
 		_enemy_skin.body_gradient[1]
 		if _has_alt_skin()
-		else (Color("#ff2a00") if e.state == Types.EnemyState.CHARGING else Color("#dd1c00"))
+		else (Color("#ff2a00") if charging else Color("#dd1c00"))
 	)
 	var edge_col: Color = _enemy_skin.border_color if _has_alt_skin() else Color("#ffaa33")
-	var hull: PackedVector2Array = PackedVector2Array(
-		[Vector2(14.0, 0.0), Vector2(-10.0, -11.0), Vector2(-6.0, 0.0), Vector2(-10.0, 11.0)]
-	)  # PORT: EnemySwarm.ts:1266-1269
-	_fill(hull, TRI_DART, hull_col)
-	draw_polyline(_closed(hull), edge_col, 1.8)  # PORT: EnemySwarm.ts:1261-1264
-
 	# Cockpit / energy crystal core (PORT: EnemySwarm.ts:1274-1282)
 	# PORT: EnemySwarm.ts:1275
 	var core_col: Color = (
 		Color.WHITE
-		if e.state == Types.EnemyState.CHARGING
+		if charging
 		else (_enemy_skin.pupil_color if _has_alt_skin() else Color("#FFB14D"))
 	)
-	var core: PackedVector2Array = PackedVector2Array(
-		[Vector2(6.0, 0.0), Vector2(-2.0, -3.5), Vector2(0.0, 0.0), Vector2(-2.0, 3.5)]
-	)  # PORT: EnemySwarm.ts:1277-1280
-	_fill(core, TRI_DART, core_col)
-
-	_end_entity()
+	# The tip (14, 0) plus its miter (~2.2 px at the 49° point) and a margin.
+	var c: float = 14.0 + CHARGER_MITER + BAKE_MARGIN
+	var s: float = c * 2.0
+	var svg: String = (
+		(
+			"<svg xmlns='http://www.w3.org/2000/svg' width='%s' height='%s' viewBox='0 0 %s %s'>"
+			% [s, s, s, s]
+		)
+		+ (
+			# PORT: EnemySwarm.ts:1266-1269
+			"<polygon points='%s,%s %s,%s %s,%s %s,%s' %s %s stroke-width='1.8'/>"
+			% [
+				c + 14.0,
+				c,
+				c - 10.0,
+				c - 11.0,
+				c - 6.0,
+				c,
+				c - 10.0,
+				c + 11.0,
+				_svg_paint("fill", hull_col),
+				_svg_paint("stroke", edge_col)
+			]
+		)
+		+ (
+			# PORT: EnemySwarm.ts:1277-1280
+			"<polygon points='%s,%s %s,%s %s,%s %s,%s' %s/></svg>"
+			% [c + 6.0, c, c - 2.0, c - 3.5, c, c, c - 2.0, c + 3.5, _svg_paint("fill", core_col)]
+		)
+	)
+	var tex: ImageTexture = UiTheme.svg_texture(svg, _model_scale)
+	_charger_cache[key] = tex
+	return tex
 
 
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:1289-1350
@@ -679,12 +739,12 @@ func _draw_artillery(e: Types.Enemy) -> void:
 	var angle: float = e.aim_angle if not is_nan(e.aim_angle) else 0.0  # PORT: EnemySwarm.ts:1290
 	_begin_entity(Vector2(e.x, e.y), angle)
 
-	# Cannon barrel (PORT: EnemySwarm.ts:1295-1299)
-	# PORT: EnemySwarm.ts:1293
-	var barrel_stroke: Color = _enemy_skin.border_color if _has_alt_skin() else Color("#ff0066")
-	var barrel_rect: Rect2 = Rect2(4.0, -4.0, 18.0, 8.0)
-	draw_rect(barrel_rect, Color("#180e22"))
-	draw_rect(barrel_rect, barrel_stroke, false, 1.5)
+	# DIVERGENCE(M11c P19): barrel, hex hull and struts are one baked texture
+	# (_artillery_body). The muzzle flash (x 15-29) never overlaps the hex (x <= 14.3),
+	# so drawing it after the hull instead of before looks the same.
+	var body: ImageTexture = _artillery_body()
+	var half: float = body.get_width() * 0.5 / _model_scale
+	draw_texture_rect(body, Rect2(-half, -half, half * 2.0, half * 2.0), false)
 
 	# Muzzle charge flash if preparing to fire (PORT: EnemySwarm.ts:1302-1308)
 	if not is_nan(e.fire_cooldown) and e.fire_cooldown < 0.8:
@@ -696,24 +756,6 @@ func _draw_artillery(e: Types.Enemy) -> void:
 			Color(1.0, 0.0, 150.0 / 255.0, 0.5 + charge_ratio * 0.5)
 		)  # PORT: EnemySwarm.ts:1304-1306
 
-	# Heavy hexagonal hull (PORT: EnemySwarm.ts:1310-1327)
-	var hex_radius: float = 13.0  # PORT: EnemySwarm.ts:1317
-	var hex: PackedVector2Array = PackedVector2Array()
-	for h: int in range(6):
-		var a: float = float(h) * PI / 3.0  # PORT: EnemySwarm.ts:1319
-		hex.append(Vector2(cos(a) * hex_radius, sin(a) * hex_radius))
-	# PORT: EnemySwarm.ts:1311
-	var hex_fill: Color = _enemy_skin.body_gradient[2] if _has_alt_skin() else Color("#1c0a1a")
-	# PORT: EnemySwarm.ts:1312
-	var hex_stroke: Color = _enemy_skin.border_color if _has_alt_skin() else Color("#ff0077")
-	_fill(hex, TRI_HEX, hex_fill)
-	draw_polyline(_closed(hex), hex_stroke, 2.2)
-
-	# Armored cross struts (PORT: EnemySwarm.ts:1329-1335)
-	var strut_col: Color = Color(1.0, 1.0, 1.0, 0.25)
-	draw_line(Vector2(-hex_radius, 0.0), Vector2(hex_radius, 0.0), strut_col, 1.0)
-	draw_line(Vector2(0.0, -hex_radius), Vector2(0.0, hex_radius), strut_col, 1.0)
-
 	# Pulsing optic sensor eye (PORT: EnemySwarm.ts:1337-1346)
 	var optic_pulse: float = 0.8 + 0.2 * sin(_elapsed * 14.0)  # PORT: EnemySwarm.ts:1338
 	# PORT: EnemySwarm.ts:1339
@@ -722,6 +764,59 @@ func _draw_artillery(e: Types.Enemy) -> void:
 	CircleSprites.draw_disc(self, Vector2.ZERO, 2.0, Color.WHITE)
 
 	_end_entity()
+
+
+## DIVERGENCE(M11c P19): the artillery's barrel (fill + 1.5 px stroke), hex hull
+## (fill + 2.2 px stroke) and cross struts, rasterised once from SVG, centred on the
+## hull at aim angle 0.
+func _artillery_body() -> ImageTexture:
+	if _artillery_tex != null:
+		return _artillery_tex
+	# Cannon barrel (PORT: EnemySwarm.ts:1295-1299)
+	# PORT: EnemySwarm.ts:1293
+	var barrel_stroke: Color = _enemy_skin.border_color if _has_alt_skin() else Color("#ff0066")
+	# Heavy hexagonal hull (PORT: EnemySwarm.ts:1310-1327)
+	var hex_radius: float = 13.0  # PORT: EnemySwarm.ts:1317
+	# PORT: EnemySwarm.ts:1311
+	var hex_fill: Color = _enemy_skin.body_gradient[2] if _has_alt_skin() else Color("#1c0a1a")
+	# PORT: EnemySwarm.ts:1312
+	var hex_stroke: Color = _enemy_skin.border_color if _has_alt_skin() else Color("#ff0077")
+	# Armored cross struts (PORT: EnemySwarm.ts:1329-1335)
+	var strut_col: Color = Color(1.0, 1.0, 1.0, 0.25)
+	var c: float = 22.0 + 0.75 + BAKE_MARGIN  # barrel end (4 + 18) + half its stroke
+	var s: float = c * 2.0
+	var hex: PackedStringArray = PackedStringArray()
+	for h: int in range(6):
+		var a: float = float(h) * PI / 3.0  # PORT: EnemySwarm.ts:1319
+		hex.append("%s,%s" % [c + cos(a) * hex_radius, c + sin(a) * hex_radius])
+	var svg: String = (
+		(
+			"<svg xmlns='http://www.w3.org/2000/svg' width='%s' height='%s' viewBox='0 0 %s %s'>"
+			% [s, s, s, s]
+		)
+		+ (
+			"<rect x='%s' y='%s' width='18' height='8' fill='#180e22' %s stroke-width='1.5'/>"
+			% [c + 4.0, c - 4.0, _svg_paint("stroke", barrel_stroke)]
+		)
+		+ (
+			"<polygon points='%s' %s %s stroke-width='2.2'/>"
+			% [" ".join(hex), _svg_paint("fill", hex_fill), _svg_paint("stroke", hex_stroke)]
+		)
+		+ (
+			"<path d='M%s %s H%s M%s %s V%s' fill='none' %s stroke-width='1'/></svg>"
+			% [
+				c - hex_radius,
+				c,
+				c + hex_radius,
+				c,
+				c - hex_radius,
+				c + hex_radius,
+				_svg_paint("stroke", strut_col)
+			]
+		)
+	)
+	_artillery_tex = UiTheme.svg_texture(svg, _model_scale)
+	return _artillery_tex
 
 
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:1353-1385
@@ -776,40 +871,86 @@ func _draw_carrier(e: Types.Enemy) -> void:
 	)  # PORT: EnemySwarm.ts:1406
 	_draw_dashed_arc(Vector2.ZERO, e.radius + 8.0, 10.0, 8.0, -_elapsed * 30.0, ring_col, 2.0)
 
+	# DIVERGENCE(M11c P19): the hull, its stroke and the core are one baked texture
+	# (see _carrier_body), drawn under the carrier's rotation.
+	var body: ImageTexture = _carrier_body(e.radius)
+	var half: float = body.get_width() * 0.5 / _model_scale
+	draw_texture_rect(body, Rect2(-half, -half, half * 2.0, half * 2.0), false)
+
+	_end_entity()
+
+
+## DIVERGENCE(M11c P19): the carrier's hull (diamond fill + 2.4 px stroke) and core
+## (discs 8 and 3.5), rasterised once per radius from SVG at the drawn scale.
+func _carrier_body(radius: float) -> ImageTexture:
+	var key: int = roundi(radius * DOT_KEY_STEPS)
+	var cached: ImageTexture = _carrier_cache.get(key)
+	if cached != null:
+		return cached
 	# Diamond dreadnought mothership hull (PORT: EnemySwarm.ts:1416-1429)
 	# PORT: EnemySwarm.ts:1417
 	var diamond_fill: Color = _enemy_skin.body_gradient[2] if _has_alt_skin() else Color("#220816")
 	# PORT: EnemySwarm.ts:1418
 	var diamond_stroke: Color = _enemy_skin.border_color if _has_alt_skin() else Color("#ff2a55")
-	var diamond: PackedVector2Array = PackedVector2Array(
-		[
-			Vector2(e.radius + 4.0, 0.0),
-			Vector2(0.0, -e.radius - 4.0),
-			Vector2(-e.radius - 4.0, 0.0),
-			Vector2(0.0, e.radius + 4.0)
-		]
-	)  # PORT: EnemySwarm.ts:1423-1426
-	_fill(diamond, TRI_QUAD, diamond_fill)
-	draw_polyline(_closed(diamond), diamond_stroke, 2.4)
-
 	# Inner glowing core (PORT: EnemySwarm.ts:1431-1440)
 	# PORT: EnemySwarm.ts:1432
 	var core_col: Color = _enemy_skin.body_gradient[0] if _has_alt_skin() else Color("#ff1144")
-	CircleSprites.draw_disc(self, Vector2.ZERO, 8.0, core_col)
-	CircleSprites.draw_disc(self, Vector2.ZERO, 3.5, Color.WHITE)
+	var r4: float = radius + 4.0  # PORT: EnemySwarm.ts:1423-1426
+	var c: float = r4 + 1.2 + BAKE_MARGIN  # centre: hull + half the stroke + margin
+	var s: float = c * 2.0
+	var svg: String = (
+		(
+			"<svg xmlns='http://www.w3.org/2000/svg' width='%s' height='%s' viewBox='0 0 %s %s'>"
+			% [s, s, s, s]
+		)
+		+ (
+			"<polygon points='%s,%s %s,%s %s,%s %s,%s' %s %s stroke-width='2.4'/>"
+			% [
+				c + r4,
+				c,
+				c,
+				c - r4,
+				c - r4,
+				c,
+				c,
+				c + r4,
+				_svg_paint("fill", diamond_fill),
+				_svg_paint("stroke", diamond_stroke)
+			]
+		)
+		+ "<circle cx='%s' cy='%s' r='8' %s/>" % [c, c, _svg_paint("fill", core_col)]
+		+ "<circle cx='%s' cy='%s' r='3.5' fill='#ffffff'/></svg>" % [c, c]
+	)
+	var tex: ImageTexture = UiTheme.svg_texture(svg, _model_scale)
+	_carrier_cache[key] = tex
+	return tex
 
-	_end_entity()
+
+## `fill='#rrggbb' fill-opacity='a'` (or stroke) for an SVG shape.
+static func _svg_paint(attr: String, color: Color) -> String:
+	return "%s='#%s' %s-opacity='%s'" % [attr, color.to_html(false), attr, color.a]
 
 
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:1447-1466
 # DIVERGENCE(M11c P14): full circles and outlines draw from CircleSprites (see _ring).
+## DIVERGENCE(M11c P19): the ring and two discs are one baked texture, like a dot.
 func _draw_satellite(e: Types.Enemy) -> void:
-	_begin_entity(Vector2(e.x, e.y))
-	var pos: Vector2 = Vector2.ZERO
-	_ring(pos, e.radius + 3.0, 1.5, Color("#00e5ff"))
-	CircleSprites.draw_disc(self, pos, e.radius + 2.0, Color(0.0, 229.0 / 255.0, 1.0, 0.35))
-	CircleSprites.draw_disc(self, pos, e.radius * 0.5, Color.WHITE)
-	_end_entity()
+	var key: int = roundi(e.radius * DOT_KEY_STEPS)
+	var s: float = _model_scale
+	var size: int = ceili(((e.radius + 3.0 + 0.75) * s + BAKE_MARGIN) * 2.0)
+	var tex: ImageTexture = _satellite_cache.get(key)
+	if tex == null:
+		tex = CircleSprites.bake_layers(
+			size,
+			PackedFloat32Array([(e.radius + 3.0) * s, (e.radius + 2.0) * s, e.radius * 0.5 * s]),
+			PackedFloat32Array([1.5 * s, 0.0, 0.0]),
+			PackedColorArray([Color("#00e5ff"), Color(0.0, 229.0 / 255.0, 1.0, 0.35), Color.WHITE])
+		)
+		_satellite_cache[key] = tex
+	var half: float = size * 0.5
+	draw_texture_rect(
+		tex, Rect2(Vector2(e.x, e.y) - Vector2(half, half), Vector2(half, half) * 2.0), false
+	)
 
 
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:1469-1513
@@ -830,26 +971,54 @@ func _draw_pulsar(e: Types.Enemy) -> void:
 	)
 	ring_col.a = ring_alpha
 	_ring(pos, ring_radius, 2.0, ring_col)
+	# DIVERGENCE(M11c P19): body, stroke and star are one baked texture drawn rotated
+	# by the star's spin (_elapsed * 3.0, EnemySwarm.ts:1501); the body is round, so
+	# only the star visibly turns.
+	_begin_entity(Vector2(e.x, e.y), _elapsed * 3.0)
+	var body: ImageTexture = _pulsar_body(e.radius)
+	var half: float = body.get_width() * 0.5 / _model_scale
+	draw_texture_rect(body, Rect2(-half, -half, half * 2.0, half * 2.0), false)
+	_end_entity()
+
+
+## DIVERGENCE(M11c P19): the pulsar's body (discs r and 0.6r), 2.2 px stroke and
+## unrotated eight-point star, rasterised once per radius from SVG.
+func _pulsar_body(radius: float) -> ImageTexture:
+	var key: int = roundi(radius * DOT_KEY_STEPS)
+	var cached: ImageTexture = _pulsar_cache.get(key)
+	if cached != null:
+		return cached
 	# Core vibrant body gradient (PORT: EnemySwarm.ts:1483-1487, two-circle rule)
 	var inner: Color = _enemy_skin.body_gradient[0] if _enemy_skin != null else Color("#ff8899")
 	var mid: Color = _enemy_skin.body_gradient[1] if _enemy_skin != null else Color("#ee1133")
-	CircleSprites.draw_disc(self, pos, e.radius, mid)
-	CircleSprites.draw_disc(self, pos, e.radius * 0.6, inner)
 	# PORT: EnemySwarm.ts:1490-1495
 	var stroke: Color = _enemy_skin.border_color if _enemy_skin != null else Color("#ffa502")
-	_ring(pos, e.radius, 2.2, stroke)
-
-	# Eight-point spinning star core (PORT: EnemySwarm.ts:1499-1509)
 	# PORT: EnemySwarm.ts:1498
 	var star_col: Color = _enemy_skin.pupil_color if _enemy_skin != null else Color.WHITE
-	var star: PackedVector2Array = PackedVector2Array()
+	var c: float = radius + 1.1 + BAKE_MARGIN  # radius + half the stroke + margin
+	var s: float = c * 2.0
+	# Eight-point star core (PORT: EnemySwarm.ts:1499-1509), at spin 0
+	var star: PackedStringArray = PackedStringArray()
 	for p: int in range(8):
-		var a: float = float(p) * PI / 4.0 + _elapsed * 3.0  # PORT: EnemySwarm.ts:1501
-		var r: float = e.radius * 0.55 if p % 2 == 0 else e.radius * 0.22  # PORT: EnemySwarm.ts:1502
-		star.append(pos + Vector2(cos(a) * r, sin(a) * r))
-	star.append(pos)  # the fan centre
-	_fill(star, TRI_STAR, star_col)
-	_end_entity()
+		var a: float = float(p) * PI / 4.0  # PORT: EnemySwarm.ts:1501
+		var r: float = radius * 0.55 if p % 2 == 0 else radius * 0.22  # PORT: EnemySwarm.ts:1502
+		star.append("%s,%s" % [c + cos(a) * r, c + sin(a) * r])
+	var svg: String = (
+		(
+			"<svg xmlns='http://www.w3.org/2000/svg' width='%s' height='%s' viewBox='0 0 %s %s'>"
+			% [s, s, s, s]
+		)
+		+ "<circle cx='%s' cy='%s' r='%s' %s/>" % [c, c, radius, _svg_paint("fill", mid)]
+		+ "<circle cx='%s' cy='%s' r='%s' %s/>" % [c, c, radius * 0.6, _svg_paint("fill", inner)]
+		+ (
+			"<circle cx='%s' cy='%s' r='%s' fill='none' %s stroke-width='2.2'/>"
+			% [c, c, radius, _svg_paint("stroke", stroke)]
+		)
+		+ "<polygon points='%s' %s/></svg>" % [" ".join(star), _svg_paint("fill", star_col)]
+	)
+	var tex: ImageTexture = UiTheme.svg_texture(svg, _model_scale)
+	_pulsar_cache[key] = tex
+	return tex
 
 
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:1516-1552
@@ -1043,6 +1212,14 @@ func _draw_dashed_line_offset(
 	color: Color,
 	width: float
 ) -> void:
+	# DIVERGENCE(M11c P19): the points are shared by every caller drawing the same
+	# dashes this frame (e.g. all aiming chargers: same line, same offset).
+	var key: Array = [0, from, to, dash, gap, line_dash_offset]
+	if _dash_cache.has(key):
+		var hit: PackedVector2Array = _dash_cache[key]
+		if not hit.is_empty():
+			draw_multiline(hit, color, width)
+		return
 	var delta: Vector2 = to - from
 	var length: float = delta.length()
 	if length <= 0.0:
@@ -1059,6 +1236,7 @@ func _draw_dashed_line_offset(
 			points.append(from + direction * s0)
 			points.append(from + direction * s1)
 		s += period
+	_dash_cache[key] = points
 	if not points.is_empty():
 		draw_multiline(points, color, width)
 
@@ -1072,6 +1250,13 @@ func _draw_dashed_arc(
 	color: Color,
 	width: float
 ) -> void:
+	# DIVERGENCE(M11c P19): shared per frame, as in _draw_dashed_line_offset.
+	var key: Array = [1, center, radius, dash, gap, line_dash_offset]
+	if _dash_cache.has(key):
+		var hit: PackedVector2Array = _dash_cache[key]
+		if not hit.is_empty():
+			draw_multiline(hit, color, width)
+		return
 	var length: float = TAU * radius
 	if length <= 0.0:
 		return
@@ -1091,6 +1276,7 @@ func _draw_dashed_arc(
 				points.append(center + Vector2(cos(a), sin(a)) * radius)
 				points.append(center + Vector2(cos(a + step), sin(a + step)) * radius)
 		s += period
+	_dash_cache[key] = points
 	if not points.is_empty():
 		draw_multiline(points, color, width)
 

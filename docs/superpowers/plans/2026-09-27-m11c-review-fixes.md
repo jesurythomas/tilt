@@ -119,3 +119,13 @@ Ruling **P18**: the fixed enemy polygons draw through
 pixels differ in a render test). Small desktop gain (mix ~890–900 µs vs 890–980).
 `bench_draw_types.gd` per enemy: seeker 3.2 µs, carrier+4 sats 61.8, charger 31.3,
 pulsar 25.8, artillery 23.8, specter 18.5 → next: bake the heavy types (P19).
+
+**Ruling P19 — bake the heavy enemy types** (render only): carrier body (diamond +
+stroke + core), satellites (ring + discs), pulsar body + star (drawn rotated by the
+star spin; the body is round), artillery barrel + hex + struts (the muzzle flash,
+x 15–29, never overlaps the hex, so it draws after), charger hull + edge + core per
+state; SVG strokes miter like the canvas default. Dashed lines/arcs share one point
+list per frame. Old-vs-new renders compared (same shapes, colours, angles;
+anti-aliased). `bench_draw_types` per enemy: carrier+sats 61.8 → 13.9 µs, charger
+31.3 → 4.9, artillery 23.8 → 4.2, pulsar 25.8 → 14.1 (its growing pulse ring keeps
+the draw_arc fallback), specter 18.5 → 8.7. Late mix 890–980 → ~635 µs/frame.
