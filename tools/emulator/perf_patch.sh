@@ -10,7 +10,9 @@
 #               (tools/emulator/power_fps.sh reads it);
 #           (3) an on-screen readout (GameRoot): FPS, frame ms, enemy count, and the
 #               power-up's name for 2 s after it fires;
-#           (4) autopilot: the ship steers around a square centred on the arena.
+#           (4) autopilot: the ship steers around a square centred on the arena;
+#           (5) maxed upgrades: every weapon perk rank 5, every keystone on, every
+#               boost at its cap, set in memory at each run start.
 #           Then compiles both scripts (warnings are errors: a parse error breaks the
 #           whole game on device) and reverts itself if they do not compile.
 #   revert: deletes every line tagged "# TEMP perf" — nothing else changes, so
@@ -69,6 +71,28 @@ lines += [
     "\t\t_on_weapon_activated(tmp_w)",
 ]
 patch(rc, '\n\tPerfProbe.add("s_swarm", pt_swarm)\n', lines)
+
+# (5) maxed upgrades (user, 2026-09-27: "make sure upgrades are maxed since it would
+# affect the fps"): at every run start, every weapon perk rank 5 (the Armory's cap),
+# every keystone on, every boost at its cap. In memory only — a later save() would
+# write them to this device's save file, so use a test device.
+patch(rc, "\nfunc reset_run(arena_bounds: Vector2) -> void:\n", [
+    "\tvar tmp_pd: Dictionary = progression.data.perks.to_dict()",
+    "\tfor tmp_wk: String in tmp_pd:",
+    "\t\tvar tmp_sub: Dictionary = tmp_pd[tmp_wk]",
+    "\t\tfor tmp_sk: String in tmp_sub:",
+    "\t\t\tif typeof(tmp_sub[tmp_sk]) == TYPE_BOOL:",
+    "\t\t\t\ttmp_sub[tmp_sk] = true",
+    "\t\t\telse:",
+    "\t\t\t\ttmp_sub[tmp_sk] = 5",
+    "\tprogression.data.perks.from_dict(tmp_pd)",
+    "\tprogression.data.extra_lives = ProgressionManager.EXTRA_LIVES_COSTS.size()",
+    "\tprogression.data.hull_compact = ProgressionManager.HULL_COMPACT_COSTS.size()",
+    "\tprogression.data.enemy_slow = ProgressionManager.ENEMY_SLOW_COSTS.size()",
+    "\tprogression.data.score_multiplier = ProgressionManager.SCORE_MULTIPLIER_COSTS.size()",
+    "\tprogression.data.points_multiplier = ProgressionManager.POINTS_MULTIPLIER_COSTS.size()",
+    '\tprint("PERKS MAXED %s" % JSON.stringify(progression.data.perks.to_dict()))',
+])
 
 # (3) on-screen readout.
 patch(gr, "\nfunc _process(_delta: float) -> void:\n", [

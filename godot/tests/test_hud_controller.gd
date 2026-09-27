@@ -339,3 +339,29 @@ func test_dropping_to_one_hides_the_chip_and_rising_again_restyles_it() -> void:
 	GameEvents.score_changed.emit(10, 20, 0)
 	assert_true(mult_lbl.visible)
 	assert_eq(mult_lbl.get_theme_color("font_color"), HudController.tier_color_for(20))
+
+
+func test_a_mass_kill_builds_one_pulse_per_frame_unless_the_tier_changes() -> void:
+	# M11c review (power-up FPS): 150 kills in one tick restarted the tween 150 times.
+	var hud: HudController = HudController.new()
+	var score_lbl: Label = Label.new()
+	score_lbl.name = "ScoreLabel"
+	var mult_lbl: Label = Label.new()
+	mult_lbl.name = "MultiplierLabel"
+	hud.add_child(score_lbl)
+	hud.add_child(mult_lbl)
+	add_child_autofree(hud)
+	GameEvents.score_changed.emit(700, 7, 3000)
+	GameEvents.enemy_killed.emit(Types.Enemy.new(), Types.WeaponType.NUKE)
+	var first: Tween = hud._score_pulse_tween
+	for i: int in range(20):
+		GameEvents.enemy_killed.emit(Types.Enemy.new(), Types.WeaponType.NUKE)
+	assert_same(hud._score_pulse_tween, first, "same frame, same tier: one pulse")
+	GameEvents.score_changed.emit(2000, 20, 3000)
+	GameEvents.enemy_killed.emit(Types.Enemy.new(), Types.WeaponType.NUKE)
+	assert_ne(hud._score_pulse_tween, first, "a tier change in the frame restarts it")
+	assert_eq(score_lbl.modulate, HudController.tier_color_for(20), "the last tier wins")
+	await get_tree().process_frame
+	var before: Tween = hud._score_pulse_tween
+	GameEvents.enemy_killed.emit(Types.Enemy.new(), Types.WeaponType.NUKE)
+	assert_ne(hud._score_pulse_tween, before, "the next frame pulses again")

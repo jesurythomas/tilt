@@ -470,3 +470,16 @@ User ruling: C++ GDExtension for the hot path, not C# (Android C# is experimenta
   in `logcat -b crash`); after 20 h up, init/servicemanager ran at 100%+ CPU and the
   game dropped to 1–2 fps (a run never left the menu). Launch the emulator with
   `emulator -avd Pixel_10 -no-snapshot-save -feature -Uwb` (0 UWB crashes after).
+- [x] **Power-up emulator A/B** (test mode, 3 pairs, pre-P31 code vs current, the
+  save's own upgrades): fps in the 3 s after each power-up old → new — missiles
+  13.4 → 15.7 (weapons 18.6 → 4.9 ms/frame), vortex 16.8 → 20.8 (7.9 → 3.0), freeze
+  19.2 → 25.4, nuke 18.3 → 18.9, laser 16.6 → 17.9, lightning 20.6 → 23.5, shield
+  20.2 → 21.7; grid after every power-up 1.4–4.4 → 0.3–0.5 ms/frame; all samples
+  18.7 → 21.4 fps. 0 errors in 6 runs. The test mode's 200–290 enemies keep the swarm
+  step the main cost.
+- [x] **P34 — one HUD score pulse per frame** (visual): a mass kill restarted the
+  tween per kill; now once per frame, again only if the tier changed (last tier
+  wins). Test + mutant (no early return fails it).
+- [x] **Test mode maxes upgrades** (user: "make sure upgrades are maxed since it would
+  affect the fps"): perf_patch step 5 sets every perk rank 5, keystones on, boosts at
+  cap, in memory at each run start (logs `PERKS MAXED {...}`).

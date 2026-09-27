@@ -86,6 +86,9 @@ var _frame: Panel = null
 var _score_block: VBoxContainer = null
 var _left_column: VBoxContainer = null
 var _lives_row: HBoxContainer = null
+## The process frame and tier of the last score pulse (one pulse per frame).
+var _pulse_frame: int = -1
+var _pulse_tier: Color = Color.TRANSPARENT
 var _weapon_timer: VBoxContainer = null
 var _weapon_timer_label: Label = null
 var _weapon_timer_meter: ProgressBar = null
@@ -459,13 +462,22 @@ func _style_multiplier() -> void:
 # DIVERGENCE(HUD-FEEDBACK §4): the score label pulses and flashes the tier
 # colour on every kill, replacing the sim's kill-site floating texts (D1/D2).
 # Tier comes from the last score_changed multiplier so both handlers agree.
+# DIVERGENCE(M11c review, power-up FPS): a mass kill (a nuke clears ~150 dots in one
+# tick) restarted the tween once per kill; every restart in a frame starts from the
+# same pulse, so one per frame looks the same. A later kill in the frame restarts it
+# only when the tier changed, so the last tier still wins.
 func _on_enemy_killed(_enemy: Types.Enemy, _weapon_type: Types.WeaponType) -> void:
 	if _score_label == null:
 		return
+	var tier: Color = tier_color_for(_current_multiplier)
+	var frame: int = Engine.get_process_frames()
+	if frame == _pulse_frame and tier == _pulse_tier:
+		return
+	_pulse_frame = frame
+	_pulse_tier = tier
 	if _score_pulse_tween != null:
 		_score_pulse_tween.kill()
 
-	var tier: Color = tier_color_for(_current_multiplier)
 	_score_label.scale = Vector2(PULSE_SCALE, PULSE_SCALE)
 	_score_label.modulate = tier
 
