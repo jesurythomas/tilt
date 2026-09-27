@@ -1458,6 +1458,11 @@ func _separate_pair(
 ## has moved since the index was built) and SWEEP_SLACK (how far xs[ii] may move
 ## during its own round); if xs[ii] moves further, the round finishes with the
 ## plain scan from where it is.
+## DIVERGENCE(M11c P26): the window also drops every k with |ys[k] - y0| >= min_distance
+## + SWEEP_SLACK (+ 1/SWEEP_QUANT for rounding). A k > ii moves in round ii only at its
+## own visit, so ys[k] then equals ys[k] at the window build; ys[ii] stays within
+## SWEEP_SLACK of y0 (else the plain-scan fallback runs), so a dropped k has |dy| >=
+## min_distance at its visit and the loop above would not push it either.
 func _separate_sweep(
 	xs: PackedFloat64Array, ys: PackedFloat64Array, min_distance: float, min_distance2: float
 ) -> void:
@@ -1468,15 +1473,17 @@ func _separate_sweep(
 	_sweep_index(xs, order, sorted_q)
 	var drift: float = 0.0
 	var window: PackedInt32Array = PackedInt32Array()
+	var reach_y: float = min_distance + SWEEP_SLACK + 1.0 / SWEEP_QUANT
 	for ii: int in range(n):
 		var x0: float = xs[ii]
+		var y0: float = ys[ii]
 		var reach: float = min_distance + drift + SWEEP_SLACK + 1.0 / SWEEP_QUANT
 		var lo: int = sorted_q.bsearch(x0 - reach, true)
 		var hi: int = sorted_q.bsearch(x0 + reach, false)
 		window.clear()
 		for t: int in range(lo, hi):
 			var k: int = order[t]
-			if k > ii:
+			if k > ii and absf(ys[k] - y0) < reach_y:
 				window.append(k)
 		var size: int = window.size()
 		if size > 1:
@@ -1500,7 +1507,7 @@ func _separate_sweep(
 				xs[jj] += px
 				ys[jj] += py
 				drift = maxf(drift, absf(xs[jj] - built_x[jj]))
-				if absf(xs[ii] - x0) >= SWEEP_SLACK:
+				if absf(xs[ii] - x0) >= SWEEP_SLACK or absf(ys[ii] - y0) >= SWEEP_SLACK:
 					# The window no longer covers ii: scan every later jj in order,
 					# still tracking how far each pushed jj drifts.
 					for later: int in range(jj + 1, n):

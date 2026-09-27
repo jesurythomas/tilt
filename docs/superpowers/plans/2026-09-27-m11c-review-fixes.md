@@ -312,3 +312,12 @@ calls do; entity draw is no longer the main cost); physics interpolation (does n
 reach `_draw` content); `max_physics_steps_per_frame` (trades slowdown for
 dilation, fixes nothing). Keep `thread_model=2`: the logcat line is a GL-context
 hook Android does not override; the render thread still starts.
+- [x] **P26 (research #1) — y-filtered separation window** (exact): the sweep drops
+  k with |ys[k] − y0| ≥ 16 + SWEEP_SLACK + 1/16 and falls back to the plain scan when
+  ys[ii] moves ≥ SWEEP_SLACK. New oracle `test_sweep_matches_the_pair_loop_on_a_column`;
+  removing the y fallback fails all 3 sweep oracles (mutation check). Bench late-mix
+  separation 284–292 → 252–264 µs/tick (−11%, less than the research's 1.5–3×). Split
+  at 135 candidates: candidates 38 µs + copy-in 25 + copy-out ~25 (object access) vs
+  sweep 104 — half the pass is `Enemy` property access, which research #3 (SoA)
+  removes. Ruling: skip #2 as a separate step (inlining would be rewritten by SoA);
+  go straight to #3 and inline while converting.

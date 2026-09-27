@@ -148,3 +148,16 @@ func test_sweep_matches_the_pair_loop_on_a_late_swarm() -> void:
 func test_sweep_matches_the_pair_loop_when_it_falls_back() -> void:
 	# M11c P15: 120 seekers in one 60 px box push far enough to exceed the slack.
 	_assert_sweep_matches(_seekers(0, 120), 30)
+
+
+func test_sweep_matches_the_pair_loop_on_a_column() -> void:
+	# M11c P26: 120 seekers in a 4 x 80 px column push mostly along y, past the slack
+	# (the y fallback), beside 200 spread seekers (the y-filtered window).
+	var enemies: Array[Types.Enemy] = _seekers(200, 0)
+	for i: int in range(120):
+		var e: Types.Enemy = Types.Enemy.new()
+		e.id = 200 + i
+		e.x = 1500.0 + randf() * 4.0
+		e.y = 300.0 + randf() * 80.0
+		enemies.append(e)
+	_assert_sweep_matches(enemies, 40)
