@@ -1,6 +1,8 @@
 ## bench_draw.gd — windowed CPU benchmark of EntityLayer._draw (M11c Task 5; not in the suite).
 ## Run WITHOUT --headless (the dummy renderer skips canvas work):
-##   "$GODOT" --path godot -s addons/gut/gut_cmdln.gd -gtest=res://bench/bench_draw.gd -gexit
+##   "$GODOT" --path godot --render-thread safe -s addons/gut/gut_cmdln.gd -gtest=res://bench/bench_draw.gd -gexit
+## --render-thread safe: with the project's Separate render thread (P24) desktop numbers
+## read ~30-50% higher and noisier (2026-09-27); single-thread keeps them comparable.
 extends GutTest
 
 const BOUNDS: Vector2 = Vector2(2162.0, 1056.0)

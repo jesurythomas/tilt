@@ -237,4 +237,6 @@ migration, the PerfProbe callable. **Fixed:**
    render-thread sync under P24). Test: a skin round trip reuses the bake.
 3. Frozen and satellite sprites draw at their cached texture's size.
 4. Armory scroll offsets carry over only when re-rendering the same tab (TS :334-336).
-Draw bench unchanged (seekers ~350 µs, mix ~630 µs).
+Draw bench unchanged with `--render-thread safe` (seekers ~357 µs, mix ~626 µs); under the
+project's Separate render thread the desktop bench reads ~30–50% higher and noisier —
+the draw benches now document the flag.

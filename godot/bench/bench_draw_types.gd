@@ -1,5 +1,6 @@
 ## bench_draw_types.gd — entity draw cost per enemy type (windowed; not in the suite).
-## Run WITHOUT --headless: "$GODOT" --path godot -s addons/gut/gut_cmdln.gd -gtest=res://bench/bench_draw_types.gd -gexit
+## Run WITHOUT --headless, single-thread renderer (see bench_draw.gd):
+## "$GODOT" --path godot --render-thread safe -s addons/gut/gut_cmdln.gd -gtest=res://bench/bench_draw_types.gd -gexit
 extends GutTest
 const BOUNDS: Vector2 = Vector2(2162.0, 1056.0)
 
