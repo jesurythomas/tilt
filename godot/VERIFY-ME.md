@@ -714,6 +714,12 @@ nothing below has run on it. Debug builds print one `PERF` line per second:
 - [ ] 14. **Launch.** Home-screen icon is the blue ship; opening the app shows the
       ship on the system splash (light background — needs a Gradle build to change),
       then the PERIL POINT loading screen, then the menu.
+- [ ] 15. **Native swarm (N3, 2026-09-28).** On the A55 (real arm64, not the
+      emulator's translation): a Code Red run past 250 enemies plays like the
+      emulator's (enemies chase, walls sweep, carriers orbit, pulsars pulse, rams
+      and shatters kill). `adb logcat -s godot:I` shows no `SCRIPT ERROR` (a missing
+      library fails to parse every script that names `PerilEnemy`). Record fps at 250+
+      from the `PERF` line (emulator: 24.7).
 
 ## M11b — Entrance cinematic
 

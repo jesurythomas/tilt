@@ -138,47 +138,9 @@ class LightningArc:
 	var branches: Array[Vector2] = []
 
 
-## PORT: web/src/tilt-to-live/Types.ts:87-116
-class Enemy:
-	extends RefCounted
-	var id: int = 0
-	var type: EnemyType = EnemyType.SEEKER
-	var x: float = 0.0
-	var y: float = 0.0
-	var vx: float = 0.0
-	var vy: float = 0.0
-	var radius: float = 0.0
-	var frozen: bool = false
-	var freeze_timer: float = 0.0
-	var age: float = 0.0
-	var health: float = 0.0
-	## `targetAngle?` in Types.ts:99. NAN until a module sets it; see is_nan().
-	var target_angle: float = NAN
-	## `specialTimer?` in Types.ts:100. NAN until a module sets it; see is_nan().
-	var special_timer: float = NAN
-	var leader_id: int = Types.ABSENT
-	var parent_wave_id: int = Types.ABSENT
-	var orbit_center: Vector2 = Vector2.ZERO
-	## `orbitRadius?` in Types.ts:104. NAN until a module sets it; see is_nan().
-	var orbit_radius: float = NAN
-	## `orbitSpeed?` in Types.ts:105. NAN until a module sets it; see is_nan().
-	var orbit_speed: float = NAN
-	var chilled: bool = false
-	var is_hazard: bool = false
-	var state: int = Types.ABSENT
-	## `aimAngle?` in Types.ts:109. NAN until a module sets it; see is_nan().
-	var aim_angle: float = NAN
-	## `aimTimer?` in Types.ts:110. NAN until a module sets it; see is_nan().
-	var aim_timer: float = NAN
-	## `fireCooldown?` in Types.ts:111. NAN until a module sets it; see is_nan().
-	var fire_cooldown: float = NAN
-	var parent_carrier_id: int = Types.ABSENT
-	## `orbitAngle?` in Types.ts:113. NAN until a module sets it; see is_nan().
-	var orbit_angle: float = NAN
-	## `pulseTimer?` in Types.ts:114. NAN until a module sets it; see is_nan().
-	var pulse_timer: float = NAN
-	## `stealthOpacity?` in Types.ts:115. NAN until a module sets it; see is_nan().
-	var stealth_opacity: float = NAN
+# DIVERGENCE(M11c N3a): the Enemy record (Types.ts:87-116) is the native class
+# PerilEnemy (native/src/peril_enemy.h), same fields and defaults, so the C++ swarm
+# loop reads it directly. `type` is a plain int holding an EnemyType value.
 
 
 ## PORT: web/src/tilt-to-live/Types.ts:118-128

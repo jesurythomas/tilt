@@ -7,12 +7,12 @@ const KINDS: int = 6
 
 
 ## The pre-P4 EnemySwarm.apply_flocking_separation body, verbatim (enemy_swarm.gd at fbf7e94).
-func _reference_separation(enemies: Array[Types.Enemy]) -> void:
+func _reference_separation(enemies: Array[PerilEnemy]) -> void:
 	var min_distance: float = 16.0
 	var min_distance2: float = min_distance * min_distance
 	var count: int = enemies.size()
 	for i: int in range(count):
-		var a: Types.Enemy = enemies[i]
+		var a: PerilEnemy = enemies[i]
 		if (
 			a.frozen
 			or a.type == Types.EnemyType.WALL_DOT
@@ -22,7 +22,7 @@ func _reference_separation(enemies: Array[Types.Enemy]) -> void:
 		):
 			continue
 		for j: int in range(i + 1, count):
-			var b: Types.Enemy = enemies[j]
+			var b: PerilEnemy = enemies[j]
 			if (
 				b.frozen
 				or b.type == Types.EnemyType.WALL_DOT
@@ -46,11 +46,11 @@ func _reference_separation(enemies: Array[Types.Enemy]) -> void:
 
 
 ## 150 enemies of every kind packed into a 120 px box, so many pairs overlap.
-func _packed_swarm() -> Array[Types.Enemy]:
+func _packed_swarm() -> Array[PerilEnemy]:
 	seed(1234)
-	var out: Array[Types.Enemy] = []
+	var out: Array[PerilEnemy] = []
 	for i: int in range(150):
-		var e: Types.Enemy = Types.Enemy.new()
+		var e: PerilEnemy = PerilEnemy.new()
 		e.id = i
 		e.x = randf() * 120.0
 		e.y = randf() * 120.0
@@ -69,10 +69,10 @@ func _packed_swarm() -> Array[Types.Enemy]:
 	return out
 
 
-func _copy(src: Array[Types.Enemy]) -> Array[Types.Enemy]:
-	var out: Array[Types.Enemy] = []
-	for s: Types.Enemy in src:
-		var e: Types.Enemy = Types.Enemy.new()
+func _copy(src: Array[PerilEnemy]) -> Array[PerilEnemy]:
+	var out: Array[PerilEnemy] = []
+	for s: PerilEnemy in src:
+		var e: PerilEnemy = PerilEnemy.new()
 		e.id = s.id
 		e.type = s.type
 		e.x = s.x
@@ -85,7 +85,7 @@ func _copy(src: Array[Types.Enemy]) -> Array[Types.Enemy]:
 
 
 func test_positions_match_the_pre_p4_pair_loop_exactly() -> void:
-	var reference: Array[Types.Enemy] = _packed_swarm()
+	var reference: Array[PerilEnemy] = _packed_swarm()
 	var swarm: EnemySwarm = EnemySwarm.new()
 	swarm.enemies = _copy(reference)
 	for tick: int in range(30):
@@ -108,11 +108,11 @@ func test_candidates_exclude_every_ineligible_kind() -> void:
 
 
 ## Plain seekers: `spread` across a 2162 x 1056 arena plus `clump` packed in a 60 px box.
-func _seekers(spread: int, clump: int) -> Array[Types.Enemy]:
+func _seekers(spread: int, clump: int) -> Array[PerilEnemy]:
 	seed(99)
-	var out: Array[Types.Enemy] = []
+	var out: Array[PerilEnemy] = []
 	for i: int in range(spread + clump):
-		var e: Types.Enemy = Types.Enemy.new()
+		var e: PerilEnemy = PerilEnemy.new()
 		e.id = i
 		if i < spread:
 			e.x = randf() * 2162.0
@@ -124,13 +124,13 @@ func _seekers(spread: int, clump: int) -> Array[Types.Enemy]:
 	return out
 
 
-func _assert_sweep_matches(reference: Array[Types.Enemy], ticks: int) -> void:
+func _assert_sweep_matches(reference: Array[PerilEnemy], ticks: int) -> void:
 	# M11c N2: both the C++ sweep (PerilNative) and the GDScript sweep must match.
 	for native: bool in [true, false]:
 		EnemySwarm.use_native = native
 		if native:
-			assert_not_null(EnemySwarm._native_separator(), "the native extension is loaded")
-		var ref: Array[Types.Enemy] = _copy(reference)
+			assert_true(ClassDB.class_exists("PerilNative"), "the native extension is loaded")
+		var ref: Array[PerilEnemy] = _copy(reference)
 		var swarm: EnemySwarm = EnemySwarm.new()
 		swarm.enemies = _copy(reference)
 		assert_gte(
@@ -160,9 +160,9 @@ func test_sweep_matches_the_pair_loop_when_it_falls_back() -> void:
 func test_sweep_matches_the_pair_loop_on_a_column() -> void:
 	# M11c P26: 120 seekers in a 4 x 80 px column push mostly along y, past the slack
 	# (the y fallback), beside 200 spread seekers (the y-filtered window).
-	var enemies: Array[Types.Enemy] = _seekers(200, 0)
+	var enemies: Array[PerilEnemy] = _seekers(200, 0)
 	for i: int in range(120):
-		var e: Types.Enemy = Types.Enemy.new()
+		var e: PerilEnemy = PerilEnemy.new()
 		e.id = 200 + i
 		e.x = 1500.0 + randf() * 4.0
 		e.y = 300.0 + randf() * 80.0
@@ -174,7 +174,7 @@ func test_sweep_writes_back_an_enemy_pushed_only_by_the_fallback() -> void:
 	# M11c P27: A is pushed past SWEEP_SLACK by B and C (the plain-scan fallback), then
 	# pushes D, which nothing else reaches this tick; D's new x must be written back.
 	# 32 fillers 100 px apart keep the sweep engaged without touching the four.
-	var enemies: Array[Types.Enemy] = []
+	var enemies: Array[PerilEnemy] = []
 	var spots: Array[Vector2] = [
 		Vector2(1000.0, 500.0),
 		Vector2(1000.1, 500.0),
@@ -182,13 +182,13 @@ func test_sweep_writes_back_an_enemy_pushed_only_by_the_fallback() -> void:
 		Vector2(980.0, 500.0)
 	]
 	for p: Vector2 in spots:
-		var e: Types.Enemy = Types.Enemy.new()
+		var e: PerilEnemy = PerilEnemy.new()
 		e.id = enemies.size()
 		e.x = p.x
 		e.y = p.y
 		enemies.append(e)
 	for i: int in range(32):
-		var f: Types.Enemy = Types.Enemy.new()
+		var f: PerilEnemy = PerilEnemy.new()
 		f.id = enemies.size()
 		f.x = 100.0 + float(i % 8) * 100.0
 		f.y = 100.0 + float(i / 8) * 100.0
@@ -213,9 +213,9 @@ func test_sweep_matches_the_pair_loop_on_random_blobs() -> void:
 		var w: float = 40.0 + randf() * 260.0
 		var h: float = 40.0 + randf() * 260.0
 		var count: int = 40 + randi() % 160
-		var enemies: Array[Types.Enemy] = []
+		var enemies: Array[PerilEnemy] = []
 		for i: int in range(count):
-			var e: Types.Enemy = Types.Enemy.new()
+			var e: PerilEnemy = PerilEnemy.new()
 			e.id = i
 			e.x = 800.0 + randf() * w
 			e.y = 400.0 + randf() * h

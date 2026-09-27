@@ -18,7 +18,7 @@ func before_each() -> void:
 
 func _count_type(type: Types.EnemyType) -> int:
 	var n: int = 0
-	for e: Types.Enemy in _swarm.enemies:
+	for e: PerilEnemy in _swarm.enemies:
 		if e.type == type:
 			n += 1
 	return n
@@ -27,8 +27,8 @@ func _count_type(type: Types.EnemyType) -> int:
 func test_arrow_formation_spawns_seven_drones_in_one_wing() -> void:
 	_swarm.spawn_arrow_formation(BOUNDS)
 	assert_eq(_swarm.enemies.size(), 7, "one wing is seven drones (EnemySwarm.ts:859-864)")
-	var first: Types.Enemy = _swarm.enemies[0]
-	for e: Types.Enemy in _swarm.enemies:
+	var first: PerilEnemy = _swarm.enemies[0]
+	for e: PerilEnemy in _swarm.enemies:
 		assert_eq(e.type, Types.EnemyType.ARROW_DRONE)
 		assert_almost_eq(e.radius, 8.0, 0.001)
 		assert_almost_eq(absf(e.vx), 260.0, 0.001, "wing speed is 260 * max(0.72, scale)")
@@ -43,7 +43,7 @@ func test_dual_pincer_spawns_both_wings() -> void:
 	assert_eq(_swarm.enemies.size(), 14)
 	var from_left: int = 0
 	var from_right: int = 0
-	for e: Types.Enemy in _swarm.enemies:
+	for e: PerilEnemy in _swarm.enemies:
 		if e.vx > 0.0:
 			from_left += 1
 		else:
@@ -54,7 +54,7 @@ func test_dual_pincer_spawns_both_wings() -> void:
 
 func test_arrow_drone_moves_straight_and_is_not_clamped() -> void:
 	_swarm.spawn_arrow_formation(BOUNDS)
-	var lead: Types.Enemy = _swarm.enemies[0]
+	var lead: PerilEnemy = _swarm.enemies[0]
 	var start_x: float = lead.x
 	var start_y: float = lead.y
 	_swarm.update(0.1, PLAYER, BOUNDS, _particles)
@@ -65,7 +65,7 @@ func test_arrow_drone_moves_straight_and_is_not_clamped() -> void:
 
 func test_arrow_drone_is_removed_after_leaving_the_arena() -> void:
 	_swarm.spawn_arrow_formation(BOUNDS)
-	for e: Types.Enemy in _swarm.enemies:
+	for e: PerilEnemy in _swarm.enemies:
 		e.x = BOUNDS.x + 200.0
 	_swarm.update(0.01, PLAYER, BOUNDS, _particles)
 	assert_eq(_swarm.enemies.size(), 0, "beyond bounds + 140 the drone is culled")
@@ -85,10 +85,10 @@ func test_circle_encirclement_count_scales_with_score() -> void:
 
 func test_circle_dots_ring_the_player_then_close_in() -> void:
 	_swarm.spawn_circle_encirclement(PLAYER, BOUNDS, 0)
-	for e: Types.Enemy in _swarm.enemies:
+	for e: PerilEnemy in _swarm.enemies:
 		assert_almost_eq(Vector2(e.x, e.y).distance_to(PLAYER), 260.0, 0.01)
 		assert_almost_eq(e.special_timer, 1.25, 0.001)
-	var probe: Types.Enemy = _swarm.enemies[0]
+	var probe: PerilEnemy = _swarm.enemies[0]
 	var start_x: float = probe.x
 	_swarm.update(0.1, PLAYER, BOUNDS, _particles)
 	assert_almost_eq(probe.x, start_x, 0.001, "still paused")
@@ -100,7 +100,7 @@ func test_circle_dots_ring_the_player_then_close_in() -> void:
 func test_tight_circle_uses_the_code_red_values() -> void:
 	_swarm.spawn_circle_encirclement(PLAYER, BOUNDS, 0, true)
 	assert_eq(_swarm.enemies.size(), 11, "DIVERGENCE(M11c P9): user ruling, TS 16")
-	for e: Types.Enemy in _swarm.enemies:
+	for e: PerilEnemy in _swarm.enemies:
 		assert_almost_eq(Vector2(e.x, e.y).distance_to(PLAYER), 180.0, 0.01)
 		assert_almost_eq(e.special_timer, 0.75, 0.001)
 
@@ -118,7 +118,7 @@ func test_wall_formation_leaves_a_three_dot_gap() -> void:
 	# DIVERGENCE(M11c P29): spacing 32 (TS 22), gap 3 slots (TS 5), user ruling.
 	var num_dots: int = floori((BOUNDS.x if horizontal else BOUNDS.y) / 32.0)
 	assert_eq(_swarm.enemies.size(), num_dots - 3, "|i - gapIndex| <= 1 skips three")
-	for e: Types.Enemy in _swarm.enemies:
+	for e: PerilEnemy in _swarm.enemies:
 		assert_eq(e.type, Types.EnemyType.WALL_DOT)
 		assert_almost_eq(e.radius, 8.0, 0.001)
 		if horizontal:
@@ -132,13 +132,13 @@ func test_wall_formation_leaves_a_three_dot_gap() -> void:
 
 
 func test_wall_dots_are_neither_clamped_nor_separated() -> void:
-	var a: Types.Enemy = Types.Enemy.new()
+	var a: PerilEnemy = PerilEnemy.new()
 	a.type = Types.EnemyType.WALL_DOT
 	a.x = 200.0
 	a.y = -30.0
 	a.vy = 140.0
 	a.radius = 8.0
-	var b: Types.Enemy = Types.Enemy.new()
+	var b: PerilEnemy = PerilEnemy.new()
 	b.type = Types.EnemyType.WALL_DOT
 	b.x = 202.0
 	b.y = -30.0
@@ -153,7 +153,7 @@ func test_wall_dots_are_neither_clamped_nor_separated() -> void:
 
 
 func test_spike_mine_drifts_by_its_velocity() -> void:
-	var mine: Types.Enemy = Types.Enemy.new()
+	var mine: PerilEnemy = PerilEnemy.new()
 	mine.type = Types.EnemyType.SPIKE_MINE
 	mine.x = 300.0
 	mine.y = 300.0
@@ -167,8 +167,8 @@ func test_spike_mine_drifts_by_its_velocity() -> void:
 	assert_almost_eq(mine.y, 299.0, 0.0001)
 
 
-func _sweeper(type: Types.EnemyType, pos: Vector2, vel: Vector2) -> Types.Enemy:
-	var e: Types.Enemy = Types.Enemy.new()
+func _sweeper(type: Types.EnemyType, pos: Vector2, vel: Vector2) -> PerilEnemy:
+	var e: PerilEnemy = PerilEnemy.new()
 	e.type = type
 	e.x = pos.x
 	e.y = pos.y
@@ -183,19 +183,19 @@ func _sweeper(type: Types.EnemyType, pos: Vector2, vel: Vector2) -> Types.Enemy:
 func test_sweep_dots_step_by_speed_scale_and_cull_only_past_140() -> void:
 	# M11c P28: wall and arrow dots step inline and share one x/y read with the cull.
 	_swarm.speed_scale = 0.5
-	var kept_w: Types.Enemy = _sweeper(
+	var kept_w: PerilEnemy = _sweeper(
 		Types.EnemyType.WALL_DOT, Vector2(-139.5, 300.0), Vector2(-100.0, 0.0)
 	)
-	var kept_v: Types.Enemy = _sweeper(
+	var kept_v: PerilEnemy = _sweeper(
 		Types.EnemyType.WALL_DOT, Vector2(500.0, -139.5), Vector2(0.0, -100.0)
 	)
-	var kept_a: Types.Enemy = _sweeper(
+	var kept_a: PerilEnemy = _sweeper(
 		Types.EnemyType.ARROW_DRONE, Vector2(BOUNDS.x + 139.5, 300.0), Vector2(100.0, 0.0)
 	)
-	var gone_w: Types.Enemy = _sweeper(
+	var gone_w: PerilEnemy = _sweeper(
 		Types.EnemyType.WALL_DOT, Vector2(-144.0, 600.0), Vector2(-100.0, 0.0)
 	)
-	var gone_a: Types.Enemy = _sweeper(
+	var gone_a: PerilEnemy = _sweeper(
 		Types.EnemyType.ARROW_DRONE, Vector2(700.0, BOUNDS.y + 144.0), Vector2(0.0, 100.0)
 	)
 	_swarm.update(0.01, PLAYER, BOUNDS, _particles)

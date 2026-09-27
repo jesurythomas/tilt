@@ -12,7 +12,7 @@ var _particles: ParticleEngine = null
 var _grid: VectorGrid = null
 var _audio: AudioBank = null
 var _ws: WeaponSystem = null
-var _killed: Array[Types.Enemy] = []
+var _killed: Array[PerilEnemy] = []
 var _killed_by: Array[Types.WeaponType] = []
 
 
@@ -28,13 +28,13 @@ func before_each() -> void:
 
 
 func _on_killed() -> Callable:
-	return func(e: Types.Enemy, w: Types.WeaponType) -> void:
+	return func(e: PerilEnemy, w: Types.WeaponType) -> void:
 		_killed.append(e)
 		_killed_by.append(w)
 
 
-func _enemy(id: int, x: float, y: float) -> Types.Enemy:
-	var e: Types.Enemy = Types.Enemy.new()
+func _enemy(id: int, x: float, y: float) -> PerilEnemy:
+	var e: PerilEnemy = PerilEnemy.new()
 	e.id = id
 	e.x = x
 	e.y = y
@@ -46,7 +46,7 @@ func _activate(
 	type: Types.WeaponType,
 	x: float,
 	y: float,
-	enemies: Array[Types.Enemy],
+	enemies: Array[PerilEnemy],
 	perks: ProgressionManager.WeaponPerks = null
 ) -> void:
 	_ws.activate_weapon(
@@ -56,10 +56,10 @@ func _activate(
 
 func test_lightning_chains_within_the_rank_zero_range_and_stops_beyond_it() -> void:
 	assert_almost_eq(Tuning.get_tuned_value("lightning", "chainRange", 0), 220.0, 0.001)
-	var a: Types.Enemy = _enemy(1, 150.0, 100.0)
-	var b: Types.Enemy = _enemy(2, 250.0, 100.0)
-	var c: Types.Enemy = _enemy(3, 500.0, 100.0)
-	var enemies: Array[Types.Enemy] = [a, b, c]
+	var a: PerilEnemy = _enemy(1, 150.0, 100.0)
+	var b: PerilEnemy = _enemy(2, 250.0, 100.0)
+	var c: PerilEnemy = _enemy(3, 500.0, 100.0)
+	var enemies: Array[PerilEnemy] = [a, b, c]
 	_activate(Types.WeaponType.LIGHTNING, 100.0, 100.0, enemies)
 	assert_eq(_killed.size(), 2, "50 then 100 px hops; the 250 px hop exceeds 220")
 	assert_eq(_killed_by[0], Types.WeaponType.LIGHTNING)
@@ -78,7 +78,7 @@ func test_lightning_chains_within_the_rank_zero_range_and_stops_beyond_it() -> v
 
 
 func test_lightning_branches_are_three_jittered_points_along_the_arc() -> void:
-	var enemies: Array[Types.Enemy] = [_enemy(1, 300.0, 100.0)]
+	var enemies: Array[PerilEnemy] = [_enemy(1, 300.0, 100.0)]
 	_activate(Types.WeaponType.LIGHTNING, 100.0, 100.0, enemies)
 	var arc: Types.LightningArc = _ws.lightning_arcs[0]
 	assert_eq(arc.branches.size(), 3, "segments = 4, s in 1..3")
@@ -93,7 +93,7 @@ func test_lightning_chain_range_rank_reaches_the_farther_enemy() -> void:
 	var perks: ProgressionManager.WeaponPerks = ProgressionManager.WeaponPerks.new()
 	perks.lightning.chain_range = 3
 	assert_almost_eq(Tuning.get_tuned_value("lightning", "chainRange", 3), 286.0, 0.001)
-	var enemies: Array[Types.Enemy] = [
+	var enemies: Array[PerilEnemy] = [
 		_enemy(1, 150.0, 100.0), _enemy(2, 250.0, 100.0), _enemy(3, 500.0, 100.0)
 	]
 	_activate(Types.WeaponType.LIGHTNING, 100.0, 100.0, enemies, perks)
@@ -102,7 +102,7 @@ func test_lightning_chain_range_rank_reaches_the_farther_enemy() -> void:
 
 
 func test_lightning_max_targets_rank_extends_the_chain() -> void:
-	var enemies: Array[Types.Enemy] = []
+	var enemies: Array[PerilEnemy] = []
 	for i: int in range(16):
 		enemies.append(_enemy(i + 1, 110.0 + float(i) * 10.0, 100.0))
 	_activate(Types.WeaponType.LIGHTNING, 100.0, 100.0, enemies)
@@ -122,7 +122,7 @@ func test_lightning_max_targets_rank_extends_the_chain() -> void:
 
 
 func test_lightning_arcs_fade_and_are_removed() -> void:
-	var enemies: Array[Types.Enemy] = [_enemy(1, 150.0, 100.0)]
+	var enemies: Array[PerilEnemy] = [_enemy(1, 150.0, 100.0)]
 	_activate(Types.WeaponType.LIGHTNING, 100.0, 100.0, enemies)
 	_ws.update(0.1, _player, enemies, BOUNDS, _particles, _grid, _audio, _on_killed())
 	assert_almost_eq(_ws.lightning_arcs[0].intensity, 0.6, 0.0001, "intensity -= dt * 4")
@@ -155,10 +155,10 @@ func test_laser_length_and_duration_come_from_the_table_per_rank() -> void:
 func test_laser_sweeps_with_the_player_and_slices_along_the_beam() -> void:
 	_activate(Types.WeaponType.LASER, 0.0, 0.0, [])
 	var w: Types.ActiveWeapon = _ws.active_weapons[0]
-	var on_beam: Types.Enemy = _enemy(1, 600.0, 300.0)
-	var off_beam: Types.Enemy = _enemy(2, 500.0, 400.0)
-	var beyond: Types.Enemy = _enemy(3, 900.0, 300.0)
-	var enemies: Array[Types.Enemy] = [on_beam, off_beam, beyond]
+	var on_beam: PerilEnemy = _enemy(1, 600.0, 300.0)
+	var off_beam: PerilEnemy = _enemy(2, 500.0, 400.0)
+	var beyond: PerilEnemy = _enemy(3, 900.0, 300.0)
+	var enemies: Array[PerilEnemy] = [on_beam, off_beam, beyond]
 	_player.x = 520.0
 	_ws.update(0.01, _player, enemies, BOUNDS, _particles, _grid, _audio, _on_killed())
 	assert_almost_eq(w.x, 520.0, 0.001, "follows the ship")
@@ -174,8 +174,8 @@ func test_laser_cross_beam_keystone_adds_the_perpendicular_beam() -> void:
 	var perks: ProgressionManager.WeaponPerks = ProgressionManager.WeaponPerks.new()
 	perks.laser.cross_beam = true
 	_activate(Types.WeaponType.LASER, 0.0, 0.0, [], perks)
-	var off_beam: Types.Enemy = _enemy(2, 500.0, 400.0)
-	var enemies: Array[Types.Enemy] = [off_beam]
+	var off_beam: PerilEnemy = _enemy(2, 500.0, 400.0)
+	var enemies: Array[PerilEnemy] = [off_beam]
 	_ws.update(0.01, _player, enemies, BOUNDS, _particles, _grid, _audio, _on_killed())
 	assert_eq(_killed.size(), 1, "the perpendicular beam reaches it")
 	assert_eq(enemies.size(), 0)

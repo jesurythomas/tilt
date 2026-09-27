@@ -59,7 +59,7 @@ var _orb_spawn_timer: float = 2.0  # PORT: web/src/tilt-to-live/WeaponSystem.ts:
 var _snap_x: PackedFloat64Array = PackedFloat64Array()
 var _snap_y: PackedFloat64Array = PackedFloat64Array()
 var _snap_r: PackedFloat64Array = PackedFloat64Array()
-var _snap_by_id: Dictionary[int, Types.Enemy] = {}
+var _snap_by_id: Dictionary[int, PerilEnemy] = {}
 var _snap_max_r: float = 0.0
 var _snap_order: PackedInt32Array = PackedInt32Array()
 var _snap_sorted_q: PackedFloat64Array = PackedFloat64Array()
@@ -91,7 +91,7 @@ func reset() -> void:
 func update(
 	dt: float,
 	player: PlayerShip,
-	enemies: Array[Types.Enemy],
+	enemies: Array[PerilEnemy],
 	bounds: Vector2,
 	particles: ParticleEngine,
 	grid: VectorGrid,
@@ -172,7 +172,7 @@ func update(
 				# Vaporize enemies inside blast radius.
 				# PORT: web/src/tilt-to-live/WeaponSystem.ts:113-124
 				for e_idx: int in range(enemies.size() - 1, -1, -1):
-					var e: Types.Enemy = enemies[e_idx]
+					var e: PerilEnemy = enemies[e_idx]
 					var edx: float = e.x - w.x
 					var edy: float = e.y - w.y
 					var e_dist: float = sqrt(edx * edx + edy * edy)
@@ -205,7 +205,7 @@ func update(
 
 				# PORT: web/src/tilt-to-live/WeaponSystem.ts:142-157
 				for e_idx: int in range(enemies.size() - 1, -1, -1):
-					var e: Types.Enemy = enemies[e_idx]
+					var e: PerilEnemy = enemies[e_idx]
 					var rel_x: float = e.x - w.x
 					var rel_y: float = e.y - w.y
 					var proj: float = rel_x * cos_a + rel_y * sin_a
@@ -225,7 +225,7 @@ func update(
 					var cos_b: float = cos(w.angle + PI / 2.0)
 					var sin_b: float = sin(w.angle + PI / 2.0)
 					for e_idx: int in range(enemies.size() - 1, -1, -1):
-						var e: Types.Enemy = enemies[e_idx]
+						var e: PerilEnemy = enemies[e_idx]
 						var rel_x: float = e.x - w.x
 						var rel_y: float = e.y - w.y
 						var proj: float = rel_x * cos_b + rel_y * sin_b
@@ -265,7 +265,7 @@ func update(
 				var wx: float = w.x
 				var wy: float = w.y
 				for e_idx: int in range(enemies.size() - 1, -1, -1):
-					var e: Types.Enemy = enemies[e_idx]
+					var e: PerilEnemy = enemies[e_idx]
 					var ex: float = e.x
 					var ey: float = e.y
 					var edx: float = wx - ex
@@ -346,7 +346,7 @@ func update(
 				)
 
 				for e_idx: int in range(enemies.size() - 1, -1, -1):
-					var e: Types.Enemy = enemies[e_idx]
+					var e: PerilEnemy = enemies[e_idx]
 					var dx: float = e.x - w.x
 					var dy: float = e.y - w.y
 					if dx * dx + dy * dy <= blast_radius2:
@@ -380,7 +380,7 @@ func update(
 
 		# Retarget the closest enemy if the current target died or is missing.
 		# PORT: web/src/tilt-to-live/WeaponSystem.ts:294-306
-		var target: Types.Enemy = _snap_by_id.get(m.target_id, null)
+		var target: PerilEnemy = _snap_by_id.get(m.target_id, null)
 		if target == null and enemies.size() > 0:
 			var best_dist: float = INF
 			var best: int = -1
@@ -450,7 +450,7 @@ func update(
 			grid.apply_explosion(m.x, m.y, 8.0, blast_radius)
 
 			for e_idx: int in range(enemies.size() - 1, -1, -1):
-				var e: Types.Enemy = enemies[e_idx]
+				var e: PerilEnemy = enemies[e_idx]
 				var edx: float = e.x - m.x
 				var edy: float = e.y - m.y
 				if edx * edx + edy * edy <= blast_radius2:
@@ -472,7 +472,7 @@ func update(
 ## Fills the missile snapshot from enemies (see update's step 4, P32): x, y, radius
 ## in array order, id -> enemy, and x quantised to 1/SNAP_QUANT px (rounded down),
 ## sorted, with the array index for each.
-func _missile_snapshot(enemies: Array[Types.Enemy]) -> void:
+func _missile_snapshot(enemies: Array[PerilEnemy]) -> void:
 	var n: int = enemies.size()
 	_snap_x.resize(n)
 	_snap_y.resize(n)
@@ -482,7 +482,7 @@ func _missile_snapshot(enemies: Array[Types.Enemy]) -> void:
 	var keys: PackedInt64Array = PackedInt64Array()
 	keys.resize(n)
 	for k: int in range(n):
-		var e: Types.Enemy = enemies[k]
+		var e: PerilEnemy = enemies[k]
 		var ex: float = e.x
 		_snap_x[k] = ex
 		_snap_y[k] = e.y
@@ -509,7 +509,7 @@ func trigger_weapon(
 	x: float,
 	y: float,
 	player: PlayerShip,
-	enemies: Array[Types.Enemy],
+	enemies: Array[PerilEnemy],
 	particles: ParticleEngine,
 	grid: VectorGrid,
 	audio: AudioBank,
@@ -519,7 +519,7 @@ func trigger_weapon(
 	var on_killed: Callable = (
 		on_enemy_killed
 		if on_enemy_killed.is_valid()
-		else func(_e: Types.Enemy, _w: Types.WeaponType) -> void: pass
+		else func(_e: PerilEnemy, _w: Types.WeaponType) -> void: pass
 	)
 	activate_weapon(type, x, y, player, enemies, particles, grid, audio, on_killed, perks)
 
@@ -530,7 +530,7 @@ func activate_weapon(
 	x: float,
 	y: float,
 	player: PlayerShip,
-	enemies: Array[Types.Enemy],
+	enemies: Array[PerilEnemy],
 	particles: ParticleEngine,
 	grid: VectorGrid,
 	audio: AudioBank,
@@ -603,10 +603,10 @@ func activate_weapon(
 			)
 
 			for chain: int in range(max_chains):
-				var nearest_enemy: Types.Enemy = null
+				var nearest_enemy: PerilEnemy = null
 				var nearest_dist: float = jump_range
 
-				for e: Types.Enemy in enemies:
+				for e: PerilEnemy in enemies:
 					if visited_ids.has(e.id):
 						continue
 					var dx: float = e.x - current_origin.x
@@ -652,7 +652,7 @@ func activate_weapon(
 
 			# Kill every electrocuted dot. PORT: web/src/tilt-to-live/WeaponSystem.ts:487-495
 			for e_idx: int in range(enemies.size() - 1, -1, -1):
-				var e: Types.Enemy = enemies[e_idx]
+				var e: PerilEnemy = enemies[e_idx]
 				if visited_ids.has(e.id):
 					on_enemy_killed.call(e, Types.WeaponType.LIGHTNING)
 					# PORT: web/src/tilt-to-live/WeaponSystem.ts:492
@@ -720,7 +720,7 @@ func activate_weapon(
 			# PORT-NOTE: freezes inline exactly as WeaponSystem.ts:541-544 does, rather than
 			# through EnemySwarm.freeze_all — this method receives the enemies array, not
 			# the swarm, and the TS never calls freezeAll. See the M4 plan, Open question 2.
-			for e: Types.Enemy in enemies:
+			for e: PerilEnemy in enemies:
 				e.frozen = true
 				e.freeze_timer = freeze_duration
 			particles.emit_ice_shatter(x, y, 40)  # PORT: web/src/tilt-to-live/WeaponSystem.ts:545

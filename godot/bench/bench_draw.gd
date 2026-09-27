@@ -54,9 +54,9 @@ func test_bench_entity_draw_mix() -> void:
 		swarm.spawn_artillery(BOUNDS, centre)
 		swarm.spawn_pulsar(BOUNDS, centre)
 		swarm.spawn_specter(BOUNDS, centre)
-		var c: Types.Enemy = swarm.spawn_charger(BOUNDS, centre)
+		var c: PerilEnemy = swarm.spawn_charger(BOUNDS, centre)
 		c.state = Types.EnemyState.AIMING
-	for e: Types.Enemy in swarm.enemies:
+	for e: PerilEnemy in swarm.enemies:
 		e.x = clampf(e.x, 20.0, BOUNDS.x - 20.0)
 		e.y = clampf(e.y, 20.0, BOUNDS.y - 20.0)
 	var layer: EntityLayer = EntityLayer.new()

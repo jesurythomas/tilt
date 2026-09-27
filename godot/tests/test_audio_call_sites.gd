@@ -102,7 +102,7 @@ func test_coin_pickup_chimes() -> void:
 func test_orb_pickup_fires_the_weapon_then_the_chime() -> void:
 	var ws: WeaponSystem = WeaponSystem.new()
 	ws.spawn_orb(BOUNDS, Types.WeaponType.NUKE, _player.x, _player.y)
-	var enemies: Array[Types.Enemy] = []
+	var enemies: Array[PerilEnemy] = []
 	ws.update(
 		0.016,
 		_player,
@@ -111,7 +111,7 @@ func test_orb_pickup_fires_the_weapon_then_the_chime() -> void:
 		_particles,
 		_grid,
 		_spy,
-		func(_e: Types.Enemy, _w: Types.WeaponType) -> void: pass
+		func(_e: PerilEnemy, _w: Types.WeaponType) -> void: pass
 	)
 	assert_eq(
 		_spy.requested,
@@ -131,13 +131,13 @@ func test_each_weapon_fires_its_sound() -> void:
 	}
 	for type: Types.WeaponType in cases:
 		_spy.requested.clear()
-		var enemies: Array[Types.Enemy] = []
+		var enemies: Array[PerilEnemy] = []
 		WeaponSystem.new().trigger_weapon(
 			type, _player.x, _player.y, _player, enemies, _particles, _grid, _spy
 		)
 		assert_eq(_spy.requested[0], cases[type], "weapon %d" % type)
 	_spy.requested.clear()
-	var none: Array[Types.Enemy] = []
+	var none: Array[PerilEnemy] = []
 	WeaponSystem.new().trigger_weapon(
 		Types.WeaponType.SHIELD, _player.x, _player.y, _player, none, _particles, _grid, _spy
 	)
@@ -146,7 +146,7 @@ func test_each_weapon_fires_its_sound() -> void:
 
 func test_missiles_explode_when_their_fuel_runs_out() -> void:
 	var ws: WeaponSystem = WeaponSystem.new()
-	var enemies: Array[Types.Enemy] = []
+	var enemies: Array[PerilEnemy] = []
 	ws.trigger_weapon(
 		Types.WeaponType.MISSILES, _player.x, _player.y, _player, enemies, _particles, _grid, _spy
 	)
@@ -159,7 +159,7 @@ func test_missiles_explode_when_their_fuel_runs_out() -> void:
 			_particles,
 			_grid,
 			_spy,
-			func(_e: Types.Enemy, _w: Types.WeaponType) -> void: pass
+			func(_e: PerilEnemy, _w: Types.WeaponType) -> void: pass
 		)
 	assert_true(
 		_spy.requested.has("missile_explode"), "lifetime 3.5 s → blast (WeaponSystem.ts:341)"
@@ -168,7 +168,7 @@ func test_missiles_explode_when_their_fuel_runs_out() -> void:
 
 func test_ramming_a_frozen_enemy_shatters_it() -> void:
 	var rc: RunController = _run_controller()
-	var e: Types.Enemy = rc.swarm.spawn_seeker(BOUNDS, _player.x, _player.y)
+	var e: PerilEnemy = rc.swarm.spawn_seeker(BOUNDS, _player.x, _player.y)
 	e.frozen = true
 	rc.check_collisions()
 	assert_eq(

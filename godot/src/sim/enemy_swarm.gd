@@ -36,14 +36,14 @@ const SWEEP_OFFSET: float = 65536.0
 const SWEEP_INDEX_BITS: int = 20
 const SWEEP_INDEX_MASK: int = (1 << SWEEP_INDEX_BITS) - 1
 ## DIVERGENCE(M11c P17): the empty satellite list.
-const _NO_SATELLITES: Array[Types.Enemy] = []
-## DIVERGENCE(M11c N2): separation runs in C++ when the PerilNative extension is
-## loaded; false forces the GDScript sweep (the oracles compare both).
+const _NO_SATELLITES: Array[PerilEnemy] = []
+## DIVERGENCE(M11c N2, N3): the per-enemy loop and separation run in C++
+## (PerilNative.swarm_step / separate_enemies); false forces the GDScript reference
+## (the oracles compare both). The extension is required: enemies are PerilEnemy.
 static var use_native: bool = true
-static var _native: Object = null
 
 ## Live active enemies. PORT: web/src/tilt-to-live/EnemySwarm.ts:9
-var enemies: Array[Types.Enemy] = []
+var enemies: Array[PerilEnemy] = []
 
 ## Scale factor for enemy radius and speed. PORT: web/src/tilt-to-live/EnemySwarm.ts:20
 var scale: float = 1.0
@@ -87,7 +87,7 @@ func reset() -> void:
 
 ## Spawns a single seeker dot at an arena edge or custom position.
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:544-574
-func spawn_seeker(bounds: Vector2, custom_x: float = NAN, custom_y: float = NAN) -> Types.Enemy:
+func spawn_seeker(bounds: Vector2, custom_x: float = NAN, custom_y: float = NAN) -> PerilEnemy:
 	var x: float = custom_x
 	var y: float = custom_y
 
@@ -108,7 +108,7 @@ func spawn_seeker(bounds: Vector2, custom_x: float = NAN, custom_y: float = NAN)
 				x = -margin
 				y = randf() * bounds.y
 
-	var enemy: Types.Enemy = Types.Enemy.new()
+	var enemy: PerilEnemy = PerilEnemy.new()
 	enemy.id = _next_enemy_id
 	_next_enemy_id += 1
 	enemy.type = Types.EnemyType.SEEKER
@@ -127,7 +127,7 @@ func spawn_seeker(bounds: Vector2, custom_x: float = NAN, custom_y: float = NAN)
 
 ## Spawns a charger enemy at an arena edge, aimed at the player.
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:576-607
-func spawn_charger(bounds: Vector2, player_pos: Vector2) -> Types.Enemy:
+func spawn_charger(bounds: Vector2, player_pos: Vector2) -> PerilEnemy:
 	var edge: int = randi() % 4  # PORT: web/src/tilt-to-live/EnemySwarm.ts:577
 	var margin: float = 25.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:578
 	var x: float = 0.0
@@ -149,7 +149,7 @@ func spawn_charger(bounds: Vector2, player_pos: Vector2) -> Types.Enemy:
 	# PORT: web/src/tilt-to-live/EnemySwarm.ts:588
 	var aim_angle: float = atan2(player_pos.y - y, player_pos.x - x)
 
-	var enemy: Types.Enemy = Types.Enemy.new()
+	var enemy: PerilEnemy = PerilEnemy.new()
 	enemy.id = _next_enemy_id
 	_next_enemy_id += 1
 	enemy.type = Types.EnemyType.CHARGER
@@ -171,7 +171,7 @@ func spawn_charger(bounds: Vector2, player_pos: Vector2) -> Types.Enemy:
 
 ## Spawns a pulsar enemy at an arena edge.
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:609-635
-func spawn_pulsar(bounds: Vector2, _player_pos: Vector2) -> Types.Enemy:
+func spawn_pulsar(bounds: Vector2, _player_pos: Vector2) -> PerilEnemy:
 	var edge: int = randi() % 4  # PORT: web/src/tilt-to-live/EnemySwarm.ts:610
 	var margin: float = 26.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:611
 	var x: float = 0.0
@@ -190,7 +190,7 @@ func spawn_pulsar(bounds: Vector2, _player_pos: Vector2) -> Types.Enemy:
 			x = -margin
 			y = randf() * bounds.y
 
-	var enemy: Types.Enemy = Types.Enemy.new()
+	var enemy: PerilEnemy = PerilEnemy.new()
 	enemy.id = _next_enemy_id
 	_next_enemy_id += 1
 	enemy.type = Types.EnemyType.PULSAR
@@ -210,7 +210,7 @@ func spawn_pulsar(bounds: Vector2, _player_pos: Vector2) -> Types.Enemy:
 
 ## Spawns a specter enemy at an arena edge.
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:637-667
-func spawn_specter(bounds: Vector2, _player_pos: Vector2) -> Types.Enemy:
+func spawn_specter(bounds: Vector2, _player_pos: Vector2) -> PerilEnemy:
 	var edge: int = randi() % 4  # PORT: web/src/tilt-to-live/EnemySwarm.ts:640
 	var margin: float = 20.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:641
 	var x: float = 0.0
@@ -229,7 +229,7 @@ func spawn_specter(bounds: Vector2, _player_pos: Vector2) -> Types.Enemy:
 			x = -margin
 			y = randf() * bounds.y
 
-	var enemy: Types.Enemy = Types.Enemy.new()
+	var enemy: PerilEnemy = PerilEnemy.new()
 	enemy.id = _next_enemy_id
 	_next_enemy_id += 1
 	enemy.type = Types.EnemyType.SPECTER
@@ -249,7 +249,7 @@ func spawn_specter(bounds: Vector2, _player_pos: Vector2) -> Types.Enemy:
 
 ## Spawns an artillery enemy at an arena edge, aimed at the player.
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:669-699
-func spawn_artillery(bounds: Vector2, player_pos: Vector2) -> Types.Enemy:
+func spawn_artillery(bounds: Vector2, player_pos: Vector2) -> PerilEnemy:
 	var edge: int = randi() % 4  # PORT: web/src/tilt-to-live/EnemySwarm.ts:670
 	var margin: float = 28.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:671
 	var x: float = 0.0
@@ -271,7 +271,7 @@ func spawn_artillery(bounds: Vector2, player_pos: Vector2) -> Types.Enemy:
 	# PORT: web/src/tilt-to-live/EnemySwarm.ts:681
 	var aim_angle: float = atan2(player_pos.y - y, player_pos.x - x)
 
-	var enemy: Types.Enemy = Types.Enemy.new()
+	var enemy: PerilEnemy = PerilEnemy.new()
 	enemy.id = _next_enemy_id
 	_next_enemy_id += 1
 	enemy.type = Types.EnemyType.ARTILLERY
@@ -292,14 +292,14 @@ func spawn_artillery(bounds: Vector2, player_pos: Vector2) -> Types.Enemy:
 
 ## Spawns a bullet travelling from an origin point towards a target.
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:701-722
-func spawn_bullet(origin_x: float, origin_y: float, target_pos: Vector2) -> Types.Enemy:
+func spawn_bullet(origin_x: float, origin_y: float, target_pos: Vector2) -> PerilEnemy:
 	var dx: float = target_pos.x - origin_x
 	var dy: float = target_pos.y - origin_y
 	# PORT: web/src/tilt-to-live/EnemySwarm.ts:704
 	var dist: float = maxf(1.0, sqrt(dx * dx + dy * dy))
 	var speed: float = 260.0 * maxf(0.72, scale)  # PORT: web/src/tilt-to-live/EnemySwarm.ts:705
 
-	var bullet: Types.Enemy = Types.Enemy.new()
+	var bullet: PerilEnemy = PerilEnemy.new()
 	bullet.id = _next_enemy_id
 	_next_enemy_id += 1
 	bullet.type = Types.EnemyType.BULLET
@@ -318,7 +318,7 @@ func spawn_bullet(origin_x: float, origin_y: float, target_pos: Vector2) -> Type
 
 ## Spawns a carrier and its four protective orbiting satellite mini-dots.
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:724-776
-func spawn_carrier(bounds: Vector2, _player_pos: Vector2) -> Types.Enemy:
+func spawn_carrier(bounds: Vector2, _player_pos: Vector2) -> PerilEnemy:
 	var edge: int = randi() % 4  # PORT: web/src/tilt-to-live/EnemySwarm.ts:725
 	var margin: float = 35.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:726
 	var x: float = 0.0
@@ -337,7 +337,7 @@ func spawn_carrier(bounds: Vector2, _player_pos: Vector2) -> Types.Enemy:
 			x = -margin
 			y = randf() * bounds.y
 
-	var carrier: Types.Enemy = Types.Enemy.new()
+	var carrier: PerilEnemy = PerilEnemy.new()
 	carrier.id = _next_enemy_id
 	_next_enemy_id += 1
 	carrier.type = Types.EnemyType.CARRIER
@@ -359,7 +359,7 @@ func spawn_carrier(bounds: Vector2, _player_pos: Vector2) -> Types.Enemy:
 		var angle: float = (float(k) * PI * 2.0) / float(satellite_count)
 		var orbit_radius: float = 38.0 * scale  # PORT: web/src/tilt-to-live/EnemySwarm.ts:755
 
-		var satellite: Types.Enemy = Types.Enemy.new()
+		var satellite: PerilEnemy = PerilEnemy.new()
 		satellite.id = _next_enemy_id
 		_next_enemy_id += 1
 		satellite.type = Types.EnemyType.SEEKER
@@ -474,7 +474,7 @@ func spawn_arrow_formation(bounds: Vector2, is_dual_pincer: bool = false) -> voi
 		]
 
 		for off: Vector2 in row_offsets:
-			var enemy: Types.Enemy = Types.Enemy.new()
+			var enemy: PerilEnemy = PerilEnemy.new()
 			enemy.id = _next_enemy_id
 			_next_enemy_id += 1
 			enemy.type = Types.EnemyType.ARROW_DRONE
@@ -511,7 +511,7 @@ func spawn_circle_encirclement(
 		var x: float = player_pos.x + cos(angle) * radius
 		var y: float = player_pos.y + sin(angle) * radius
 
-		var enemy: Types.Enemy = Types.Enemy.new()
+		var enemy: PerilEnemy = PerilEnemy.new()
 		enemy.id = _next_enemy_id
 		_next_enemy_id += 1
 		enemy.type = Types.EnemyType.CIRCLE_DOT
@@ -554,7 +554,7 @@ func spawn_wall_formation(bounds: Vector2) -> void:
 		for i: int in range(num_dots):
 			if absi(i - gap_index) <= WALL_GAP_HALF:  # PORT: web/src/tilt-to-live/EnemySwarm.ts:928
 				continue
-			var enemy: Types.Enemy = Types.Enemy.new()
+			var enemy: PerilEnemy = PerilEnemy.new()
 			enemy.id = _next_enemy_id
 			_next_enemy_id += 1
 			enemy.type = Types.EnemyType.WALL_DOT
@@ -583,7 +583,7 @@ func spawn_wall_formation(bounds: Vector2) -> void:
 		for i: int in range(num_dots):
 			if absi(i - gap_index) <= WALL_GAP_HALF:  # PORT: web/src/tilt-to-live/EnemySwarm.ts:951
 				continue
-			var enemy: Types.Enemy = Types.Enemy.new()
+			var enemy: PerilEnemy = PerilEnemy.new()
 			enemy.id = _next_enemy_id
 			_next_enemy_id += 1
 			enemy.type = Types.EnemyType.WALL_DOT
@@ -619,7 +619,7 @@ func spawn_sequential_gauntlet_wall(bounds: Vector2) -> void:
 		for i: int in range(num_dots):
 			if absi(i - gap_index) <= 3:  # PORT: web/src/tilt-to-live/EnemySwarm.ts:983
 				continue
-			var enemy: Types.Enemy = Types.Enemy.new()
+			var enemy: PerilEnemy = PerilEnemy.new()
 			enemy.id = _next_enemy_id
 			_next_enemy_id += 1
 			enemy.type = Types.EnemyType.WALL_DOT
@@ -641,7 +641,7 @@ func spawn_sequential_gauntlet_wall(bounds: Vector2) -> void:
 		for i: int in range(num_dots):
 			if absi(i - gap_index) <= 3:  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1004
 				continue
-			var enemy: Types.Enemy = Types.Enemy.new()
+			var enemy: PerilEnemy = PerilEnemy.new()
 			enemy.id = _next_enemy_id
 			_next_enemy_id += 1
 			enemy.type = Types.EnemyType.WALL_DOT
@@ -663,7 +663,7 @@ func spawn_sequential_gauntlet_wall(bounds: Vector2) -> void:
 		for i: int in range(num_dots):
 			if absi(i - gap_index) <= 3:  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1025
 				continue
-			var enemy: Types.Enemy = Types.Enemy.new()
+			var enemy: PerilEnemy = PerilEnemy.new()
 			enemy.id = _next_enemy_id
 			_next_enemy_id += 1
 			enemy.type = Types.EnemyType.WALL_DOT
@@ -685,7 +685,7 @@ func spawn_sequential_gauntlet_wall(bounds: Vector2) -> void:
 		for i: int in range(num_dots):
 			if absi(i - gap_index) <= 3:  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1046
 				continue
-			var enemy: Types.Enemy = Types.Enemy.new()
+			var enemy: PerilEnemy = PerilEnemy.new()
 			enemy.id = _next_enemy_id
 			_next_enemy_id += 1
 			enemy.type = Types.EnemyType.WALL_DOT
@@ -719,7 +719,7 @@ func spawn_rotating_gate(bounds: Vector2) -> void:
 
 	# PORT-NOTE: the gate ignores this.scale entirely — preserved deliberately.
 	for off: float in offsets:
-		var enemy: Types.Enemy = Types.Enemy.new()
+		var enemy: PerilEnemy = PerilEnemy.new()
 		enemy.id = _next_enemy_id
 		_next_enemy_id += 1
 		enemy.type = Types.EnemyType.TURRET_DOT
@@ -749,7 +749,7 @@ func spawn_turret(bounds: Vector2) -> void:
 	# PORT: web/src/tilt-to-live/EnemySwarm.ts:1101
 	var y: float = pad + randf() * (bounds.y - pad * 2.0)
 
-	var enemy: Types.Enemy = Types.Enemy.new()
+	var enemy: PerilEnemy = PerilEnemy.new()
 	enemy.id = _next_enemy_id
 	_next_enemy_id += 1
 	enemy.type = Types.EnemyType.TURRET_DOT
@@ -777,7 +777,7 @@ func spawn_snake(_bounds: Vector2) -> void:
 	var length: int = 8  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1121
 
 	for i: int in range(length):
-		var enemy: Types.Enemy = Types.Enemy.new()
+		var enemy: PerilEnemy = PerilEnemy.new()
 		enemy.id = _next_enemy_id
 		_next_enemy_id += 1
 		enemy.type = Types.EnemyType.SNAKE_SEGMENT
@@ -886,7 +886,6 @@ func update(
 
 	# DIVERGENCE(M11c P1): debug-only probe sections for the per-enemy loop and separation.
 	var pt_loop: int = PerfProbe.now()
-	_build_satellite_map()
 	# DIVERGENCE(M11c P23): update_seeker's per-tick constants (the same expressions,
 	# in the same order, so the same values) are computed once here, and its body is
 	# inlined below — a call per seeker per tick cost as much as the arithmetic.
@@ -898,12 +897,53 @@ func update(
 	if is_code_red:
 		seeker_speed *= 1.35  # PORT: web/src/tilt-to-live/EnemySwarm.ts:240
 	var seeker_steer: float = (4.5 if is_code_red else 3.2) * dt
-	var px: float = player_pos.x
-	var py: float = player_pos.y
 	# 3. Update Individual Enemy Physics & Logic.
 	# PORT: web/src/tilt-to-live/EnemySwarm.ts:134-217
+	if use_native:
+		# DIVERGENCE(M11c N3b): the same loop in C++ (native/src/peril_swarm.cpp), bit for
+		# bit (test_native_swarm runs both). The circle-dot and specter speeds are
+		# update_circle_dot's and update_specter's per-enemy expressions, computed once.
+		# PORT: web/src/tilt-to-live/EnemySwarm.ts:276, :500
+		var circle_speed: float = (75.0 + _elapsed * 0.4) * maxf(0.72, scale)
+		var specter_speed: float = 145.0 * maxf(0.72, scale)
+		PerilNative.swarm_step(
+			self,
+			enemies,
+			particles,
+			player_pos,
+			bounds,
+			dt,
+			speed_scale,
+			seeker_speed,
+			seeker_steer,
+			circle_speed,
+			specter_speed
+		)
+	else:
+		_step_enemies(dt, player_pos, bounds, particles, seeker_speed, seeker_steer)
+	PerfProbe.add("s_swarm_loop", pt_loop)
+	var pt_sep: int = PerfProbe.now()
+	# 4. Inter-Dot Flocking Separation.
+	# PORT: web/src/tilt-to-live/EnemySwarm.ts:219-221
+	apply_flocking_separation()
+	PerfProbe.add("s_swarm_sep", pt_sep)
+
+
+## update()'s per-enemy loop (step 3) in GDScript: the reference for the native
+## PerilNative.swarm_step. PORT: web/src/tilt-to-live/EnemySwarm.ts:134-217
+func _step_enemies(
+	dt: float,
+	player_pos: Vector2,
+	bounds: Vector2,
+	particles: ParticleEngine,
+	seeker_speed: float,
+	seeker_steer: float
+) -> void:
+	_build_satellite_map()
+	var px: float = player_pos.x
+	var py: float = player_pos.y
 	for i: int in range(enemies.size() - 1, -1, -1):
-		var e: Types.Enemy = enemies[i]
+		var e: PerilEnemy = enemies[i]
 		e.age += dt
 
 		if e.frozen:
@@ -1045,12 +1085,6 @@ func update(
 				e.vy = -absf(e.vy) * 0.5  # PORT: web/src/tilt-to-live/EnemySwarm.ts:215
 
 	_sats_by_carrier_valid = false
-	PerfProbe.add("s_swarm_loop", pt_loop)
-	var pt_sep: int = PerfProbe.now()
-	# 4. Inter-Dot Flocking Separation.
-	# PORT: web/src/tilt-to-live/EnemySwarm.ts:219-221
-	apply_flocking_separation()
-	PerfProbe.add("s_swarm_sep", pt_sep)
 
 
 ## DIVERGENCE(M11c P17): carrier id -> its satellites in array order, for this tick's
@@ -1058,10 +1092,10 @@ func update(
 ## sweep dots do) and parent_carrier_id changes only in on_enemy_killed.
 func _build_satellite_map() -> void:
 	_sats_by_carrier.clear()
-	for e: Types.Enemy in enemies:
+	for e: PerilEnemy in enemies:
 		if e.parent_carrier_id != Types.ABSENT:
 			if not _sats_by_carrier.has(e.parent_carrier_id):
-				var list: Array[Types.Enemy] = []
+				var list: Array[PerilEnemy] = []
 				_sats_by_carrier[e.parent_carrier_id] = list
 			_sats_by_carrier[e.parent_carrier_id].append(e)
 	_sats_by_carrier_valid = true
@@ -1070,11 +1104,7 @@ func _build_satellite_map() -> void:
 ## Updates seeker velocity steering towards player position.
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:223-256
 func update_seeker(
-	e: Types.Enemy,
-	player_pos: Vector2,
-	dt: float,
-	current_score: int = 0,
-	is_code_red: bool = false
+	e: PerilEnemy, player_pos: Vector2, dt: float, current_score: int = 0, is_code_red: bool = false
 ) -> void:
 	var dx: float = player_pos.x - e.x
 	var dy: float = player_pos.y - e.y
@@ -1105,14 +1135,14 @@ func update_seeker(
 
 ## Integrates an arrow drone's straight-line sweep velocity.
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:258-261
-func update_arrow_drone(e: Types.Enemy, dt: float) -> void:
+func update_arrow_drone(e: PerilEnemy, dt: float) -> void:
 	e.x += e.vx * dt * speed_scale
 	e.y += e.vy * dt * speed_scale
 
 
 ## Updates a circle dot: paused while special_timer counts down, then steers
 ## towards the player. PORT: web/src/tilt-to-live/EnemySwarm.ts:263-283
-func update_circle_dot(e: Types.Enemy, player_pos: Vector2, dt: float) -> void:
+func update_circle_dot(e: PerilEnemy, player_pos: Vector2, dt: float) -> void:
 	if not is_nan(e.special_timer) and e.special_timer > 0.0:
 		e.special_timer -= dt
 		e.vx = 0.0
@@ -1135,14 +1165,14 @@ func update_circle_dot(e: Types.Enemy, player_pos: Vector2, dt: float) -> void:
 
 ## Integrates a wall dot's straight-line sweep velocity.
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:285-288
-func update_wall_dot(e: Types.Enemy, dt: float) -> void:
+func update_wall_dot(e: PerilEnemy, dt: float) -> void:
 	e.x += e.vx * dt * speed_scale
 	e.y += e.vy * dt * speed_scale
 
 
 ## Updates a rotating gate dot: orbits its centre at a fixed radius and speed.
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:290-296
-func update_rotating_gate_dot(e: Types.Enemy, dt: float) -> void:
+func update_rotating_gate_dot(e: PerilEnemy, dt: float) -> void:
 	if e.orbit_center == Vector2.ZERO or is_nan(e.orbit_radius) or is_nan(e.orbit_speed):
 		return  # PORT: web/src/tilt-to-live/EnemySwarm.ts:291
 	if is_nan(e.target_angle):
@@ -1156,7 +1186,7 @@ func update_rotating_gate_dot(e: Types.Enemy, dt: float) -> void:
 
 ## Updates a free turret dot: aims at the player, easing towards the target
 ## angle, and drifts on its own velocity. PORT: web/src/tilt-to-live/EnemySwarm.ts:298-309
-func update_turret_dot(e: Types.Enemy, player_pos: Vector2, dt: float) -> void:
+func update_turret_dot(e: PerilEnemy, player_pos: Vector2, dt: float) -> void:
 	# PORT: web/src/tilt-to-live/EnemySwarm.ts:299
 	var target_angle: float = atan2(player_pos.y - e.y, player_pos.x - e.x)
 	if is_nan(e.target_angle):
@@ -1175,7 +1205,7 @@ func update_turret_dot(e: Types.Enemy, player_pos: Vector2, dt: float) -> void:
 
 ## Updates a snake segment: leaderless segments drift and occasionally re-aim;
 ## followers close the gap on their leader. PORT: web/src/tilt-to-live/EnemySwarm.ts:311-335
-func update_snake_segment(e: Types.Enemy, dt: float) -> void:
+func update_snake_segment(e: PerilEnemy, dt: float) -> void:
 	if e.leader_id == Types.ABSENT:
 		e.x += e.vx * dt * speed_scale
 		e.y += e.vy * dt * speed_scale
@@ -1188,8 +1218,8 @@ func update_snake_segment(e: Types.Enemy, dt: float) -> void:
 		# PORT-NOTE: nothing in EnemySwarm.ts assigns leaderId, so every segment
 		# is a leader and this branch is unreachable; it also moves without dt
 		# — preserved deliberately.
-		var leader: Types.Enemy = null
-		for other: Types.Enemy in enemies:  # PORT: web/src/tilt-to-live/EnemySwarm.ts:322
+		var leader: PerilEnemy = null
+		for other: PerilEnemy in enemies:  # PORT: web/src/tilt-to-live/EnemySwarm.ts:322
 			if other.id == e.leader_id:
 				leader = other
 				break
@@ -1207,7 +1237,7 @@ func update_snake_segment(e: Types.Enemy, dt: float) -> void:
 ## Updates a charger through its aim, charge and cool cycle.
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:337-391
 func update_charger(
-	e: Types.Enemy, player_pos: Vector2, dt: float, particles: ParticleEngine
+	e: PerilEnemy, player_pos: Vector2, dt: float, particles: ParticleEngine
 ) -> void:
 	# PORT-NOTE: spawn_charger always sets both (:601-603), so these defaults
 	# are dead for spawned chargers — preserved deliberately.
@@ -1265,7 +1295,7 @@ func update_charger(
 
 ## Updates artillery: holds a distance band from the player, strafes, and
 ## fires timed bullets. PORT: web/src/tilt-to-live/EnemySwarm.ts:393-436
-func update_artillery(e: Types.Enemy, player_pos: Vector2, dt: float) -> void:
+func update_artillery(e: PerilEnemy, player_pos: Vector2, dt: float) -> void:
 	# PORT-NOTE: three different cooldowns — 2.2 at spawn (:695), 2.6 here,
 	# 2.8 on reload (:426) — preserved deliberately.
 	if is_nan(e.fire_cooldown):  # PORT: web/src/tilt-to-live/EnemySwarm.ts:394
@@ -1315,14 +1345,14 @@ func update_artillery(e: Types.Enemy, player_pos: Vector2, dt: float) -> void:
 ## Integrates a bullet's straight-line flight. The bounds argument is unused
 ## in the TypeScript and kept only to match its signature.
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:438-441
-func update_bullet(e: Types.Enemy, dt: float, _bounds: Vector2) -> void:
+func update_bullet(e: PerilEnemy, dt: float, _bounds: Vector2) -> void:
 	e.x += e.vx * dt * speed_scale
 	e.y += e.vy * dt * speed_scale
 
 
 ## Updates a carrier: steers gently towards the player and carries its
 ## orbiting satellites along with it. PORT: web/src/tilt-to-live/EnemySwarm.ts:443-471
-func update_carrier(e: Types.Enemy, player_pos: Vector2, dt: float) -> void:
+func update_carrier(e: PerilEnemy, player_pos: Vector2, dt: float) -> void:
 	var dx: float = player_pos.x - e.x
 	var dy: float = player_pos.y - e.y
 	var dist: float = sqrt(dx * dx + dy * dy)
@@ -1344,10 +1374,10 @@ func update_carrier(e: Types.Enemy, player_pos: Vector2, dt: float) -> void:
 	# DIVERGENCE(M11c P17): inside update() the satellites come from the per-tick map
 	# (same enemies, same ascending order; each position depends only on its own
 	# carrier), not from a scan of every enemy per carrier.
-	var sats: Array[Types.Enemy] = enemies
+	var sats: Array[PerilEnemy] = enemies
 	if _sats_by_carrier_valid:
 		sats = _sats_by_carrier.get(e.id, _NO_SATELLITES)
-	for sat: Types.Enemy in sats:
+	for sat: PerilEnemy in sats:
 		if sat.parent_carrier_id == e.id:
 			if is_nan(sat.orbit_angle):
 				sat.orbit_angle = 0.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:462
@@ -1363,7 +1393,7 @@ func update_carrier(e: Types.Enemy, player_pos: Vector2, dt: float) -> void:
 ## Updates a pulsar: steers towards the player and pulses sparks on a
 ## periodic timer. PORT: web/src/tilt-to-live/EnemySwarm.ts:473-492
 func update_pulsar(
-	e: Types.Enemy, player_pos: Vector2, dt: float, particles: ParticleEngine
+	e: PerilEnemy, player_pos: Vector2, dt: float, particles: ParticleEngine
 ) -> void:
 	var dx: float = player_pos.x - e.x
 	var dy: float = player_pos.y - e.y
@@ -1388,7 +1418,7 @@ func update_pulsar(
 
 ## Updates a specter: steers towards the player and phases its visibility
 ## with age. PORT: web/src/tilt-to-live/EnemySwarm.ts:494-508
-func update_specter(e: Types.Enemy, player_pos: Vector2, dt: float) -> void:
+func update_specter(e: PerilEnemy, player_pos: Vector2, dt: float) -> void:
 	var dx: float = player_pos.x - e.x
 	var dy: float = player_pos.y - e.y
 	var dist: float = sqrt(dx * dx + dy * dy)
@@ -1411,7 +1441,7 @@ func update_specter(e: Types.Enemy, player_pos: Vector2, dt: float) -> void:
 func separation_candidates() -> PackedInt32Array:
 	var out: PackedInt32Array = PackedInt32Array()
 	for i: int in range(enemies.size()):
-		var e: Types.Enemy = enemies[i]
+		var e: PerilEnemy = enemies[i]
 		# PORT: web/src/tilt-to-live/EnemySwarm.ts:517, :521
 		if (
 			e.frozen
@@ -1434,6 +1464,11 @@ func separation_candidates() -> PackedInt32Array:
 # rejecting it early changes nothing. The result is identical to the TS pair loop.
 func apply_flocking_separation() -> void:
 	var min_distance: float = 16.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:511
+	if use_native:
+		# DIVERGENCE(M11c N3c): candidates, copies, sweep (or pair loop) and write-back
+		# in C++ (native/src/peril_swarm.cpp), bit for bit (the oracles run both paths).
+		PerilNative.separate_enemies(enemies, min_distance, SWEEP_MIN_CANDIDATES)
+		return
 	var min_distance2: float = min_distance * min_distance
 	var idx: PackedInt32Array = separation_candidates()
 	var n: int = idx.size()
@@ -1446,16 +1481,6 @@ func apply_flocking_separation() -> void:
 		ys[k] = enemies[idx[k]].y
 
 	if n >= SWEEP_MIN_CANDIDATES:
-		var native: Object = _native_separator()
-		if native != null:
-			# DIVERGENCE(M11c N2): the same sweep in C++ (native/src/peril_native.cpp),
-			# bit-identical (the oracles run both paths); it returns xs then ys.
-			var r: PackedFloat64Array = native.call("separate", xs, ys, min_distance)
-			for k: int in range(n):
-				var m: Types.Enemy = enemies[idx[k]]
-				m.x = r[k]
-				m.y = r[n + k]
-			return
 		_separate_sweep(xs, ys, min_distance, min_distance2)
 	else:
 		for ii: int in range(n):
@@ -1464,16 +1489,6 @@ func apply_flocking_separation() -> void:
 	for k: int in range(n):
 		enemies[idx[k]].x = xs[k]
 		enemies[idx[k]].y = ys[k]
-
-
-## The native separator, or null when the extension is missing or use_native is off.
-## Made through ClassDB so this script still compiles without the library.
-static func _native_separator() -> Object:
-	if not use_native:
-		return null
-	if _native == null and ClassDB.class_exists("PerilNative"):
-		_native = ClassDB.instantiate("PerilNative")
-	return _native
 
 
 ## One round of the pair loop: ii against every jj in [from, to), in order.
@@ -1619,10 +1634,10 @@ func _sweep_index(
 # PORT-NOTE: never removes enemy itself — TiltGame.ts:1984 calls this and
 # TiltGame.ts:2021 splices the dead enemy out — preserved deliberately.
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:1141-1182
-func on_enemy_killed(enemy: Types.Enemy, particles: ParticleEngine = null) -> void:
+func on_enemy_killed(enemy: PerilEnemy, particles: ParticleEngine = null) -> void:
 	if enemy.type == Types.EnemyType.CARRIER:
 		# PORT: web/src/tilt-to-live/EnemySwarm.ts:1143-1155
-		for e: Types.Enemy in enemies:
+		for e: PerilEnemy in enemies:
 			if e.parent_carrier_id == enemy.id:
 				e.parent_carrier_id = Types.ABSENT  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1146
 				var scatter_angle: float = randf() * PI * 2.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1147
@@ -1642,7 +1657,7 @@ func on_enemy_killed(enemy: Types.Enemy, particles: ParticleEngine = null) -> vo
 			var angle: float = float(i) * PI + (randf() * 0.8 - 0.4)
 			var speed: float = 135.0 + randf() * 45.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:1163
 
-			var mini_seeker: Types.Enemy = Types.Enemy.new()
+			var mini_seeker: PerilEnemy = PerilEnemy.new()
 			mini_seeker.id = _next_enemy_id
 			_next_enemy_id += 1
 			mini_seeker.type = Types.EnemyType.SEEKER
@@ -1669,6 +1684,6 @@ func on_enemy_killed(enemy: Types.Enemy, particles: ParticleEngine = null) -> vo
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:1184-1189
 # PORT: web/src/tilt-to-live/EnemySwarm.ts:1184
 func freeze_all(duration: float = 7.0) -> void:
-	for e: Types.Enemy in enemies:
+	for e: PerilEnemy in enemies:
 		e.frozen = true
 		e.freeze_timer = duration

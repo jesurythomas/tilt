@@ -13,7 +13,7 @@ extends Node
 signal score_changed(score: int, multiplier: int, best_score: int)
 
 ## Emitted when an enemy is destroyed.
-signal enemy_killed(enemy: Types.Enemy, weapon_type: Types.WeaponType)
+signal enemy_killed(enemy: PerilEnemy, weapon_type: Types.WeaponType)
 
 ## Emitted when a weapon orb is collected and activated.
 signal weapon_activated(weapon_type: Types.WeaponType)

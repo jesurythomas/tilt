@@ -390,7 +390,58 @@ User ruling: C++ GDExtension for the hot path, not C# (Android C# is experimenta
   rely on in-place edits). Gate: every separation oracle (incl. 40 random blobs) plus
   golden hashes with the native path on; fall back to GDScript when
   `ClassDB.class_exists("PerilNative")` is false. Bench: `test_bench_chasing_blob`.
-- [ ] **N3 — native seeker/sweep-dot loop** if N2's A/B leaves the loop dominant.
+- [x] **N3 — native swarm loop** (done 2026-09-28). Spike (desktop, 300
+  enemies, one seeker step; `bench/_spike.gd`, not committed): GDScript loop on
+  GDScript objects 107 µs; GDScript loop on a C++ class's properties 180 µs; C++ loop
+  on C++ objects 8 µs; C++ loop on GDScript objects via `Object::get/set` 64 µs.
+  `const Enemy = SomeNativeClass` is not a constant expression in GDScript, so no alias.
+  Rulings (Claude, "always proceed"):
+  - **N3a** — `Types.Enemy` becomes a C++ class `PerilEnemy` (all 29 fields, same
+    defaults, 64-bit doubles, `orbit_center` stays a float32 `Vector2`), renamed
+    everywhere. The extension becomes **required** (no GDScript Enemy fallback);
+    other GDScript readers of enemy fields pay ~30 ns more per access on desktop,
+    which the loop's gain dwarfs. Gate: the whole suite + golden hashes unchanged.
+  - **N3b** — `PerilNative.swarm_step` runs the reverse per-enemy loop on the live
+    `enemies` Array (Arrays are shared by reference; removal in place). Pure types
+    (seeker, arrow/wall dot, circle dot, turret/gate dot, spike mine, bullet, carrier
+    + satellites, specter) are native; types that draw `randf()` or emit particles
+    (charger, artillery, pulsar, snake) call back into GDScript in place, so the RNG
+    order is unchanged. libm `sin/cos/atan2/pow/sqrt` are the ones GDScript calls.
+    GDScript loop stays as the reference behind `use_native`; an oracle runs both.
+  - **N3c** — separation candidates, copies and write-back in C++ over the enemies.
+  - **N3d** — `check_collisions`: C++ returns the indices passing P21's x reject
+    (descending); GDScript runs the body (`RunController._collide`) on those only, and
+    re-queries from i − 1 after each kill. Mutant note: dropping that `break` survives
+    (equivalent today: a kill only appends — pulsar splits — and removes index i, so
+    lower indices are stable); kept as a guard against a future `on_enemy_killed`
+    that removes others.
+  Landed: `native/src/peril_enemy.{h,cpp}`, `peril_swarm.cpp` (`swarm_step`,
+  `separate_enemies`, `collision_candidates`, `enemy_type_ids`), `peril_sweep.h`
+  (the sweep shared with `separate`, now unused by GDScript but still bound);
+  `EnemySwarm._step_enemies` is the GDScript reference loop. Oracle
+  `tests/test_native_swarm.gd` (7 tests): a seeded mix of all 13 types through
+  `update()` in Code Red (900 ticks) and Classic (600) with `speed_scale` 0.9, comparing
+  every field (bytes), the enemy count per tick, the RNG and particles; separation
+  below the sweep threshold; a 1,200-tick RunController run (rams, shatters, crashes,
+  close calls, each asserted non-zero); a 20-enemy pile-up, shielded and frozen;
+  type ordinals; PerilEnemy defaults. Mutation check: 22/22 swarm mutants and 5/6
+  collision mutants fail it (the survivor is the equivalent one above). Suite 700.
+  Desktop bench (µs/tick, before → after): late-mix swarm 290–303 → 59–67; swarm 119
+  enemies 151–166 → 26; separation 54–58 → 7; blob 325 245–250 → 120; collide 24–31 →
+  12–14; full tick 109–163 enemies 198–293 → 68–76. Costs: GDScript reads of native
+  fields are slower (30 kills 240–259 → 283–327; shield ram ×20 1,048–1,136 →
+  1,138–1,172; entity draw on device, below).
+  Emulator A/B (3 pairs, power-up test mode, maxed upgrades, `mxnew` = HEAD 9fc9df0 vs
+  N3 a–c), ms/frame at 250+ enemies (~320): fps 17.8 → 24.7; phys 34.7 → 11.8; s_swarm
+  26.5 → 4.4 (loop 21.8 → 3.7, sep 4.4 → 0.5); steps/s 108 → 121 (the sim keeps real
+  time again); d_entity 5.5 → 7.0 (native field reads in the draw); 150–249: fps 19.9 →
+  24.7, s_swarm 13.6 → 2.5. 0 errors in 6 runs.
+  N3d emulator A/B (3 pairs, same test mode, N3 a–c vs + N3d), ms/frame: 250+ (~323
+  enemies) fps 23.9 → 25.0, phys 12.5 → 9.2, s_collide 2.96 → 0.59; 150–249 fps 23.9 →
+  26.0, phys 10.2 → 8.2, s_collide 1.75 → 0.38. 0 errors in 6 runs. Largest section
+  left: entity draw (6.8–7.1 ms/frame at 250+), then weapons 2.4–3.5 and the swarm 4.0.
+  **Next:** entity draw fields gathered in C++; then particles in packed arrays / C++;
+  then the kill path (HANDOFF Next).
 
 ### User rulings (2026-09-27, evening)
 - [x] **P29 — wall formations spaced out** ("space them out a bit more", then "go a

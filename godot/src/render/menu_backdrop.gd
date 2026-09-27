@@ -101,7 +101,7 @@ func update(dt: float, bounds: Vector2, grid: VectorGrid, particles: ParticleEng
 
 	# 4. Repulsion from nearby enemies. PORT: web/src/tilt-to-live/TiltGame.ts:1716-1727
 	var danger_radius: float = 145.0  # PORT: web/src/tilt-to-live/TiltGame.ts:1716
-	for e: Types.Enemy in menu_swarm.enemies:
+	for e: PerilEnemy in menu_swarm.enemies:
 		var ex: float = menu_player.x - e.x
 		var ey: float = menu_player.y - e.y
 		var edist: float = sqrt(ex * ex + ey * ey)
@@ -152,7 +152,7 @@ func update(dt: float, bounds: Vector2, grid: VectorGrid, particles: ParticleEng
 	)
 
 	# Defensive shield on a close call. PORT: web/src/tilt-to-live/TiltGame.ts:1773-1783
-	for e: Types.Enemy in menu_swarm.enemies:
+	for e: PerilEnemy in menu_swarm.enemies:
 		var cdx: float = e.x - menu_player.x
 		var cdy: float = e.y - menu_player.y
 		var reach: float = e.radius + menu_player.radius + 6.0  # PORT: :1776
@@ -170,5 +170,5 @@ func update(dt: float, bounds: Vector2, grid: VectorGrid, particles: ParticleEng
 
 
 # PORT: web/src/tilt-to-live/TiltGame.ts:1816-1818
-func _on_killed(dead: Types.Enemy, _weapon_type: Types.WeaponType) -> void:
+func _on_killed(dead: PerilEnemy, _weapon_type: Types.WeaponType) -> void:
 	menu_swarm.on_enemy_killed(dead, _particles)

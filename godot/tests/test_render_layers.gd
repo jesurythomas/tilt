@@ -129,22 +129,22 @@ func test_entity_layer_draws_every_enemy_type_without_error() -> void:
 	swarm.spawn_rotating_gate(bounds)
 	swarm.spawn_snake(bounds)
 	swarm.spawn_charger(bounds, player_pos)
-	var charging: Types.Enemy = swarm.spawn_charger(bounds, player_pos)
+	var charging: PerilEnemy = swarm.spawn_charger(bounds, player_pos)
 	charging.state = Types.EnemyState.CHARGING
 	charging.vx = 100.0
-	var artillery: Types.Enemy = swarm.spawn_artillery(bounds, player_pos)
+	var artillery: PerilEnemy = swarm.spawn_artillery(bounds, player_pos)
 	artillery.fire_cooldown = 0.3
 	swarm.spawn_bullet(100.0, 100.0, player_pos)
 	swarm.spawn_carrier(bounds, player_pos)
 	swarm.spawn_pulsar(bounds, player_pos)
 	swarm.spawn_specter(bounds, player_pos)
-	var mine: Types.Enemy = Types.Enemy.new()
+	var mine: PerilEnemy = PerilEnemy.new()
 	mine.type = Types.EnemyType.SPIKE_MINE
 	mine.radius = 8.0
 	swarm.enemies.append(mine)
-	var frozen: Types.Enemy = swarm.spawn_seeker(bounds)
+	var frozen: PerilEnemy = swarm.spawn_seeker(bounds)
 	frozen.frozen = true
-	var turret: Types.Enemy = Types.Enemy.new()
+	var turret: PerilEnemy = PerilEnemy.new()
 	turret.type = Types.EnemyType.TURRET_DOT
 	turret.radius = 12.0
 	turret.target_angle = 1.0
@@ -168,7 +168,7 @@ func test_layers_draw_every_weapon_fx_and_every_orb_glyph_without_error() -> voi
 	var grid: VectorGrid = VectorGrid.new(1000.0, 600.0)
 	var audio: AudioBank = AudioBank.new()
 	var bounds: Vector2 = Vector2(1000.0, 600.0)
-	var no_kill: Callable = func(_e: Types.Enemy, _w: Types.WeaponType) -> void: pass
+	var no_kill: Callable = func(_e: PerilEnemy, _w: Types.WeaponType) -> void: pass
 
 	entity.bind_entities(player, swarm, weapons)
 	entity.set_elapsed(2.0)
@@ -198,12 +198,12 @@ func test_layers_draw_every_weapon_fx_and_every_orb_glyph_without_error() -> voi
 	weapons.activate_weapon(
 		Types.WeaponType.MISSILES, 500.0, 500.0, player, [], particles, grid, audio, no_kill
 	)
-	var victim: Types.Enemy = Types.Enemy.new()
+	var victim: PerilEnemy = PerilEnemy.new()
 	victim.id = 1
 	victim.x = 600.0
 	victim.y = 100.0
 	victim.radius = 8.0
-	var enemies: Array[Types.Enemy] = [victim]
+	var enemies: Array[PerilEnemy] = [victim]
 	weapons.activate_weapon(
 		Types.WeaponType.LIGHTNING, 500.0, 100.0, player, enemies, particles, grid, audio, no_kill
 	)

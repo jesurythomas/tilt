@@ -205,7 +205,7 @@ func test_start_ring_scales_with_the_arena_on_large_screens() -> void:
 		c.skip(size.x, size.y)
 		var expected: float = minf(size.x, size.y) * 0.42
 		assert_gt(expected, 260.0, "above the TS floor at %s" % size)
-		for e: Types.Enemy in _swarm.enemies:
+		for e: PerilEnemy in _swarm.enemies:
 			var d: float = Vector2(e.x, e.y).distance_to(size / 2.0)
 			assert_almost_eq(d, expected, 0.01, "ring radius at %s" % size)
 

@@ -13,7 +13,7 @@ var _particles: ParticleEngine = null
 var _grid: VectorGrid = null
 var _audio: AudioBank = null
 var _ws: WeaponSystem = null
-var _killed: Array[Types.Enemy] = []
+var _killed: Array[PerilEnemy] = []
 var _killed_by: Array[Types.WeaponType] = []
 var _last_vortex_kills: int = 0
 
@@ -29,13 +29,13 @@ func before_each() -> void:
 
 
 func _on_killed() -> Callable:
-	return func(e: Types.Enemy, w: Types.WeaponType) -> void:
+	return func(e: PerilEnemy, w: Types.WeaponType) -> void:
 		_killed.append(e)
 		_killed_by.append(w)
 
 
-func _enemy(id: int, x: float, y: float) -> Types.Enemy:
-	var e: Types.Enemy = Types.Enemy.new()
+func _enemy(id: int, x: float, y: float) -> PerilEnemy:
+	var e: PerilEnemy = PerilEnemy.new()
 	e.id = id
 	e.x = x
 	e.y = y
@@ -47,7 +47,7 @@ func _activate(
 	type: Types.WeaponType,
 	x: float,
 	y: float,
-	enemies: Array[Types.Enemy],
+	enemies: Array[PerilEnemy],
 	perks: ProgressionManager.WeaponPerks = null
 ) -> void:
 	_ws.activate_weapon(
@@ -56,7 +56,7 @@ func _activate(
 
 
 func _update(
-	enemies: Array[Types.Enemy], dt: float, perks: ProgressionManager.WeaponPerks = null
+	enemies: Array[PerilEnemy], dt: float, perks: ProgressionManager.WeaponPerks = null
 ) -> void:
 	_ws.update(dt, _player, enemies, BOUNDS, _particles, _grid, _audio, _on_killed(), perks)
 
@@ -82,8 +82,8 @@ func test_vortex_radius_and_duration_come_from_the_table_per_rank() -> void:
 
 func test_vortex_pulls_an_enemy_inward_and_spins_it() -> void:
 	_activate(Types.WeaponType.VORTEX, 500.0, 300.0, [])
-	var e: Types.Enemy = _enemy(1, 600.0, 300.0)
-	var enemies: Array[Types.Enemy] = [e]
+	var e: PerilEnemy = _enemy(1, 600.0, 300.0)
+	var enemies: Array[PerilEnemy] = [e]
 	_update(enemies, 0.1)
 	assert_eq(enemies.size(), 1, "100 px out is beyond the 30 px horizon")
 	var t: float = 1.0 - 100.0 / 340.0
@@ -96,8 +96,8 @@ func test_vortex_gravity_rank_multiplies_the_pull() -> void:
 	var perks: ProgressionManager.WeaponPerks = ProgressionManager.WeaponPerks.new()
 	perks.blackhole.gravity = 5
 	_activate(Types.WeaponType.VORTEX, 500.0, 300.0, [], perks)
-	var e: Types.Enemy = _enemy(1, 600.0, 300.0)
-	var enemies: Array[Types.Enemy] = [e]
+	var e: PerilEnemy = _enemy(1, 600.0, 300.0)
+	var enemies: Array[PerilEnemy] = [e]
 	_update(enemies, 0.1, perks)
 	var t: float = 1.0 - 100.0 / 340.0
 	assert_almost_eq(e.x, 600.0 - (90.0 + 340.0 * t) * 0.1 * 2.0, 0.001, "1 + 5 * 0.2")
@@ -105,7 +105,7 @@ func test_vortex_gravity_rank_multiplies_the_pull() -> void:
 
 func test_vortex_kills_inside_the_event_horizon() -> void:
 	_activate(Types.WeaponType.VORTEX, 500.0, 300.0, [])
-	var enemies: Array[Types.Enemy] = [_enemy(1, 510.0, 300.0)]
+	var enemies: Array[PerilEnemy] = [_enemy(1, 510.0, 300.0)]
 	_update(enemies, 0.1)
 	assert_eq(_killed.size(), 1, "10 px is inside the 30 px horizon")
 	assert_eq(_killed_by[0], Types.WeaponType.VORTEX)
@@ -115,9 +115,9 @@ func test_vortex_kills_inside_the_event_horizon() -> void:
 func test_vortex_collapse_shockwave_reaches_260_px() -> void:
 	_activate(Types.WeaponType.VORTEX, 500.0, 300.0, [])
 	_ws.active_weapons[0].duration = 0.05
-	var near: Types.Enemy = _enemy(1, 700.0, 300.0)
-	var far: Types.Enemy = _enemy(2, 800.0, 300.0)
-	var enemies: Array[Types.Enemy] = [near, far]
+	var near: PerilEnemy = _enemy(1, 700.0, 300.0)
+	var far: PerilEnemy = _enemy(2, 800.0, 300.0)
+	var enemies: Array[PerilEnemy] = [near, far]
 	_update(enemies, 0.1)
 	assert_eq(_ws.active_weapons.size(), 0, "the vortex is spent")
 	assert_eq(_killed.size(), 1)
@@ -131,7 +131,7 @@ func test_vortex_supernova_keystone_widens_the_collapse() -> void:
 	perks.blackhole.supernova_collapse = true
 	_activate(Types.WeaponType.VORTEX, 500.0, 300.0, [], perks)
 	_ws.active_weapons[0].duration = 0.05
-	var enemies: Array[Types.Enemy] = [_enemy(1, 700.0, 300.0), _enemy(2, 800.0, 300.0)]
+	var enemies: Array[PerilEnemy] = [_enemy(1, 700.0, 300.0), _enemy(2, 800.0, 300.0)]
 	_update(enemies, 0.1, perks)
 	assert_almost_eq(Tuning.SUPERNOVA_SHOCKWAVE, 320.0, 0.001)
 	assert_eq(_killed.size(), 2, "287 px is inside the 320 px supernova")
@@ -149,11 +149,11 @@ func test_vortex_cloak_keystone_shields_the_player_inside() -> void:
 
 
 func test_freeze_marks_every_enemy_with_the_table_duration_per_rank() -> void:
-	var enemies: Array[Types.Enemy] = [_enemy(1, 100.0, 100.0), _enemy(2, 900.0, 500.0)]
+	var enemies: Array[PerilEnemy] = [_enemy(1, 100.0, 100.0), _enemy(2, 900.0, 500.0)]
 	_activate(Types.WeaponType.FREEZE, 500.0, 300.0, enemies)
 	assert_eq(_ws.active_weapons.size(), 0, "freeze is instantaneous")
 	assert_eq(enemies.size(), 2, "nothing is killed")
-	for e: Types.Enemy in enemies:
+	for e: PerilEnemy in enemies:
 		assert_true(e.frozen)
 		assert_almost_eq(e.freeze_timer, Tuning.get_tuned_value("freeze", "duration", 0), 0.001)
 		assert_almost_eq(e.freeze_timer, 4.5, 0.001)
@@ -163,7 +163,7 @@ func test_freeze_marks_every_enemy_with_the_table_duration_per_rank() -> void:
 	var perks: ProgressionManager.WeaponPerks = ProgressionManager.WeaponPerks.new()
 	perks.freeze.duration = 2
 	_activate(Types.WeaponType.FREEZE, 500.0, 300.0, enemies, perks)
-	for e: Types.Enemy in enemies:
+	for e: PerilEnemy in enemies:
 		assert_almost_eq(e.freeze_timer, 5.9, 0.001, "4.5 + 2 * 0.7")
 
 
@@ -196,7 +196,7 @@ func _vortex_run_hash() -> String:
 	var grid: VectorGrid = VectorGrid.new(bounds.x, bounds.y)
 	var audio: AudioBank = AudioBank.new()
 	var kills: PackedInt64Array = PackedInt64Array()
-	var on_kill: Callable = func(e: Types.Enemy, _w: Types.WeaponType) -> void: kills.append(e.id)
+	var on_kill: Callable = func(e: PerilEnemy, _w: Types.WeaponType) -> void: kills.append(e.id)
 	weapons.trigger_weapon(
 		Types.WeaponType.VORTEX,
 		800.0,
@@ -215,7 +215,7 @@ func _vortex_run_hash() -> String:
 		weapons.update(1.0 / 120.0, player, swarm.enemies, bounds, particles, grid, audio, on_kill)
 		if tick % 10 == 9:
 			var row: PackedFloat64Array = PackedFloat64Array([float(tick)])
-			for e: Types.Enemy in swarm.enemies:
+			for e: PerilEnemy in swarm.enemies:
 				row.append_array([e.x, e.y, e.vx, e.vy])
 			ctx.update(row.to_byte_array())
 	ctx.update(var_to_bytes(kills))

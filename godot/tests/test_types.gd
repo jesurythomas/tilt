@@ -13,8 +13,8 @@ func test_enum_members_match_the_typescript_unions() -> void:
 
 
 func test_typed_array_of_inner_record_compiles_and_holds() -> void:
-	var enemies: Array[Types.Enemy] = []
-	var e: Types.Enemy = Types.Enemy.new()
+	var enemies: Array[PerilEnemy] = []
+	var e: PerilEnemy = PerilEnemy.new()
 	e.type = Types.EnemyType.SEEKER
 	e.radius = 5.0
 	enemies.append(e)
@@ -23,13 +23,13 @@ func test_typed_array_of_inner_record_compiles_and_holds() -> void:
 
 
 func test_optional_fields_use_the_absent_sentinel() -> void:
-	var e: Types.Enemy = Types.Enemy.new()
+	var e: PerilEnemy = PerilEnemy.new()
 	assert_eq(e.state, Types.ABSENT, "state? is absent until a module sets it")
 	assert_eq(e.leader_id, Types.ABSENT, "leaderId? is absent until a module sets it")
 
 
 func test_optional_floats_use_nan_as_the_undefined_sentinel() -> void:
-	var e: Types.Enemy = Types.Enemy.new()
+	var e: PerilEnemy = PerilEnemy.new()
 	assert_true(is_nan(e.target_angle), "targetAngle? is NAN until a module sets it")
 	assert_true(is_nan(e.aim_timer), "aimTimer? is NAN until a module sets it")
 	assert_true(is_nan(e.stealth_opacity), "stealthOpacity? is NAN until a module sets it")

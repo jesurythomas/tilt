@@ -13,7 +13,7 @@ func before_each() -> void:
 func test_spawn_seeker_creates_valid_enemy() -> void:
 	var swarm: EnemySwarm = EnemySwarm.new()
 	var bounds: Vector2 = Vector2(1000.0, 600.0)
-	var e: Types.Enemy = swarm.spawn_seeker(bounds)
+	var e: PerilEnemy = swarm.spawn_seeker(bounds)
 	assert_eq(swarm.enemies.size(), 1)
 	assert_eq(e.type, Types.EnemyType.SEEKER)
 	assert_almost_eq(e.radius, 8.5, 0.001, "seeker radius is 8.5 * scale")
@@ -23,7 +23,7 @@ func test_spawn_seeker_creates_valid_enemy() -> void:
 func test_seeker_steers_towards_player() -> void:
 	var swarm: EnemySwarm = EnemySwarm.new()
 	var bounds: Vector2 = Vector2(1000.0, 600.0)
-	var e: Types.Enemy = swarm.spawn_seeker(bounds, 100.0, 100.0)
+	var e: PerilEnemy = swarm.spawn_seeker(bounds, 100.0, 100.0)
 	var player_pos: Vector2 = Vector2(300.0, 100.0)  # player directly to the right
 
 	swarm.update(0.1, player_pos, bounds, _particles)
@@ -35,8 +35,8 @@ func test_seeker_steers_towards_player() -> void:
 func test_flocking_separation_pushes_overlapping_dots_apart() -> void:
 	var swarm: EnemySwarm = EnemySwarm.new()
 	var bounds: Vector2 = Vector2(1000.0, 600.0)
-	var e1: Types.Enemy = swarm.spawn_seeker(bounds, 200.0, 200.0)
-	var e2: Types.Enemy = swarm.spawn_seeker(bounds, 202.0, 200.0)
+	var e1: PerilEnemy = swarm.spawn_seeker(bounds, 200.0, 200.0)
+	var e2: PerilEnemy = swarm.spawn_seeker(bounds, 202.0, 200.0)
 
 	var initial_dist: float = e2.x - e1.x
 	assert_almost_eq(initial_dist, 2.0, 0.01)
@@ -55,7 +55,7 @@ func test_flocking_separation_pushes_overlapping_dots_apart() -> void:
 func test_seeker_clamps_and_bounces_inside_bounds() -> void:
 	var swarm: EnemySwarm = EnemySwarm.new()
 	var bounds: Vector2 = Vector2(500.0, 400.0)
-	var e: Types.Enemy = swarm.spawn_seeker(bounds, 4.0, 200.0)
+	var e: PerilEnemy = swarm.spawn_seeker(bounds, 4.0, 200.0)
 	e.vx = -50.0  # moving left towards out of bounds
 
 	swarm.update(0.05, Vector2(0.0, 200.0), bounds, _particles)
@@ -89,7 +89,7 @@ func test_seeker_clamp_halves_and_reflects_velocity_at_each_wall() -> void:
 		var swarm: EnemySwarm = EnemySwarm.new()
 		var pos: Vector2 = c[0]
 		var vel: Vector2 = c[1]
-		var e: Types.Enemy = swarm.spawn_seeker(bounds, pos.x, pos.y)
+		var e: PerilEnemy = swarm.spawn_seeker(bounds, pos.x, pos.y)
 		e.vx = vel.x
 		e.vy = vel.y
 		swarm.update(0.01, pos, bounds, _particles)
@@ -113,7 +113,7 @@ func test_satellite_seeker_is_not_clamped() -> void:
 	# M11c P27: a carrier's satellite (a seeker with parent_carrier_id) skips the clamp.
 	var bounds: Vector2 = Vector2(1000.0, 600.0)
 	var swarm: EnemySwarm = EnemySwarm.new()
-	var e: Types.Enemy = swarm.spawn_seeker(bounds, 2.0, 300.0)
+	var e: PerilEnemy = swarm.spawn_seeker(bounds, 2.0, 300.0)
 	e.parent_carrier_id = 99999
 	e.vx = -1000.0
 	swarm.update(0.01, Vector2(2.0, 300.0), bounds, _particles)

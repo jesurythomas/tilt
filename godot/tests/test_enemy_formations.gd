@@ -32,7 +32,7 @@ func test_random_formation_only_produces_the_five_classic_formations() -> void:
 	for i: int in range(200):
 		_swarm.trigger_random_formation(PLAYER, BOUNDS, 0)
 		assert_gt(_swarm.enemies.size(), 0, "every roll spawns something")
-		for e: Types.Enemy in _swarm.enemies:
+		for e: PerilEnemy in _swarm.enemies:
 			if not FORMATION_TYPES.has(e.type):
 				stray += 1
 			seen[e.type] = true
@@ -46,7 +46,7 @@ func test_gauntlet_formation_never_walls_or_encircles() -> void:
 	var forbidden: int = 0
 	for i: int in range(200):
 		_swarm.trigger_gauntlet_formation(PLAYER, BOUNDS, 0)
-		for e: Types.Enemy in _swarm.enemies:
+		for e: PerilEnemy in _swarm.enemies:
 			if e.type == Types.EnemyType.WALL_DOT or e.type == Types.EnemyType.CIRCLE_DOT:
 				forbidden += 1
 			seen[e.type] = true
@@ -58,7 +58,7 @@ func test_gauntlet_formation_never_walls_or_encircles() -> void:
 func test_code_red_armada_rings_the_player_with_24_seekers() -> void:
 	_swarm.spawn_mode_armada(Types.GameMode.CODE_RED, BOUNDS, PLAYER)
 	assert_eq(_swarm.enemies.size(), 24)
-	for e: Types.Enemy in _swarm.enemies:
+	for e: PerilEnemy in _swarm.enemies:
 		assert_eq(e.type, Types.EnemyType.SEEKER)
 		assert_almost_eq(Vector2(e.x, e.y).distance_to(PLAYER), 600.0 * 0.44, 0.01)
 
@@ -69,6 +69,6 @@ func test_classic_and_gauntlet_armadas_are_eight_edge_seekers() -> void:
 	_swarm.reset()
 	_swarm.spawn_mode_armada(Types.GameMode.GAUNTLET, BOUNDS, PLAYER)
 	assert_eq(_swarm.enemies.size(), 8)
-	for e: Types.Enemy in _swarm.enemies:
+	for e: PerilEnemy in _swarm.enemies:
 		assert_eq(e.type, Types.EnemyType.SEEKER)
 		assert_true(e.x < 0.0 or e.x > BOUNDS.x or e.y < 0.0 or e.y > BOUNDS.y, "edge spawn")

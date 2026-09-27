@@ -13,7 +13,7 @@ func test_signals_exist_and_emit() -> void:
 	GameEvents.score_changed.emit(100, 2, 500)
 	assert_signal_emitted(GameEvents, "score_changed")
 
-	var enemy: Types.Enemy = Types.Enemy.new()
+	var enemy: PerilEnemy = PerilEnemy.new()
 	GameEvents.enemy_killed.emit(enemy, Types.WeaponType.NUKE)
 	assert_signal_emitted(GameEvents, "enemy_killed")
 

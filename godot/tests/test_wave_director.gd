@@ -41,7 +41,7 @@ func before_each() -> void:
 
 func _count_type(type: Types.EnemyType) -> int:
 	var n: int = 0
-	for e: Types.Enemy in _swarm.enemies:
+	for e: PerilEnemy in _swarm.enemies:
 		if e.type == type:
 			n += 1
 	return n
@@ -49,7 +49,7 @@ func _count_type(type: Types.EnemyType) -> int:
 
 func _count_in(types: Array[int]) -> int:
 	var n: int = 0
-	for e: Types.Enemy in _swarm.enemies:
+	for e: PerilEnemy in _swarm.enemies:
 		if types.has(e.type):
 			n += 1
 	return n
@@ -61,7 +61,7 @@ func _elites_seen(score: int, mode: Types.GameMode, calls: int) -> Dictionary:
 	var seen: Dictionary = {}
 	for i: int in range(calls):
 		_swarm.update(1.0, PLAYER, BOUNDS, _particles, score, mode)
-		for e: Types.Enemy in _swarm.enemies:
+		for e: PerilEnemy in _swarm.enemies:
 			if ELITES.has(e.type):
 				seen[e.type] = true
 		_swarm.enemies.clear()

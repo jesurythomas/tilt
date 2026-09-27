@@ -35,7 +35,7 @@ func test_orb_collected_when_player_touches_it() -> void:
 	var activated_types: Array[Types.WeaponType] = []
 	ws.on_weapon_activated = func(type: Types.WeaponType) -> void: activated_types.append(type)
 
-	var enemies: Array[Types.Enemy] = []
+	var enemies: Array[PerilEnemy] = []
 	ws.update(
 		0.016,
 		_player,
@@ -44,7 +44,7 @@ func test_orb_collected_when_player_touches_it() -> void:
 		_particles,
 		_grid,
 		_audio,
-		func(_e: Types.Enemy, _w: Types.WeaponType) -> void: pass
+		func(_e: PerilEnemy, _w: Types.WeaponType) -> void: pass
 	)
 
 	assert_eq(ws.orbs.size(), 0, "orb consumed upon contact")
@@ -68,21 +68,21 @@ func test_nuke_expands_and_vaporizes_enemies_in_radius() -> void:
 		_particles,
 		_grid,
 		_audio,
-		func(_e: Types.Enemy, _w: Types.WeaponType) -> void: pass
+		func(_e: PerilEnemy, _w: Types.WeaponType) -> void: pass
 	)
 	assert_eq(ws.active_weapons.size(), 1)
 
 	# Create enemy within blast radius (e.g. 50px away)
-	var e: Types.Enemy = Types.Enemy.new()
+	var e: PerilEnemy = PerilEnemy.new()
 	e.id = 99
 	e.x = 550.0
 	e.y = 300.0
 	e.radius = 8.5
-	var enemies: Array[Types.Enemy] = [e]
+	var enemies: Array[PerilEnemy] = [e]
 
-	var killed_enemies: Array[Types.Enemy] = []
+	var killed_enemies: Array[PerilEnemy] = []
 	var killed_weapons: Array[Types.WeaponType] = []
-	var on_killed: Callable = func(enemy: Types.Enemy, weapon: Types.WeaponType) -> void:
+	var on_killed: Callable = func(enemy: PerilEnemy, weapon: Types.WeaponType) -> void:
 		killed_enemies.append(enemy)
 		killed_weapons.append(weapon)
 
@@ -106,7 +106,7 @@ func test_nuke_expires_after_duration() -> void:
 		_particles,
 		_grid,
 		_audio,
-		func(_e: Types.Enemy, _w: Types.WeaponType) -> void: pass
+		func(_e: PerilEnemy, _w: Types.WeaponType) -> void: pass
 	)
 	assert_eq(ws.active_weapons.size(), 1)
 
@@ -118,7 +118,7 @@ func test_nuke_expires_after_duration() -> void:
 		_particles,
 		_grid,
 		_audio,
-		func(_e: Types.Enemy, _w: Types.WeaponType) -> void: pass
+		func(_e: PerilEnemy, _w: Types.WeaponType) -> void: pass
 	)
 	assert_eq(ws.active_weapons.size(), 0, "nuke removed when duration expires")
 
@@ -136,7 +136,7 @@ func test_reset_clears_orbs_and_active_weapons() -> void:
 		_particles,
 		_grid,
 		_audio,
-		func(_e: Types.Enemy, _w: Types.WeaponType) -> void: pass
+		func(_e: PerilEnemy, _w: Types.WeaponType) -> void: pass
 	)
 	assert_eq(ws.orbs.size(), 1)
 	assert_eq(ws.active_weapons.size(), 1)
@@ -147,7 +147,7 @@ func test_reset_clears_orbs_and_active_weapons() -> void:
 
 
 func _no_kill() -> Callable:
-	return func(_e: Types.Enemy, _w: Types.WeaponType) -> void: pass
+	return func(_e: PerilEnemy, _w: Types.WeaponType) -> void: pass
 
 
 func test_nuke_radius_and_speed_come_from_the_tuning_table_per_rank() -> void:

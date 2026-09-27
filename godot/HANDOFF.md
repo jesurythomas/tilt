@@ -4,10 +4,13 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**Current (2026-09-27, ~22:30): M11c review fixes + FPS work in progress, on the
-C++ path.** Active plan `docs/superpowers/plans/2026-09-27-m11c-review-fixes.md`;
-the head of `## Next` below says exactly where it stands and what to do first.
-Everything is committed; the tree is clean. The paragraphs after this one are older
+**Current (2026-09-28): M11c review fixes + FPS work in progress, on the C++ path;
+N3 (native swarm loop) landed.** Active plan
+`docs/superpowers/plans/2026-09-27-m11c-review-fixes.md`; the head of `## Next`
+below says exactly where it stands and what to do first. Everything is committed;
+the tree is clean. **The native extension is now required**: enemies are the C++
+class `PerilEnemy` (was `Types.Enemy`), so the game does not parse without
+`godot/bin/libperil.*`. The paragraphs after this one are older
 history, kept for their evidence.
 
 **M11c part 1 — Performance: code-complete, A55 measurement pending
@@ -367,7 +370,7 @@ report: `.superpowers/sdd/2026-09-20-m11b-entrance-cinematic/task-3-report.md`.
 | gdtoolkit | 4.5.0 on PATH |
 | Device | **SM_A556E** (Galaxy A55), serial `RRCXB04L8EJ`; always pass `-s` |
 | ADB | `C:\Users\Jesury\AppData\Local\Android\Sdk\platform-tools\adb.exe` |
-| Native (C++) | GDExtension `PerilNative` in `native/` (godot-cpp 10.0.0 submodule, `api_version=4.7`); outputs `godot/bin/libperil.*` (committed), registered by `godot/peril_native.gdextension`. SCons 4.11 via `python -m SCons` (pip --user). NDK r29 at `Sdk/ndk/29.0.14206865`. Build from `native/`: `python -m SCons platform=windows target=template_debug` and `ANDROID_HOME=C:/Users/Jesury/AppData/Local/Android/Sdk python -m SCons platform=android arch=arm64 target=template_debug ndk_version=29.0.14206865` (`template_release` for release exports). Flags: `-ffp-contract=off` on clang (bit-exact with GDScript). Close the editor before rebuilding the DLL (it locks it). After a fresh clone: `git submodule update --init`. |
+| Native (C++) | GDExtension `PerilNative` + `PerilEnemy` (the enemy record; required since N3 — the game does not parse without the library) in `native/` (godot-cpp 10.0.0 submodule, `api_version=4.7`); outputs `godot/bin/libperil.*` (committed), registered by `godot/peril_native.gdextension`. SCons 4.11 via `python -m SCons` (pip --user). NDK r29 at `Sdk/ndk/29.0.14206865`. Build from `native/`: `python -m SCons platform=windows target=template_debug` and `ANDROID_HOME=C:/Users/Jesury/AppData/Local/Android/Sdk python -m SCons platform=android arch=arm64 target=template_debug ndk_version=29.0.14206865` (`template_release` for release exports). Flags: `-ffp-contract=off` on clang (bit-exact with GDScript). Close the editor before rebuilding the DLL (it locks it). After a fresh clone: `git submodule update --init`. |
 
 The source web game keeps the name *Tilt to Live* in `web/src/tilt-to-live/`
 and in every `# PORT:` citation. Never rename those — Law 1 depends on them.
@@ -1694,6 +1697,35 @@ block and output: "## How to verify right now" above. Full report:
    story but not its coverage.
 
 ## Next
+
+**Where it stands (2026-09-28).** N3 landed (plan, "Native swarm tick" → N3):
+`Types.Enemy` became the C++ class `PerilEnemy` (`native/src/peril_enemy.h`, same
+fields and defaults; renamed everywhere); the per-enemy loop
+(`PerilNative.swarm_step`), separation over the enemies (`separate_enemies`) and the
+collision x reject (`collision_candidates`) run in C++, bit-identical to the GDScript
+reference (`EnemySwarm.use_native = false`; oracle `tests/test_native_swarm.gd`,
+mutation-checked). Charger, artillery, pulsar and snake still run their GDScript
+`update_*` from the C++ loop (randf/particles/bullets). Emulator at 250+ enemies:
+fps 17.8 → 24.7 (25.0 with N3d), physics 34.7 → 11.8 (9.2 with N3d) ms/frame, swarm 26.5 → 4.4. Desktop full tick
+198–293 → 68–76 µs. Cost: GDScript reads of enemy fields are ~1.5× slower (entity
+draw 5.5 → 7.0 ms/frame at 250+ on the emulator; mass-kill ticks ~15% slower).
+
+**Next, literally:**
+1. The largest per-frame sections at 250+ enemies are now entity draw (7.0 ms) and
+   the rest of the engine frame; in the sim, weapons 2.3, collide (N3d A/B in the
+   plan: 2.96 → 0.59 ms/frame at 250+), particles 1.2, goals (~17 µs/tick desktop). Candidates, in order:
+   (a) entity draw — gather each enemy's draw fields in C++ (one call returning
+   packed arrays) instead of per-field reads; (b) particles in packed arrays / C++
+   (the plan's Power-up FPS step 4); (c) the kill path (`on_enemy_killed`,
+   `register_kill`), now slower on native fields. Each output-identical with an oracle
+   or pixel check, as N3 was.
+2. When the A55 is on `adb`: VERIFY-ME §M11c 7–14 (native build included).
+3. Before any **release** export: build `template_release` libs (Windows and
+   Android; only `template_debug` ones are committed) — with no GDScript fallback
+   left, a release APK without them does not start. An iOS export would likewise
+   need an iOS build of `libperil` (not set up; `TODO(M11c)` at `tilt_input.gd:113`).
+
+**Earlier (2026-09-27, ~22:30):**
 
 **Where it stands (2026-09-27, ~22:30).** Since the handoff was last rewritten
 (`2371545`, the C++ scaffold), six commits landed (`33a34fa..9b4581e`), all in the

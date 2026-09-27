@@ -19,12 +19,12 @@ func before_each() -> void:
 	_swarm = EnemySwarm.new()
 
 
-func _speed(e: Types.Enemy) -> float:
+func _speed(e: PerilEnemy) -> float:
 	return Vector2(e.vx, e.vy).length()
 
 
 func test_spawn_charger_starts_aiming_at_the_player() -> void:
-	var c: Types.Enemy = _swarm.spawn_charger(BOUNDS, PLAYER)
+	var c: PerilEnemy = _swarm.spawn_charger(BOUNDS, PLAYER)
 	assert_eq(c.type, Types.EnemyType.CHARGER)
 	assert_almost_eq(c.radius, 11.0, 0.001)
 	assert_eq(c.state, Types.EnemyState.AIMING)
@@ -34,7 +34,7 @@ func test_spawn_charger_starts_aiming_at_the_player() -> void:
 
 
 func test_charger_cycles_aiming_charging_cooling() -> void:
-	var c: Types.Enemy = _swarm.spawn_charger(BOUNDS, PLAYER)
+	var c: PerilEnemy = _swarm.spawn_charger(BOUNDS, PLAYER)
 	c.x = 100.0
 	c.y = 300.0
 	_swarm.update_charger(c, PLAYER, DT, _particles)
@@ -61,7 +61,7 @@ func test_charger_cycles_aiming_charging_cooling() -> void:
 
 
 func test_charging_charger_emits_thruster_sparks() -> void:
-	var c: Types.Enemy = _swarm.spawn_charger(BOUNDS, PLAYER)
+	var c: PerilEnemy = _swarm.spawn_charger(BOUNDS, PLAYER)
 	c.x = 100.0
 	c.y = 300.0
 	c.state = Types.EnemyState.CHARGING
@@ -74,7 +74,7 @@ func test_charging_charger_emits_thruster_sparks() -> void:
 
 
 func test_charger_defaults_state_and_aim_timer_when_absent() -> void:
-	var c: Types.Enemy = Types.Enemy.new()
+	var c: PerilEnemy = PerilEnemy.new()
 	c.type = Types.EnemyType.CHARGER
 	c.x = 100.0
 	c.y = 300.0
@@ -84,7 +84,7 @@ func test_charger_defaults_state_and_aim_timer_when_absent() -> void:
 
 
 func test_spawn_artillery_is_a_two_health_ranged_unit() -> void:
-	var a: Types.Enemy = _swarm.spawn_artillery(BOUNDS, PLAYER)
+	var a: PerilEnemy = _swarm.spawn_artillery(BOUNDS, PLAYER)
 	assert_eq(a.type, Types.EnemyType.ARTILLERY)
 	assert_almost_eq(a.health, 2.0, 0.001)
 	assert_almost_eq(a.radius, 13.0, 0.001)
@@ -92,7 +92,7 @@ func test_spawn_artillery_is_a_two_health_ranged_unit() -> void:
 	assert_almost_eq(a.aim_angle, atan2(PLAYER.y - a.y, PLAYER.x - a.x), 0.0001)
 
 
-func _place(a: Types.Enemy) -> void:
+func _place(a: PerilEnemy) -> void:
 	a.x = 500.0
 	a.y = 300.0
 	a.vx = 0.0
@@ -100,7 +100,7 @@ func _place(a: Types.Enemy) -> void:
 
 
 func test_artillery_keeps_its_distance_band() -> void:
-	var a: Types.Enemy = _swarm.spawn_artillery(BOUNDS, PLAYER)
+	var a: PerilEnemy = _swarm.spawn_artillery(BOUNDS, PLAYER)
 	a.fire_cooldown = 100.0
 	_place(a)
 	_swarm.update_artillery(a, Vector2(600.0, 300.0), 0.1)
@@ -116,12 +116,12 @@ func test_artillery_keeps_its_distance_band() -> void:
 
 func test_artillery_fires_a_bullet_at_the_player_and_recoils() -> void:
 	var target: Vector2 = Vector2(800.0, 300.0)
-	var a: Types.Enemy = _swarm.spawn_artillery(BOUNDS, target)
+	var a: PerilEnemy = _swarm.spawn_artillery(BOUNDS, target)
 	_place(a)
 	a.fire_cooldown = 0.05
 	_swarm.update_artillery(a, target, 0.1)
 	assert_eq(_swarm.enemies.size(), 2, "one bullet spawned")
-	var b: Types.Enemy = _swarm.enemies[1]
+	var b: PerilEnemy = _swarm.enemies[1]
 	assert_eq(b.type, Types.EnemyType.BULLET)
 	assert_almost_eq(
 		b.x, a.x + 22.0, 0.0001, "muzzle is 22 along the aim from the post-move position"
@@ -134,7 +134,7 @@ func test_artillery_fires_a_bullet_at_the_player_and_recoils() -> void:
 
 
 func test_spawn_bullet_flies_toward_its_target() -> void:
-	var b: Types.Enemy = _swarm.spawn_bullet(100.0, 100.0, Vector2(100.0, 400.0))
+	var b: PerilEnemy = _swarm.spawn_bullet(100.0, 100.0, Vector2(100.0, 400.0))
 	assert_eq(b.type, Types.EnemyType.BULLET)
 	assert_almost_eq(b.vx, 0.0, 0.0001)
 	assert_almost_eq(b.vy, 260.0, 0.0001)
@@ -144,10 +144,10 @@ func test_spawn_bullet_flies_toward_its_target() -> void:
 
 
 func test_bullets_expire_by_age_or_distance() -> void:
-	var old: Types.Enemy = _swarm.spawn_bullet(500.0, 300.0, Vector2(600.0, 300.0))
+	var old: PerilEnemy = _swarm.spawn_bullet(500.0, 300.0, Vector2(600.0, 300.0))
 	old.age = 4.5
 	_swarm.spawn_bullet(-61.0, 300.0, Vector2(-100.0, 300.0))
-	var live: Types.Enemy = _swarm.spawn_bullet(500.0, 300.0, Vector2(600.0, 300.0))
+	var live: PerilEnemy = _swarm.spawn_bullet(500.0, 300.0, Vector2(600.0, 300.0))
 	_swarm.update(0.01, PLAYER, BOUNDS, _particles)
 	assert_eq(_swarm.enemies.size(), 1, "age > 4.5 and x < -60 are both culled")
 	assert_eq(_swarm.enemies[0], live)

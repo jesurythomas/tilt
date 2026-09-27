@@ -466,7 +466,7 @@ func _style_multiplier() -> void:
 # tick) restarted the tween once per kill; every restart in a frame starts from the
 # same pulse, so one per frame looks the same. A later kill in the frame restarts it
 # only when the tier changed, so the last tier still wins.
-func _on_enemy_killed(_enemy: Types.Enemy, _weapon_type: Types.WeaponType) -> void:
+func _on_enemy_killed(_enemy: PerilEnemy, _weapon_type: Types.WeaponType) -> void:
 	if _score_label == null:
 		return
 	var tier: Color = tier_color_for(_current_multiplier)

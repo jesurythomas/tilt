@@ -71,7 +71,7 @@ func test_a_close_enemy_shields_the_ship() -> void:
 	var b: MenuBackdrop = MenuBackdrop.new()
 	var grid: VectorGrid = VectorGrid.new(int(BOUNDS.x), int(BOUNDS.y))
 	var particles: ParticleEngine = ParticleEngine.new()
-	var e: Types.Enemy = b.menu_swarm.spawn_seeker(BOUNDS, b.menu_player.x, b.menu_player.y)
+	var e: PerilEnemy = b.menu_swarm.spawn_seeker(BOUNDS, b.menu_player.x, b.menu_player.y)
 	assert_not_null(e)
 	b.update(1.0 / 120.0, BOUNDS, grid, particles)
 	assert_true(b.menu_player.has_shield(), ":1776-1779 activates a 3 s shield")

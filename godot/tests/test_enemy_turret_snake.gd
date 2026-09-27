@@ -19,7 +19,7 @@ func before_each() -> void:
 func test_spawn_turret_places_a_slow_drifting_three_health_dot() -> void:
 	_swarm.spawn_turret(BOUNDS)
 	assert_eq(_swarm.enemies.size(), 1)
-	var t: Types.Enemy = _swarm.enemies[0]
+	var t: PerilEnemy = _swarm.enemies[0]
 	assert_eq(t.type, Types.EnemyType.TURRET_DOT)
 	assert_almost_eq(t.health, 3.0, 0.001)
 	assert_almost_eq(t.radius, 12.0, 0.001)
@@ -33,7 +33,7 @@ func test_spawn_turret_places_a_slow_drifting_three_health_dot() -> void:
 
 func test_turret_snaps_to_the_player_then_eases() -> void:
 	_swarm.spawn_turret(BOUNDS)
-	var t: Types.Enemy = _swarm.enemies[0]
+	var t: PerilEnemy = _swarm.enemies[0]
 	t.x = 500.0
 	t.y = 300.0
 	t.vx = 0.0
@@ -49,7 +49,7 @@ func test_rotating_gate_spawns_six_hazard_dots_about_the_centre() -> void:
 	assert_eq(_swarm.enemies.size(), 6)
 	var centre: Vector2 = BOUNDS / 2.0
 	var radii: Array[float] = []
-	for e: Types.Enemy in _swarm.enemies:
+	for e: PerilEnemy in _swarm.enemies:
 		assert_eq(e.type, Types.EnemyType.TURRET_DOT)
 		assert_true(e.is_hazard)
 		assert_eq(e.orbit_center, centre)
@@ -66,11 +66,11 @@ func test_rotating_gate_spawns_six_hazard_dots_about_the_centre() -> void:
 func test_rotating_gate_dots_orbit_and_ignore_clamp_and_separation() -> void:
 	_swarm.spawn_rotating_gate(BOUNDS)
 	var centre: Vector2 = BOUNDS / 2.0
-	var gate: Types.Enemy = _swarm.enemies[0]
+	var gate: PerilEnemy = _swarm.enemies[0]
 	var angle_before: float = gate.target_angle
 	_swarm.update(0.1, Vector2(10.0, 10.0), BOUNDS, _particles)
 	assert_almost_eq(gate.target_angle, angle_before + gate.orbit_speed * 0.1, 0.0001)
-	for e: Types.Enemy in _swarm.enemies:
+	for e: PerilEnemy in _swarm.enemies:
 		assert_almost_eq(
 			Vector2(e.x, e.y).distance_to(centre), e.orbit_radius, 0.001, "stays on its orbit"
 		)
@@ -81,7 +81,7 @@ func test_sequential_gauntlet_wall_cycles_through_four_directions() -> void:
 	var num_rows: int = floori(BOUNDS.y / 22.0)
 	_swarm.spawn_sequential_gauntlet_wall(BOUNDS)
 	assert_eq(_swarm.enemies.size(), num_cols - 7, "|i - gapIndex| <= 3 skips seven")
-	for e: Types.Enemy in _swarm.enemies:
+	for e: PerilEnemy in _swarm.enemies:
 		assert_eq(e.type, Types.EnemyType.WALL_DOT)
 		assert_true(e.is_hazard)
 		assert_almost_eq(e.y, -30.0, 0.001)
@@ -111,10 +111,10 @@ func test_sequential_gauntlet_wall_cycles_through_four_directions() -> void:
 func test_snake_spawns_eight_segments_head_first() -> void:
 	_swarm.spawn_snake(BOUNDS)
 	assert_eq(_swarm.enemies.size(), 8)
-	var head: Types.Enemy = _swarm.enemies[0]
+	var head: PerilEnemy = _swarm.enemies[0]
 	assert_almost_eq(head.radius, 10.0, 0.001)
 	for i: int in range(8):
-		var seg: Types.Enemy = _swarm.enemies[i]
+		var seg: PerilEnemy = _swarm.enemies[i]
 		assert_eq(seg.type, Types.EnemyType.SNAKE_SEGMENT)
 		assert_almost_eq(seg.x, head.x - float(i) * 14.0, 0.001)
 		assert_eq(seg.y, head.y)
@@ -126,7 +126,7 @@ func test_snake_spawns_eight_segments_head_first() -> void:
 
 func test_snake_segment_advances_then_may_re_aim() -> void:
 	_swarm.spawn_snake(BOUNDS)
-	var head: Types.Enemy = _swarm.enemies[0]
+	var head: PerilEnemy = _swarm.enemies[0]
 	var start_x: float = head.x
 	_swarm.update_snake_segment(head, 0.1)
 	assert_almost_eq(head.x, start_x + 11.0, 0.0001, "moves by the old velocity before any re-aim")

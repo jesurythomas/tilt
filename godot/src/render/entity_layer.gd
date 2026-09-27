@@ -64,7 +64,7 @@ const TRI_STAR: PackedInt32Array = [
 	8, 0, 1, 8, 1, 2, 8, 2, 3, 8, 3, 4, 8, 4, 5, 8, 5, 6, 8, 6, 7, 8, 7, 0
 ]
 ## DIVERGENCE(M11c P17): the empty satellite list.
-const _NO_SATS: Array[Types.Enemy] = []
+const _NO_SATS: Array[PerilEnemy] = []
 
 
 ## DIVERGENCE(M11c P13): the two baked textures of one default-dot look. Each is
@@ -591,14 +591,14 @@ func _draw_enemies() -> void:
 		return
 
 	_frame_sats.clear()
-	for e: Types.Enemy in _swarm.enemies:
+	for e: PerilEnemy in _swarm.enemies:
 		if e.parent_carrier_id != Types.ABSENT:
 			if not _frame_sats.has(e.parent_carrier_id):
-				var list: Array[Types.Enemy] = []
+				var list: Array[PerilEnemy] = []
 				_frame_sats[e.parent_carrier_id] = list
 			_frame_sats[e.parent_carrier_id].append(e)
 
-	for e: Types.Enemy in _swarm.enemies:
+	for e: PerilEnemy in _swarm.enemies:
 		if e.frozen:
 			_draw_frozen_dot(e)
 			continue
@@ -628,7 +628,7 @@ func _draw_enemies() -> void:
 
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:1204-1222
 # DIVERGENCE(M11c P13): the three layers are baked into one cached texture.
-func _draw_frozen_dot(e: Types.Enemy) -> void:
+func _draw_frozen_dot(e: PerilEnemy) -> void:
 	var key: int = roundi(e.radius * DOT_KEY_STEPS)
 	var s: float = _model_scale
 	var size: int = ceili(((e.radius + 3.0) * s + BAKE_MARGIN) * 2.0)
@@ -656,7 +656,7 @@ func _has_alt_skin() -> bool:
 
 
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:1225-1286
-func _draw_charger(e: Types.Enemy) -> void:
+func _draw_charger(e: PerilEnemy) -> void:
 	# PORT: EnemySwarm.ts:1226
 	var angle: float = (
 		atan2(e.vy, e.vx)
@@ -752,7 +752,7 @@ func _charger_body(charging: bool) -> ImageTexture:
 
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:1289-1350
 # DIVERGENCE(M11c P14): full circles and outlines draw from CircleSprites (see _ring).
-func _draw_artillery(e: Types.Enemy) -> void:
+func _draw_artillery(e: PerilEnemy) -> void:
 	var angle: float = e.aim_angle if not is_nan(e.aim_angle) else 0.0  # PORT: EnemySwarm.ts:1290
 	_begin_entity(Vector2(e.x, e.y), angle)
 
@@ -840,7 +840,7 @@ func _artillery_body() -> ImageTexture:
 
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:1353-1385
 # DIVERGENCE(M11c P14): full circles and outlines draw from CircleSprites (see _ring).
-func _draw_bullet(e: Types.Enemy) -> void:
+func _draw_bullet(e: PerilEnemy) -> void:
 	var angle: float = atan2(e.vy, e.vx)  # PORT: EnemySwarm.ts:1354
 	_begin_entity(Vector2(e.x, e.y), angle)
 
@@ -867,14 +867,14 @@ func _draw_bullet(e: Types.Enemy) -> void:
 
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:1388-1444
 # DIVERGENCE(M11c P14): full circles and outlines draw from CircleSprites (see _ring).
-func _draw_carrier(e: Types.Enemy) -> void:
+func _draw_carrier(e: PerilEnemy) -> void:
 	var carrier_pos: Vector2 = Vector2(e.x, e.y)
 
 	# Tether lines to child satellites, under the standing arena transform
 	# (PORT: EnemySwarm.ts:1390-1401)
 	# DIVERGENCE(M11c P17): satellites from this frame's map (same enemies, same
 	# order), not a scan of every enemy per carrier.
-	for sat: Types.Enemy in _frame_sats.get(e.id, _NO_SATS):
+	for sat: PerilEnemy in _frame_sats.get(e.id, _NO_SATS):
 		if sat.parent_carrier_id == e.id:
 			var tether_col: Color = Color(
 				0.0, 229.0 / 255.0, 1.0, 0.4 + 0.3 * sin(_elapsed * 12.0 + float(sat.id))
@@ -953,7 +953,7 @@ static func _svg_paint(attr: String, color: Color) -> String:
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:1447-1466
 # DIVERGENCE(M11c P14): full circles and outlines draw from CircleSprites (see _ring).
 ## DIVERGENCE(M11c P19): the ring and two discs are one baked texture, like a dot.
-func _draw_satellite(e: Types.Enemy) -> void:
+func _draw_satellite(e: PerilEnemy) -> void:
 	var key: int = roundi(e.radius * DOT_KEY_STEPS)
 	var s: float = _model_scale
 	var size: int = ceili(((e.radius + 3.0 + 0.75) * s + BAKE_MARGIN) * 2.0)
@@ -978,7 +978,7 @@ func _draw_satellite(e: Types.Enemy) -> void:
 ## alone (:1476, :1483, :1490, :1498), unlike charger/artillery/carrier which
 ## gate on skin.id !== 'classic' — the asymmetry is the TS's and is preserved.
 # DIVERGENCE(M11c P14): full circles and outlines draw from CircleSprites (see _ring).
-func _draw_pulsar(e: Types.Enemy) -> void:
+func _draw_pulsar(e: PerilEnemy) -> void:
 	_begin_entity(Vector2(e.x, e.y))
 	var pos: Vector2 = Vector2.ZERO
 	# PORT: EnemySwarm.ts:1470
@@ -1046,7 +1046,7 @@ func _pulsar_body(radius: float) -> ImageTexture:
 ## alone (:1521, :1530, :1537, :1545), matching pulsar's asymmetry — see
 ## _draw_pulsar's PORT-NOTE.
 # DIVERGENCE(M11c P14): full circles and outlines draw from CircleSprites (see _ring).
-func _draw_specter(e: Types.Enemy) -> void:
+func _draw_specter(e: PerilEnemy) -> void:
 	_begin_entity(Vector2(e.x, e.y))
 	var pos: Vector2 = Vector2.ZERO
 	# PORT: EnemySwarm.ts:1517
@@ -1081,7 +1081,7 @@ func _draw_specter(e: Types.Enemy) -> void:
 # _dot_sprites) and drawn as two rects, in the TS order (halo and glow, then body,
 # inner, border and pupil). The halo's stroke now scales with the pulse
 # (1.02-1.2 px instead of 1.2 px).
-func _draw_default_dot(e: Types.Enemy) -> void:
+func _draw_default_dot(e: PerilEnemy) -> void:
 	var e_pos: Vector2 = Vector2(e.x, e.y)
 	var pulse: float = 0.85 + 0.15 * sin(_elapsed * 9.0 + float(e.id))
 	var sprites: DotSprites = _dot_sprites(e.radius, e.chilled, e.is_hazard)

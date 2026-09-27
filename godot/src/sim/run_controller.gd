@@ -7,6 +7,10 @@ extends RefCounted
 
 ## DIVERGENCE(M11c P6): no emission yet this run — forces the next score_changed.
 const NO_HUD_VALUES: Vector3i = Vector3i(-1, -1, -1)
+## DIVERGENCE(M11c N3d): _collide's outcomes.
+const COLLIDE_NONE: int = 0
+const COLLIDE_REMOVED: int = 1
+const COLLIDE_CRASH: int = 2
 
 var player: PlayerShip = null
 var swarm: EnemySwarm = null
@@ -302,47 +306,76 @@ func check_collisions() -> void:
 	var plx: float = player.x
 	var ply: float = player.y
 	var plr: float = player.radius
+	if EnemySwarm.use_native:
+		# DIVERGENCE(M11c N3d): C++ returns, in the loop's descending order, the indices
+		# that pass P21's x reject below; only those run the per-enemy body. The array
+		# changes only when the body removes an enemy (a kill, which may also add or
+		# drop others), so the query is re-run from the next index after each one —
+		# every index is still tested on the state the loop would see.
+		var start: int = swarm.enemies.size() - 1
+		while start >= 0:
+			var hits: PackedInt32Array = PerilNative.collision_candidates(
+				swarm.enemies, plx, plr, start
+			)
+			start = -1
+			for i: int in hits:
+				var hit: int = _collide(i, plx, ply, plr)
+				if hit == COLLIDE_CRASH:
+					return
+				if hit == COLLIDE_REMOVED:
+					start = i - 1
+					break
+		return
 	for i: int in range(swarm.enemies.size() - 1, -1, -1):
-		var e: Types.Enemy = swarm.enemies[i]
-		var dx: float = plx - e.x
-		var er: float = e.radius
-		# DIVERGENCE(M11c P21): both tests below need dist < player.radius + e.radius + 16,
-		# and dist >= |dx|; an enemy that far off in x (1 px margin for rounding) can
-		# trigger neither, so it skips the rest. Every outcome is unchanged.
-		if absf(dx) > plr + er + 16.0 + 1.0:
+		var e: PerilEnemy = swarm.enemies[i]
+		# DIVERGENCE(M11c P21): both tests in _collide need dist < player.radius +
+		# e.radius + 16, and dist >= |dx|; an enemy that far off in x (1 px margin for
+		# rounding) can trigger neither, so it skips the rest. Every outcome is unchanged.
+		if absf(plx - e.x) > plr + e.radius + 16.0 + 1.0:
 			continue
-		var dy: float = ply - e.y
-		var dist: float = sqrt(dx * dx + dy * dy)
+		if _collide(i, plx, ply, plr) == COLLIDE_CRASH:
+			return
 
-		# Direct Touch / Collision
-		if dist < plr + er:
-			if player.has_shield():
-				# Shield rams and kills red dot
-				handle_enemy_killed(e, Types.WeaponType.SHIELD)
-				particles.emit_explosion(e.x, e.y, Color("#3ddc97"), 20)
-				swarm.enemies.remove_at(i)
-				continue
-			elif e.frozen:
-				# Ramming frozen dot shatters it
-				audio.play_ice_shatter()
-				scores.register_kill(e.x, e.y, Types.WeaponType.FREEZE, audio)
-				particles.emit_ice_shatter(e.x, e.y, 16)
-				swarm.enemies.remove_at(i)
-				continue
-			else:
-				# Crash costs a life
-				lose_life()
-				return
 
-		# Close Call / Near-Miss Detection
-		if dist < plr + er + 16.0 and player.close_call_timer <= 0.0:
-			player.close_call_timer = 0.75
-			scores.register_close_call(player.x, player.y, audio)
+## check_collisions' body for enemy i: COLLIDE_REMOVED when it was killed and
+## removed, COLLIDE_CRASH when the player lost a life (the loop stops), else
+## COLLIDE_NONE. PORT: web/src/tilt-to-live/TiltGame.ts:2010-2042
+func _collide(i: int, plx: float, ply: float, plr: float) -> int:
+	var e: PerilEnemy = swarm.enemies[i]
+	var dx: float = plx - e.x
+	var er: float = e.radius
+	var dy: float = ply - e.y
+	var dist: float = sqrt(dx * dx + dy * dy)
+
+	# Direct Touch / Collision
+	if dist < plr + er:
+		if player.has_shield():
+			# Shield rams and kills red dot
+			handle_enemy_killed(e, Types.WeaponType.SHIELD)
+			particles.emit_explosion(e.x, e.y, Color("#3ddc97"), 20)
+			swarm.enemies.remove_at(i)
+			return COLLIDE_REMOVED
+		if e.frozen:
+			# Ramming frozen dot shatters it
+			audio.play_ice_shatter()
+			scores.register_kill(e.x, e.y, Types.WeaponType.FREEZE, audio)
+			particles.emit_ice_shatter(e.x, e.y, 16)
+			swarm.enemies.remove_at(i)
+			return COLLIDE_REMOVED
+		# Crash costs a life
+		lose_life()
+		return COLLIDE_CRASH
+
+	# Close Call / Near-Miss Detection
+	if dist < plr + er + 16.0 and player.close_call_timer <= 0.0:
+		player.close_call_timer = 0.75
+		scores.register_close_call(player.x, player.y, audio)
+	return COLLIDE_NONE
 
 
 ## Handles enemy destruction by weapons or shield.
 ## PORT: web/src/tilt-to-live/TiltGame.ts:1981-2004
-func handle_enemy_killed(enemy: Types.Enemy, weapon_type: Types.WeaponType) -> void:
+func handle_enemy_killed(enemy: PerilEnemy, weapon_type: Types.WeaponType) -> void:
 	scores.register_kill(enemy.x, enemy.y, weapon_type, audio)
 	grid.apply_explosion(enemy.x, enemy.y, 4.5, 60.0)
 	swarm.on_enemy_killed(enemy, particles)

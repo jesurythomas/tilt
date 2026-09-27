@@ -17,18 +17,18 @@ func before_each() -> void:
 	_swarm = EnemySwarm.new()
 
 
-func _dist(a: Types.Enemy, b: Types.Enemy) -> float:
+func _dist(a: PerilEnemy, b: PerilEnemy) -> float:
 	return Vector2(a.x, a.y).distance_to(Vector2(b.x, b.y))
 
 
 func test_spawn_carrier_brings_four_orbiting_satellites() -> void:
-	var carrier: Types.Enemy = _swarm.spawn_carrier(BOUNDS, PLAYER)
+	var carrier: PerilEnemy = _swarm.spawn_carrier(BOUNDS, PLAYER)
 	assert_eq(carrier.type, Types.EnemyType.CARRIER)
 	assert_almost_eq(carrier.health, 4.0, 0.001)
 	assert_almost_eq(carrier.radius, 18.0, 0.001)
 	assert_eq(_swarm.enemies.size(), 5)
 	for i: int in range(1, 5):
-		var sat: Types.Enemy = _swarm.enemies[i]
+		var sat: PerilEnemy = _swarm.enemies[i]
 		assert_eq(sat.type, Types.EnemyType.SEEKER)
 		assert_eq(sat.parent_carrier_id, carrier.id)
 		assert_almost_eq(sat.radius, 6.0, 0.001)
@@ -38,13 +38,13 @@ func test_spawn_carrier_brings_four_orbiting_satellites() -> void:
 
 
 func test_carrier_drifts_toward_the_player_and_carries_its_satellites() -> void:
-	var carrier: Types.Enemy = _swarm.spawn_carrier(BOUNDS, PLAYER)
+	var carrier: PerilEnemy = _swarm.spawn_carrier(BOUNDS, PLAYER)
 	carrier.x = 200.0
 	carrier.y = 300.0
 	_swarm.update_carrier(carrier, PLAYER, 0.1)
 	assert_almost_eq(carrier.vx, 55.0 * 1.5 * 0.1, 0.0001, "target 55 eased by 1.5 * dt")
 	for i: int in range(1, 5):
-		var sat: Types.Enemy = _swarm.enemies[i]
+		var sat: PerilEnemy = _swarm.enemies[i]
 		assert_almost_eq(_dist(sat, carrier), 38.0, 0.001)
 		assert_eq(sat.vx, 0.0)
 		assert_eq(sat.vy, 0.0)
@@ -52,20 +52,20 @@ func test_carrier_drifts_toward_the_player_and_carries_its_satellites() -> void:
 
 
 func test_tethered_satellites_are_neither_clamped_nor_separated() -> void:
-	var carrier: Types.Enemy = _swarm.spawn_carrier(BOUNDS, PLAYER)
+	var carrier: PerilEnemy = _swarm.spawn_carrier(BOUNDS, PLAYER)
 	carrier.x = 30.0
 	carrier.y = 300.0
 	_swarm.update(0.01, PLAYER, BOUNDS, _particles)
 	for i: int in range(1, 5):
-		var sat: Types.Enemy = _swarm.enemies[i]
+		var sat: PerilEnemy = _swarm.enemies[i]
 		assert_almost_eq(_dist(sat, carrier), 38.0, 0.001, "left on orbit even at x < 0")
 
 
 func test_killing_a_carrier_frees_and_flings_its_satellites() -> void:
-	var carrier: Types.Enemy = _swarm.spawn_carrier(BOUNDS, PLAYER)
+	var carrier: PerilEnemy = _swarm.spawn_carrier(BOUNDS, PLAYER)
 	_swarm.on_enemy_killed(carrier, _particles)
 	for i: int in range(1, 5):
-		var sat: Types.Enemy = _swarm.enemies[i]
+		var sat: PerilEnemy = _swarm.enemies[i]
 		assert_eq(sat.parent_carrier_id, Types.ABSENT)
 		assert_between(Vector2(sat.vx, sat.vy).length(), 160.0, 240.0)
 	assert_eq(_swarm.enemies.size(), 5, "the caller removes the carrier (TiltGame.ts:2021)")
@@ -77,13 +77,13 @@ func test_killing_a_carrier_frees_and_flings_its_satellites() -> void:
 
 
 func test_on_enemy_killed_tolerates_a_null_particle_engine() -> void:
-	var carrier: Types.Enemy = _swarm.spawn_carrier(BOUNDS, PLAYER)
+	var carrier: PerilEnemy = _swarm.spawn_carrier(BOUNDS, PLAYER)
 	_swarm.on_enemy_killed(carrier)
 	assert_eq(_swarm.enemies[1].parent_carrier_id, Types.ABSENT)
 
 
 func test_spawn_pulsar_and_periodic_pulse() -> void:
-	var p: Types.Enemy = _swarm.spawn_pulsar(BOUNDS, PLAYER)
+	var p: PerilEnemy = _swarm.spawn_pulsar(BOUNDS, PLAYER)
 	assert_eq(p.type, Types.EnemyType.PULSAR)
 	assert_almost_eq(p.health, 2.0, 0.001)
 	assert_almost_eq(p.radius, 12.5, 0.001)
@@ -100,13 +100,13 @@ func test_spawn_pulsar_and_periodic_pulse() -> void:
 
 
 func test_killing_a_pulsar_splits_it_into_two_mini_seekers() -> void:
-	var p: Types.Enemy = _swarm.spawn_pulsar(BOUNDS, PLAYER)
+	var p: PerilEnemy = _swarm.spawn_pulsar(BOUNDS, PLAYER)
 	p.x = 400.0
 	p.y = 300.0
 	_swarm.on_enemy_killed(p, _particles)
 	assert_eq(_swarm.enemies.size(), 3)
 	for i: int in range(1, 3):
-		var mini: Types.Enemy = _swarm.enemies[i]
+		var mini: PerilEnemy = _swarm.enemies[i]
 		assert_eq(mini.type, Types.EnemyType.SEEKER)
 		assert_almost_eq(mini.radius, 6.5, 0.001)
 		assert_almost_eq(_dist(mini, p), 10.0, 0.001)
@@ -115,7 +115,7 @@ func test_killing_a_pulsar_splits_it_into_two_mini_seekers() -> void:
 
 
 func test_specter_phases_with_age() -> void:
-	var s: Types.Enemy = _swarm.spawn_specter(BOUNDS, PLAYER)
+	var s: PerilEnemy = _swarm.spawn_specter(BOUNDS, PLAYER)
 	assert_eq(s.type, Types.EnemyType.SPECTER)
 	assert_almost_eq(s.radius, 8.0, 0.001)
 	assert_almost_eq(s.stealth_opacity, 0.8, 0.001)
@@ -128,10 +128,10 @@ func test_specter_phases_with_age() -> void:
 
 
 func test_freeze_all_halts_every_enemy_for_the_duration() -> void:
-	var c: Types.Enemy = _swarm.spawn_charger(BOUNDS, PLAYER)
+	var c: PerilEnemy = _swarm.spawn_charger(BOUNDS, PLAYER)
 	_swarm.spawn_specter(BOUNDS, PLAYER)
 	_swarm.freeze_all()
-	for e: Types.Enemy in _swarm.enemies:
+	for e: PerilEnemy in _swarm.enemies:
 		assert_true(e.frozen)
 		assert_almost_eq(e.freeze_timer, 7.0, 0.001)
 	c.x = 300.0

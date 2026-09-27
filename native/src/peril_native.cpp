@@ -1,4 +1,5 @@
 #include "peril_native.h"
+#include "peril_sweep.h"
 
 #include <godot_cpp/core/class_db.hpp>
 
@@ -36,8 +37,9 @@ void sweep_index(const std::vector<double> &xs, std::vector<int32_t> &order, std
 	}
 }
 
-// EnemySwarm._separate_pair. True when it pushed.
-bool separate_pair(std::vector<double> &xs, std::vector<double> &ys, int ii, int jj, double min_distance, double min_distance2) {
+} // namespace
+
+bool peril::separate_pair(std::vector<double> &xs, std::vector<double> &ys, int ii, int jj, double min_distance, double min_distance2) {
 	const double dx = xs[jj] - xs[ii];
 	if (dx * dx >= min_distance2) {
 		return false;
@@ -58,8 +60,6 @@ bool separate_pair(std::vector<double> &xs, std::vector<double> &ys, int ii, int
 	return false;
 }
 
-} // namespace
-
 void PerilNative::_bind_methods() {
 	ClassDB::bind_static_method("PerilNative", D_METHOD("version"), &PerilNative::version);
 	ClassDB::bind_static_method("PerilNative", D_METHOD("separate", "xs", "ys", "min_distance"), &PerilNative::separate);
@@ -69,16 +69,23 @@ void PerilNative::_bind_methods() {
 	ClassDB::bind_static_method("PerilNative",
 			D_METHOD("grid_explode", "px", "py", "vx", "vy", "active", "is_active", "c0", "c1", "r0", "r1", "cols", "cx", "cy", "force", "radius"),
 			&PerilNative::grid_explode);
+	ClassDB::bind_static_method("PerilNative",
+			D_METHOD("swarm_step", "swarm", "enemies", "particles", "player_pos", "bounds", "dt", "speed_scale",
+					"seeker_speed", "seeker_steer", "circle_speed", "specter_speed"),
+			&PerilNative::swarm_step);
+	ClassDB::bind_static_method("PerilNative", D_METHOD("separate_enemies", "enemies", "min_distance", "sweep_min"),
+			&PerilNative::separate_enemies);
+	ClassDB::bind_static_method("PerilNative", D_METHOD("collision_candidates", "enemies", "plx", "plr", "start"),
+			&PerilNative::collision_candidates);
+	ClassDB::bind_static_method("PerilNative", D_METHOD("enemy_type_ids"), &PerilNative::enemy_type_ids);
 }
 
 String PerilNative::version() {
-	return String("peril-native 4");
+	return String("peril-native 5");
 }
 
-PackedFloat64Array PerilNative::separate(const PackedFloat64Array &p_xs, const PackedFloat64Array &p_ys, double min_distance) {
-	const int n = int(p_xs.size());
-	std::vector<double> xs(p_xs.ptr(), p_xs.ptr() + n);
-	std::vector<double> ys(p_ys.ptr(), p_ys.ptr() + n);
+void peril::separate_sweep(std::vector<double> &xs, std::vector<double> &ys, double min_distance) {
+	const int n = int(xs.size());
 	const double min_distance2 = min_distance * min_distance;
 
 	std::vector<double> built_x = xs;
@@ -144,6 +151,14 @@ PackedFloat64Array PerilNative::separate(const PackedFloat64Array &p_xs, const P
 			drift = 0.0;
 		}
 	}
+}
+
+
+PackedFloat64Array PerilNative::separate(const PackedFloat64Array &p_xs, const PackedFloat64Array &p_ys, double min_distance) {
+	const int n = int(p_xs.size());
+	std::vector<double> xs(p_xs.ptr(), p_xs.ptr() + n);
+	std::vector<double> ys(p_ys.ptr(), p_ys.ptr() + n);
+	peril::separate_sweep(xs, ys, min_distance);
 
 	PackedFloat64Array out;
 	out.resize(2 * n);

@@ -103,7 +103,7 @@ func test_update_advances_simulation_systems() -> void:
 
 func test_collision_with_enemy_triggers_death_when_single_life() -> void:
 	_rc.reset_run(_bounds)
-	var e: Types.Enemy = _swarm.spawn_seeker(_bounds, _player.x, _player.y)
+	var e: PerilEnemy = _swarm.spawn_seeker(_bounds, _player.x, _player.y)
 	assert_not_null(e)
 
 	_rc.check_collisions()
@@ -115,7 +115,7 @@ func test_collision_with_enemy_triggers_death_when_single_life() -> void:
 func test_collision_with_shield_destroys_enemy() -> void:
 	_rc.reset_run(_bounds)
 	_player.activate_shield(3.0)
-	var e: Types.Enemy = _swarm.spawn_seeker(_bounds, _player.x, _player.y)
+	var e: PerilEnemy = _swarm.spawn_seeker(_bounds, _player.x, _player.y)
 	assert_not_null(e)
 	assert_eq(_swarm.enemies.size(), 1)
 
@@ -127,7 +127,7 @@ func test_collision_with_shield_destroys_enemy() -> void:
 
 func test_close_call_registers_bonus() -> void:
 	_rc.reset_run(_bounds)
-	var e: Types.Enemy = _swarm.spawn_seeker(_bounds, _player.x + _player.radius + 18.0, _player.y)
+	var e: PerilEnemy = _swarm.spawn_seeker(_bounds, _player.x + _player.radius + 18.0, _player.y)
 	assert_not_null(e)
 
 	_rc.check_collisions()
@@ -281,7 +281,7 @@ func test_weapon_kills_bump_their_tracker_counters() -> void:
 		Types.WeaponType.LIGHTNING,
 	]
 	for kind: Types.WeaponType in kinds:
-		var e: Types.Enemy = Types.Enemy.new()
+		var e: PerilEnemy = PerilEnemy.new()
 		e.x = 100.0
 		e.y = 100.0
 		_rc.handle_enemy_killed(e, kind)
@@ -387,7 +387,7 @@ func test_gauntlet_scores_survival_each_tick() -> void:
 func test_mode_multiplier_scales_kill_score() -> void:
 	_options.set_mode(Types.GameMode.CODE_RED)
 	_rc.reset_run(_bounds)
-	var enemy: Types.Enemy = _swarm.spawn_seeker(_bounds, 100.0, 100.0)
+	var enemy: PerilEnemy = _swarm.spawn_seeker(_bounds, 100.0, 100.0)
 	_rc.handle_enemy_killed(enemy, Types.WeaponType.NUKE)
 	# round(10 * 1 * 1.5 * 1.0) (ScoreManager.ts register_kill; score_manager.gd:119)
 	assert_eq(_scores.stats.score, 15)
@@ -488,7 +488,7 @@ func test_reset_run_forces_the_next_score_emission() -> void:
 	assert_signal_emit_count(GameEvents, "score_changed", 1, "the new run's first HUD write")
 
 
-func _enemy_at_distance(d: float) -> Types.Enemy:
+func _enemy_at_distance(d: float) -> PerilEnemy:
 	# Straight below the player, so dx = 0 and only the distance tests decide.
 	return _swarm.spawn_seeker(_bounds, _player.x, _player.y + d)
 
@@ -496,7 +496,7 @@ func _enemy_at_distance(d: float) -> Types.Enemy:
 func test_touch_radius_is_player_plus_enemy_radius() -> void:
 	# M11c P28: the player's radius is read once per collision pass.
 	_rc.reset_run(_bounds)
-	var e: Types.Enemy = _enemy_at_distance(0.0)
+	var e: PerilEnemy = _enemy_at_distance(0.0)
 	var touch: float = _player.radius + e.radius
 	e.y = _player.y + touch + 0.01
 	_rc.check_collisions()
@@ -508,7 +508,7 @@ func test_touch_radius_is_player_plus_enemy_radius() -> void:
 
 func test_close_call_radius_is_touch_plus_sixteen() -> void:
 	_rc.reset_run(_bounds)
-	var e: Types.Enemy = _enemy_at_distance(0.0)
+	var e: PerilEnemy = _enemy_at_distance(0.0)
 	var edge: float = _player.radius + e.radius + 16.0
 	e.y = _player.y + edge + 0.01
 	_rc.check_collisions()

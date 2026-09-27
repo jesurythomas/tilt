@@ -23,9 +23,9 @@ func _cost(kind: String) -> void:
 			"specter":
 				sw.spawn_specter(BOUNDS, c)
 			"charger":
-				var ch: Types.Enemy = sw.spawn_charger(BOUNDS, c)
+				var ch: PerilEnemy = sw.spawn_charger(BOUNDS, c)
 				ch.state = Types.EnemyState.AIMING
-	for e: Types.Enemy in sw.enemies:
+	for e: PerilEnemy in sw.enemies:
 		e.x = clampf(e.x, 40.0, BOUNDS.x - 40.0)
 		e.y = clampf(e.y, 40.0, BOUNDS.y - 40.0)
 	var layer: EntityLayer = EntityLayer.new()

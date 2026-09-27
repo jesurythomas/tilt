@@ -11,7 +11,7 @@ var _particles: ParticleEngine = null
 var _grid: VectorGrid = null
 var _audio: AudioBank = null
 var _ws: WeaponSystem = null
-var _killed: Array[Types.Enemy] = []
+var _killed: Array[PerilEnemy] = []
 var _killed_by: Array[Types.WeaponType] = []
 var _last_kills: int = 0
 
@@ -27,13 +27,13 @@ func before_each() -> void:
 
 
 func _on_killed() -> Callable:
-	return func(e: Types.Enemy, w: Types.WeaponType) -> void:
+	return func(e: PerilEnemy, w: Types.WeaponType) -> void:
 		_killed.append(e)
 		_killed_by.append(w)
 
 
-func _enemy(id: int, x: float, y: float) -> Types.Enemy:
-	var e: Types.Enemy = Types.Enemy.new()
+func _enemy(id: int, x: float, y: float) -> PerilEnemy:
+	var e: PerilEnemy = PerilEnemy.new()
 	e.id = id
 	e.x = x
 	e.y = y
@@ -125,9 +125,9 @@ func test_missiles_fan_out_around_the_circle() -> void:
 
 func test_homing_acquires_the_nearest_enemy_and_steers() -> void:
 	var m: Types.HomingMissile = _missile(100.0, 100.0, 3.5)
-	var far: Types.Enemy = _enemy(7, 100.0, 500.0)
-	var near: Types.Enemy = _enemy(9, 300.0, 100.0)
-	var enemies: Array[Types.Enemy] = [far, near]
+	var far: PerilEnemy = _enemy(7, 100.0, 500.0)
+	var near: PerilEnemy = _enemy(9, 300.0, 100.0)
+	var enemies: Array[PerilEnemy] = [far, near]
 	_ws.update(0.1, _player, enemies, BOUNDS, _particles, _grid, _audio, _on_killed())
 	assert_eq(m.target_id, 9, "closest enemy becomes the target")
 	assert_almost_eq(m.vx, 396.0, 0.001, "(440 - 0) * 0.1 * 9")
@@ -140,9 +140,9 @@ func test_homing_acquires_the_nearest_enemy_and_steers() -> void:
 func test_homing_keeps_its_target_while_it_lives_and_retargets_when_it_dies() -> void:
 	var m: Types.HomingMissile = _missile(100.0, 100.0, 3.5)
 	m.target_id = 7
-	var far: Types.Enemy = _enemy(7, 100.0, 500.0)
-	var near: Types.Enemy = _enemy(9, 300.0, 100.0)
-	var enemies: Array[Types.Enemy] = [far, near]
+	var far: PerilEnemy = _enemy(7, 100.0, 500.0)
+	var near: PerilEnemy = _enemy(9, 300.0, 100.0)
+	var enemies: Array[PerilEnemy] = [far, near]
 	_ws.update(0.01, _player, enemies, BOUNDS, _particles, _grid, _audio, _on_killed())
 	assert_eq(m.target_id, 7, "an existing live target is kept even if farther")
 	assert_gt(m.vy, 0.0, "steers toward the far one")
@@ -163,9 +163,9 @@ func test_smoke_trail_emits_every_thirty_milliseconds() -> void:
 
 func test_expiry_detonates_with_the_rank_zero_blast_radius() -> void:
 	_missile(100.0, 100.0, 0.01)
-	var inside: Types.Enemy = _enemy(1, 130.0, 100.0)
-	var outside: Types.Enemy = _enemy(2, 155.0, 100.0)
-	var enemies: Array[Types.Enemy] = [inside, outside]
+	var inside: PerilEnemy = _enemy(1, 130.0, 100.0)
+	var outside: PerilEnemy = _enemy(2, 155.0, 100.0)
+	var enemies: Array[PerilEnemy] = [inside, outside]
 	_ws.update(0.02, _player, enemies, BOUNDS, _particles, _grid, _audio, _on_killed())
 	assert_eq(_ws.missiles.size(), 0, "missile consumed")
 	assert_eq(_killed.size(), 1)
@@ -180,9 +180,9 @@ func test_blast_radius_rank_reaches_the_farther_enemy() -> void:
 	perks.missiles.blast_radius = 3
 	assert_almost_eq(Tuning.get_tuned_value("missiles", "blastRadius", 3), 58.0, 0.001)
 	_missile(100.0, 100.0, 0.01)
-	var inside: Types.Enemy = _enemy(1, 130.0, 100.0)
-	var outside: Types.Enemy = _enemy(2, 155.0, 100.0)
-	var enemies: Array[Types.Enemy] = [inside, outside]
+	var inside: PerilEnemy = _enemy(1, 130.0, 100.0)
+	var outside: PerilEnemy = _enemy(2, 155.0, 100.0)
+	var enemies: Array[PerilEnemy] = [inside, outside]
 	_ws.update(0.02, _player, enemies, BOUNDS, _particles, _grid, _audio, _on_killed(), perks)
 	assert_eq(_killed.size(), 2, "53 px is inside the 58 px blast at rank 3")
 	assert_eq(enemies.size(), 0)
@@ -190,8 +190,8 @@ func test_blast_radius_rank_reaches_the_farther_enemy() -> void:
 
 func test_contact_detonates_before_expiry() -> void:
 	_missile(100.0, 100.0, 3.5)
-	var touching: Types.Enemy = _enemy(1, 112.0, 100.0)
-	var enemies: Array[Types.Enemy] = [touching]
+	var touching: PerilEnemy = _enemy(1, 112.0, 100.0)
+	var enemies: Array[PerilEnemy] = [touching]
 	_ws.update(0.001, _player, enemies, BOUNDS, _particles, _grid, _audio, _on_killed())
 	assert_eq(_ws.missiles.size(), 0, "within radius + 8 is a hit")
 	assert_eq(_killed.size(), 1)
@@ -216,7 +216,7 @@ func _missile_run_hash() -> String:
 	var grid: VectorGrid = VectorGrid.new(bounds.x, bounds.y)
 	var audio: AudioBank = AudioBank.new()
 	var kills: PackedInt64Array = PackedInt64Array()
-	var on_kill: Callable = func(e: Types.Enemy, _w: Types.WeaponType) -> void:
+	var on_kill: Callable = func(e: PerilEnemy, _w: Types.WeaponType) -> void:
 		kills.append(e.id)
 		swarm.on_enemy_killed(e, particles)
 	weapons.trigger_weapon(

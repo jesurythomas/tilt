@@ -159,7 +159,7 @@ func test_enemy_killed_pulses_the_score_label_then_settles() -> void:
 	add_child_autofree(hud)
 
 	GameEvents.score_changed.emit(700, 7, 3000)
-	GameEvents.enemy_killed.emit(Types.Enemy.new(), Types.WeaponType.NUKE)
+	GameEvents.enemy_killed.emit(PerilEnemy.new(), Types.WeaponType.NUKE)
 
 	assert_gt(score_lbl.scale.x, 1.0, "score label scales up on a kill")
 	assert_eq(score_lbl.modulate, HudController.TIER_ORANGE, "score label flashes the tier colour")
@@ -352,16 +352,16 @@ func test_a_mass_kill_builds_one_pulse_per_frame_unless_the_tier_changes() -> vo
 	hud.add_child(mult_lbl)
 	add_child_autofree(hud)
 	GameEvents.score_changed.emit(700, 7, 3000)
-	GameEvents.enemy_killed.emit(Types.Enemy.new(), Types.WeaponType.NUKE)
+	GameEvents.enemy_killed.emit(PerilEnemy.new(), Types.WeaponType.NUKE)
 	var first: Tween = hud._score_pulse_tween
 	for i: int in range(20):
-		GameEvents.enemy_killed.emit(Types.Enemy.new(), Types.WeaponType.NUKE)
+		GameEvents.enemy_killed.emit(PerilEnemy.new(), Types.WeaponType.NUKE)
 	assert_same(hud._score_pulse_tween, first, "same frame, same tier: one pulse")
 	GameEvents.score_changed.emit(2000, 20, 3000)
-	GameEvents.enemy_killed.emit(Types.Enemy.new(), Types.WeaponType.NUKE)
+	GameEvents.enemy_killed.emit(PerilEnemy.new(), Types.WeaponType.NUKE)
 	assert_ne(hud._score_pulse_tween, first, "a tier change in the frame restarts it")
 	assert_eq(score_lbl.modulate, HudController.tier_color_for(20), "the last tier wins")
 	await get_tree().process_frame
 	var before: Tween = hud._score_pulse_tween
-	GameEvents.enemy_killed.emit(Types.Enemy.new(), Types.WeaponType.NUKE)
+	GameEvents.enemy_killed.emit(PerilEnemy.new(), Types.WeaponType.NUKE)
 	assert_ne(hud._score_pulse_tween, before, "the next frame pulses again")
