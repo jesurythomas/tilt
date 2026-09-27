@@ -333,3 +333,18 @@ hook Android does not override; the render thread still starts.
   fallback-only push being written back (an oracle for any future write-back skip).
   Gap found: before these, dropping a clamp factor or a write-back flag passed all
   679 tests.
+  Emulator A/B (P26+P27 vs the pre-P26 build, 5 Code Red pairs, god builds): s_swarm
+  per frame 150–199 41.6 → 28.6 ms (−31%), 200–249 84 → 75, 300+ 136 → 122 (−10%);
+  fps 150–199 24.6 → 28.3; 250+ unchanged (~7–8, sim-bound). 0 errors in 10 runs.
+- [x] **P28 — inlined sweep dots, hoisted player fields in collisions** (exact): wall
+  and arrow dots step inline and share one x/y read with their cull;
+  `check_collisions` reads the player's x/y/radius once (radius is a getter: three
+  multiplies behind a call, up to 3× per enemy). Bench: collide 48–56 → 27–29 µs/tick
+  at 109 enemies (−45%); wall tick 402–428 → ~330 µs (with P29's fewer dots). Mutation
+  check found 4 pre-existing gaps (wall cull bound, wall speed_scale, touch and
+  close-call radii passed every test when broken); tests added, each mutant now fails.
+- [x] **Perf test build tooling**: `tools/emulator/perf_patch.sh apply|revert` — no-death
+  plus an auto-nuke at NUKE_AT enemies (default 200, ≤1 per 3 s, logs `NUKE en=N`);
+  every inserted line is tagged, revert deletes only those (round trip byte-identical).
+  User (2026-09-27): "when a certain amount of enemies spawn, let the atomic nuke
+  trigger".

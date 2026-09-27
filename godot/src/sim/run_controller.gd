@@ -297,19 +297,25 @@ func check_collisions() -> void:
 	if player.is_dead:
 		return
 
+	# DIVERGENCE(M11c P28): the player's x/y/radius are read once; nothing in the loop
+	# moves or resizes the player (a crash returns).
+	var plx: float = player.x
+	var ply: float = player.y
+	var plr: float = player.radius
 	for i: int in range(swarm.enemies.size() - 1, -1, -1):
 		var e: Types.Enemy = swarm.enemies[i]
-		var dx: float = player.x - e.x
+		var dx: float = plx - e.x
+		var er: float = e.radius
 		# DIVERGENCE(M11c P21): both tests below need dist < player.radius + e.radius + 16,
 		# and dist >= |dx|; an enemy that far off in x (1 px margin for rounding) can
 		# trigger neither, so it skips the rest. Every outcome is unchanged.
-		if absf(dx) > player.radius + e.radius + 16.0 + 1.0:
+		if absf(dx) > plr + er + 16.0 + 1.0:
 			continue
-		var dy: float = player.y - e.y
+		var dy: float = ply - e.y
 		var dist: float = sqrt(dx * dx + dy * dy)
 
 		# Direct Touch / Collision
-		if dist < player.radius + e.radius:
+		if dist < plr + er:
 			if player.has_shield():
 				# Shield rams and kills red dot
 				handle_enemy_killed(e, Types.WeaponType.SHIELD)
@@ -329,7 +335,7 @@ func check_collisions() -> void:
 				return
 
 		# Close Call / Near-Miss Detection
-		if dist < player.radius + e.radius + 16.0 and player.close_call_timer <= 0.0:
+		if dist < plr + er + 16.0 and player.close_call_timer <= 0.0:
 			player.close_call_timer = 0.75
 			scores.register_close_call(player.x, player.y, audio)
 

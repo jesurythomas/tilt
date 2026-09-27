@@ -157,3 +157,45 @@ func test_spike_mine_drifts_by_its_velocity() -> void:
 	_swarm.update(0.1, PLAYER, BOUNDS, _particles)
 	assert_almost_eq(mine.x, 302.0, 0.0001, "vx * dt * speed_scale")
 	assert_almost_eq(mine.y, 299.0, 0.0001)
+
+
+func _sweeper(type: Types.EnemyType, pos: Vector2, vel: Vector2) -> Types.Enemy:
+	var e: Types.Enemy = Types.Enemy.new()
+	e.type = type
+	e.x = pos.x
+	e.y = pos.y
+	e.vx = vel.x
+	e.vy = vel.y
+	e.radius = 8.0
+	e.health = 1.0
+	_swarm.enemies.append(e)
+	return e
+
+
+func test_sweep_dots_step_by_speed_scale_and_cull_only_past_140() -> void:
+	# M11c P28: wall and arrow dots step inline and share one x/y read with the cull.
+	_swarm.speed_scale = 0.5
+	var kept_w: Types.Enemy = _sweeper(
+		Types.EnemyType.WALL_DOT, Vector2(-139.5, 300.0), Vector2(-100.0, 0.0)
+	)
+	var kept_v: Types.Enemy = _sweeper(
+		Types.EnemyType.WALL_DOT, Vector2(500.0, -139.5), Vector2(0.0, -100.0)
+	)
+	var kept_a: Types.Enemy = _sweeper(
+		Types.EnemyType.ARROW_DRONE, Vector2(BOUNDS.x + 139.5, 300.0), Vector2(100.0, 0.0)
+	)
+	var gone_w: Types.Enemy = _sweeper(
+		Types.EnemyType.WALL_DOT, Vector2(-144.0, 600.0), Vector2(-100.0, 0.0)
+	)
+	var gone_a: Types.Enemy = _sweeper(
+		Types.EnemyType.ARROW_DRONE, Vector2(700.0, BOUNDS.y + 144.0), Vector2(0.0, 100.0)
+	)
+	_swarm.update(0.01, PLAYER, BOUNDS, _particles)
+	assert_almost_eq(kept_w.x, -140.0, 0.0001, "x += vx * dt * speed_scale")
+	assert_almost_eq(kept_v.y, -140.0, 0.0001, "y += vy * dt * speed_scale")
+	assert_almost_eq(kept_a.x, BOUNDS.x + 140.0, 0.0001)
+	assert_true(_swarm.enemies.has(kept_w), "at -140 exactly: kept")
+	assert_true(_swarm.enemies.has(kept_v))
+	assert_true(_swarm.enemies.has(kept_a))
+	assert_false(_swarm.enemies.has(gone_w), "past -140: culled")
+	assert_false(_swarm.enemies.has(gone_a), "past bounds + 140: culled")

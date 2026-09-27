@@ -943,12 +943,19 @@ func update(
 				e.vx = evx
 				e.vy = evy
 				continue
-			Types.EnemyType.ARROW_DRONE:
-				update_arrow_drone(e, dt)
+			Types.EnemyType.ARROW_DRONE, Types.EnemyType.WALL_DOT:
+				# update_arrow_drone / update_wall_dot, inlined with the sweep cull below.
+				# DIVERGENCE(M11c P28): the same expressions; x/y are read once for both.
+				# PORT: web/src/tilt-to-live/EnemySwarm.ts:285-288, :200-207
+				var wx: float = e.x + e.vx * dt * speed_scale
+				var wy: float = e.y + e.vy * dt * speed_scale
+				e.x = wx
+				e.y = wy
+				if wx < -140.0 or wx > bounds.x + 140.0 or wy < -140.0 or wy > bounds.y + 140.0:
+					enemies.remove_at(i)
+				continue
 			Types.EnemyType.CIRCLE_DOT:
 				update_circle_dot(e, player_pos, dt)
-			Types.EnemyType.WALL_DOT:
-				update_wall_dot(e, dt)
 			# PORT: web/src/tilt-to-live/EnemySwarm.ts:162-168
 			Types.EnemyType.TURRET_DOT:
 				if e.orbit_center != Vector2.ZERO:

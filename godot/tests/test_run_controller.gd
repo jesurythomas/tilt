@@ -486,3 +486,33 @@ func test_reset_run_forces_the_next_score_emission() -> void:
 	watch_signals(GameEvents)
 	_rc.update(1.0 / 120.0, Types.ControlMode.MOUSE, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO)
 	assert_signal_emit_count(GameEvents, "score_changed", 1, "the new run's first HUD write")
+
+
+func _enemy_at_distance(d: float) -> Types.Enemy:
+	# Straight below the player, so dx = 0 and only the distance tests decide.
+	return _swarm.spawn_seeker(_bounds, _player.x, _player.y + d)
+
+
+func test_touch_radius_is_player_plus_enemy_radius() -> void:
+	# M11c P28: the player's radius is read once per collision pass.
+	_rc.reset_run(_bounds)
+	var e: Types.Enemy = _enemy_at_distance(0.0)
+	var touch: float = _player.radius + e.radius
+	e.y = _player.y + touch + 0.01
+	_rc.check_collisions()
+	assert_false(_player.is_dead, "just outside the touch radius: alive")
+	e.y = _player.y + touch - 0.01
+	_rc.check_collisions()
+	assert_true(_player.is_dead, "just inside the touch radius: crash")
+
+
+func test_close_call_radius_is_touch_plus_sixteen() -> void:
+	_rc.reset_run(_bounds)
+	var e: Types.Enemy = _enemy_at_distance(0.0)
+	var edge: float = _player.radius + e.radius + 16.0
+	e.y = _player.y + edge + 0.01
+	_rc.check_collisions()
+	assert_eq(_scores.stats.close_calls, 0, "just outside: no close call")
+	e.y = _player.y + edge - 0.01
+	_rc.check_collisions()
+	assert_eq(_scores.stats.close_calls, 1, "just inside: close call")
