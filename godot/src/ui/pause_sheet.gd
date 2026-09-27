@@ -78,10 +78,12 @@ func set_stats(score: int, time_text: String, mode_name: String) -> void:
 	_stats.text = stats_text(score, time_text, mode_name)
 
 
-## "18,940 · 1:04 · Standard". PORT: web/src/tilt-to-live/TiltGame.ts:1624-1625
+## "Score 18,940 · 1:04 · Standard". PORT: web/src/tilt-to-live/TiltGame.ts:1624-1625
 ## (score · time); the mode name is the board's third field (interface spec §6.2).
 static func stats_text(score: int, time_text: String, mode_name: String) -> String:
-	return "%s · %s · %s" % [UiTheme.group_digits(score), time_text, mode_name]
+	# DIVERGENCE(M11c review): the score is labelled ("0 · 0:01 · Standard" read as
+	# three unexplained numbers on the emulator).
+	return "Score %s · %s · %s" % [UiTheme.group_digits(score), time_text, mode_name]
 
 
 ## PORT: web/src/tilt-to-live/TiltGame.ts:2239-2244 — calibrate only for gyro.

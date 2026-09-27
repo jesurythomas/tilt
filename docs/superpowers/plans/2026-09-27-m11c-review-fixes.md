@@ -203,3 +203,19 @@ the fps."
   splash, then the menu. **Open:** the Android 12 system splash background stays the
   light theme colour — `splash_screen/background_color` did not apply in this
   non-Gradle export; a Gradle build (Android build template) would be needed.
+
+### Task 9 (continued) — the rest of the review's UI list, checked against the code
+- **Corrections to the review:** the Armory already had a "Max" state, disabled
+  unaffordable buttons and locked unaffordable keystones — every price was affordable
+  in the review session, so they looked alike. Settings' Reset already opens a confirm
+  dialog and its muted style is the board's (Settings.dc.html). No change.
+- **Fixed:** Boosts cards showed no name — `_one_line`'s clip_text zeroes the minimum
+  width, so the expanding effect label squeezed the name out; the name now keeps its
+  width (emulator-verified; headless layout does not reproduce it). Milestone rewards
+  read "+1 pt" / "+5 pts" (cards, toasts, Run over). Pause: "Score 0 · 0:01 ·
+  Standard". HUD: "NEW BEST" (flare) once the score passes a previous best (the TS
+  best only updates at the run's end).
+- **Kept (TS or board content, not flaws to fix):** the ship "Aegis" vs the Blackhole
+  keystone "Aegis" names; orb colours (the nuke orb's crimson); the cold-open glyph;
+  Milestones card height; theme previews and the Run over spare space are design work
+  for the boards, not code fixes.

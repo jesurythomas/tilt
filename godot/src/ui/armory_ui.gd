@@ -1280,7 +1280,14 @@ func _render_boosts_tab() -> Control:
 		text_stack.add_theme_constant_override("separation", _px(BOOST_STACK_GAP))
 		var names: HBoxContainer = HBoxContainer.new()
 		names.add_theme_constant_override("separation", _px(BOOST_NAME_GAP))
-		names.add_child(_one_line(boost.name, "StrongText"))
+		var name_label: Label = _one_line(boost.name, "StrongText")
+		name_label.name = "BoostName_" + boost.id
+		# M11c review (emulator): clip_text zeroes a label's minimum width, so the
+		# expanding effect label squeezed every boost's name out of sight. The name
+		# keeps its width; the effect trims instead.
+		name_label.clip_text = false
+		name_label.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+		names.add_child(name_label)
 		var effect: Label = _one_line(boost.effect, "MonoText")
 		effect.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		names.add_child(effect)

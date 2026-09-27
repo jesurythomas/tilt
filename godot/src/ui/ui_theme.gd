@@ -644,3 +644,10 @@ static func _button(
 
 static func _tag(name: String) -> int:
 	return TextServerManager.get_primary_interface().name_to_tag(name)
+
+
+## DIVERGENCE(M11c review): a milestone reward with its unit, "+1 pt" / "+5 pts" (the TS
+## shows a bare "+5", GoalsHUD.ts:198, :436, beside prices in the thousands). The
+## singular follows the coins row's rule (TiltGame.ts:2126).
+static func reward_text(points: int) -> String:
+	return "+%s %s" % [group_digits(points), "pt" if points == 1 else "pts"]

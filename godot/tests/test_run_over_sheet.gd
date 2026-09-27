@@ -165,7 +165,11 @@ func test_milestones_list_shows_each_earned_goal() -> void:
 		"Rookie Dodger — Reach 1,000 score in a run",
 		":2136"
 	)
-	assert_eq((row.find_child("MilestonePoints", true, false) as Label).text, "+1", ":2137")
+	assert_eq(
+		(row.find_child("MilestonePoints", true, false) as Label).text,
+		"+1 pt",
+		":2137 + unit (M11c review)"
+	)
 
 
 func test_milestones_list_hides_when_none_were_earned() -> void:

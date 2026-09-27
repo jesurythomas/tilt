@@ -225,7 +225,7 @@ func toggle_collapse() -> void:
 func show_goal_toast(goal: GoalManager.Goal) -> void:
 	if _toast == null:
 		return
-	_fill_toast(UiTheme.ICON_CHECK, goal.title, "", "+%d" % goal.reward_points)
+	_fill_toast(UiTheme.ICON_CHECK, goal.title, "", UiTheme.reward_text(goal.reward_points))
 	_toast.visible = true
 	_toast_timer.start(GOAL_TOAST_SECONDS)
 
@@ -821,7 +821,7 @@ func _milestone_card(goal: GoalManager.Goal) -> PanelContainer:
 
 	var pts: Label = _label(
 		"PointsLabel",
-		"+%d" % goal.reward_points,
+		UiTheme.reward_text(goal.reward_points),
 		UiTheme.mono(UiTheme.Weight.MEDIUM),
 		CARD_POINTS_SIZE,
 		UiTheme.TEXT_FAINT if is_done else UiTheme.COLOR_FLARE

@@ -100,7 +100,7 @@ func test_goal_toast_shows_title_reward_and_restarts_its_timer() -> void:
 	_hud.show_goal_toast(_gm.catalog[0])
 	assert_true((_node("GoalToast") as Control).visible)
 	assert_eq((_node("ToastTitle") as Label).text, "Rookie Dodger")
-	assert_eq((_node("ToastReward") as Label).text, "+1")
+	assert_eq((_node("ToastReward") as Label).text, "+1 pt")
 	var timer: Timer = _node("ToastTimer") as Timer
 	assert_almost_eq(timer.wait_time, 3.0, 0.001, "GoalsHUD.ts:209")
 	assert_false(timer.is_stopped())

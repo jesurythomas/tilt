@@ -435,7 +435,16 @@ func _on_score_changed(score: int, multiplier: int, best_score: int) -> void:
 		if tier_color_for(multiplier) != _styled_tier:
 			_style_multiplier()
 	if _best_label != null:
-		_best_label.text = "BEST %s" % UiTheme.group_digits(best_score)
+		# DIVERGENCE(M11c review): the TS best only updates when a run ends, so the HUD
+		# kept "BEST 590" under a 3,640 score. Past a previous best it says so.
+		var is_new_best: bool = best_score > 0 and score > best_score
+		_best_label.text = (
+			"NEW BEST" if is_new_best else "BEST %s" % UiTheme.group_digits(best_score)
+		)
+		if is_new_best:
+			_best_label.add_theme_color_override("font_color", UiTheme.COLOR_FLARE)
+		else:
+			_best_label.remove_theme_color_override("font_color")
 
 
 # DIVERGENCE(HUD-FEEDBACK §4): the multiplier sits permanently in its tier

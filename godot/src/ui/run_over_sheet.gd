@@ -382,7 +382,7 @@ func _milestone_row(goal: GoalManager.Goal) -> HBoxContainer:
 	text.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	text.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(text)
-	var pts: Label = UiTheme.text("+%d" % goal.reward_points, "PointsText")
+	var pts: Label = UiTheme.text(UiTheme.reward_text(goal.reward_points), "PointsText")
 	pts.name = "MilestonePoints"
 	pts.add_theme_font_override("font", UiTheme.mono(UiTheme.Weight.REGULAR))
 	pts.add_theme_font_size_override("font_size", UiTheme.px(ROW_POINTS_SIZE, _ui_scale))

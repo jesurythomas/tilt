@@ -65,7 +65,7 @@ func test_layout_fits_the_a55() -> void:
 
 func test_stats_line() -> void:
 	# PORT: web/src/tilt-to-live/TiltGame.ts:1624-1625; mode name per spec §6.2
-	assert_eq(PauseSheet.stats_text(18940, "1:04", "Standard"), "18,940 · 1:04 · Standard")
+	assert_eq(PauseSheet.stats_text(18940, "1:04", "Standard"), "Score 18,940 · 1:04 · Standard")
 
 
 func test_switches_mirror_without_emitting() -> void:

@@ -22,6 +22,11 @@ func test_hud_score_changed_updates_labels() -> void:
 	assert_eq(mult_lbl.text, "4×")
 	assert_true(mult_lbl.visible)
 	assert_eq(best_lbl.text, "BEST 3,000")
+	# M11c review: past the previous best the label says so.
+	GameEvents.score_changed.emit(3500, 4, 3000)
+	assert_eq(best_lbl.text, "NEW BEST")
+	GameEvents.score_changed.emit(100, 1, 0)
+	assert_eq(best_lbl.text, "BEST 0", "no best yet: nothing to beat")
 
 
 func test_hud_run_ended_shows_the_run_over_sheet() -> void:
