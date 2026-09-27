@@ -1710,7 +1710,11 @@ springs keep it at ~0.45 ms/frame on the emulator), the arena background is a
 dithered shader (no banding), the menu no longer shows a half border, and a boot
 splash (rendered from the ColdOpen board by `godot/tools/make_splash.gd`) plus ship
 app icons (`godot/tools/make_icons.gd`) replace Godot's. Open: the Android 12 system
-splash background stays light without a Gradle build. Emulator notes: the arm64
+splash background stays light without a Gradle build. Then the rest of Task 9 (boost
+names were squeezed out by clip_text; "+N pt(s)" rewards; "Score …" on Pause; live
+"NEW BEST"); the other review items were either already handled in code or TS/board
+content (listed in the plan). The user said "no need to clear. just proceed
+entirely" (2026-09-27): keep going task to task without /clear stops. Emulator notes: the arm64
 APK runs under translation; reboot the emulator if the sensors HAL crash-loops
 (it skewed one run); keep the host idle while measuring; a no-death build is a
 temporary one-line early return in `RunController.lose_life`, never committed —

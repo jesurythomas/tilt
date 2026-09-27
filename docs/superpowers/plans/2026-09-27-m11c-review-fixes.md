@@ -219,3 +219,8 @@ the fps."
   keystone "Aegis" names; orb colours (the nuke orb's crimson); the cold-open glyph;
   Milestones card height; theme previews and the Run over spare space are design work
   for the boards, not code fixes.
+- **Gradle build** (closes Task 12's open item): with `use_gradle_build=true` the export
+  applies `splash_screen/background_color`, so the Android 12 system splash is the void
+  colour with the ship (emulator-verified). Local one-time setup documented in
+  VERIFY-ME §0 (template git-ignored; JDK 17 pinned for Gradle; daemon off so headless
+  exports return, 39 s).

@@ -25,6 +25,16 @@ ADB="/c/Users/Jesury/AppData/Local/Android/Sdk/platform-tools/adb.exe"
 "$ADB" -s RRCXB04L8EJ exec-out screencap -p > godot/build/screen-m2.5.png
 ```
 
+> **Gradle build (since 2026-09-27, for the dark Android system splash).** The preset has
+> `gradle_build/use_gradle_build=true`. One-time local setup (the template is
+> git-ignored): `"$GODOT" --headless --path godot --install-android-build-template
+> --export-debug "Android" build/peril-point-debug.apk`, then append to
+> `godot/android/build/gradle.properties`:
+> `org.gradle.java.home=C:/Program Files/Eclipse Adoptium/jdk-17.0.20.101-hotspot` (Gradle
+> 8.11 cannot run on the editor's Android Studio JBR, JDK 25) and
+> `org.gradle.daemon=false` (else the headless export never returns). The APK is ~88 MB
+> (native libraries stored uncompressed, which loads faster).
+
 > **⚠ Frame-time checks (2026-09-26):** `dumpsys gfxinfo` reports
 > `Total frames rendered: 0` for this app. It cannot see Godot's Vulkan
 > SurfaceView, so every `gfxinfo … 50th` check below measures nothing. Use
