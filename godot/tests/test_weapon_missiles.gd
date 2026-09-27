@@ -13,6 +13,7 @@ var _audio: AudioBank = null
 var _ws: WeaponSystem = null
 var _killed: Array[Types.Enemy] = []
 var _killed_by: Array[Types.WeaponType] = []
+var _last_kills: int = 0
 
 
 func before_each() -> void:
@@ -194,3 +195,61 @@ func test_contact_detonates_before_expiry() -> void:
 	_ws.update(0.001, _player, enemies, BOUNDS, _particles, _grid, _audio, _on_killed())
 	assert_eq(_ws.missiles.size(), 0, "within radius + 8 is a hit")
 	assert_eq(_killed.size(), 1)
+
+
+## M11c P32: 16 missiles into 150 enemies (seekers and pulsars, which split on death),
+## 360 ticks; hashes every missile's position each tick and the kill order.
+func _missile_run_hash() -> String:
+	seed(2468)
+	var swarm: EnemySwarm = EnemySwarm.new()
+	var bounds: Vector2 = Vector2(1600.0, 900.0)
+	for i: int in range(150):
+		if i % 15 == 0:
+			swarm.spawn_pulsar(bounds, Vector2.ZERO)
+			swarm.enemies[-1].x = 500.0 + randf() * 600.0
+			swarm.enemies[-1].y = 200.0 + randf() * 500.0
+		else:
+			swarm.spawn_seeker(bounds, 500.0 + randf() * 600.0, 200.0 + randf() * 500.0)
+	var weapons: WeaponSystem = WeaponSystem.new()
+	var player: PlayerShip = PlayerShip.new(800.0, 450.0)
+	var particles: ParticleEngine = ParticleEngine.new()
+	var grid: VectorGrid = VectorGrid.new(bounds.x, bounds.y)
+	var audio: AudioBank = AudioBank.new()
+	var kills: PackedInt64Array = PackedInt64Array()
+	var on_kill: Callable = func(e: Types.Enemy, _w: Types.WeaponType) -> void:
+		kills.append(e.id)
+		swarm.on_enemy_killed(e, particles)
+	weapons.trigger_weapon(
+		Types.WeaponType.MISSILES,
+		800.0,
+		450.0,
+		player,
+		swarm.enemies,
+		particles,
+		grid,
+		audio,
+		on_kill
+	)
+	var ctx: HashingContext = HashingContext.new()
+	ctx.start(HashingContext.HASH_SHA256)
+	for tick: int in range(360):
+		weapons._orb_spawn_timer = 1.0e9
+		weapons.update(1.0 / 120.0, player, swarm.enemies, bounds, particles, grid, audio, on_kill)
+		var row: PackedFloat64Array = PackedFloat64Array([float(tick)])
+		for m: Types.HomingMissile in weapons.missiles:
+			row.append_array([m.x, m.y, m.vx, m.vy, float(m.target_id)])
+		ctx.update(row.to_byte_array())
+	ctx.update(kills.to_byte_array())
+	ctx.update(var_to_bytes(swarm.enemies.size()))
+	_last_kills = kills.size()
+	return ctx.finish().hex_encode()
+
+
+func test_missiles_match_the_pre_p32_full_scans() -> void:
+	# Recorded from the pre-P32 code (full target/contact scans), 2026-09-27.
+	assert_eq(
+		_missile_run_hash(),
+		"bcf1798be2b93dc3d14bfc31385a86943b4cf8b5b57835ac7aa54ee5d5375149",
+		"the snapshot scans change nothing"
+	)
+	assert_gte(_last_kills, 15, "the run kills enough to exercise retargets and splits")

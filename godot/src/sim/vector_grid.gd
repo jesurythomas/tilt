@@ -23,6 +23,13 @@ const DAMPING: float = 0.90  # PORT: web/src/tilt-to-live/VectorGrid.ts:47
 ## point is snapped to rest and the lattice sleeps until the next explosion; the
 ## springs only decay towards rest from there, far below a pixel.
 const SETTLE_EPS: float = 0.02
+## DIVERGENCE(M11c P31): explosion windows this large (points) scan in C++.
+const NATIVE_BLAST_MIN_POINTS: int = 64
+
+## DIVERGENCE(M11c P31): update() steps in C++ when the PerilNative extension is
+## loaded; false forces the GDScript step (the grid tests compare both).
+static var use_native: bool = true
+static var _native: Object = null
 
 ## Lattice width in points.
 var cols: int = 0
@@ -95,6 +102,23 @@ func resize(width: float, height: float) -> void:
 func update(_dt: float) -> void:
 	if not awake or settled:
 		return
+	var native: Object = _native_stepper()
+	if native != null:
+		# DIVERGENCE(M11c P31): the same step in C++ (native/src/peril_native.cpp),
+		# bit-identical (the grid tests run both paths).
+		var r: Array = native.call(
+			"grid_step", px, py, ox, oy, vx, vy, _active, _is_active, STIFFNESS, DAMPING, SETTLE_EPS
+		)
+		px = r[0]
+		py = r[1]
+		vx = r[2]
+		vy = r[3]
+		_active = r[4]
+		_is_active = r[5]
+		_max_displacement = r[6]
+		revision += 1
+		settled = _active.is_empty()
+		return
 	var max_d: float = 0.0
 	var still: PackedInt32Array = PackedInt32Array()
 	for i: int in _active:
@@ -130,6 +154,15 @@ func update(_dt: float) -> void:
 	settled = _active.is_empty()
 
 
+## The native stepper, or null when the extension is missing or use_native is off.
+static func _native_stepper() -> Object:
+	if not use_native:
+		return null
+	if _native == null and ClassDB.class_exists("PerilNative"):
+		_native = ClassDB.instantiate("PerilNative")
+	return _native
+
+
 ## Pushes points away from (cx, cy). PORT: web/src/tilt-to-live/VectorGrid.ts:65-80
 # DIVERGENCE(M11c P3): scans only the rows/columns whose rest position lies within
 # radius + the current largest displacement of the centre; a point outside that
@@ -143,6 +176,36 @@ func apply_explosion(cx: float, cy: float, force: float, radius: float) -> void:
 	var c1: int = clampi(ceili((cx + reach) / SPACING), 0, cols - 1)
 	var r0: int = clampi(floori((cy - reach) / SPACING), 0, rows - 1)
 	var r1: int = clampi(ceili((cy + reach) / SPACING), 0, rows - 1)
+	if (c1 - c0 + 1) * (r1 - r0 + 1) >= NATIVE_BLAST_MIN_POINTS:
+		var native: Object = _native_stepper()
+		if native != null:
+			# DIVERGENCE(M11c P31): a large window (a nuke ring, a vortex pull) is scanned
+			# in C++, bit-identical; a kill's small blast is cheaper than the array copies.
+			var res: Array = native.call(
+				"grid_explode",
+				px,
+				py,
+				vx,
+				vy,
+				_active,
+				_is_active,
+				c0,
+				c1,
+				r0,
+				r1,
+				cols,
+				cx,
+				cy,
+				force,
+				radius
+			)
+			vx = res[0]
+			vy = res[1]
+			_active = res[2]
+			_is_active = res[3]
+			if res[4]:
+				settled = false
+			return
 	for r: int in range(r0, r1 + 1):
 		var row_offset: int = r * cols
 		for c: int in range(c0, c1 + 1):

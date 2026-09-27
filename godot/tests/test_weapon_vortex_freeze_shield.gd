@@ -15,6 +15,7 @@ var _audio: AudioBank = null
 var _ws: WeaponSystem = null
 var _killed: Array[Types.Enemy] = []
 var _killed_by: Array[Types.WeaponType] = []
+var _last_vortex_kills: int = 0
 
 
 func before_each() -> void:
@@ -177,3 +178,56 @@ func test_shield_duration_comes_from_the_table_per_rank() -> void:
 	perks.shield.duration = 3
 	_activate(Types.WeaponType.SHIELD, 500.0, 300.0, [], perks)
 	assert_almost_eq(_player.shield_timer, 9.0, 0.001, "6 + 3 * 1; max() keeps the longer")
+
+
+## M11c P33: a vortex among 150 seekers for 240 ticks (the pull, kills inside 30 px
+## and the collapse); hashes every enemy's x/y/vx/vy each 10 ticks and the kill order.
+func _vortex_run_hash() -> String:
+	seed(1357)
+	var swarm: EnemySwarm = EnemySwarm.new()
+	var bounds: Vector2 = Vector2(1600.0, 900.0)
+	for i: int in range(150):
+		swarm.spawn_seeker(bounds, 400.0 + randf() * 800.0, 150.0 + randf() * 600.0)
+		swarm.enemies[-1].vx = randf() * 200.0 - 100.0
+		swarm.enemies[-1].vy = randf() * 200.0 - 100.0
+	var weapons: WeaponSystem = WeaponSystem.new()
+	var player: PlayerShip = PlayerShip.new(800.0, 450.0)
+	var particles: ParticleEngine = ParticleEngine.new()
+	var grid: VectorGrid = VectorGrid.new(bounds.x, bounds.y)
+	var audio: AudioBank = AudioBank.new()
+	var kills: PackedInt64Array = PackedInt64Array()
+	var on_kill: Callable = func(e: Types.Enemy, _w: Types.WeaponType) -> void: kills.append(e.id)
+	weapons.trigger_weapon(
+		Types.WeaponType.VORTEX,
+		800.0,
+		450.0,
+		player,
+		swarm.enemies,
+		particles,
+		grid,
+		audio,
+		on_kill
+	)
+	var ctx: HashingContext = HashingContext.new()
+	ctx.start(HashingContext.HASH_SHA256)
+	for tick: int in range(240):
+		weapons._orb_spawn_timer = 1.0e9
+		weapons.update(1.0 / 120.0, player, swarm.enemies, bounds, particles, grid, audio, on_kill)
+		if tick % 10 == 9:
+			var row: PackedFloat64Array = PackedFloat64Array([float(tick)])
+			for e: Types.Enemy in swarm.enemies:
+				row.append_array([e.x, e.y, e.vx, e.vy])
+			ctx.update(row.to_byte_array())
+	ctx.update(var_to_bytes(kills))
+	_last_vortex_kills = kills.size()
+	return ctx.finish().hex_encode()
+
+
+func test_vortex_matches_the_pre_p33_field_access() -> void:
+	# Recorded from the pre-P33 code (field-by-field reads and writes), 2026-09-27.
+	assert_eq(
+		_vortex_run_hash(),
+		"017f0fc905ddef87140591f7f6dfd8cb0833c2097af3ac4609969903a2fdb138",
+		"the field locals change nothing"
+	)
+	assert_gte(_last_vortex_kills, 15, "the run kills enough to exercise the kill branch")

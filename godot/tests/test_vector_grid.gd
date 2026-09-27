@@ -161,3 +161,36 @@ func test_a_woken_grid_reacts_to_the_next_blast() -> void:
 	grid.awake = true
 	grid.apply_explosion(0.0, 0.0, 100.0, 60.0)
 	assert_gt(grid.vx[1], 0.0, "the woken grid takes the impulse")
+
+
+func _scripted_grid() -> VectorGrid:
+	seed(77)
+	var grid: VectorGrid = VectorGrid.new(900.0, 400.0)
+	for step: int in range(150):
+		if step % 25 == 0:
+			grid.apply_explosion(randf() * 900.0, randf() * 400.0, 16.0, 220.0)
+		if step % 7 == 0:
+			# A vortex's implosion: a large window every few steps (the native blast).
+			grid.apply_implosion(450.0, 200.0, 12.0, 300.0)
+		if step >= 40 and step < 70:
+			for k: int in range(3):
+				grid.apply_explosion(randf() * 900.0, randf() * 400.0, 4.5, 60.0)
+		grid.update(1.0 / 120.0)
+	return grid
+
+
+func test_the_native_step_matches_the_gdscript_step_bit_for_bit() -> void:
+	# M11c P31: the C++ grid step (PerilNative.grid_step) against the GDScript one.
+	VectorGrid.use_native = true
+	assert_not_null(VectorGrid._native_stepper(), "the native extension is loaded")
+	var native: VectorGrid = _scripted_grid()
+	VectorGrid.use_native = false
+	var gd: VectorGrid = _scripted_grid()
+	VectorGrid.use_native = true
+	assert_eq(native.px, gd.px, "px")
+	assert_eq(native.py, gd.py, "py")
+	assert_eq(native.vx, gd.vx, "vx")
+	assert_eq(native.vy, gd.vy, "vy")
+	assert_eq(native._active, gd._active, "active set, in order")
+	assert_eq(native.settled, gd.settled)
+	assert_eq(native.revision, gd.revision)

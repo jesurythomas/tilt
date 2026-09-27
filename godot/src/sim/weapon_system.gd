@@ -14,6 +14,11 @@ extends RefCounted
 ## the `perks?: WeaponPerks` parameter (WeaponSystem.ts:61, :396). A null
 ## record reads as all-zero, matching every `perks?.x.y || 0` chain.
 
+## DIVERGENCE(M11c P32): the missile snapshot's x index (see _missile_snapshot).
+const SNAP_QUANT: float = 16.0
+const SNAP_OFFSET: float = 65536.0
+const SNAP_INDEX_BITS: int = 20
+
 ## Live weapon orbs in the arena. PORT: web/src/tilt-to-live/WeaponSystem.ts:14
 var orbs: Array[Types.WeaponOrb] = []
 
@@ -49,6 +54,15 @@ var _next_orb_id: int = 1
 var _next_weapon_id: int = 1
 var _next_missile_id: int = 1
 var _orb_spawn_timer: float = 2.0  # PORT: web/src/tilt-to-live/WeaponSystem.ts:23
+
+## DIVERGENCE(M11c P32): the missile snapshot (see update's step 4).
+var _snap_x: PackedFloat64Array = PackedFloat64Array()
+var _snap_y: PackedFloat64Array = PackedFloat64Array()
+var _snap_r: PackedFloat64Array = PackedFloat64Array()
+var _snap_by_id: Dictionary[int, Types.Enemy] = {}
+var _snap_max_r: float = 0.0
+var _snap_order: PackedInt32Array = PackedInt32Array()
+var _snap_sorted_q: PackedFloat64Array = PackedFloat64Array()
 
 
 func _init() -> void:
@@ -245,10 +259,17 @@ func update(
 				# PORT: web/src/tilt-to-live/WeaponSystem.ts:198
 				var gravity_multiplier: float = 1.0 + float(gravity_rank) * 0.2
 
+				# DIVERGENCE(M11c P33): the pull reads each Enemy field once into a local and
+				# writes it back once (the same operations in the same order, so the same
+				# values) — each property access costs about as much as the arithmetic.
+				var wx: float = w.x
+				var wy: float = w.y
 				for e_idx: int in range(enemies.size() - 1, -1, -1):
 					var e: Types.Enemy = enemies[e_idx]
-					var edx: float = w.x - e.x
-					var edy: float = w.y - e.y
+					var ex: float = e.x
+					var ey: float = e.y
+					var edx: float = wx - ex
+					var edy: float = wy - ey
 					var dist2: float = edx * edx + edy * edy
 
 					if dist2 < pull_radius2 and dist2 > 0.1:  # PORT: web/src/tilt-to-live/WeaponSystem.ts:206
@@ -266,16 +287,20 @@ func update(
 							var gravity_accel: float = (
 								(450.0 + 1350.0 * (t * t)) * gravity_multiplier
 							)
-							e.vx += (edx / dist) * gravity_accel * dt
-							e.vy += (edy / dist) * gravity_accel * dt
+							var evx: float = e.vx
+							var evy: float = e.vy
+							evx += (edx / dist) * gravity_accel * dt
+							evy += (edy / dist) * gravity_accel * dt
 							# PORT: web/src/tilt-to-live/WeaponSystem.ts:225
 							var swirl_accel: float = (300.0 + 750.0 * t) * dt * gravity_multiplier
-							e.vx += (-edy / dist) * swirl_accel
-							e.vy += (edx / dist) * swirl_accel
+							evx += (-edy / dist) * swirl_accel
+							evy += (edx / dist) * swirl_accel
+							e.vx = evx
+							e.vy = evy
 							# PORT: web/src/tilt-to-live/WeaponSystem.ts:230
 							var direct_suction: float = (90.0 + 340.0 * t) * dt * gravity_multiplier
-							e.x += (edx / dist) * direct_suction
-							e.y += (edy / dist) * direct_suction
+							e.x = ex + (edx / dist) * direct_suction
+							e.y = ey + (edy / dist) * direct_suction
 
 				# Pulsing grid distortion. PORT: web/src/tilt-to-live/WeaponSystem.ts:238-239
 				var pulse: float = 1.0 + 0.35 * sin((w.max_duration - w.duration) * 8.0)
@@ -332,7 +357,18 @@ func update(
 			active_weapons.remove_at(i)
 
 	# 4. Update Homing Missiles. PORT: web/src/tilt-to-live/WeaponSystem.ts:282-358
+	# DIVERGENCE(M11c P32): the target lookup, retarget and contact scans read one
+	# snapshot of the enemies (x, y, radius, id, taken once and again after any blast
+	# removes enemies) instead of every missile reading every Enemy object twice per
+	# tick. Enemies do not move inside this loop, so the snapshot holds their values;
+	# the contact scan reads only enemies within the largest radius + 8 px in x, a
+	# superset of any hit; the retarget scans the snapshot in array order with the same
+	# arithmetic. Every outcome is the full scans'.
+	var snap_dirty: bool = true
 	for i: int in range(missiles.size() - 1, -1, -1):
+		if snap_dirty:
+			_missile_snapshot(enemies)
+			snap_dirty = false
 		var m: Types.HomingMissile = missiles[i]
 		m.lifetime -= dt
 		m.smoke_timer += dt
@@ -344,19 +380,19 @@ func update(
 
 		# Retarget the closest enemy if the current target died or is missing.
 		# PORT: web/src/tilt-to-live/WeaponSystem.ts:294-306
-		var target: Types.Enemy = null
-		for e: Types.Enemy in enemies:
-			if e.id == m.target_id:
-				target = e
-				break
+		var target: Types.Enemy = _snap_by_id.get(m.target_id, null)
 		if target == null and enemies.size() > 0:
 			var best_dist: float = INF
-			for e: Types.Enemy in enemies:
-				var d: float = (e.x - m.x) * (e.x - m.x) + (e.y - m.y) * (e.y - m.y)
+			var best: int = -1
+			for k: int in range(_snap_x.size()):
+				var sx: float = _snap_x[k]
+				var sy: float = _snap_y[k]
+				var d: float = (sx - m.x) * (sx - m.x) + (sy - m.y) * (sy - m.y)
 				if d < best_dist:
 					best_dist = d
-					target = e
-			if target != null:
+					best = k
+			if best >= 0:
+				target = enemies[best]
 				m.target_id = target.id
 
 		# Homing guidance. PORT: web/src/tilt-to-live/WeaponSystem.ts:308-319
@@ -375,15 +411,19 @@ func update(
 
 		# Contact with any enemy. PORT: web/src/tilt-to-live/WeaponSystem.ts:324-334
 		var hit: bool = false
-		for e_idx: int in range(enemies.size() - 1, -1, -1):
-			var e: Types.Enemy = enemies[e_idx]
-			var edx: float = e.x - m.x
-			var edy: float = e.y - m.y
+		var reach: float = _snap_max_r + 8.0 + 1.0 / SNAP_QUANT
+		var lo: int = _snap_sorted_q.bsearch(m.x - reach, true)
+		var hi: int = _snap_sorted_q.bsearch(m.x + reach, false)
+		for t: int in range(lo, hi):
+			var k: int = _snap_order[t]
+			var edx: float = _snap_x[k] - m.x
+			var edy: float = _snap_y[k] - m.y
+			var er: float = _snap_r[k]
 			# PORT: web/src/tilt-to-live/WeaponSystem.ts:330
 			# PORT-NOTE: the 8 px missile radius here is a fixed literal, not
 			# multiplied by scale like every other range in this file — preserved
 			# deliberately as written (WeaponSystem.ts:330).
-			if edx * edx + edy * edy <= (e.radius + 8.0) * (e.radius + 8.0):
+			if edx * edx + edy * edy <= (er + 8.0) * (er + 8.0):
 				hit = true
 				break
 
@@ -418,6 +458,7 @@ func update(
 					# PORT: web/src/tilt-to-live/WeaponSystem.ts:351
 					particles.emit_sparks(e.x, e.y, 10, Color("#ffaa33"), 180.0)
 					enemies.remove_at(e_idx)
+					snap_dirty = true
 
 			missiles.remove_at(i)
 
@@ -426,6 +467,35 @@ func update(
 		lightning_arcs[i].intensity -= dt * 4.0  # PORT: web/src/tilt-to-live/WeaponSystem.ts:362
 		if lightning_arcs[i].intensity <= 0.0:
 			lightning_arcs.remove_at(i)
+
+
+## Fills the missile snapshot from enemies (see update's step 4, P32): x, y, radius
+## in array order, id -> enemy, and x quantised to 1/SNAP_QUANT px (rounded down),
+## sorted, with the array index for each.
+func _missile_snapshot(enemies: Array[Types.Enemy]) -> void:
+	var n: int = enemies.size()
+	_snap_x.resize(n)
+	_snap_y.resize(n)
+	_snap_r.resize(n)
+	_snap_by_id.clear()
+	_snap_max_r = 0.0
+	var keys: PackedInt64Array = PackedInt64Array()
+	keys.resize(n)
+	for k: int in range(n):
+		var e: Types.Enemy = enemies[k]
+		var ex: float = e.x
+		_snap_x[k] = ex
+		_snap_y[k] = e.y
+		_snap_r[k] = e.radius
+		_snap_max_r = maxf(_snap_max_r, _snap_r[k])
+		_snap_by_id[e.id] = e
+		keys[k] = (floori((ex + SNAP_OFFSET) * SNAP_QUANT) << SNAP_INDEX_BITS) | k
+	keys.sort()
+	_snap_order.resize(n)
+	_snap_sorted_q.resize(n)
+	for t: int in range(n):
+		_snap_order[t] = keys[t] & ((1 << SNAP_INDEX_BITS) - 1)
+		_snap_sorted_q[t] = float(keys[t] >> SNAP_INDEX_BITS) / SNAP_QUANT - SNAP_OFFSET
 
 
 ## Activates a weapon directly, without an orb. PORT: web/src/tilt-to-live/WeaponSystem.ts:369-384

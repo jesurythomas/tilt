@@ -63,10 +63,16 @@ bool separate_pair(std::vector<double> &xs, std::vector<double> &ys, int ii, int
 void PerilNative::_bind_methods() {
 	ClassDB::bind_static_method("PerilNative", D_METHOD("version"), &PerilNative::version);
 	ClassDB::bind_static_method("PerilNative", D_METHOD("separate", "xs", "ys", "min_distance"), &PerilNative::separate);
+	ClassDB::bind_static_method("PerilNative",
+			D_METHOD("grid_step", "px", "py", "ox", "oy", "vx", "vy", "active", "is_active", "stiffness", "damping", "settle_eps"),
+			&PerilNative::grid_step);
+	ClassDB::bind_static_method("PerilNative",
+			D_METHOD("grid_explode", "px", "py", "vx", "vy", "active", "is_active", "c0", "c1", "r0", "r1", "cols", "cx", "cy", "force", "radius"),
+			&PerilNative::grid_explode);
 }
 
 String PerilNative::version() {
-	return String("peril-native 2");
+	return String("peril-native 4");
 }
 
 PackedFloat64Array PerilNative::separate(const PackedFloat64Array &p_xs, const PackedFloat64Array &p_ys, double min_distance) {
@@ -146,5 +152,135 @@ PackedFloat64Array PerilNative::separate(const PackedFloat64Array &p_xs, const P
 		w[k] = xs[k];
 		w[n + k] = ys[k];
 	}
+	return out;
+}
+
+Array PerilNative::grid_step(const PackedFloat64Array &p_px, const PackedFloat64Array &p_py,
+		const PackedFloat64Array &p_ox, const PackedFloat64Array &p_oy,
+		const PackedFloat64Array &p_vx, const PackedFloat64Array &p_vy,
+		const PackedInt32Array &p_active, const PackedByteArray &p_is_active,
+		double stiffness, double damping, double settle_eps) {
+	// Copies (copy-on-write: the first ptrw() detaches them from the caller's arrays).
+	PackedFloat64Array px = p_px;
+	PackedFloat64Array py = p_py;
+	PackedFloat64Array vx = p_vx;
+	PackedFloat64Array vy = p_vy;
+	PackedByteArray is_active = p_is_active;
+	double *pxw = px.ptrw();
+	double *pyw = py.ptrw();
+	double *vxw = vx.ptrw();
+	double *vyw = vy.ptrw();
+	uint8_t *actw = is_active.ptrw();
+	const double *ox = p_ox.ptr();
+	const double *oy = p_oy.ptr();
+	const int32_t *act = p_active.ptr();
+	const int64_t n_active = p_active.size();
+
+	double max_d = 0.0;
+	bool any_still = false;
+	for (int64_t k = 0; k < n_active; k++) {
+		const int32_t i = act[k];
+		const double dx = ox[i] - pxw[i];
+		const double dy = oy[i] - pyw[i];
+
+		vxw[i] += dx * stiffness;
+		vyw[i] += dy * stiffness;
+
+		vxw[i] *= damping;
+		vyw[i] *= damping;
+
+		pxw[i] += vxw[i];
+		pyw[i] += vyw[i];
+		const double d = std::max(std::fabs(pxw[i] - ox[i]), std::fabs(pyw[i] - oy[i]));
+		if (d < settle_eps && std::max(std::fabs(vxw[i]), std::fabs(vyw[i])) < settle_eps) {
+			pxw[i] = ox[i];
+			pyw[i] = oy[i];
+			vxw[i] = 0.0;
+			vyw[i] = 0.0;
+			actw[i] = 0;
+			any_still = true;
+		} else {
+			max_d = std::max(max_d, d);
+		}
+	}
+	PackedInt32Array active;
+	if (any_still) {
+		active.resize(n_active);
+		int32_t *aw = active.ptrw();
+		int64_t kept = 0;
+		for (int64_t k = 0; k < n_active; k++) {
+			if (actw[act[k]] == 1) {
+				aw[kept++] = act[k];
+			}
+		}
+		active.resize(kept);
+	} else {
+		active = p_active;
+	}
+
+	Array out;
+	out.resize(7);
+	out[0] = px;
+	out[1] = py;
+	out[2] = vx;
+	out[3] = vy;
+	out[4] = active;
+	out[5] = is_active;
+	out[6] = max_d;
+	return out;
+}
+
+Array PerilNative::grid_explode(const PackedFloat64Array &p_px, const PackedFloat64Array &p_py,
+		const PackedFloat64Array &p_vx, const PackedFloat64Array &p_vy,
+		const PackedInt32Array &p_active, const PackedByteArray &p_is_active,
+		int64_t c0, int64_t c1, int64_t r0, int64_t r1, int64_t cols,
+		double cx, double cy, double force, double radius) {
+	PackedFloat64Array vx = p_vx;
+	PackedFloat64Array vy = p_vy;
+	PackedInt32Array active = p_active;
+	PackedByteArray is_active = p_is_active;
+	double *vxw = vx.ptrw();
+	double *vyw = vy.ptrw();
+	uint8_t *actw = is_active.ptrw();
+	const double *px = p_px.ptr();
+	const double *py = p_py.ptr();
+	const double r2 = radius * radius;
+	bool touched = false;
+	std::vector<int32_t> added;
+	for (int64_t r = r0; r <= r1; r++) {
+		const int64_t row_offset = r * cols;
+		for (int64_t c = c0; c <= c1; c++) {
+			const int64_t i = row_offset + c;
+			const double dx = px[i] - cx;
+			const double dy = py[i] - cy;
+			const double dist2 = dx * dx + dy * dy;
+			if (dist2 < r2 && dist2 > 0.001) {
+				const double dist = std::sqrt(dist2);
+				const double factor = (1.0 - dist / radius) * force;
+				vxw[i] += (dx / dist) * factor;
+				vyw[i] += (dy / dist) * factor;
+				if (actw[i] == 0) {
+					actw[i] = 1;
+					added.push_back(int32_t(i));
+				}
+				touched = true;
+			}
+		}
+	}
+	if (!added.empty()) {
+		const int64_t base = active.size();
+		active.resize(base + int64_t(added.size()));
+		int32_t *aw = active.ptrw();
+		for (size_t k = 0; k < added.size(); k++) {
+			aw[base + int64_t(k)] = added[k];
+		}
+	}
+	Array out;
+	out.resize(5);
+	out[0] = vx;
+	out[1] = vy;
+	out[2] = active;
+	out[3] = is_active;
+	out[4] = touched;
 	return out;
 }

@@ -436,3 +436,20 @@ User ruling: C++ GDExtension for the hot path, not C# (Android C# is experimenta
   C++ (all power-ups and every kill wake it; visual only); (2) missiles: one target
   map per tick instead of 16 id scans, cheaper contact test (exact); (3) HUD score
   pulse once per frame, not per kill; (4) particles in C++.
+- [x] **P31 — grid in C++** (visual only): `PerilNative.grid_step` (VectorGrid.update)
+  and `grid_explode` (apply_explosion windows ≥ 64 points: nuke rings, vortex pulls;
+  a kill's 5×5 blast stays in GDScript, cheaper than the array copies). Bit-identical:
+  `test_the_native_step_matches_the_gdscript_step_bit_for_bit` runs both paths incl.
+  a large implosion window; C++ stiffness and force mutants each fail it.
+- [x] **P32 — missile snapshot** (exact): one snapshot of enemy x/y/radius/id per tick
+  (rebuilt after any blast) for the target lookup, the retarget and an x-windowed
+  contact test. Golden `test_missiles_match_the_pre_p32_full_scans` (hash recorded
+  from the old code, 20 kills incl. pulsar splits); skipping the rebuild or narrowing
+  the window fails it.
+- [x] **P33 — vortex field locals** (exact; golden hash recorded from the old code).
+  No measurable gain on its own — the vortex cost was its per-tick grid implosion
+  (fixed by P31's native blast).
+  Bench after P31–P33 (extra weapon-logic µs/tick → before): missiles 184 → 70,
+  vortex 179 → 55, nuke 50 → 26; grid while woken 95 → 8; nuke worst tick 1.6–2.0 →
+  0.66–0.77 ms. Remaining: particle flush 45–96 µs/tick (400 particle objects), laser
+  kill bursts (0.85–0.93 ms worst tick), per-kill HUD tween on device.
