@@ -179,3 +179,12 @@ the fps."
   shader background (redrawn on size/theme change), lines in white tinted by modulate
   (redrawn only on `revision` change), frame/overlay (per frame). GameRoot calls
   `refresh()`.
+- Grid FPS (emulator A/B, god builds): turning the grid on with a full-lattice step
+  cost `s_grid` ~21–23 ms/frame while rippling (13 of 100 s above 5 ms; early-game
+  kills keep it awake: 13–16 fps until it settles). **Active set:** `VectorGrid.update`
+  steps only disturbed points (each springs to its own origin alone, and a point at
+  rest is a fixed point, so skipping it is exact); an explosion adds the points it
+  pushes; a point leaves once within 0.02 px/step of rest (snapped). vs the pre-P3
+  grid: max 0.000086 px position / 0.000008 velocity difference (oracle now bounds by
+  SETTLE_EPS). Result: `s_grid` 2.75 → 0.45 ms/frame, hot seconds 13 → 1; 50–99
+  enemies 35.9 → 50.8 fps. `touch(i)` wakes a point moved directly (tests).

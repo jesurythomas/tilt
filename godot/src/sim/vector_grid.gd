@@ -49,6 +49,10 @@ var revision: int = 0
 ## Largest |x - ox| or |y - oy| after the last update() — bounds apply_explosion's
 ## scan window. Positions move only in update(), so it stays valid until the next one.
 var _max_displacement: float = 0.0
+## DIVERGENCE(M11c review): the points update() steps (see update()), and a flag per
+## point for membership.
+var _active: PackedInt32Array = PackedInt32Array()
+var _is_active: PackedByteArray = PackedByteArray()
 
 
 func _init(width: float, height: float) -> void:
@@ -76,17 +80,24 @@ func resize(width: float, height: float) -> void:
 			ox[i] = px[i]
 			oy[i] = py[i]
 	_max_displacement = 0.0
+	_is_active.resize(n)
+	_is_active.fill(0)
+	_active = PackedInt32Array()
 	settled = true
 	revision += 1
 
 
 ## Advances the spring one step. PORT: web/src/tilt-to-live/VectorGrid.ts:45-63
+# DIVERGENCE(M11c review): steps only the active points. Every point springs to its
+# own origin alone, and a point exactly at rest with zero velocity is unchanged by a
+# step, so skipping it changes nothing; a point joins the list when an explosion
+# pushes it and leaves it once within SETTLE_EPS of rest (snapped exactly to rest).
 func update(_dt: float) -> void:
 	if not awake or settled:
 		return
 	var max_d: float = 0.0
-	var max_v: float = 0.0
-	for i: int in range(px.size()):
+	var still: PackedInt32Array = PackedInt32Array()
+	for i: int in _active:
 		var dx: float = ox[i] - px[i]
 		var dy: float = oy[i] - py[i]
 
@@ -98,17 +109,25 @@ func update(_dt: float) -> void:
 
 		px[i] += vx[i]
 		py[i] += vy[i]
-		max_d = maxf(max_d, maxf(absf(px[i] - ox[i]), absf(py[i] - oy[i])))
-		max_v = maxf(max_v, maxf(absf(vx[i]), absf(vy[i])))
+		var d: float = maxf(absf(px[i] - ox[i]), absf(py[i] - oy[i]))
+		if d < SETTLE_EPS and maxf(absf(vx[i]), absf(vy[i])) < SETTLE_EPS:
+			px[i] = ox[i]
+			py[i] = oy[i]
+			vx[i] = 0.0
+			vy[i] = 0.0
+			_is_active[i] = 0
+			still.append(i)
+		else:
+			max_d = maxf(max_d, d)
+	if not still.is_empty():
+		var kept: PackedInt32Array = PackedInt32Array()
+		for i: int in _active:
+			if _is_active[i] == 1:
+				kept.append(i)
+		_active = kept
 	_max_displacement = max_d
 	revision += 1
-	if max_d < SETTLE_EPS and max_v < SETTLE_EPS:
-		px = ox.duplicate()
-		py = oy.duplicate()
-		vx.fill(0.0)
-		vy.fill(0.0)
-		_max_displacement = 0.0
-		settled = true
+	settled = _active.is_empty()
 
 
 ## Pushes points away from (cx, cy). PORT: web/src/tilt-to-live/VectorGrid.ts:65-80
@@ -137,9 +156,21 @@ func apply_explosion(cx: float, cy: float, force: float, radius: float) -> void:
 				var factor: float = (1.0 - dist / radius) * force
 				vx[i] += (dx / dist) * factor
 				vy[i] += (dy / dist) * factor
+				if _is_active[i] == 0:
+					_is_active[i] = 1
+					_active.append(i)
 				settled = false
 
 
 ## Explosion with a negated force. PORT: web/src/tilt-to-live/VectorGrid.ts:82-84
 func apply_implosion(cx: float, cy: float, force: float, radius: float) -> void:
 	apply_explosion(cx, cy, -force, radius)
+
+
+## DIVERGENCE(M11c review): marks point i as moved, for code that sets its position or
+## velocity directly (tests); explosions do this themselves.
+func touch(i: int) -> void:
+	if _is_active[i] == 0:
+		_is_active[i] = 1
+		_active.append(i)
+	settled = false

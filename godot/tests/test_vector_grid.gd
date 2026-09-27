@@ -69,7 +69,7 @@ func test_resize_builds_the_expected_lattice() -> void:
 func test_update_pulls_a_displaced_point_back_toward_its_origin() -> void:
 	var grid: VectorGrid = VectorGrid.new(360.0, 180.0)
 	grid.px[0] = 100.0
-	grid.settled = false  # a direct move bypasses the explosion that wakes the lattice
+	grid.touch(0)  # a direct move bypasses the explosion that wakes the point
 	grid.update(1.0 / 60.0)
 	assert_lt(grid.px[0], 100.0, "the spring pulls the point back toward orig_x")
 	assert_gt(grid.px[0], 0.0, "one step does not snap it home")
@@ -78,7 +78,7 @@ func test_update_pulls_a_displaced_point_back_toward_its_origin() -> void:
 func test_update_settles_a_displaced_point() -> void:
 	var grid: VectorGrid = VectorGrid.new(360.0, 180.0)
 	grid.px[0] = 100.0
-	grid.settled = false  # a direct move bypasses the explosion that wakes the lattice
+	grid.touch(0)  # a direct move bypasses the explosion that wakes the point
 	for i: int in range(400):
 		grid.update(1.0 / 60.0)
 	assert_almost_eq(grid.px[0], 0.0, 0.5, "the point settles on its origin")
@@ -97,7 +97,7 @@ func test_apply_implosion_pulls_points_inward() -> void:
 	assert_lt(grid.vx[1], 0.0, "implosion is explosion with a negated force — VectorGrid.ts:83")
 
 
-func test_matches_the_pre_p3_object_grid_exactly() -> void:
+func test_matches_the_pre_p3_object_grid_within_the_settle_threshold() -> void:
 	seed(99)
 	var ref: ReferenceGrid = ReferenceGrid.new(900.0, 400.0)
 	var grid: VectorGrid = VectorGrid.new(900.0, 400.0)
@@ -121,12 +121,18 @@ func test_matches_the_pre_p3_object_grid_exactly() -> void:
 				grid.apply_explosion(x, y, force, radius)
 		ref.update()
 		grid.update(1.0 / 120.0)
-	var mismatches: int = 0
+	# M11c review: the active-set grid snaps a point to rest below SETTLE_EPS instead of
+	# letting it decay forever, so values may differ from the pre-P3 grid by less than
+	# that (measured 2026-09-27: 0.000086 px, 0.000008 px/step). Otherwise it is the
+	# same arithmetic.
+	var max_dp: float = 0.0
+	var max_dv: float = 0.0
 	for i: int in range(ref.points.size()):
-		var p: RefPoint = ref.points[i]
-		if p.x != grid.px[i] or p.y != grid.py[i] or p.vx != grid.vx[i] or p.vy != grid.vy[i]:
-			mismatches += 1
-	assert_eq(mismatches, 0, "every position and velocity equal, bit for bit")
+		var q: RefPoint = ref.points[i]
+		max_dp = maxf(max_dp, maxf(absf(q.x - grid.px[i]), absf(q.y - grid.py[i])))
+		max_dv = maxf(max_dv, maxf(absf(q.vx - grid.vx[i]), absf(q.vy - grid.vy[i])))
+	assert_lt(max_dp, VectorGrid.SETTLE_EPS, "positions within the settle threshold")
+	assert_lt(max_dv, VectorGrid.SETTLE_EPS, "velocities within the settle threshold")
 
 
 func test_a_sleeping_grid_ignores_updates_and_blasts() -> void:
