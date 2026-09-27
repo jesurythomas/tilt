@@ -69,6 +69,7 @@ func test_resize_builds_the_expected_lattice() -> void:
 func test_update_pulls_a_displaced_point_back_toward_its_origin() -> void:
 	var grid: VectorGrid = VectorGrid.new(360.0, 180.0)
 	grid.px[0] = 100.0
+	grid.settled = false  # a direct move bypasses the explosion that wakes the lattice
 	grid.update(1.0 / 60.0)
 	assert_lt(grid.px[0], 100.0, "the spring pulls the point back toward orig_x")
 	assert_gt(grid.px[0], 0.0, "one step does not snap it home")
@@ -77,6 +78,7 @@ func test_update_pulls_a_displaced_point_back_toward_its_origin() -> void:
 func test_update_settles_a_displaced_point() -> void:
 	var grid: VectorGrid = VectorGrid.new(360.0, 180.0)
 	grid.px[0] = 100.0
+	grid.settled = false  # a direct move bypasses the explosion that wakes the lattice
 	for i: int in range(400):
 		grid.update(1.0 / 60.0)
 	assert_almost_eq(grid.px[0], 0.0, 0.5, "the point settles on its origin")

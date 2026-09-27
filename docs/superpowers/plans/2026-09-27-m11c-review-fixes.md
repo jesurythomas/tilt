@@ -158,3 +158,24 @@ eight carriers ~106 µs.
   count: P22 → P23 → P23+Separate → P24: 150–249 16.6 → 20.5 → 31.3 → 30.8; 250+
   9.6 → 11.6 → 13.3/14.1 → 23.4; 100–149 34.7 → 30.0 (3 samples) → 39.3/40.5 → 48.5.
   Main-thread entity draw 15.5 → ~4 ms/frame. No errors or crashes in the runs.
+
+### Task 11: Menu border, background, grid back on (user, 2026-09-27)
+"the issue with only half the game shows the border still exists — specifically in
+the menu — background of the game itself also seems bad. re-add the grid and test
+the fps."
+- Menu border: the HUD `%Frame` outline and the grid perimeter both framed the arena
+  under the menu's right column. The perimeter is hidden in MENU
+  (`GridLayer.show_perimeter`) and the frame's own outline via `self_modulate` (its
+  HUD children unaffected). Emulator: no half border.
+- Background: the 256 px gradient stretched to ~3400 px showed 8-bit banding rings
+  (contrast-stretched crop). Now `arena_background.gdshader`: same stops and radius,
+  raw-sRGB interpolation, ±½-level dither.
+- Grid on by default (ruling, user's words), with `gridlinesDefaultOn` so old saves
+  (which held the old default) switch on once; a choice made since is kept; the TS
+  `=== true` rule applies when the marker is present. Parity test states the one
+  divergent default.
+- Grid cost: `VectorGrid` sleeps once every point is within 0.02 px/step of rest
+  (snapped exactly; `settled`, `revision`); `GridLayer` draws through three children:
+  shader background (redrawn on size/theme change), lines in white tinted by modulate
+  (redrawn only on `revision` change), frame/overlay (per frame). GameRoot calls
+  `refresh()`.

@@ -24,6 +24,8 @@ enum ScreenShake { OFF, LOW, NORMAL, EXTREME, FULL }
 const STORAGE_KEY: String = "tilt_to_live_settings_v1"
 ## The localStorage key as a user:// file (spec §4.6).
 const SAVE_PATH: String = "user://" + STORAGE_KEY + ".json"
+## DIVERGENCE(M11c review): present in saves written since the grid defaults to on.
+const GRID_DEFAULT_KEY: String = "gridlinesDefaultOn"
 
 ## The TS GameMode strings. PORT: web/src/tilt-to-live/GameOptions.ts:5
 const MODE_IDS: Dictionary[Types.GameMode, String] = {
@@ -123,7 +125,9 @@ func _get_default_settings() -> GameSettings:
 	s.screen_shake = ScreenShake.NORMAL
 	s.tether_line = true
 	s.high_contrast_halo = true
-	s.show_gridlines = false
+	# DIVERGENCE(M11c review): the grid is on by default (user ruling 2026-09-27, "re-add
+	# the grid"); the TS default is false (GameOptions.ts:88).
+	s.show_gridlines = true
 	return s
 
 
@@ -201,7 +205,7 @@ class GameSettings:
 	var screen_shake: ScreenShake = ScreenShake.NORMAL
 	var tether_line: bool = true
 	var high_contrast_halo: bool = true
-	var show_gridlines: bool = false
+	var show_gridlines: bool = true  # DIVERGENCE(M11c review): see _get_default_settings
 
 	## JSON.stringify(this.settings) (GameOptions.ts:109), TS keys and strings.
 	func to_dict() -> Dictionary:
@@ -216,6 +220,8 @@ class GameSettings:
 			"tetherLine": tether_line,
 			"highContrastHalo": high_contrast_halo,
 			"showGridlines": show_gridlines,
+			# DIVERGENCE(M11c review): marks a save written after the grid default changed.
+			GRID_DEFAULT_KEY: true,
 		}
 
 	## `{...defaults, ...parsed}` (GameOptions.ts:97-101). An unknown string
@@ -240,4 +246,8 @@ class GameSettings:
 			screen_shake = SCREEN_SHAKE_IDS.find_key(shake_id)
 		tether_line = SaveStore.read_bool(d, "tetherLine", tether_line)
 		high_contrast_halo = SaveStore.read_bool(d, "highContrastHalo", high_contrast_halo)
-		show_gridlines = SaveStore.read_bool(d, "showGridlines", show_gridlines)  # PORT: :100
+		# DIVERGENCE(M11c review): a save from before the default changed (no
+		# GRID_DEFAULT_KEY) held the old default, not a choice, so the new default stands.
+		if d.has(GRID_DEFAULT_KEY):
+			# `parsed.showGridlines === true`: anything but a JSON true is false (:100).
+			show_gridlines = SaveStore.read_bool(d, "showGridlines", false)  # PORT: :100

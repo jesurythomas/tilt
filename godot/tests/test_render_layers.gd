@@ -277,18 +277,45 @@ func test_grid_layer_resolves_theme_colours() -> void:
 	_remove_save()
 
 
-func test_grid_layer_rebuilds_the_background_on_theme_change() -> void:
+func test_grid_layer_feeds_the_theme_to_the_background_shader() -> void:
+	# M11c review: the background is a shader (no banding); its colours follow the theme.
 	_remove_save()
 	var progression: ProgressionManager = ProgressionManager.new()
 	var layer: GridLayer = GridLayer.new()
 	add_child_autofree(layer)
-	await get_tree().process_frame
-	var before: GradientTexture2D = layer.background_texture()
+	layer.bind(VectorGrid.new(400, 300))
+	layer.refresh()
+	var mat: ShaderMaterial = layer.background_material()
+	var inner0: Color = mat.get_shader_parameter("inner_color")
+	assert_eq(inner0, GridLayer.BG_INNER)
 	layer.set_arena_theme(progression.arena_theme_catalog[2])
-	var after: GradientTexture2D = layer.background_texture()
-	assert_ne(after, before, "a new gradient is baked for the theme")
-	assert_eq(after.gradient.colors[0], progression.arena_theme_catalog[2].bg_gradient[0])
+	layer.refresh()
+	var inner1: Color = mat.get_shader_parameter("inner_color")
+	assert_eq(inner1, progression.arena_theme_catalog[2].bg_gradient[0])
+	var outer1: Color = mat.get_shader_parameter("outer_color")
+	assert_eq(outer1, progression.arena_theme_catalog[2].bg_gradient[2])
 	_remove_save()
+
+
+func test_grid_lines_redraw_only_when_the_lattice_moves() -> void:
+	# M11c review: a settled grid costs no redraw; an explosion wakes it until it settles.
+	var layer: GridLayer = GridLayer.new()
+	add_child_autofree(layer)
+	var grid: VectorGrid = VectorGrid.new(400, 300)
+	layer.bind(grid)
+	layer.refresh()
+	var rev: int = grid.revision
+	for i: int in range(5):
+		grid.update(1.0 / 120.0)
+	assert_eq(grid.revision, rev, "a settled lattice does not step")
+	grid.apply_explosion(200.0, 150.0, 20.0, 120.0)
+	assert_false(grid.settled)
+	grid.update(1.0 / 120.0)
+	assert_gt(grid.revision, rev, "an explosion wakes it")
+	for i: int in range(2000):
+		grid.update(1.0 / 120.0)
+	assert_true(grid.settled, "it settles again")
+	assert_eq(grid.px, grid.ox, "snapped exactly to rest")
 
 
 func test_entity_layer_draws_every_enemy_type_under_every_skin() -> void:

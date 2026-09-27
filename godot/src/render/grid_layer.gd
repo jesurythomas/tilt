@@ -6,8 +6,8 @@ class_name GridLayer
 extends Node2D
 ## Bottom render layer: arena background, the reactive grid, the perimeter.
 ##
-## PORT-NOTE: TiltRenderer.ts:97 draws the grid only when showGridlines is on,
-## and GameOptions.ts:88 defaults it to false.
+## PORT-NOTE: TiltRenderer.ts:97 draws the grid only when showGridlines is on;
+## GameOptions.ts:88 defaults it to false, the port to true (M11c review ruling).
 ## GameRoot sets show_gridlines from GameOptionsManager.settings.show_gridlines (M7).
 ##
 ## PORT-NOTE: TiltRenderer.ts:82-92 builds a canvas radial gradient with an
@@ -55,16 +55,30 @@ const GAUNTLET_BRACKET: Color = Color(1.0, 190.0 / 255.0, 0.0, 0.7)
 ## Vignette radii as width fractions. PORT: web/src/tilt-to-live/TiltRenderer.ts:104
 const VIGNETTE_INNER: float = 0.35
 const VIGNETTE_OUTER: float = 0.75
-## Rasterisation size of the baked vignette (see _build_background's note).
+## Rasterisation size of the baked vignette.
 const VIGNETTE_TEXTURE_SIZE: float = 256.0
-# DIVERGENCE(M2.5 §10): hide gridlines per user request and GameOptions.ts:88 default
-# (showGridlines = false) to eliminate per-frame dynamic polyline allocations on mobile.
-var show_gridlines: bool = false
+## DIVERGENCE(M11c review): the per-pixel background (radial gradient + dither).
+const BACKGROUND_SHADER: Shader = preload("res://src/render/arena_background.gdshader")
+## DIVERGENCE(M11c review): on by default again (user ruling 2026-09-27, "re-add the
+## grid"); GameRoot sets it from GameOptionsManager.settings.show_gridlines.
+var show_gridlines: bool = true
+## DIVERGENCE(M11c review): false while the menu shows — its right column covers half
+## the arena, so the perimeter framed only the left half of the screen.
+var show_perimeter: bool = true
 
-## The reactive grid drawn every frame. Null until bind() is called.
+## The reactive grid. Null until bind() is called.
 var _grid: VectorGrid = null
-## Pre-baked radial gradient standing in for TiltRenderer.ts's canvas gradient.
-var _background: GradientTexture2D = null
+## DIVERGENCE(M11c review): the layer draws through three children, in this order:
+## the background (a shader; redrawn only when its inputs change), the grid lines
+## (drawn white and tinted by modulate; redrawn only when the lattice moves), and the
+## frame (mode overlay + perimeter; redrawn every refresh()).
+var _bg_node: Node2D = null
+var _lines_node: Node2D = null
+var _frame_node: Node2D = null
+var _bg_material: ShaderMaterial = null
+## What the background and lines last drew with, to skip unchanged redraws.
+var _bg_key: Array = []
+var _lines_key: Array = []
 # DIVERGENCE(M2.5 §6.1): the playfield is inset from the viewport, so every
 # draw call in playfield-local coordinates is translated by this.
 var _arena_origin: Vector2 = Vector2.ZERO
@@ -78,51 +92,92 @@ var _elapsed: float = 0.0
 var _vignette: GradientTexture2D = null
 
 
+## DIVERGENCE(M11c review): one of the layer's child canvases; it calls back into the
+## layer to draw.
+class Part:
+	extends Node2D
+	var draw_fn: Callable
+
+	func _draw() -> void:
+		draw_fn.call(self)
+
+
 func _ready() -> void:
-	_background = _build_background()
 	_vignette = _build_vignette()
+	_bg_material = ShaderMaterial.new()
+	_bg_material.shader = BACKGROUND_SHADER
+	_bg_node = _add_part("GridBackground", _draw_background)
+	_bg_node.material = _bg_material
+	_lines_node = _add_part("GridLines", _draw_grid)
+	_frame_node = _add_part("GridFrame", _draw_frame)
+	_update_background_uniforms()
 
 
-func _draw() -> void:
-	if _grid == null:
+func _add_part(part_name: String, draw_fn: Callable) -> Node2D:
+	var part: Part = Part.new()
+	part.name = part_name
+	part.draw_fn = draw_fn
+	add_child(part)
+	return part
+
+
+## Redraws what changed; GameRoot calls it once per rendered frame (was queue_redraw).
+func refresh() -> void:
+	if _grid == null or _frame_node == null:
 		return
 	var pt_draw: int = PerfProbe.now()
 	var viewport: Vector2 = get_viewport_rect().size
-	# DIVERGENCE(M2.5 §6.1): the background still covers the whole viewport so
-	# the inset reads as a frame rather than black bars; the grid and the
-	# perimeter are drawn in playfield space.
-	var size: Vector2 = viewport - _arena_origin * 2.0
-
-	draw_rect(Rect2(Vector2.ZERO, viewport), background_colors()[2])
-	if _background != null:
-		# PORT-NOTE: this block expresses the canvas gradient's centre and
-		# radius as a Rect2/UV mapping onto the pre-baked texture built in
-		# _build_background() — size / 2.0 (centre), Vector2(radius, radius)
-		# and radius * 2.0 (destination rect), fill_from/fill_to (0.5,0.5) and
-		# (1.0,0.5) (radial UV axis) are geometry, not tunable game values.
-		var radius: float = viewport.x * GRADIENT_OUTER_FACTOR
-		var centre: Vector2 = viewport / 2.0
-		draw_texture_rect(
-			_background,
-			Rect2(centre - Vector2(radius, radius), Vector2(radius * 2.0, radius * 2.0)),
-			false
-		)
-
-	draw_set_transform(_arena_origin, 0.0, Vector2.ONE)
+	var bg_key: Array = [viewport, background_colors()]
+	if bg_key != _bg_key:
+		_bg_key = bg_key
+		_update_background_uniforms()
+		_bg_node.queue_redraw()
+	_lines_node.visible = show_gridlines
 	if show_gridlines:
-		_draw_grid()
-
-	_draw_mode_overlay(size)
-
-	# PORT: web/src/tilt-to-live/TiltRenderer.ts:120-127
-	var frame: Rect2 = Rect2(INSET, INSET, size.x - INSET * 2.0, size.y - INSET * 2.0)
-	var boundary: Color = boundary_color()
-	draw_rect(frame, boundary, false, 2.5)
-	var halo: Color = boundary
-	halo.a = BOUNDARY_HALO_ALPHA
-	draw_rect(frame, halo, false, 8.0)
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		# PORT: web/src/tilt-to-live/VectorGrid.ts:109 (strokeStyle = gridColor), as modulate
+		_lines_node.modulate = grid_color()
+		var lines_key: Array = [_grid.revision, _arena_origin, _grid.cols, _grid.rows]
+		if lines_key != _lines_key:
+			_lines_key = lines_key
+			_lines_node.queue_redraw()
+	_frame_node.queue_redraw()
 	PerfProbe.add("d_grid", pt_draw)
+
+
+## The radial gradient's inputs for the background shader.
+## PORT: web/src/tilt-to-live/TiltRenderer.ts:82-92
+func _update_background_uniforms() -> void:
+	if _bg_material == null:
+		return
+	var viewport: Vector2 = get_viewport_rect().size
+	var stops: Array[Color] = background_colors()
+	_bg_material.set_shader_parameter("inner_color", stops[0])
+	_bg_material.set_shader_parameter("mid_color", stops[1])
+	_bg_material.set_shader_parameter("outer_color", stops[2])
+	_bg_material.set_shader_parameter("centre", viewport / 2.0)
+	_bg_material.set_shader_parameter("radius", viewport.x * GRADIENT_OUTER_FACTOR)
+
+
+# DIVERGENCE(M2.5 §6.1): the background still covers the whole viewport so the inset
+# reads as a frame rather than black bars; the grid and perimeter draw in playfield space.
+func _draw_background(part: Node2D) -> void:
+	part.draw_rect(Rect2(Vector2.ZERO, get_viewport_rect().size), Color.WHITE)
+
+
+## Mode overlay and perimeter. PORT: web/src/tilt-to-live/TiltRenderer.ts:101-127
+func _draw_frame(part: Node2D) -> void:
+	var size: Vector2 = get_viewport_rect().size - _arena_origin * 2.0
+	part.draw_set_transform(_arena_origin, 0.0, Vector2.ONE)
+	_draw_mode_overlay(part, size)
+	if show_perimeter:
+		# PORT: web/src/tilt-to-live/TiltRenderer.ts:120-127
+		var frame: Rect2 = Rect2(INSET, INSET, size.x - INSET * 2.0, size.y - INSET * 2.0)
+		var boundary: Color = boundary_color()
+		part.draw_rect(frame, boundary, false, 2.5)
+		var halo: Color = boundary
+		halo.a = BOUNDARY_HALO_ALPHA
+		part.draw_rect(frame, halo, false, 8.0)
+	part.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 ## Gives this layer the grid it draws. Called by GameRoot.
@@ -135,22 +190,19 @@ func set_arena_origin(origin: Vector2) -> void:
 	_arena_origin = origin
 
 
-## Sets the arena theme and rebakes the background. PORT: web/src/tilt-to-live/TiltGame.ts:2312
+## Sets the arena theme (the background follows on the next refresh()).
+## PORT: web/src/tilt-to-live/TiltGame.ts:2312
 func set_arena_theme(theme_config: ProgressionManager.ArenaThemeConfig) -> void:
 	_arena_theme = theme_config
-	_background = _build_background()
 
 
 func get_arena_theme() -> ProgressionManager.ArenaThemeConfig:
 	return _arena_theme
 
 
-## Sets the run's mode; rebakes the background when it changes.
+## Sets the run's mode (the background follows on the next refresh()).
 func set_game_mode(mode: Types.GameMode) -> void:
-	if mode == _game_mode:
-		return
 	_game_mode = mode
-	_background = _build_background()
 
 
 func get_game_mode() -> Types.GameMode:
@@ -205,31 +257,37 @@ func boundary_color() -> Color:
 	return BOUNDARY_COLOR
 
 
-## The baked radial gradient (test-visible).
-func background_texture() -> GradientTexture2D:
-	return _background
+## The background shader's material (test-visible).
+func background_material() -> ShaderMaterial:
+	return _bg_material
 
 
 ## PORT: web/src/tilt-to-live/VectorGrid.ts:86-117
-func _draw_grid() -> void:
+# DIVERGENCE(M11c review): drawn in white (the Lines node's modulate carries the grid
+# colour) and only when the lattice moved (see refresh()).
+func _draw_grid(part: Node2D) -> void:
+	if _grid == null:
+		return
+	part.draw_set_transform(_arena_origin, 0.0, Vector2.ONE)
 	for r: int in range(_grid.rows):
 		var row: PackedVector2Array = PackedVector2Array()
 		var row_offset: int = r * _grid.cols
 		for c: int in range(_grid.cols):
 			row.append(Vector2(_grid.px[row_offset + c], _grid.py[row_offset + c]))
 		if row.size() > 1:
-			draw_polyline(row, grid_color(), 1.0)
+			part.draw_polyline(row, Color.WHITE, 1.0)
 
 	for c: int in range(_grid.cols):
 		var col: PackedVector2Array = PackedVector2Array()
 		for r: int in range(_grid.rows):
 			col.append(Vector2(_grid.px[r * _grid.cols + c], _grid.py[r * _grid.cols + c]))
 		if col.size() > 1:
-			draw_polyline(col, grid_color(), 1.0)
+			part.draw_polyline(col, Color.WHITE, 1.0)
+	part.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 ## Mode-specific atmosphere, in playfield space. PORT: web/src/tilt-to-live/TiltRenderer.ts:101-118
-func _draw_mode_overlay(size: Vector2) -> void:
+func _draw_mode_overlay(part: Node2D, size: Vector2) -> void:
 	if _game_mode == Types.GameMode.CODE_RED:
 		# PORT: web/src/tilt-to-live/TiltRenderer.ts:103-107
 		var alpha: float = 0.10 * alert_pulse(_elapsed)
@@ -239,7 +297,7 @@ func _draw_mode_overlay(size: Vector2) -> void:
 		var tex_side: float = size.x * VIGNETTE_OUTER * 2.0
 		var texel: float = VIGNETTE_TEXTURE_SIZE / tex_side
 		var source: Rect2 = Rect2((Vector2(tex_side, tex_side) - size) / 2.0 * texel, size * texel)
-		draw_texture_rect_region(
+		part.draw_texture_rect_region(
 			_vignette, Rect2(Vector2.ZERO, size), source, Color(1.0, 1.0, 1.0, alpha)
 		)
 	elif _game_mode == Types.GameMode.GAUNTLET:
@@ -247,10 +305,12 @@ func _draw_mode_overlay(size: Vector2) -> void:
 		var s: float = 28.0  # PORT: web/src/tilt-to-live/TiltRenderer.ts:113
 		var edge: float = 10.0  # PORT: web/src/tilt-to-live/TiltRenderer.ts:114-117
 		var width: float = 2.5  # PORT: web/src/tilt-to-live/TiltRenderer.ts:112
-		draw_rect(Rect2(edge, edge, s, s), GAUNTLET_BRACKET, false, width)
-		draw_rect(Rect2(size.x - edge - s, edge, s, s), GAUNTLET_BRACKET, false, width)
-		draw_rect(Rect2(edge, size.y - edge - s, s, s), GAUNTLET_BRACKET, false, width)
-		draw_rect(Rect2(size.x - edge - s, size.y - edge - s, s, s), GAUNTLET_BRACKET, false, width)
+		part.draw_rect(Rect2(edge, edge, s, s), GAUNTLET_BRACKET, false, width)
+		part.draw_rect(Rect2(size.x - edge - s, edge, s, s), GAUNTLET_BRACKET, false, width)
+		part.draw_rect(Rect2(edge, size.y - edge - s, s, s), GAUNTLET_BRACKET, false, width)
+		part.draw_rect(
+			Rect2(size.x - edge - s, size.y - edge - s, s, s), GAUNTLET_BRACKET, false, width
+		)
 
 
 ## The code-red vignette: transparent plasma to the inner radius, full plasma at
@@ -266,25 +326,6 @@ func _build_vignette() -> GradientTexture2D:
 	texture.fill = GradientTexture2D.FILL_RADIAL
 	texture.fill_from = Vector2(0.5, 0.5)
 	texture.fill_to = Vector2(1.0, 0.5)
-	texture.width = int(VIGNETTE_TEXTURE_SIZE)
-	texture.height = int(VIGNETTE_TEXTURE_SIZE)
-	return texture
-
-
-func _build_background() -> GradientTexture2D:
-	var gradient: Gradient = Gradient.new()
-	gradient.offsets = PackedFloat32Array([0.0, 0.125, 0.69375, 1.0])
-	var stops: Array[Color] = background_colors()
-	gradient.colors = PackedColorArray([stops[0], stops[0], stops[1], stops[2]])
-
-	var texture: GradientTexture2D = GradientTexture2D.new()
-	texture.gradient = gradient
-	texture.fill = GradientTexture2D.FILL_RADIAL
-	texture.fill_from = Vector2(0.5, 0.5)
-	texture.fill_to = Vector2(1.0, 0.5)
-	# PORT-NOTE: rasterisation size of the gradient texture; the canvas
-	# gradient TiltRenderer.ts:82-92 ports is computed analytically and has no
-	# equivalent resolution parameter.
 	texture.width = int(VIGNETTE_TEXTURE_SIZE)
 	texture.height = int(VIGNETTE_TEXTURE_SIZE)
 	return texture

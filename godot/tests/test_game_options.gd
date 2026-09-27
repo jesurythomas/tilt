@@ -38,7 +38,8 @@ func test_defaults() -> void:
 	assert_eq(o.settings.screen_shake, GameOptionsManager.ScreenShake.NORMAL, ":85")
 	assert_true(o.settings.tether_line)
 	assert_true(o.settings.high_contrast_halo)
-	assert_false(o.settings.show_gridlines, ":88")
+	# DIVERGENCE(M11c review): the grid defaults to on (the TS default :88 is false).
+	assert_true(o.settings.show_gridlines)
 
 
 func test_mode_catalog_and_lookup() -> void:
@@ -120,14 +121,23 @@ func test_web_shaped_partial_file_merges_over_defaults() -> void:
 		GameOptionsManager.ScreenShake.NORMAL,
 		"unknown string keeps default"
 	)
-	assert_false(o.settings.show_gridlines, "=== true only (:100)")
+	assert_true(o.settings.show_gridlines, "a pre-change save keeps the new default")
 
 
 func test_show_gridlines_is_true_only_for_a_json_true() -> void:
-	_write_raw('{"showGridlines": 1}')
+	_write_raw('{"showGridlines": 1, "gridlinesDefaultOn": true}')
 	assert_false(GameOptionsManager.new().settings.show_gridlines, ":100")
 	_remove(GameOptionsManager.SAVE_PATH)
-	_write_raw('{"showGridlines": true}')
+	_write_raw('{"showGridlines": true, "gridlinesDefaultOn": true}')
+	assert_true(GameOptionsManager.new().settings.show_gridlines)
+	_remove(GameOptionsManager.SAVE_PATH)
+	_write_raw('{"showGridlines": false, "gridlinesDefaultOn": true}')
+	assert_false(GameOptionsManager.new().settings.show_gridlines, "a choice made since sticks")
+
+
+func test_a_save_from_before_the_grid_default_turns_the_grid_on() -> void:
+	# M11c review: the old default (false) was saved by every install; it was not a choice.
+	_write_raw('{"showGridlines": false}')
 	assert_true(GameOptionsManager.new().settings.show_gridlines)
 
 

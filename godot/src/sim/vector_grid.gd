@@ -19,6 +19,10 @@ extends RefCounted
 const SPACING: float = 36.0  # PORT: web/src/tilt-to-live/VectorGrid.ts:15
 const STIFFNESS: float = 0.08  # PORT: web/src/tilt-to-live/VectorGrid.ts:46
 const DAMPING: float = 0.90  # PORT: web/src/tilt-to-live/VectorGrid.ts:47
+## DIVERGENCE(M11c review): below this displacement and speed (px, px per step) every
+## point is snapped to rest and the lattice sleeps until the next explosion; the
+## springs only decay towards rest from there, far below a pixel.
+const SETTLE_EPS: float = 0.02
 
 ## Lattice width in points.
 var cols: int = 0
@@ -36,6 +40,12 @@ var vy: PackedFloat64Array = PackedFloat64Array()
 ## DIVERGENCE(M11c P3): false while nothing draws the grid (gridlines off); update()
 ## and apply_explosion() then do nothing. GameRoot.apply_readability sets it.
 var awake: bool = true
+## DIVERGENCE(M11c review): true while every point is exactly at rest (update() then
+## does nothing); cleared by an explosion that moves a point.
+var settled: bool = true
+## DIVERGENCE(M11c review): bumped whenever a point moves, so a drawer can redraw only
+## then.
+var revision: int = 0
 ## Largest |x - ox| or |y - oy| after the last update() — bounds apply_explosion's
 ## scan window. Positions move only in update(), so it stays valid until the next one.
 var _max_displacement: float = 0.0
@@ -66,13 +76,16 @@ func resize(width: float, height: float) -> void:
 			ox[i] = px[i]
 			oy[i] = py[i]
 	_max_displacement = 0.0
+	settled = true
+	revision += 1
 
 
 ## Advances the spring one step. PORT: web/src/tilt-to-live/VectorGrid.ts:45-63
 func update(_dt: float) -> void:
-	if not awake:
+	if not awake or settled:
 		return
 	var max_d: float = 0.0
+	var max_v: float = 0.0
 	for i: int in range(px.size()):
 		var dx: float = ox[i] - px[i]
 		var dy: float = oy[i] - py[i]
@@ -86,7 +99,16 @@ func update(_dt: float) -> void:
 		px[i] += vx[i]
 		py[i] += vy[i]
 		max_d = maxf(max_d, maxf(absf(px[i] - ox[i]), absf(py[i] - oy[i])))
+		max_v = maxf(max_v, maxf(absf(vx[i]), absf(vy[i])))
 	_max_displacement = max_d
+	revision += 1
+	if max_d < SETTLE_EPS and max_v < SETTLE_EPS:
+		px = ox.duplicate()
+		py = oy.duplicate()
+		vx.fill(0.0)
+		vy.fill(0.0)
+		_max_displacement = 0.0
+		settled = true
 
 
 ## Pushes points away from (cx, cy). PORT: web/src/tilt-to-live/VectorGrid.ts:65-80
@@ -115,6 +137,7 @@ func apply_explosion(cx: float, cy: float, force: float, radius: float) -> void:
 				var factor: float = (1.0 - dist / radius) * force
 				vx[i] += (dx / dist) * factor
 				vy[i] += (dy / dist) * factor
+				settled = false
 
 
 ## Explosion with a negated force. PORT: web/src/tilt-to-live/VectorGrid.ts:82-84

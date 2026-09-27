@@ -343,7 +343,10 @@ func _process(_delta: float) -> void:
 	_grid_layer.position = offset
 	_entity_layer.position = offset
 	_effect_layer.position = offset
-	_grid_layer.queue_redraw()
+	# DIVERGENCE(M11c review): the menu's right column covers half the arena, so the
+	# perimeter framed only its left half; it is hidden while the menu shows.
+	_grid_layer.show_perimeter = _state.phase != Types.GamePhase.MENU
+	_grid_layer.refresh()  # DIVERGENCE(M11c review): redraws only what changed
 	_entity_layer.queue_redraw()
 	_effect_layer.queue_redraw()
 	_joystick_layer.queue_redraw()

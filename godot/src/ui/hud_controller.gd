@@ -553,6 +553,11 @@ func _on_phase_changed(phase: Types.GamePhase) -> void:
 	for node: Control in [_score_block, _pause_button]:
 		if node != null:
 			node.visible = not in_menu
+	# DIVERGENCE(M11c review): the menu's right column covers half the arena, so the
+	# frame's outline read as a border around half the screen. self_modulate hides the
+	# panel's own outline only; the HUD controls it parents are unaffected.
+	if _frame != null:
+		_frame.self_modulate.a = 0.0 if in_menu else 1.0
 	if in_menu:
 		for node: Control in [_lives_row, _weapon_timer]:
 			if node != null:

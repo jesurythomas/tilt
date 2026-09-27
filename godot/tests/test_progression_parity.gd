@@ -352,9 +352,14 @@ func test_default_settings_match_the_typescript() -> void:
 	assert_eq(o.settings.screen_shake, SHAKE_NAMES[SaveStore.read_string(want, "screenShake", "")])
 	assert_eq(o.settings.tether_line, SaveStore.read_bool(want, "tetherLine", false))
 	assert_eq(o.settings.high_contrast_halo, SaveStore.read_bool(want, "highContrastHalo", false))
-	assert_eq(o.settings.show_gridlines, SaveStore.read_bool(want, "showGridlines", true))
+	# DIVERGENCE(M11c review): the grid defaults to on (the TS default is false).
+	assert_false(SaveStore.read_bool(want, "showGridlines", true), "TS default")
+	assert_true(o.settings.show_gridlines)
 	# The round trip preserves the TS strings.
-	_assert_dict_numbers_equal(o.settings.to_dict(), want, "default_settings")
+	var got: Dictionary = o.settings.to_dict()
+	got.erase(GameOptionsManager.GRID_DEFAULT_KEY)
+	got["showGridlines"] = false  # the one divergent default, asserted above
+	_assert_dict_numbers_equal(got, want, "default_settings")
 
 
 func test_shake_multipliers_match_the_typescript() -> void:
