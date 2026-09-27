@@ -456,3 +456,17 @@ User ruling: C++ GDExtension for the hot path, not C# (Android C# is experimenta
   vortex 179 → 55, nuke 50 → 26; grid while woken 95 → 8; nuke worst tick 1.6–2.0 →
   0.66–0.77 ms. Remaining: particle flush 45–96 µs/tick (400 particle objects), laser
   kill bursts (0.85–0.93 ms worst tick), per-kill HUD tween on device.
+- [x] **Power-up test mode** (user: "a test mode which just spawns faster and trigger
+  different power ups between intervals"): `perf_patch.sh` now caps the seeker spawn
+  timer at 0.12 s and the wave timer at 2 s, and every POWER_EVERY s (3) fires the
+  next of POWERS (all seven) at the ship, logging `POWER <NAME> en=N`; the readout
+  names it. `power_fps.sh` (was nuke_fps.sh) prints fps around each. Still a tagged,
+  never-committed patch.
+- [x] **Export excludes `build/*, bench/*, tests/*`**: the APK carried every file in
+  `godot/build/` (30 screenshots, scratch scripts) plus benches and tests. Housekeeping
+  only — the user does not care about APK size ("100mb is no different to 300mb").
+  Local `godot/build/.gdignore` (git-ignored path) stops the editor importing them.
+- Emulator health: the Pixel_10 image's UWB HAL crash-loops (~every 20 s, tombstones
+  in `logcat -b crash`); after 20 h up, init/servicemanager ran at 100%+ CPU and the
+  game dropped to 1–2 fps (a run never left the menu). Launch the emulator with
+  `emulator -avd Pixel_10 -no-snapshot-save -feature -Uwb` (0 UWB crashes after).
