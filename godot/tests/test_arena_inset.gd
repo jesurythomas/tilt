@@ -69,3 +69,23 @@ func test_the_playfield_is_always_smaller_than_the_viewport() -> void:
 	var inset: Vector2 = GameRoot.arena_inset(viewport, safe)
 	assert_gt(inset.x, 0.0, "there is always some inset")
 	assert_gt(inset.y, 0.0, "there is always some inset")
+
+
+func test_the_arena_clip_is_off_in_the_menu_and_on_the_arena_in_play() -> void:
+	# M11c review: play layers are clipped to the arena (the TS canvas edge).
+	var origin: Vector2 = Vector2(80.0, 12.0)
+	var bounds: Vector2 = Vector2(2264.0, 1056.0)
+	var menu: Rect2 = GameRoot.arena_clip_for(Types.GamePhase.MENU, origin, bounds, Vector2.ZERO)
+	assert_false(menu.has_area(), "the menu's backdrop and grid stay full-screen")
+	for phase: Types.GamePhase in [
+		Types.GamePhase.CINEMATIC,
+		Types.GamePhase.PLAYING,
+		Types.GamePhase.PAUSED,
+		Types.GamePhase.GAME_OVER
+	]:
+		var play: Rect2 = GameRoot.arena_clip_for(phase, origin, bounds, Vector2.ZERO)
+		assert_eq(play, Rect2(origin, bounds), "phase %d: the arena" % phase)
+	var shaken: Rect2 = GameRoot.arena_clip_for(
+		Types.GamePhase.PLAYING, origin, bounds, Vector2(3.0, -2.0)
+	)
+	assert_eq(shaken.position, Vector2(77.0, 14.0), "layer space: the clip stays put on screen")

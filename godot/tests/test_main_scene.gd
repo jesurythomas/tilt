@@ -959,3 +959,19 @@ func test_launch_run_does_not_recalibrate_the_gyro() -> void:
 		calibrated_before,
 		"launch_run must not recalibrate the gyro (final review I-1)"
 	)
+
+
+func test_a_run_clips_the_play_layers_to_the_arena() -> void:
+	# M11c review: blast rings and pushed grid lines drew into the margin.
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	assert_false(root.arena_clip_rect.has_area(), "no clip in the menu")
+	root.launch_run(root.options.settings.mode)
+	root.skip_cinematic()
+	root.camera_shake = 0.0
+	await get_tree().process_frame
+	await get_tree().process_frame
+	assert_eq(root.arena_clip_rect.position, root.arena_origin, "clipped at the arena origin")
+	assert_eq(root.arena_clip_rect.size, root.get_viewport_rect().size - root.arena_origin * 2.0)

@@ -105,16 +105,11 @@ func test_tight_circle_uses_the_code_red_values() -> void:
 		assert_almost_eq(e.special_timer, 0.75, 0.001)
 
 
-func test_wall_spacing_still_blocks_every_ship_but_singularity() -> void:
-	# M11c P29: the midpoint between two wall dots must stay inside the contact distance
-	# of the smallest non-Singularity hitbox (Shuriken x max hull compact).
-	var smallest: float = INF
-	for ship: ProgressionManager.ShipSkinConfig in ProgressionManager.new().ship_catalog:
-		if ship.id != "singularity":
-			smallest = minf(smallest, ship.hitbox_scale)
-	var compact: float = 1.0 - 0.06 * float(ProgressionManager.HULL_COMPACT_COSTS.size())
-	var contact: float = 9.0 * smallest * compact + EnemySwarm.WALL_RADIUS
-	assert_lt(EnemySwarm.WALL_SPACING * 0.5, contact, "a ship cannot pass between dots")
+func test_wall_spacing_still_blocks_the_default_ship() -> void:
+	# M11c P29: the midpoint between two wall dots stays inside the default ship's
+	# contact distance (hitbox 1.0, no hull compact); smaller hitboxes may pass (user).
+	var contact: float = 9.0 * 1.0 + 8.0
+	assert_lt(EnemySwarm.WALL_SPACING * 0.5, contact, "the default ship cannot pass")
 
 
 func test_wall_formation_leaves_a_three_dot_gap() -> void:
@@ -125,7 +120,7 @@ func test_wall_formation_leaves_a_three_dot_gap() -> void:
 	assert_eq(_swarm.enemies.size(), num_dots - 3, "|i - gapIndex| <= 1 skips three")
 	for e: Types.Enemy in _swarm.enemies:
 		assert_eq(e.type, Types.EnemyType.WALL_DOT)
-		assert_almost_eq(e.radius, 10.5, 0.001, "DIVERGENCE(M11c P29): TS 8")
+		assert_almost_eq(e.radius, 8.0, 0.001)
 		if horizontal:
 			assert_eq(e.vx, 0.0)
 			assert_almost_eq(absf(e.vy), 140.0, 0.001)

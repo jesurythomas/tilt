@@ -47,6 +47,8 @@ const TOUCH_JOYSTICK_SPEED_SCALE: float = 0.72
 ## The playfield's top-left corner in viewport space. Render layers translate
 ## by this; the simulation never sees it (M2.5 spec §6.1).
 var arena_origin: Vector2 = Vector2.ZERO
+## The play layers' current clip rect (empty: none); see arena_clip_for.
+var arena_clip_rect: Rect2 = Rect2()
 
 ## TiltRenderer.cameraShake. PORT: web/src/tilt-to-live/TiltRenderer.ts:12
 var camera_shake: float = 0.0
@@ -347,6 +349,7 @@ func _process(_delta: float) -> void:
 	_grid_layer.position = offset
 	_entity_layer.position = offset
 	_effect_layer.position = offset
+	_apply_arena_clip(arena_clip_for(_state.phase, arena_origin, _bounds, offset))
 	# DIVERGENCE(M11c review): the menu's right column covers half the arena, so the
 	# perimeter framed only its left half; it is hidden while the menu shows.
 	_grid_layer.show_perimeter = _state.phase != Types.GamePhase.MENU
@@ -710,6 +713,37 @@ static func arena_inset(viewport: Vector2, safe: Rect2) -> Vector2:
 	var inset_x: float = clampf(reported_x, MIN_INSET_X, viewport.x * MAX_INSET_RATIO)
 	var inset_y: float = clampf(reported_y, MIN_INSET_Y, viewport.y * MAX_INSET_RATIO)
 	return Vector2(inset_x, inset_y)
+
+
+## DIVERGENCE(M11c review, user 2026-09-27: "a circle in the background with different
+## colors, and a radiating circle from the outside boundary ... also with other
+## powerups"): the TS canvas is the arena, so a blast ring, a weapon effect or a grid
+## point pushed past its edge was never drawn. Here the arena is inset in a larger
+## screen and those drew into the margin. Outside the menu, the entity and effect
+## layers and the grid lines are clipped to the arena (in layer space, so the clip
+## stays on screen while the layers shake). The menu keeps its full-screen backdrop
+## and grid. Returns the clip rect, or an empty rect for no clip.
+static func arena_clip_for(
+	phase: Types.GamePhase, origin: Vector2, bounds: Vector2, shake_offset: Vector2
+) -> Rect2:
+	if phase == Types.GamePhase.MENU:
+		return Rect2()
+	return Rect2(origin - shake_offset, bounds)
+
+
+## Applies arena_clip_for's rect to the play layers when it changes.
+func _apply_arena_clip(rect: Rect2) -> void:
+	if rect == arena_clip_rect:
+		return
+	arena_clip_rect = rect
+	var clip: bool = rect.has_area()
+	for item: RID in [
+		_entity_layer.get_canvas_item(),
+		_effect_layer.get_canvas_item(),
+		_grid_layer.lines_canvas_item()
+	]:
+		RenderingServer.canvas_item_set_custom_rect(item, clip, rect)
+		RenderingServer.canvas_item_set_clip(item, clip)
 
 
 ## Resizes viewport-dependent state.

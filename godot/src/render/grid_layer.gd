@@ -264,6 +264,11 @@ func boundary_color() -> Color:
 	return BOUNDARY_COLOR
 
 
+## The grid lines' canvas item, for GameRoot's arena clip (M11c review).
+func lines_canvas_item() -> RID:
+	return _lines_node.get_canvas_item() if _lines_node != null else RID()
+
+
 ## The background shader's material (test-visible).
 func background_material() -> ShaderMaterial:
 	return _bg_material

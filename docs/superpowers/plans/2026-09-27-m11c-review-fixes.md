@@ -409,3 +409,30 @@ User ruling: C++ GDExtension for the hot path, not C# (Android C# is experimenta
   patch and never started — no data came from them); `nuke_fps.sh` prints fps/enemies
   around each auto-nuke. First finding: a 200-enemy nuke drops fps 44–52 → 15–17 for
   ~2 s with far fewer enemies left — the mass kill is its own spike (next to profile).
+- [x] **P29 revised** (user: "reduce the model size of the horizontal and vertical enemy
+  walls. just increase the spacing"): dots back to the TS radius 8, spacing stays 32,
+  gap 3 slots. The default ship (hitbox 1.0) is still blocked (16 < 17); smaller
+  hitboxes (Shuriken, Singularity, hull compact) can slip between dots — user's call.
+- [x] **Arena clip** (user: "a circle in the background with different colors, and a
+  radiating circle from the outside boundary ... also with other powerups"). Cause:
+  the TS canvas *is* the arena, so blast rings, weapon effects and grid points pushed
+  past the edge never drew; the port insets the arena in a larger screen and nothing
+  clipped. Zoomed screenshot: the nuke disc/rings and explosion-warped grid lines drew
+  into the left margin. Fix: outside the menu, GameRoot clips EntityLayer,
+  EffectLayer and the grid lines to the arena (`RenderingServer.canvas_item_set_clip`
+  + custom rect, in layer space so shake does not move it); background and frame
+  unclipped, menu unclipped. Tests: `arena_clip_for` rule + a booted run's
+  `arena_clip_rect`; returning no clip fails both.
+- [x] **N2 emulator A/B** (5 pairs, auto-nuke at 200, square autopilot, identical
+  builds but `use_native`): separation 150–199 4.7 → 2.4 ms/frame, fps 25.8 → 29.2;
+  0 errors in 10 runs. The square keeps the swarm spread, so separation was small.
+  Bigger finding: 1–3 s after a nuke fps is 16.3 (vs 33–36 otherwise); the grid costs
+  3.2 ms/frame there (0.06 normally) and weapons 3.5 ms.
+- [ ] **Power-up FPS** (user: "one thing we really need to fix is the FPS drop when
+  powerups are used"). `bench/bench_powerups.gd` (200 enemies, each power-up at the
+  ship, 2 s): extra µs/tick over baseline — missiles weapons +180; vortex weapons
+  +180, grid +95, particles +96; nuke grid +95, particles +50, worst tick 1.7 ms (the
+  kill burst); laser grid +38, particles +48; freeze grid +42. Plan: (1) grid step in
+  C++ (all power-ups and every kill wake it; visual only); (2) missiles: one target
+  map per tick instead of 16 id scans, cheaper contact test (exact); (3) HUD score
+  pulse once per frame, not per kill; (4) particles in C++.
