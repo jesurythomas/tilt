@@ -702,6 +702,12 @@ nothing below has run on it. Debug builds print one `PERF` line per second:
       it on once; Settings can turn it off and that sticks). It ripples on kills and
       settles; the arena background has no banding rings; PERF `s_grid` stays low.
 - [ ] 13. **Menu.** No border around only the left half of the screen.
+- [ ] 13a. **Particles (P25).** Explosions, sparks, thruster trails and kill rings look
+      and move as before (they now integrate once per frame, in closed form); nothing
+      jumps when the frame rate dips.
+- [ ] 13b. **Armory/Milestones/HUD details.** Boost cards show their names; milestone
+      rewards read "+N pt(s)"; Pause reads "Score N · m:ss · Mode"; the HUD's BEST turns
+      "NEW BEST" once passed.
 - [ ] 14. **Launch.** Home-screen icon is the blue ship; opening the app shows the
       ship on the system splash (light background — needs a Gradle build to change),
       then the PERIL POINT loading screen, then the menu.

@@ -1714,7 +1714,15 @@ splash background stays light without a Gradle build. Then the rest of Task 9 (b
 names were squeezed out by clip_text; "+N pt(s)" rewards; "Score …" on Pause; live
 "NEW BEST"); the other review items were either already handled in code or TS/board
 content (listed in the plan). The user said "no need to clear. just proceed
-entirely" (2026-09-27): keep going task to task without /clear stops. Emulator notes: the arm64
+entirely" (2026-09-27): keep going task to task without /clear stops. Since then: the
+Android build uses Gradle (dark system splash; one-time local setup in VERIFY-ME §0),
+a fresh reviewer's four findings are fixed (reset flush, look-keyed sprite caches,
+texture-sized frozen/satellite draws, scroll per tab), and particles integrate once
+per rendered frame (P25: 150+ enemies `s_particles` 4.9 → 1.1 ms/frame on the
+emulator). The sim is at GDScript's per-object floor (~1–2.5 µs/enemy/tick); further
+FPS needs the user's call: a 60 Hz sim with interpolation (spec D8 chose 120 Hz) or a
+native (GDExtension) swarm tick — this machine has no Python, so scons/godot-cpp would
+need installing. Desktop draw benches: run with `--render-thread safe`. Emulator notes: the arm64
 APK runs under translation; reboot the emulator if the sensors HAL crash-loops
 (it skewed one run); keep the host idle while measuring; a no-death build is a
 temporary one-line early return in `RunController.lose_life`, never committed —
