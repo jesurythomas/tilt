@@ -251,3 +251,31 @@ Tests: 5 queued steps match 5 updates (1e-9); a particle born mid-batch integrat
 later steps. Emulator Code Red A/B at 150+ enemies: `s_particles` 4.93 → 1.14 ms/frame
 (more particles alive); 150–249 fps 13.7 → 21.9. `tools/emulator/ab.sh` now selects
 Code Red before Play.
+
+### Verification ×5 (user, 2026-09-27: "do a thorough verification - do it 5 times")
+- [x] Automated ×5: 678/678 tests each run; gdlint clean; headless smoke 0 errors;
+  `gdformat --check` flags only the pre-existing scratch `bench/bench_visual.gd`.
+- [x] Emulator UI pass ×5 (`tools/emulator/verify_ui.sh`): alive every run, 0 script
+  errors or fatals. **False positive found and fixed:** the menu still showed an edge
+  around half the screen — the grid was drawn from the arena inset, leaving a plain
+  band at the left and top. `GridLayer.grid_fills_viewport` (set while the menu
+  shows) draws it from the screen origin; re-checked 5/5. Boost names, reward units,
+  the Settings header, the coloured Handling ship and the payout hint were confirmed
+  in all 5 runs; "Score …" on Pause only in the 2 runs that survived to pause; the
+  HUD's NEW BEST only by unit test.
+- [x] Launch ×5: dark system splash with the ship → a **black gap of ~3–5 s** →
+  the boot splash, the same every run. Not fixed: that is Godot's engine start
+  (a `windowBackground` theme attribute was tried and made no difference;
+  reverted).
+- [x] Desktop benches ×5: sim 566–583 µs/tick (loop ~278–286, separation ~284–292);
+  draw seekers 349–364 µs (`--render-thread safe`). Stable.
+- [x] **P24 confirmed** (it was suspect: Android logs "Rendering thread not
+  supported by this display server"). Identical god builds differing only in
+  `thread_model` (2 vs 1), 5 alternating Code Red pairs, 100 s each, fps by enemy
+  count (all runs pooled, samples in brackets):
+  100–149 51.9 [63] vs 36.7 [55]; 150–199 35.6 [95] vs 24.7 [69]; 200–249 20.3 [77]
+  vs 13.8 [80]; 250+ ~9 vs ~9 (sim-bound). Main-thread entity draw 3.3 vs 10.1 ms at
+  150–199. At 150–249 Separate led in 4 pairs, tied in 1 (28.1 vs 28.5). 0 errors or
+  crashes in 10 runs. So the setting still moves rendering off the main thread
+  despite the warning. Still to confirm on the A55: steering latency (VERIFY-ME
+  §M11c 7).

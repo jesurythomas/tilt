@@ -65,6 +65,11 @@ var show_gridlines: bool = true
 ## DIVERGENCE(M11c review): false while the menu shows — its right column covers half
 ## the arena, so the perimeter framed only the left half of the screen.
 var show_perimeter: bool = true
+## DIVERGENCE(M11c review, verification 2026-09-27): true while the menu shows — the
+## grid is drawn from the screen origin so it fills the screen; drawn from the arena
+## inset it left a plain band at the left and top that read as an edge around half
+## the screen.
+var grid_fills_viewport: bool = false
 
 ## The reactive grid. Null until bind() is called.
 var _grid: VectorGrid = null
@@ -136,7 +141,9 @@ func refresh() -> void:
 	if show_gridlines:
 		# PORT: web/src/tilt-to-live/VectorGrid.ts:109 (strokeStyle = gridColor), as modulate
 		_lines_node.modulate = grid_color()
-		var lines_key: Array = [_grid.revision, _arena_origin, _grid.cols, _grid.rows]
+		var lines_key: Array = [
+			_grid.revision, _arena_origin, _grid.cols, _grid.rows, grid_fills_viewport
+		]
 		if lines_key != _lines_key:
 			_lines_key = lines_key
 			_lines_node.queue_redraw()
@@ -268,7 +275,8 @@ func background_material() -> ShaderMaterial:
 func _draw_grid(part: Node2D) -> void:
 	if _grid == null:
 		return
-	part.draw_set_transform(_arena_origin, 0.0, Vector2.ONE)
+	var origin: Vector2 = Vector2.ZERO if grid_fills_viewport else _arena_origin
+	part.draw_set_transform(origin, 0.0, Vector2.ONE)
 	for r: int in range(_grid.rows):
 		var row: PackedVector2Array = PackedVector2Array()
 		var row_offset: int = r * _grid.cols

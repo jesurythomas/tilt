@@ -684,7 +684,10 @@ nothing below has run on it. Debug builds print one `PERF` line per second:
 - [ ] 7. **Render thread (P24).** `rendering/driver/threads/thread_model=2`
       (Separate). Steering must still feel immediate (it can add up to ~2 frames of
       latency); no flicker, no crash over a long run. If it feels laggy or crashes,
-      delete that one line from `project.godot` and report.
+      delete that one line from `project.godot` and report. (The emulator A/B,
+      5 pairs, 2026-09-27: Separate is ~40–50% faster at 100–249 enemies despite
+      the logcat line "Rendering thread not supported by this display server" —
+      ignore that line. The latency feel still needs a person.)
 - [ ] 8. **Late run with walls and carriers.** The user's drop points. Classic past
       100 enemies: PERF `fps` at 150+ enemies and whether a wall formation still
       causes a visible drop. Emulator (3.4× slower than the A55 per dot) went from
