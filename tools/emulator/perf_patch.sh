@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
 # Emulator helpers (M11c review, 2026-09-27).
-# Usage: perf_patch.sh apply|revert — the temporary perf-test build patch, never committed.
+# Usage: perf_patch.sh apply|revert — the temporary perf test mode, never committed.
 #   apply:  (1) no-death: RunController.lose_life returns;
-#           (2) auto-nuke at the player's position whenever the swarm reaches NUKE_AT
-#               enemies (default 200; at most one per 3 s), logging "NUKE en=N";
-#           (3) an on-screen readout (GameRoot): FPS, frame ms, enemy count, and
-#               "NUKE!" for 2 s after each nuke — so the drop is visible while watching.
+#           (2) test mode (user, 2026-09-27: "a test mode which just spawns faster and
+#               trigger different power ups between intervals"): seeker spawns at
+#               least every 0.12 s and formations every 2 s (FAST_SPAWN=0: off), and
+#               every POWER_EVERY s (default 3) the next power-up in POWERS (default
+#               all seven, in order) fires at the ship, logging "POWER <NAME> en=N"
+#               (tools/emulator/power_fps.sh reads it);
+#           (3) an on-screen readout (GameRoot): FPS, frame ms, enemy count, and the
+#               power-up's name for 2 s after it fires;
+#           (4) autopilot: the ship steers around a square centred on the arena.
 #           Then compiles both scripts (warnings are errors: a parse error breaks the
 #           whole game on device) and reverts itself if they do not compile.
 #   revert: deletes every line tagged "# TEMP perf" — nothing else changes, so
@@ -13,14 +18,16 @@
 D="$(dirname "$0")"
 R="$D/../../godot/src/sim/run_controller.gd"
 GR="$D/../../godot/src/core/game_root.gd"
-N="${NUKE_AT:-200}"
+EVERY="${POWER_EVERY:-3.0}"
+POWERS="${POWERS:-NUKE MISSILES LIGHTNING LASER VORTEX FREEZE SHIELD}"
+FAST="${FAST_SPAWN:-1}"
 G="${GODOT:-/c/Users/Jesury/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe}"
 case "$1" in
   apply)
     if grep -q "# TEMP perf" "$R" "$GR"; then echo "already applied"; exit 1; fi
-    python - "$R" "$GR" "$N" <<'PY' || exit 1
+    python - "$R" "$GR" "$EVERY" "$POWERS" "$FAST" <<'PY' || exit 1
 import sys
-rc, gr, n = sys.argv[1], sys.argv[2], sys.argv[3]
+rc, gr, every, powers, fast = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4].split(), sys.argv[5] == "1"
 T = "  # TEMP perf — do not commit"
 
 def patch(path, anchor, lines, before=False):
@@ -32,20 +39,38 @@ def patch(path, anchor, lines, before=False):
     s = s.replace(anchor, "\n" + block + anchor[1:] if before else anchor + block)
     open(path, "w", encoding="utf-8", newline="").write(s)
 
-# Anchors start with "\n" so an indented copy of the same line never matches.
+# (1) no-death. Anchors start with "\n" so an indented copy of the line never matches.
 patch(rc, "\n\tif player.has_shield():\n", [
     "\tif OS.is_debug_build():",
     "\t\treturn",
 ], before=True)
-patch(rc, '\n\tPerfProbe.add("s_swarm", pt_swarm)\n', [
-    '\tvar tmp_nuke_t: float = get_meta("tmp_nuke", -99.0)',
-    "\tif swarm.enemies.size() >= %s and elapsed - tmp_nuke_t > 3.0:" % n,
-    '\t\tset_meta("tmp_nuke", elapsed)',
-    '\t\tEngine.set_meta("tmp_nuke_ms", Time.get_ticks_msec())',
-    '\t\tprint("NUKE en=%d" % swarm.enemies.size())',
-    "\t\tweapons.trigger_weapon(Types.WeaponType.NUKE, player.x, player.y, player, swarm.enemies, particles, grid, audio, Callable(self, \"handle_enemy_killed\"), progression.data.perks)",
-    "\t\t_on_weapon_activated(Types.WeaponType.NUKE)",
-])
+
+# (2) faster spawns and the power-up cycle, right after the swarm step.
+lines = []
+if fast:
+    lines += [
+        "\tswarm._spawn_timer = minf(swarm._spawn_timer, 0.12)",
+        "\tswarm._wave_timer = minf(swarm._wave_timer, 2.0)",
+    ]
+plist = ", ".join("Types.WeaponType." + p for p in powers)
+lines += [
+    '\tvar tmp_pow_t: float = get_meta("tmp_pow_t", 0.0)',
+    "\tif elapsed - tmp_pow_t >= %s:" % every,
+    '\t\tset_meta("tmp_pow_t", elapsed)',
+    "\t\tvar tmp_list: Array[Types.WeaponType] = [%s]" % plist,
+    '\t\tvar tmp_k: int = get_meta("tmp_pow_k", 0)',
+    '\t\tset_meta("tmp_pow_k", tmp_k + 1)',
+    "\t\tvar tmp_w: Types.WeaponType = tmp_list[tmp_k % tmp_list.size()]",
+    "\t\tvar tmp_name: String = Types.WeaponType.keys()[tmp_w]",
+    '\t\tEngine.set_meta("tmp_pow_ms", Time.get_ticks_msec())',
+    '\t\tEngine.set_meta("tmp_pow_name", tmp_name)',
+    '\t\tprint("POWER %s en=%d" % [tmp_name, swarm.enemies.size()])',
+    "\t\tweapons.trigger_weapon(tmp_w, player.x, player.y, player, swarm.enemies, particles, grid, audio, Callable(self, \"handle_enemy_killed\"), progression.data.perks)",
+    "\t\t_on_weapon_activated(tmp_w)",
+]
+patch(rc, '\n\tPerfProbe.add("s_swarm", pt_swarm)\n', lines)
+
+# (3) on-screen readout.
 patch(gr, "\nfunc _process(_delta: float) -> void:\n", [
     '\tvar tmp_l: Label = get_node_or_null("CanvasLayer/TmpFps") as Label',
     "\tif tmp_l == null:",
@@ -56,10 +81,12 @@ patch(gr, "\nfunc _process(_delta: float) -> void:\n", [
     '\t\ttmp_l.add_theme_constant_override("outline_size", 12)',
     '\t\ttmp_l.add_theme_color_override("font_outline_color", Color.BLACK)',
     "\t\t$CanvasLayer.add_child(tmp_l)",
-    '\tvar tmp_nuke_ms: int = Engine.get_meta("tmp_nuke_ms", -100000)',
-    '\tvar tmp_tag: String = "   NUKE!" if Time.get_ticks_msec() - tmp_nuke_ms < 2000 else ""',
+    '\tvar tmp_pow_ms: int = Engine.get_meta("tmp_pow_ms", -100000)',
+    '\tvar tmp_pow_name: String = Engine.get_meta("tmp_pow_name", "")',
+    '\tvar tmp_tag: String = ("   " + tmp_pow_name + "!") if Time.get_ticks_msec() - tmp_pow_ms < 2000 else ""',
     '\ttmp_l.text = "%d FPS  %.0f ms  %d enemies%s" % [Engine.get_frames_per_second(), get_process_delta_time() * 1000.0, _swarm.enemies.size(), tmp_tag]',
 ])
+
 # (4) autopilot: the ship steers around a square (half side = 0.3 x the short side)
 # centred on the arena, next corner within 40 px — closed loop, so it never drifts.
 patch(gr, "\n\t_run_controller.update(\n\t\tdt, effective_mode,", [
@@ -74,7 +101,7 @@ patch(gr, "\n\t_run_controller.update(\n\t\tdt, effective_mode,", [
     "\tdirectional = tmp_to.normalized() * TOUCH_JOYSTICK_SPEED_SCALE",
 ], before=True)
 PY
-    echo "applied ($(cat "$R" "$GR" | grep -c '# TEMP perf') lines, NUKE_AT=$N)"
+    echo "applied ($(cat "$R" "$GR" | grep -c '# TEMP perf') lines; every ${EVERY}s: $POWERS; fast spawn $FAST)"
     OUT="$("$G" --headless --path "$D/../../godot" -s addons/gut/gut_cmdln.gd \
       -gtest=res://tests/test_run_controller.gd,res://tests/test_game_state_machine.gd -gexit 2>&1)"
     if echo "$OUT" | grep -q "SCRIPT ERROR"; then

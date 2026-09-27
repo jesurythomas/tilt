@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Emulator helpers (M11c review, 2026-09-27).
-# Usage: nuke_fps.sh LOG... — for each "NUKE en=N" in a perf-patch run, the PERF fps and
-# enemy count for the 3 lines (seconds) before and the 4 after, to show the nuke-time dip.
+# Usage: power_fps.sh LOG... — for each "POWER <NAME> en=N" in a perf-patch run, the PERF fps and
+# enemy count for the 3 lines (seconds) before and the 4 after, to show the power-up dip.
 for f in "$@"; do
   echo "== $f"
-  grep -E "NUKE en=|PERF fps" "$f" | sed 's/.*godot *: //' | awk '
-    /^NUKE/ { nuke[++nn] = NR; label[nn] = $0; next }
+  grep -E "POWER [A-Z]+ en=|PERF fps" "$f" | sed 's/.*godot *: //' | awk '
+    /^POWER/ { nuke[++nn] = NR; label[nn] = $0; next }
     { line[NR] = $0 }
     END {
       for (k = 1; k <= nn; k++) {

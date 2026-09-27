@@ -4,6 +4,12 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
+**Current (2026-09-27, ~22:30): M11c review fixes + FPS work in progress, on the
+C++ path.** Active plan `docs/superpowers/plans/2026-09-27-m11c-review-fixes.md`;
+the head of `## Next` below says exactly where it stands and what to do first.
+Everything is committed; the tree is clean. The paragraphs after this one are older
+history, kept for their evidence.
+
 **M11c part 1 — Performance: code-complete, A55 measurement pending
 (2026-09-26).** Plan `docs/superpowers/plans/2026-09-26-m11c-performance.md`;
 its execution rulings are in the plan's task Status lines and below (the git-ignored ledger was cleared after the final review).
@@ -1688,6 +1694,53 @@ block and output: "## How to verify right now" above. Full report:
    story but not its coverage.
 
 ## Next
+
+**Where it stands (2026-09-27, ~22:30).** Since the handoff was last rewritten
+(`2371545`, the C++ scaffold), six commits landed (`33a34fa..9b4581e`), all in the
+plan's sections "N2", "User rulings (2026-09-27, evening)" and "Power-up FPS":
+- **N2 — separation in C++** (`PerilNative.separate`, `EnemySwarm.use_native`,
+  default true). Bit-exact: every sweep oracle runs both paths. Blob of 325: 4.6×
+  faster; late-mix swarm step −39%. Emulator A/B: fps 25.8 → 29.2 at 150–199.
+- **P29 — wall formations spaced out** (user): spacing 32 × scale, TS dot radius 8,
+  3-slot gap (`EnemySwarm.WALL_SPACING/RADIUS/GAP_HALF`). The default ship is still
+  blocked; smaller hitboxes (Shuriken, Singularity, hull compact) can slip through,
+  which is the user's call.
+- **Milestone rail hidden** (user: "a bar on top which doesnt seem to be doing
+  anything"). The Milestones screen and the toasts remain.
+- **Arena clip:** entity, effect and grid-line layers are clipped to the arena
+  outside the menu (blast rings and warped grid lines drew into the margin; the
+  TS canvas *is* the arena).
+- **P31 — grid step and big blasts in C++**, **P32 — missile snapshot**, **P33 —
+  vortex locals**, all bit-exact with golden tests. Power-up extra cost
+  (`bench/bench_powerups.gd`, µs/tick): missiles 184 → 70, vortex 179 → 55, nuke
+  50 → 26; nuke worst tick 1.6–2.0 → 0.66–0.77 ms.
+- **This commit:**
+  - The APK now excludes `build/*, bench/*, tests/*` (the review's deferred
+    minor). Export verified: 0 such files in the APK, and it boots on the
+    emulator with 0 script errors.
+  - The perf patch gained a **test mode** (user: "a test mode which just spawns
+    faster and trigger different power ups between intervals"). Every
+    `POWER_EVERY` s (default 3) it fires the next of `POWERS` (all seven by
+    default) at the ship, with faster spawns (`FAST_SPAWN=0` turns them off),
+    and logs `POWER <NAME> en=N`.
+  - `tools/emulator/nuke_fps.sh` → `power_fps.sh` reads those lines.
+  - The patch is never committed applied: `perf_patch.sh apply|revert`.
+  - **The test mode has not been run yet.**
+- **Open:** the debug APK is 87.8 MB (32 MB at the start of M11c; the Gradle
+  build and the native libs landed since). Not investigated.
+
+**Next, literally:**
+1. Run the test mode on the emulator: `tools/emulator/perf_patch.sh apply`,
+   export, install, play it, then `power_fps.sh`; then `perf_patch.sh revert`.
+   Confirm it works, and record per-power-up fps and enemy counts in the plan's
+   "Power-up FPS" item. The user's priority is "the FPS drop when powerups are
+   used".
+2. Then that item's remaining steps:
+   - (3) the HUD score pulse once per frame, not per kill;
+   - (4) particles in C++ (the particle flush is 45–96 µs/tick; laser kill
+     bursts have a 0.85–0.93 ms worst tick).
+   Each one output-identical with a golden or oracle test, as P31–P33 were.
+3. When the A55 is on `adb`: VERIFY-ME §M11c 7–14.
 
 **Review fixes in progress (2026-09-27) — plan
 `docs/superpowers/plans/2026-09-27-m11c-review-fixes.md`.** The user said "for

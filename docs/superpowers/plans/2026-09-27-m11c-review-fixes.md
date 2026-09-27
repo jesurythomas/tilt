@@ -449,6 +449,9 @@ User ruling: C++ GDExtension for the hot path, not C# (Android C# is experimenta
 - [x] **P33 — vortex field locals** (exact; golden hash recorded from the old code).
   No measurable gain on its own — the vortex cost was its per-tick grid implosion
   (fixed by P31's native blast).
+  **Test mode (uncommitted until the 22:30 handoff commit, not yet run):** the perf
+  patch fires every power-up in turn every `POWER_EVERY` s with faster spawns and
+  logs `POWER <NAME> en=N`; `tools/emulator/power_fps.sh` (was `nuke_fps.sh`) reads it.
   Bench after P31–P33 (extra weapon-logic µs/tick → before): missiles 184 → 70,
   vortex 179 → 55, nuke 50 → 26; grid while woken 95 → 8; nuke worst tick 1.6–2.0 →
   0.66–0.77 ms. Remaining: particle flush 45–96 µs/tick (400 particle objects), laser
