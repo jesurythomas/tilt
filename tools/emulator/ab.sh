@@ -17,7 +17,7 @@ for v in "$@"; do
   "$D/g.sh" tap 1567 643
   $A $S logcat -s godot:I > "$L/ab_$v.log" 2>&1 &
   LP=$!
-  "$D/bot.sh" 100
+  sleep 100   # the perf patch autopilot flies the square (perf_patch.sh step 4)
   "$D/g.sh" shot ab_end_$v 0 >/dev/null
   kill $LP 2>/dev/null
   $A $S shell am force-stop com.jtg.perilpoint

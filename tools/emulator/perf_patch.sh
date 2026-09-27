@@ -60,6 +60,19 @@ patch(gr, "\nfunc _process(_delta: float) -> void:\n", [
     '\tvar tmp_tag: String = "   NUKE!" if Time.get_ticks_msec() - tmp_nuke_ms < 2000 else ""',
     '\ttmp_l.text = "%d FPS  %.0f ms  %d enemies%s" % [Engine.get_frames_per_second(), get_process_delta_time() * 1000.0, _swarm.enemies.size(), tmp_tag]',
 ])
+# (4) autopilot: the ship steers around a square (half side = 0.3 x the short side)
+# centred on the arena, next corner within 40 px — closed loop, so it never drifts.
+patch(gr, "\n\t_run_controller.update(\n\t\tdt, effective_mode,", [
+    "\tvar tmp_b: Vector2 = _run_controller.bounds",
+    "\tvar tmp_h: float = minf(tmp_b.x, tmp_b.y) * 0.3",
+    "\tvar tmp_i: int = get_meta(\"tmp_wp\", 0)",
+    "\tvar tmp_wp: Vector2 = tmp_b * 0.5 + Vector2(-tmp_h if tmp_i == 0 or tmp_i == 3 else tmp_h, -tmp_h if tmp_i < 2 else tmp_h)",
+    "\tvar tmp_to: Vector2 = tmp_wp - Vector2(_player.x, _player.y)",
+    "\tif tmp_to.length() < 40.0:",
+    "\t\tset_meta(\"tmp_wp\", (tmp_i + 1) % 4)",
+    "\teffective_mode = Types.ControlMode.GYRO",
+    "\tdirectional = tmp_to.normalized() * TOUCH_JOYSTICK_SPEED_SCALE",
+], before=True)
 PY
     echo "applied ($(cat "$R" "$GR" | grep -c '# TEMP perf') lines, NUKE_AT=$N)"
     OUT="$("$G" --headless --path "$D/../../godot" -s addons/gut/gut_cmdln.gd \
