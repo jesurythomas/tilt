@@ -897,11 +897,20 @@ func update(
 				e.frozen = false
 			continue
 
-		match e.type:
+		var etype: int = e.type
+		match etype:
 			Types.EnemyType.SEEKER:
 				# update_seeker, inlined (P23). PORT: web/src/tilt-to-live/EnemySwarm.ts:223-256
-				var sdx: float = px - e.x
-				var sdy: float = py - e.y
+				# DIVERGENCE(M11c P27): x/y/vx/vy are read into locals once and written
+				# back once (the same expressions on the same values), and the clamp
+				# below runs here on those locals — each Enemy property access costs
+				# about as much as the arithmetic.
+				var ex: float = e.x
+				var ey: float = e.y
+				var evx: float = e.vx
+				var evy: float = e.vy
+				var sdx: float = px - ex
+				var sdy: float = py - ey
 				var sdist: float = sqrt(sdx * sdx + sdy * sdy)
 				if sdist > 1.0:
 					var target_speed: float = seeker_speed
@@ -909,10 +918,31 @@ func update(
 						target_speed *= 0.45  # PORT: web/src/tilt-to-live/EnemySwarm.ts:243
 					var target_vx: float = (sdx / sdist) * target_speed
 					var target_vy: float = (sdy / sdist) * target_speed
-					e.vx += (target_vx - e.vx) * seeker_steer
-					e.vy += (target_vy - e.vy) * seeker_steer
-				e.x += e.vx * dt * speed_scale
-				e.y += e.vy * dt * speed_scale
+					evx += (target_vx - evx) * seeker_steer
+					evy += (target_vy - evy) * seeker_steer
+				ex += evx * dt * speed_scale
+				ey += evy * dt * speed_scale
+				# The clamp below, for a seeker (never a sweep type).
+				# PORT: web/src/tilt-to-live/EnemySwarm.ts:209-216
+				if e.orbit_center == Vector2.ZERO and e.parent_carrier_id == Types.ABSENT:
+					var spad: float = e.radius
+					if ex < spad:
+						ex = spad
+						evx = absf(evx) * 0.5  # PORT: web/src/tilt-to-live/EnemySwarm.ts:212
+					if ex > bounds.x - spad:
+						ex = bounds.x - spad
+						evx = -absf(evx) * 0.5  # PORT: web/src/tilt-to-live/EnemySwarm.ts:213
+					if ey < spad:
+						ey = spad
+						evy = absf(evy) * 0.5  # PORT: web/src/tilt-to-live/EnemySwarm.ts:214
+					if ey > bounds.y - spad:
+						ey = bounds.y - spad
+						evy = -absf(evy) * 0.5  # PORT: web/src/tilt-to-live/EnemySwarm.ts:215
+				e.x = ex
+				e.y = ey
+				e.vx = evx
+				e.vy = evy
+				continue
 			Types.EnemyType.ARROW_DRONE:
 				update_arrow_drone(e, dt)
 			Types.EnemyType.CIRCLE_DOT:
@@ -961,22 +991,23 @@ func update(
 		# DIVERGENCE(M11c P17): the type is read once for both tests below (no update_*
 		# changes it).
 		var sweeps: bool = (
-			e.type == Types.EnemyType.ARROW_DRONE
-			or e.type == Types.EnemyType.WALL_DOT
-			or e.type == Types.EnemyType.BULLET
+			etype == Types.EnemyType.ARROW_DRONE
+			or etype == Types.EnemyType.WALL_DOT
+			or etype == Types.EnemyType.BULLET
 		)
 		# Remove out of bounds drones that completed sweeps.
 		# PORT: web/src/tilt-to-live/EnemySwarm.ts:200-207
-		if (
-			sweeps
-			and (e.x < -140.0 or e.x > bounds.x + 140.0 or e.y < -140.0 or e.y > bounds.y + 140.0)
-		):
-			enemies.remove_at(i)
+		if sweeps:
+			# P27: x/y read once; a sweep type is never clamped, so it is done here.
+			var wx: float = e.x
+			var wy: float = e.y
+			if wx < -140.0 or wx > bounds.x + 140.0 or wy < -140.0 or wy > bounds.y + 140.0:
+				enemies.remove_at(i)
 			continue
 
 		# Clamp standard enemies inside playfield.
 		# PORT: web/src/tilt-to-live/EnemySwarm.ts:209-216
-		if not sweeps and e.orbit_center == Vector2.ZERO and e.parent_carrier_id == Types.ABSENT:
+		if e.orbit_center == Vector2.ZERO and e.parent_carrier_id == Types.ABSENT:
 			var pad: float = e.radius
 			if e.x < pad:
 				e.x = pad

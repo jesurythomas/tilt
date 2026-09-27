@@ -161,3 +161,38 @@ func test_sweep_matches_the_pair_loop_on_a_column() -> void:
 		e.y = 300.0 + randf() * 80.0
 		enemies.append(e)
 	_assert_sweep_matches(enemies, 40)
+
+
+func test_sweep_writes_back_an_enemy_pushed_only_by_the_fallback() -> void:
+	# M11c P27: A is pushed past SWEEP_SLACK by B and C (the plain-scan fallback), then
+	# pushes D, which nothing else reaches this tick; D's new x must be written back.
+	# 32 fillers 100 px apart keep the sweep engaged without touching the four.
+	var enemies: Array[Types.Enemy] = []
+	var spots: Array[Vector2] = [
+		Vector2(1000.0, 500.0),
+		Vector2(1000.1, 500.0),
+		Vector2(1000.1, 500.05),
+		Vector2(980.0, 500.0)
+	]
+	for p: Vector2 in spots:
+		var e: Types.Enemy = Types.Enemy.new()
+		e.id = enemies.size()
+		e.x = p.x
+		e.y = p.y
+		enemies.append(e)
+	for i: int in range(32):
+		var f: Types.Enemy = Types.Enemy.new()
+		f.id = enemies.size()
+		f.x = 100.0 + float(i % 8) * 100.0
+		f.y = 100.0 + float(i / 8) * 100.0
+		enemies.append(f)
+	var d_before: float = enemies[3].x
+	var swarm: EnemySwarm = EnemySwarm.new()
+	swarm.enemies = _copy(enemies)
+	swarm.apply_flocking_separation()
+	assert_ne(swarm.enemies[3].x, d_before, "D was pushed")
+	_reference_separation(enemies)
+	assert_eq(swarm.enemies[3].x, enemies[3].x, "D matches the pair loop exactly")
+	for i: int in range(4):
+		assert_eq(swarm.enemies[i].x, enemies[i].x, "x %d" % i)
+		assert_eq(swarm.enemies[i].y, enemies[i].y, "y %d" % i)

@@ -321,3 +321,15 @@ hook Android does not override; the render thread still starts.
   sweep 104 — half the pass is `Enemy` property access, which research #3 (SoA)
   removes. Ruling: skip #2 as a separate step (inlining would be rewritten by SoA);
   go straight to #3 and inline while converting.
+- [x] **P27 (research #2, revised) — field locals in the swarm loop** (exact): the
+  inlined seeker step reads x/y/vx/vy once into locals, writes them back once, and
+  runs its clamp on the locals (11 gets + 4 sets → 5 gets + 4 sets, clamp 4 → 0 extra
+  gets); the type is read once for the match and the sweep test; sweep types return
+  from their cull. Bench loop 268–272 → 218–227 µs/tick (−18%). Tried and reverted:
+  merging `separation_candidates()` with the x/y copy and writing back only pushed
+  enemies — isolated separation got slower (149 → 172 µs; Array/packed appends cost
+  more than the indexed copies). Tests added and mutation-checked (each mutant fails
+  ≥1 test): the four-wall seeker clamp, satellite seekers unclamped, and a
+  fallback-only push being written back (an oracle for any future write-back skip).
+  Gap found: before these, dropping a clamp factor or a write-back flag passed all
+  679 tests.
