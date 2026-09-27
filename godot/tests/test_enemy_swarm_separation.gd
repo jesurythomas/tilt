@@ -125,19 +125,26 @@ func _seekers(spread: int, clump: int) -> Array[Types.Enemy]:
 
 
 func _assert_sweep_matches(reference: Array[Types.Enemy], ticks: int) -> void:
-	var swarm: EnemySwarm = EnemySwarm.new()
-	swarm.enemies = _copy(reference)
-	assert_gte(
-		swarm.separation_candidates().size(), EnemySwarm.SWEEP_MIN_CANDIDATES, "sweep engaged"
-	)
-	for tick: int in range(ticks):
-		_reference_separation(reference)
-		swarm.apply_flocking_separation()
-	var mismatches: int = 0
-	for i: int in range(reference.size()):
-		if swarm.enemies[i].x != reference[i].x or swarm.enemies[i].y != reference[i].y:
-			mismatches += 1
-	assert_eq(mismatches, 0, "every x/y equal to the reference, bit for bit")
+	# M11c N2: both the C++ sweep (PerilNative) and the GDScript sweep must match.
+	for native: bool in [true, false]:
+		EnemySwarm.use_native = native
+		if native:
+			assert_not_null(EnemySwarm._native_separator(), "the native extension is loaded")
+		var ref: Array[Types.Enemy] = _copy(reference)
+		var swarm: EnemySwarm = EnemySwarm.new()
+		swarm.enemies = _copy(reference)
+		assert_gte(
+			swarm.separation_candidates().size(), EnemySwarm.SWEEP_MIN_CANDIDATES, "sweep engaged"
+		)
+		for tick: int in range(ticks):
+			_reference_separation(ref)
+			swarm.apply_flocking_separation()
+		var mismatches: int = 0
+		for i: int in range(ref.size()):
+			if swarm.enemies[i].x != ref[i].x or swarm.enemies[i].y != ref[i].y:
+				mismatches += 1
+		assert_eq(mismatches, 0, "native=%s: every x/y equal to the reference" % native)
+	EnemySwarm.use_native = true
 
 
 func test_sweep_matches_the_pair_loop_on_a_late_swarm() -> void:
@@ -196,7 +203,6 @@ func test_sweep_writes_back_an_enemy_pushed_only_by_the_fallback() -> void:
 	for i: int in range(4):
 		assert_eq(swarm.enemies[i].x, enemies[i].x, "x %d" % i)
 		assert_eq(swarm.enemies[i].y, enemies[i].y, "y %d" % i)
-
 
 
 func test_sweep_matches_the_pair_loop_on_random_blobs() -> void:

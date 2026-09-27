@@ -33,6 +33,10 @@ const SWEEP_INDEX_BITS: int = 20
 const SWEEP_INDEX_MASK: int = (1 << SWEEP_INDEX_BITS) - 1
 ## DIVERGENCE(M11c P17): the empty satellite list.
 const _NO_SATELLITES: Array[Types.Enemy] = []
+## DIVERGENCE(M11c N2): separation runs in C++ when the PerilNative extension is
+## loaded; false forces the GDScript sweep (the oracles compare both).
+static var use_native: bool = true
+static var _native: Object = null
 
 ## Live active enemies. PORT: web/src/tilt-to-live/EnemySwarm.ts:9
 var enemies: Array[Types.Enemy] = []
@@ -1431,6 +1435,16 @@ func apply_flocking_separation() -> void:
 		ys[k] = enemies[idx[k]].y
 
 	if n >= SWEEP_MIN_CANDIDATES:
+		var native: Object = _native_separator()
+		if native != null:
+			# DIVERGENCE(M11c N2): the same sweep in C++ (native/src/peril_native.cpp),
+			# bit-identical (the oracles run both paths); it returns xs then ys.
+			var r: PackedFloat64Array = native.call("separate", xs, ys, min_distance)
+			for k: int in range(n):
+				var m: Types.Enemy = enemies[idx[k]]
+				m.x = r[k]
+				m.y = r[n + k]
+			return
 		_separate_sweep(xs, ys, min_distance, min_distance2)
 	else:
 		for ii: int in range(n):
@@ -1439,6 +1453,16 @@ func apply_flocking_separation() -> void:
 	for k: int in range(n):
 		enemies[idx[k]].x = xs[k]
 		enemies[idx[k]].y = ys[k]
+
+
+## The native separator, or null when the extension is missing or use_native is off.
+## Made through ClassDB so this script still compiles without the library.
+static func _native_separator() -> Object:
+	if not use_native:
+		return null
+	if _native == null and ClassDB.class_exists("PerilNative"):
+		_native = ClassDB.instantiate("PerilNative")
+	return _native
 
 
 ## One round of the pair loop: ii against every jj in [from, to), in order.

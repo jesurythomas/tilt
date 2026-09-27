@@ -377,7 +377,14 @@ User ruling: C++ GDExtension for the hot path, not C# (Android C# is experimenta
   MSVC), NDK r29 (29.0.14206865, from dl.google.com; no sdkmanager on this machine),
   SCons 4.11. `PerilNative.version()` loads in headless Godot on Windows and in the
   exported APK on the emulator (logcat `NATIVE true peril-native 1`). Suite 687 green.
-- [ ] **N2 — native separation**: port `_separate_sweep`/`_sweep_index` (x-sorted
+- [x] **N2 — native separation** (done 2026-09-27): `PerilNative.separate` is the
+  sweep ported line for line; `EnemySwarm.use_native` (default true) picks it when the
+  class exists (`ClassDB.instantiate`, called via `call()` — warnings are errors).
+  Every sweep oracle runs both paths vs the reference; a C++ push-factor mutant fails
+  5 checks. Suite 687 green (golden hashes on the native path). Bench: blob 325
+  1,333 → ~290 µs (4.6×), 250 900 → ~238; late-mix separation 252–265 → 115; late-mix
+  swarm 580 → 355 µs/tick (−39%). Remainder is GDScript candidate selection and the
+  x/y copies (Enemy object access). Original plan text: port `_separate_sweep`/`_sweep_index` (x-sorted
   sweep, same pair order and arithmetic) as a static `PerilNative.separate(xs, ys,
   min_distance)` returning the new positions (packed arrays are copy-on-write; do not
   rely on in-place edits). Gate: every separation oracle (incl. 40 random blobs) plus
