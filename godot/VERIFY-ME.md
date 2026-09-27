@@ -688,6 +688,13 @@ nothing below has run on it. Debug builds print one `PERF` line per second:
       purchase flashes the balance green and the list keeps its scroll; "+0" runs
       show the points hint; Code Red's tagline wraps; Settings header aligns with
       Armory's.
+- [ ] 12. **Grid and background.** The grid is on by default (an old install switches
+      it on once; Settings can turn it off and that sticks). It ripples on kills and
+      settles; the arena background has no banding rings; PERF `s_grid` stays low.
+- [ ] 13. **Menu.** No border around only the left half of the screen.
+- [ ] 14. **Launch.** Home-screen icon is the blue ship; opening the app shows the
+      ship on the system splash (light background — needs a Gradle build to change),
+      then the PERIL POINT loading screen, then the menu.
 
 ## M11b — Entrance cinematic
 

@@ -1705,7 +1705,12 @@ at 150–249 enemies across the day: 5.4 → ~18. The sim now dominates (separat
 Separate-render-thread A/B in the plan; remaining levers need the user: 60 Hz sim +
 interpolation (spec D8 says 120 Hz) or a GDExtension for the swarm tick; then the
 rest of Task 9's UI list. Wall formations and carriers were the user-reported drop
-points. Emulator notes: the arm64
+points. Later the same day (Tasks 11–12): the grid is back on by default (active-set
+springs keep it at ~0.45 ms/frame on the emulator), the arena background is a
+dithered shader (no banding), the menu no longer shows a half border, and a boot
+splash (rendered from the ColdOpen board by `godot/tools/make_splash.gd`) plus ship
+app icons (`godot/tools/make_icons.gd`) replace Godot's. Open: the Android 12 system
+splash background stays light without a Gradle build. Emulator notes: the arm64
 APK runs under translation; reboot the emulator if the sensors HAL crash-loops
 (it skewed one run); keep the host idle while measuring; a no-death build is a
 temporary one-line early return in `RunController.lose_life`, never committed —
