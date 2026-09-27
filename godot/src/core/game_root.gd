@@ -625,6 +625,9 @@ func set_music_enabled(is_on: bool) -> void:
 # best score despite its prompt (:508). The user ruled the port deletes them.
 # 'tilt_goals_hud_collapsed' (:517) has no port file; control settings and calibration stay.
 static func reset_progress_files() -> void:
+	# DIVERGENCE(M11c P16, review fix): finish every queued write first, or the writer
+	# (or _exit_tree's flush on the scene reload) would write a deleted file back.
+	SaveStore.flush()
 	for path: String in [
 		GameOptionsManager.SAVE_PATH,
 		GoalManager.SAVE_PATH,

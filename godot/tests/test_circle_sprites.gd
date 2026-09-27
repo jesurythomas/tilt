@@ -97,3 +97,22 @@ func test_dot_sprites_are_cached_until_the_look_changes() -> void:
 	assert_ne(layer._dot_sprites(10.0, false, false), a, "a new model scale rebakes")
 	# Sized to the drawn pixels: (radius + 0.6) * scale + 1 each side.
 	assert_eq(a.inner_half, ceilf(((10.0 + 0.6) * 1.5 + 1.0) * 2.0) * 0.5)
+
+
+func test_dot_sprites_survive_a_skin_round_trip() -> void:
+	# M11c review fix: menu (no skin) <-> run (equipped skin) must not rebake.
+	var layer: EntityLayer = EntityLayer.new()
+	autofree(layer)
+	layer.set_model_scale(1.5)
+	var skin: ProgressionManager.EnemySkinConfig = (
+		ProgressionManager.new().get_equipped_enemy_skin()
+	)
+	layer.set_enemy_skin(skin)
+	var in_run: EntityLayer.DotSprites = layer._dot_sprites(10.0, false, false)
+	layer.set_enemy_skin(null)
+	var in_menu: EntityLayer.DotSprites = layer._dot_sprites(10.0, false, false)
+	assert_ne(in_menu, in_run, "a different look bakes its own")
+	layer.set_enemy_skin(skin)
+	assert_same(layer._dot_sprites(10.0, false, false), in_run, "back in a run: reused")
+	layer.set_high_contrast_halo(false)
+	assert_ne(layer._dot_sprites(10.0, false, false), in_run, "the halo is part of the look")

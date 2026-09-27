@@ -245,6 +245,8 @@ var _tab_buttons: Array[Button] = []
 ## The live steering preview shown on the handling tab. PORT: web/src/tilt-to-live/ArmoryUI.ts:84
 var _preview: HandlingPreview = null
 var _balance_tween: Tween = null
+## The tab render() last built, so scroll offsets carry over only within one tab.
+var _rendered_tab: int = -1
 
 @onready var _overlay: ColorRect = %Overlay
 @onready var _panel_margin: MarginContainer = %PanelMargin
@@ -335,9 +337,12 @@ func render() -> void:
 	# here the weapon list and the card rows scroll on their own, and a purchase
 	# re-render jumped them back to the start. Every named scroll view keeps its offsets.
 	var prev_scrolls: Dictionary[String, Vector2i] = {}
-	for s: Node in _body.find_children("*", "ScrollContainer", true, false):
-		var sc: ScrollContainer = s as ScrollContainer
-		prev_scrolls[str(sc.name)] = Vector2i(sc.scroll_horizontal, sc.scroll_vertical)
+	# Only within the same tab (:334-336; review fix: offsets carried across tabs).
+	if active_tab == _rendered_tab:
+		for s: Node in _body.find_children("*", "ScrollContainer", true, false):
+			var sc: ScrollContainer = s as ScrollContainer
+			prev_scrolls[str(sc.name)] = Vector2i(sc.scroll_horizontal, sc.scroll_vertical)
+	_rendered_tab = active_tab
 
 	var points: int = progression.data.points
 	# PORT: :363 (formatPoints, singular at 1 per :70-72). DIVERGENCE(UI-SYSTEM):

@@ -224,3 +224,17 @@ the fps."
   colour with the ship (emulator-verified). Local one-time setup documented in
   VERIFY-ME §0 (template git-ignored; JDK 17 pinned for Gradle; daemon off so headless
   exports return, 39 s).
+
+### Review of `5ed4a05..HEAD` (fresh reviewer, 2026-09-27)
+Verified correct: SaveStore threading (no lost writes/deadlock; loads flush), the
+separation sweep's bit-exactness argument, P23's arithmetic order, P17's map validity,
+the grid active set and redraw keys, entity cache invalidation, P21, P22, the gridlines
+migration, the PerfProbe callable. **Fixed:**
+1. `GameRoot.reset_progress_files` now flushes the write-behind queue before deleting
+   (a queued save could recreate a deleted file); test fails without it.
+2. Skin/halo changes no longer clear the baked-sprite caches: the (skin, halo) look is
+   part of each skin-dependent key, so menu↔run switches reuse bakes (each bake is a
+   render-thread sync under P24). Test: a skin round trip reuses the bake.
+3. Frozen and satellite sprites draw at their cached texture's size.
+4. Armory scroll offsets carry over only when re-rendering the same tab (TS :334-336).
+Draw bench unchanged (seekers ~350 µs, mix ~630 µs).

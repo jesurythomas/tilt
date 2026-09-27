@@ -167,3 +167,14 @@ func test_write_behind_loads_see_queued_saves() -> void:
 	var loaded: Dictionary = SaveStore.load_dict(PATH)
 	SaveStore.write_behind = false
 	assert_eq(SaveStore.read_int(loaded, "n", 0), 7)
+
+
+func test_reset_progress_files_does_not_let_a_queued_save_come_back() -> void:
+	# M11c review fix: a write still queued behind the reset must not recreate the file.
+	var path: String = GameOptionsManager.SAVE_PATH
+	SaveStore.write_behind = true
+	SaveStore.save_dict(path, {"mode": "classic"})
+	GameRoot.reset_progress_files()
+	SaveStore.flush()
+	SaveStore.write_behind = false
+	assert_false(FileAccess.file_exists(path), "reset leaves it deleted")

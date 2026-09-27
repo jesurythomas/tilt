@@ -43,6 +43,8 @@ const MAZE_BEACON: Color = Color("#3DDC97")
 const DOT_KEY_STEPS: float = 8.0
 ## DIVERGENCE(M11c P13): one screen pixel of clear border around a baked sprite.
 const BAKE_MARGIN: float = 1.0
+## DIVERGENCE(M11c P19, review fix): room in a cache key for the look slot (2 per skin).
+const LOOK_KEY_STRIDE: int = 256
 ## DIVERGENCE(M11c P14): chords per dash of a dashed arc (a dash spans at most ~0.5 rad).
 const DASH_ARC_CHORDS: int = 3
 ## DIVERGENCE(M11c P19): room for the charger tip's miter in its baked texture (px).
@@ -122,7 +124,11 @@ var _dash_cache: Dictionary = {}
 ## the artillery body.
 var _pulsar_cache: Dictionary[int, ImageTexture] = {}
 var _charger_cache: Dictionary[int, ImageTexture] = {}
-var _artillery_tex: ImageTexture = null
+var _artillery_cache: Dictionary[int, ImageTexture] = {}
+## DIVERGENCE(M11c P19, review fix): the current (skin, halo) look and the slot of each
+## skin id seen (see _update_look_slot).
+var _look_slot: int = 1  # no skin (slot 0), halo on
+var _skin_slots: Dictionary[String, int] = {"": 0}
 
 
 func _draw() -> void:
@@ -256,9 +262,8 @@ func set_elapsed(elapsed: float) -> void:
 
 ## Sets whether enemy high contrast halo is drawn.
 func set_high_contrast_halo(enabled: bool) -> void:
-	if enabled != _high_contrast_halo:
-		_dot_cache.clear()
 	_high_contrast_halo = enabled
+	_update_look_slot()
 
 
 ## Sets the ship skin the player is drawn with. PORT: web/src/tilt-to-live/TiltGame.ts:2310
@@ -272,13 +277,24 @@ func get_ship_skin() -> ProgressionManager.ShipSkinConfig:
 
 ## Sets the enemy skin every dot is drawn with. PORT: web/src/tilt-to-live/TiltGame.ts:2311
 func set_enemy_skin(skin: ProgressionManager.EnemySkinConfig) -> void:
-	if skin != _enemy_skin:
-		_dot_cache.clear()
-		_carrier_cache.clear()
-		_pulsar_cache.clear()
-		_charger_cache.clear()
-		_artillery_tex = null
 	_enemy_skin = skin
+	_update_look_slot()
+
+
+## DIVERGENCE(M11c P19, review fix): the baked sprites of each (skin, halo) look stay
+## cached side by side; the look is part of every skin-dependent cache key, so menu
+## (no skin) and run (equipped skin) switches reuse their bakes instead of rebaking
+## (each bake syncs with the render thread, P24).
+func _update_look_slot() -> void:
+	var skin_id: String = _enemy_skin.id if _enemy_skin != null else ""
+	if not _skin_slots.has(skin_id):
+		_skin_slots[skin_id] = _skin_slots.size()
+	_look_slot = _skin_slots[skin_id] * 2 + (1 if _high_contrast_halo else 0)
+
+
+## A cache key for `base` under the current look (see _update_look_slot).
+func _look_key(base: int) -> int:
+	return base * LOOK_KEY_STRIDE + _look_slot
 
 
 func get_enemy_skin() -> ProgressionManager.EnemySkinConfig:
@@ -299,7 +315,7 @@ func set_model_scale(model_scale: float) -> void:
 		_satellite_cache.clear()
 		_pulsar_cache.clear()
 		_charger_cache.clear()
-		_artillery_tex = null
+		_artillery_cache.clear()
 	_model_scale = model_scale
 
 
@@ -627,7 +643,8 @@ func _draw_frozen_dot(e: Types.Enemy) -> void:
 			)
 		)
 		_frozen_cache[key] = tex
-	var half: float = size * 0.5
+	# The texture's own size (review fix): a radius sharing its key may differ slightly.
+	var half: float = tex.get_width() * 0.5
 	draw_texture_rect(
 		tex, Rect2(Vector2(e.x, e.y) - Vector2(half, half), Vector2(half, half) * 2.0), false
 	)
@@ -679,7 +696,7 @@ func _draw_charger(e: Types.Enemy) -> void:
 ## state, rasterised once from SVG, centred on the entity origin at angle 0. SVG
 ## strokes join with miters, as the canvas default does (Godot's polyline did not).
 func _charger_body(charging: bool) -> ImageTexture:
-	var key: int = 1 if charging else 0
+	var key: int = _look_key(1 if charging else 0)
 	var cached: ImageTexture = _charger_cache.get(key)
 	if cached != null:
 		return cached
@@ -770,8 +787,9 @@ func _draw_artillery(e: Types.Enemy) -> void:
 ## (fill + 2.2 px stroke) and cross struts, rasterised once from SVG, centred on the
 ## hull at aim angle 0.
 func _artillery_body() -> ImageTexture:
-	if _artillery_tex != null:
-		return _artillery_tex
+	var key: int = _look_key(0)
+	if _artillery_cache.has(key):
+		return _artillery_cache[key]
 	# Cannon barrel (PORT: EnemySwarm.ts:1295-1299)
 	# PORT: EnemySwarm.ts:1293
 	var barrel_stroke: Color = _enemy_skin.border_color if _has_alt_skin() else Color("#ff0066")
@@ -815,8 +833,9 @@ func _artillery_body() -> ImageTexture:
 			]
 		)
 	)
-	_artillery_tex = UiTheme.svg_texture(svg, _model_scale)
-	return _artillery_tex
+	var tex: ImageTexture = UiTheme.svg_texture(svg, _model_scale)
+	_artillery_cache[key] = tex
+	return tex
 
 
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:1353-1385
@@ -883,7 +902,7 @@ func _draw_carrier(e: Types.Enemy) -> void:
 ## DIVERGENCE(M11c P19): the carrier's hull (diamond fill + 2.4 px stroke) and core
 ## (discs 8 and 3.5), rasterised once per radius from SVG at the drawn scale.
 func _carrier_body(radius: float) -> ImageTexture:
-	var key: int = roundi(radius * DOT_KEY_STEPS)
+	var key: int = _look_key(roundi(radius * DOT_KEY_STEPS))
 	var cached: ImageTexture = _carrier_cache.get(key)
 	if cached != null:
 		return cached
@@ -947,7 +966,8 @@ func _draw_satellite(e: Types.Enemy) -> void:
 			PackedColorArray([Color("#00e5ff"), Color(0.0, 229.0 / 255.0, 1.0, 0.35), Color.WHITE])
 		)
 		_satellite_cache[key] = tex
-	var half: float = size * 0.5
+	# The texture's own size (review fix): a radius sharing its key may differ slightly.
+	var half: float = tex.get_width() * 0.5
 	draw_texture_rect(
 		tex, Rect2(Vector2(e.x, e.y) - Vector2(half, half), Vector2(half, half) * 2.0), false
 	)
@@ -984,7 +1004,7 @@ func _draw_pulsar(e: Types.Enemy) -> void:
 ## DIVERGENCE(M11c P19): the pulsar's body (discs r and 0.6r), 2.2 px stroke and
 ## unrotated eight-point star, rasterised once per radius from SVG.
 func _pulsar_body(radius: float) -> ImageTexture:
-	var key: int = roundi(radius * DOT_KEY_STEPS)
+	var key: int = _look_key(roundi(radius * DOT_KEY_STEPS))
 	var cached: ImageTexture = _pulsar_cache.get(key)
 	if cached != null:
 		return cached
@@ -1163,7 +1183,7 @@ func _dot_palette(chilled: bool, is_hazard: bool) -> PackedColorArray:
 ## radius and colour variant until the skin, halo toggle or model scale changes.
 func _dot_sprites(radius: float, chilled: bool, is_hazard: bool) -> DotSprites:
 	var variant: int = 2 if chilled else (1 if is_hazard else 0)
-	var key: int = roundi(radius * DOT_KEY_STEPS) * 4 + variant
+	var key: int = _look_key(roundi(radius * DOT_KEY_STEPS) * 4 + variant)
 	var cached: DotSprites = _dot_cache.get(key)
 	if cached != null:
 		return cached
