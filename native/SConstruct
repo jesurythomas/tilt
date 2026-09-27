@@ -1,0 +1,21 @@
+#!/usr/bin/env python
+# Peril Point native extension (M11c, 2026-09-27). Builds godot/bin/libperil.<platform>.<target>.<arch>.
+# Desktop:  python -m SCons platform=windows target=template_debug
+# Android:  python -m SCons platform=android arch=arm64 target=template_debug   (ANDROID_HOME/NDK)
+env = SConscript("godot-cpp/SConstruct", {"api_version": "4.7"})
+
+# The swarm tick must match the GDScript results bit for bit: no fused multiply-add
+# (clang contracts a*b+c on arm64 by default) and no fast-math. MSVC's default
+# /fp:precise does not contract.
+if env.get("is_msvc", False):
+    env.Append(CCFLAGS=["/fp:precise"])
+else:
+    env.Append(CCFLAGS=["-ffp-contract=off", "-fno-fast-math"])
+
+env.Append(CPPPATH=["src/"])
+sources = Glob("src/*.cpp")
+library = env.SharedLibrary(
+    "../godot/bin/libperil{}{}".format(env["suffix"], env["SHLIBSUFFIX"]), source=sources
+)
+env.NoCache(library)
+Default(library)

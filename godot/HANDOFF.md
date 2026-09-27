@@ -361,6 +361,7 @@ report: `.superpowers/sdd/2026-09-20-m11b-entrance-cinematic/task-3-report.md`.
 | gdtoolkit | 4.5.0 on PATH |
 | Device | **SM_A556E** (Galaxy A55), serial `RRCXB04L8EJ`; always pass `-s` |
 | ADB | `C:\Users\Jesury\AppData\Local\Android\Sdk\platform-tools\adb.exe` |
+| Native (C++) | GDExtension `PerilNative` in `native/` (godot-cpp 10.0.0 submodule, `api_version=4.7`); outputs `godot/bin/libperil.*` (committed), registered by `godot/peril_native.gdextension`. SCons 4.11 via `python -m SCons` (pip --user). NDK r29 at `Sdk/ndk/29.0.14206865`. Build from `native/`: `python -m SCons platform=windows target=template_debug` and `ANDROID_HOME=C:/Users/Jesury/AppData/Local/Android/Sdk python -m SCons platform=android arch=arm64 target=template_debug ndk_version=29.0.14206865` (`template_release` for release exports). Flags: `-ffp-contract=off` on clang (bit-exact with GDScript). Close the editor before rebuilding the DLL (it locks it). After a fresh clone: `git submodule update --init`. |
 
 The source web game keeps the name *Tilt to Live* in `web/src/tilt-to-live/`
 and in every `# PORT:` citation. Never rename those — Law 1 depends on them.

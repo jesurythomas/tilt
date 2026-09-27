@@ -368,3 +368,19 @@ it free would not fix the drop.
   and `bench_sim.gd::test_bench_chasing_blob`. Mutant note: dropping only the y term
   of a 2D drift bound survives every oracle (blob pushes are isotropic, x drift
   covers it); keep such terms by proof.
+
+### Native swarm tick (user, 2026-09-27: "We should just test the C++ then since it is supported")
+User ruling: C++ GDExtension for the hot path, not C# (Android C# is experimental in
+4.7) and not a whole-project port.
+- [x] **N1 — toolchain spike**: godot-cpp 10.0.0-stable submodule at `native/godot-cpp`,
+  `native/SConstruct` (`-ffp-contract=off -fno-fast-math` on clang, `/fp:precise` on
+  MSVC), NDK r29 (29.0.14206865, from dl.google.com; no sdkmanager on this machine),
+  SCons 4.11. `PerilNative.version()` loads in headless Godot on Windows and in the
+  exported APK on the emulator (logcat `NATIVE true peril-native 1`). Suite 687 green.
+- [ ] **N2 — native separation**: port `_separate_sweep`/`_sweep_index` (x-sorted
+  sweep, same pair order and arithmetic) as a static `PerilNative.separate(xs, ys,
+  min_distance)` returning the new positions (packed arrays are copy-on-write; do not
+  rely on in-place edits). Gate: every separation oracle (incl. 40 random blobs) plus
+  golden hashes with the native path on; fall back to GDScript when
+  `ClassDB.class_exists("PerilNative")` is false. Bench: `test_bench_chasing_blob`.
+- [ ] **N3 — native seeker/sweep-dot loop** if N2's A/B leaves the loop dominant.
