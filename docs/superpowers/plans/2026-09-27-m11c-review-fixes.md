@@ -483,3 +483,13 @@ User ruling: C++ GDExtension for the hot path, not C# (Android C# is experimenta
 - [x] **Test mode maxes upgrades** (user: "make sure upgrades are maxed since it would
   affect the fps"): perf_patch step 5 sets every perk rank 5, keystones on, boosts at
   cap, in memory at each run start (logs `PERKS MAXED {...}`).
+- [x] **Maxed-upgrades A/B** (test mode, every perk 5 + keystones + boosts, 3 pairs,
+  pre-P31 vs current): fps 3 s after old → new — missiles 15.6 → 18.8 (weapons 18.5 →
+  4.9 ms/frame), vortex 15.3 → 18.8 (10.2 → 3.8), freeze 18.7 → 24.3, shield 17.1 →
+  22.1, nuke 24.6 → 27.6, laser 19.0 → 19.5, lightning 20.6 → 18.4 (more enemies in
+  those windows, 262 vs 246; its own weapons/grid costs fell — noise); grid after
+  every power-up 0.6–5.7 → 0.3–0.5 ms; all samples 19.4 → 21.8. 0 errors in 6 runs.
+  Power-up overhead is now 1–5 ms/frame; the swarm step (9–26 ms/frame at 140–260
+  enemies) is the main cost again. **Next:** N3 — the swarm's per-enemy loop in C++
+  (needs enemy fields in packed arrays, or a native pass over them), then particles
+  in packed arrays.

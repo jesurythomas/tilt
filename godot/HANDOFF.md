@@ -1786,8 +1786,15 @@ the same at 250+. FPS research (plan, section "FPS research") ranks the next sim
 levers: a y-filtered separation window, inlined per-type updates, structure-of-arrays
 enemy fields, then native separation. All but the native step are exact and need no
 ruling beyond the user's go-ahead. A release export is only 5–12% faster than debug
-(measured). **Next:** the user's pick from that list, or the A55 pass (VERIFY-ME
-§M11c 7–14). Desktop draw benches: run with `--render-thread safe`. Emulator notes: the arm64
+(measured). Since then (2026-09-27 evening, all in the plan): a C++ GDExtension (`native/`,
+godot-cpp 10) runs separation, the grid step and large grid blasts bit-exactly;
+missiles use a per-tick snapshot; the HUD pulses once per frame; play layers are
+clipped to the arena; wall formations are spaced out (32, TS radius 8); the milestone
+rail is hidden. `tools/emulator/perf_patch.sh` is a never-committed test mode (fast
+spawns, a power-up every 3 s, maxed upgrades, square autopilot, on-screen readout).
+Emulator must run with `-feature -Uwb` (its UWB HAL crash-loops). **Next:** N3 — the
+swarm's per-enemy loop in C++ (the main cost again), then particles in packed arrays;
+or the A55 pass (VERIFY-ME §M11c 7–14). Desktop draw benches: run with `--render-thread safe`. Emulator notes: the arm64
 APK runs under translation; reboot the emulator if the sensors HAL crash-loops
 (it skewed one run); keep the host idle while measuring; a no-death build is a
 temporary one-line early return in `RunController.lose_life`, never committed —
