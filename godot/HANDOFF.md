@@ -1721,15 +1721,19 @@ texture-sized frozen/satellite draws, scroll per tab), and particles integrate o
 per rendered frame (P25: 150+ enemies `s_particles` 4.9 → 1.1 ms/frame on the
 emulator). The sim is at GDScript's per-object floor (~1–2.5 µs/enemy/tick); further
 FPS needs the user's call: a 60 Hz sim with interpolation (spec D8 chose 120 Hz) or a
-native (GDExtension) swarm tick — this machine has no Python, so scons/godot-cpp would
-need installing. **Verification ×5 done (2026-09-27; results in the plan's last
+native (GDExtension) swarm tick (Python 3.13, MSVC and Rust are installed; only the
+NDK is missing). **Verification ×5 done (2026-09-27; results in the plan's last
 section):** all automated checks, the UI pass (`tools/emulator/verify_ui.sh`), launch
 and benches were stable 5/5. It caught one false "fixed" claim: the menu edge was still
 there, and is now fixed (`GridLayer.grid_fills_viewport`). The ~3–5 s black gap between
 the system splash and the boot splash is still open (engine start). P24 was confirmed
 by a 5-pair Safe-vs-Separate A/B: Separate is ~40–50% faster at 100–249 enemies and
-the same at 250+. **Next:** the A55 pass (VERIFY-ME §M11c 7–14), or the user's call on
-a 60 Hz sim or a native swarm tick. Desktop draw benches: run with `--render-thread safe`. Emulator notes: the arm64
+the same at 250+. FPS research (plan, section "FPS research") ranks the next sim
+levers: a y-filtered separation window, inlined per-type updates, structure-of-arrays
+enemy fields, then native separation. All but the native step are exact and need no
+ruling beyond the user's go-ahead. A release export is only 5–12% faster than debug
+(measured). **Next:** the user's pick from that list, or the A55 pass (VERIFY-ME
+§M11c 7–14). Desktop draw benches: run with `--render-thread safe`. Emulator notes: the arm64
 APK runs under translation; reboot the emulator if the sensors HAL crash-loops
 (it skewed one run); keep the host idle while measuring; a no-death build is a
 temporary one-line early return in `RunController.lose_life`, never committed —

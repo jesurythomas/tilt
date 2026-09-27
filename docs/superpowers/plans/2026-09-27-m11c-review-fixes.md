@@ -279,3 +279,36 @@ Code Red before Play.
   crashes in 10 runs. So the setting still moves rendering off the main thread
   despite the warning. Still to confirm on the A55: steering latency (VERIFY-ME
   §M11c 7).
+
+### FPS research (user, 2026-09-27: "research more on improving FPS")
+Three research passes (GDScript CPU, Godot mobile rendering, native/GPU) plus one
+measurement. Ranked next steps, none started:
+1. **Tighter separation window** (≈1.5–3× on separation, ½ day, exact): in
+   `_separate_sweep` reject candidates with `absf(ys[k] - y0) >= min_distance +
+   SWEEP_SLACK` while building the window (the slab is x-only today), and extend the
+   bail-out to y. A k > ii cannot move before its own round, so the x proof carries
+   over. Gate: the separation oracle test + golden hashes.
+2. **Inline the remaining per-type updates** (~120 ns per GDScript call; small each,
+   exact): the `update_*` dispatch for the types common at 250+ (wall, circle,
+   arrow dots), like P23 did for seekers.
+3. **Structure-of-arrays for hot enemy fields** (2.76× on a seeker-like loop in a
+   4.7.2 microbench: 500 → 181 ns/entity; 2–4 days): x, y, vx, vy, age, radius in
+   `PackedFloat64Array`s (never Float32/Vector2 — float32 breaks exactness);
+   `Enemy` keeps cold fields + a slot index; keep `remove_at` order.
+4. **Native separation (GDExtension, godot-cpp)** if 1–3 fall short: the pass is
+   ~180 pure-numeric lines (sqrt only, no RNG). Toolchain is present (Python 3.13,
+   MSVC, Rust); missing NDK 29.0.14206865 (sdkmanager). Build with
+   `-ffp-contract=off` (clang fuses a*b+c on arm64 by default), no fast-math;
+   return the packed array (copy-on-write). ~2–3 days incl. Android build.
+5. **Swappy**: add `display/window/frame_pacing/android/swappy_mode=0`? The default
+   (2, auto) may lock a 40–60 fps game to 30 on device. Not seen on the emulator (its
+   fps histogram has no cluster at 30) — check on the A55 before changing.
+Ruled out: release export as a big win (research cited 3.6× from a VM microbench;
+measured here on Windows templates with the real sim: release only 5–12% faster —
+late mix 522–554 vs 566–631 µs/tick); C# (Android export experimental, .NET 9 EOL);
+GPU compute (float32, readback stalls); Compatibility renderer (GPU is not the
+bottleneck); MultiMesh (the per-instance GDScript loop costs about what the draw
+calls do; entity draw is no longer the main cost); physics interpolation (does not
+reach `_draw` content); `max_physics_steps_per_frame` (trades slowdown for
+dilation, fixes nothing). Keep `thread_model=2`: the logcat line is a GL-context
+hook Android does not override; the render thread still starts.
