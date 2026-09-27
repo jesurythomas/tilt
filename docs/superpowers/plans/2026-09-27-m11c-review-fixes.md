@@ -348,3 +348,23 @@ hook Android does not override; the render thread still starts.
   every inserted line is tagged, revert deletes only those (round trip byte-identical).
   User (2026-09-27): "when a certain amount of enemies spawn, let the atomic nuke
   trigger".
+
+### What causes the drop (user, 2026-09-27: "identify first what causes the FPS drop")
+From the P27 emulator logs (10 runs, ~1,000 PERF samples), ms per frame at ~270
+enemies: separation 88, rest of the swarm loop 22, **entity draw 7 (~6%)**. The loop
+is linear (~10 µs/enemy/step, flat from 75 to 330 enemies); separation is not (13 →
+41 µs/enemy/step), and at equal counts it varies 4× (13 vs 57 ms at ~252). Cause,
+measured on desktop with an in-game-like blob: chasing seekers pile into one
+~200 × 280 px blob; each separation round then scans a 46–57-entry x strip to keep
+2–3 (0 fallbacks, 0 rebuilds — the fallback hypothesis was wrong). Past ~200 enemies
+the physics catch-up runs 8 steps per frame (`maxsteps=8`), so fps falls off a cliff
+(28 → 12 → 8 from 175 to 270). Drawing already uses baked textures (assets); making
+it free would not fix the drop.
+- [ ] ~~P30 — 2D (row, x) sweep index~~ **reverted**: blob separation −17–25% (250:
+  900 → 745 µs; 325: 1,333 → 1,000) but spread separation +28% (96 → 126 µs) and late
+  mix +17%. With the strip gone, the remainder is GDScript per-operation cost (~3 µs
+  per candidate: bsearch calls, sort, pair math) — the algorithm is near its floor in
+  GDScript. Kept: the random-blob oracle (40 seeded blobs; catches dropping drift)
+  and `bench_sim.gd::test_bench_chasing_blob`. Mutant note: dropping only the y term
+  of a 2D drift bound survives every oracle (blob pushes are isotropic, x drift
+  covers it); keep such terms by proof.

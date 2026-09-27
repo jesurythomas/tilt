@@ -262,3 +262,28 @@ func test_bench_wall_and_carriers() -> void:
 			)
 		)
 	pass_test("bench")
+
+
+func test_bench_chasing_blob() -> void:
+	# M11c P30: seekers chasing a circling player pile into one blob (the emulator's
+	# 250+ state); separation cost then depends on the index, not just the count.
+	for count: int in [100, 250, 325]:
+		seed(7)
+		var s: EnemySwarm = EnemySwarm.new()
+		s.scale = 1.25
+		for i: int in range(count):
+			s.spawn_seeker(BOUNDS, randf() * BOUNDS.x, randf() * BOUNDS.y)
+		var t: float = 0.0
+		var sep_us: int = 0
+		for tick: int in range(1200):
+			t += 1.0 / 120.0
+			var pl: Vector2 = BOUNDS * 0.5 + Vector2(cos(t * 0.8), sin(t * 0.8)) * 350.0
+			s._spawn_timer = 1.0e9
+			s._wave_timer = 1.0e9
+			if tick >= 900:
+				var t0: int = Time.get_ticks_usec()
+				s.apply_flocking_separation()
+				sep_us += Time.get_ticks_usec() - t0
+			s.update(1.0 / 120.0, pl, BOUNDS, _particles, 0, Types.GameMode.CODE_RED)
+		print("BENCH blob separation n=%d  %8.1f us/call" % [count, float(sep_us) / 300.0])
+	pass_test("bench")

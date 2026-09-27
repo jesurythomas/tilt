@@ -196,3 +196,22 @@ func test_sweep_writes_back_an_enemy_pushed_only_by_the_fallback() -> void:
 	for i: int in range(4):
 		assert_eq(swarm.enemies[i].x, enemies[i].x, "x %d" % i)
 		assert_eq(swarm.enemies[i].y, enemies[i].y, "y %d" % i)
+
+
+
+func test_sweep_matches_the_pair_loop_on_random_blobs() -> void:
+	# M11c P30: randomised dense blobs of varied shape (seeded), several ticks each —
+	# stresses the row padding and the drift bound where no hand-made case reaches.
+	for trial: int in range(40):
+		seed(1000 + trial)
+		var w: float = 40.0 + randf() * 260.0
+		var h: float = 40.0 + randf() * 260.0
+		var count: int = 40 + randi() % 160
+		var enemies: Array[Types.Enemy] = []
+		for i: int in range(count):
+			var e: Types.Enemy = Types.Enemy.new()
+			e.id = i
+			e.x = 800.0 + randf() * w
+			e.y = 400.0 + randf() * h
+			enemies.append(e)
+		_assert_sweep_matches(enemies, 4)
