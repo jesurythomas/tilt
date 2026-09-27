@@ -26,6 +26,10 @@ var particles: Array[Particle] = []
 ## DIVERGENCE(M11c P12): retired particles, reused by the next emit instead of
 ## allocating (the TS relies on its GC; a GDScript object per spark costs ~2 us).
 var _pool: Array[Particle] = []
+## DIVERGENCE(M11c P25): steps queued so far, the last flushed, and the step length.
+var _steps: int = 0
+var _flushed: int = 0
+var _step_dt: float = 0.0
 
 
 ## Empties the pool. PORT: web/src/tilt-to-live/ParticleEngine.ts:23-25
@@ -42,26 +46,54 @@ func pooled_count() -> int:
 ## A fresh or recycled particle; every emitter sets every field it reads.
 ## DIVERGENCE(M11c P12): replaces Particle.new() at each emit site.
 func _take() -> Particle:
-	if _pool.is_empty():
-		return Particle.new()
-	return _pool.pop_back()
+	var p: Particle = Particle.new() if _pool.is_empty() else _pool.pop_back()
+	p.born = _steps  # DIVERGENCE(M11c P25): it integrates from the next queued step
+	return p
 
 
-## Integrates and retires particles. PORT: web/src/tilt-to-live/ParticleEngine.ts:27-44
+## Integrates and retires particles by one step. PORT: web/src/tilt-to-live/ParticleEngine.ts:27-44
+func update(dt: float) -> void:
+	step(dt)
+	flush()
+
+
+## DIVERGENCE(M11c P25): queues one simulation step; flush() integrates every queued
+## step at once. The sim ticks at 120 Hz — up to 8 times per rendered frame — and
+## particles are only drawn, so GameRoot flushes once per frame.
+func step(dt: float) -> void:
+	_steps += 1
+	_step_dt = dt
+
+
+## DIVERGENCE(M11c P25): integrates each particle over the steps queued since it was
+## born or last flushed, in closed form: n steps of `x += vx*dt; vx *= f` move x by
+## vx*dt*(1 + f + ... + f^(n-1)) and leave vx*f^n; life and ring size change linearly.
+## That is the per-step result (rounding aside); a particle whose life ends within the
+## batch is retired at the flush. PORT: web/src/tilt-to-live/ParticleEngine.ts:27-44
 # DIVERGENCE(M11c P12): one forward pass compacts survivors in place (oldest first,
 # as before) instead of remove_at per death, which shifted the array each time.
-func update(dt: float) -> void:
+func flush() -> void:
+	var total: int = _steps
+	var dt: float = _step_dt
 	var kept: int = 0
 	for i: int in range(particles.size()):
 		var p: Particle = particles[i]
-		p.x += p.vx * dt
-		p.y += p.vy * dt
-		p.vx *= p.friction
-		p.vy *= p.friction
-		p.life -= dt
+		var n: int = total - maxi(p.born, _flushed)
+		if n > 0:
+			var f: float = p.friction
+			var sum: float = float(n)
+			var fn: float = 1.0
+			if f != 1.0:
+				fn = pow(f, n)
+				sum = (1.0 - fn) / (1.0 - f) if n > 1 else 1.0
+			p.x += p.vx * dt * sum
+			p.y += p.vy * dt * sum
+			p.vx *= fn
+			p.vy *= fn
+			p.life -= dt * n
 
-		if p.shape == Shape.RING:
-			p.size += 220.0 * dt  # PORT: web/src/tilt-to-live/ParticleEngine.ts:37
+			if p.shape == Shape.RING:
+				p.size += 220.0 * dt * n  # PORT: web/src/tilt-to-live/ParticleEngine.ts:37
 
 		if p.life <= 0.0:
 			_pool.append(p)
@@ -69,6 +101,7 @@ func update(dt: float) -> void:
 			particles[kept] = p
 			kept += 1
 	particles.resize(kept)
+	_flushed = total
 
 
 ## Emits omnidirectional sparks. PORT: web/src/tilt-to-live/ParticleEngine.ts:46-67
@@ -259,3 +292,5 @@ class Particle:
 	var shape: Shape = Shape.CIRCLE
 	var decay: float = 0.0
 	var friction: float = 0.0
+	## DIVERGENCE(M11c P25): the queued step count when it was emitted.
+	var born: int = 0

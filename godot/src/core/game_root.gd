@@ -335,6 +335,10 @@ func _process(_delta: float) -> void:
 	# PORT: web/src/tilt-to-live/TiltRenderer.ts:46-56 — once per rendered frame,
 	# around everything inside ctx.save()..restore() (:53-156). renderMenuBackground
 	# never reads cameraShake (M11a R2).
+	# DIVERGENCE(M11c P25): the frame's queued particle steps, before anything draws them.
+	var pt_particles: int = PerfProbe.now()
+	_particles.flush()
+	PerfProbe.add("s_particles", pt_particles)
 	_report_perf()
 	var offset: Vector2 = Vector2.ZERO
 	if _state.phase != Types.GamePhase.MENU and camera_shake > 0.1:  # PORT: :48

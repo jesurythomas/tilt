@@ -240,3 +240,14 @@ migration, the PerfProbe callable. **Fixed:**
 Draw bench unchanged with `--render-thread safe` (seekers ~357 µs, mix ~626 µs); under the
 project's Separate render thread the desktop bench reads ~30–50% higher and noisier —
 the draw benches now document the flag.
+
+**Ruling P25 — particle steps batched per rendered frame** (visual only): the run tick
+queues `particles.step(dt)`; `GameRoot` calls `particles.flush()` once per frame, which
+integrates each particle over the steps since its birth/last flush in closed form
+(x += vx·dt·(1−fⁿ)/(1−f), vx·fⁿ, life and ring size linear) — the per-step result up to
+rounding; `update(dt)` = one step + flush, bit-identical to before (n = 1). Dead
+particles retire at the flush, so at the 400 cap slightly more emits are dropped.
+Tests: 5 queued steps match 5 updates (1e-9); a particle born mid-batch integrates only
+later steps. Emulator Code Red A/B at 150+ enemies: `s_particles` 4.93 → 1.14 ms/frame
+(more particles alive); 150–249 fps 13.7 → 21.9. `tools/emulator/ab.sh` now selects
+Code Red before Play.

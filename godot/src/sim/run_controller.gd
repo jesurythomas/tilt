@@ -180,7 +180,8 @@ func update(
 
 	# 2. Update Particles
 	var pt_particles: int = PerfProbe.now()
-	particles.update(dt)
+	# DIVERGENCE(M11c P25): queued; GameRoot integrates the frame's steps in one flush.
+	particles.step(dt)
 	PerfProbe.add("s_particles", pt_particles)
 
 	# 3. Update Player Ship

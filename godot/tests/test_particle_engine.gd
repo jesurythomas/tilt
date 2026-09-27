@@ -104,3 +104,50 @@ func test_update_keeps_survivors_oldest_first() -> void:
 	assert_eq(pe.particles.size(), survivors.size())
 	for k: int in range(survivors.size()):
 		assert_same(pe.particles[k], survivors[k], "same objects, same order (%d)" % k)
+
+
+func _twin_emit(a: ParticleEngine, b: ParticleEngine) -> void:
+	seed(21)
+	a.emit_sparks(100.0, 50.0, 12, Color.RED, 180.0)
+	seed(21)
+	b.emit_sparks(100.0, 50.0, 12, Color.RED, 180.0)
+
+
+func _assert_same_state(a: ParticleEngine, b: ParticleEngine, label: String) -> void:
+	assert_eq(a.particles.size(), b.particles.size(), label + " count")
+	for i: int in range(mini(a.particles.size(), b.particles.size())):
+		var p: ParticleEngine.Particle = a.particles[i]
+		var q: ParticleEngine.Particle = b.particles[i]
+		assert_almost_eq(p.x, q.x, 1e-9, label + " x")
+		assert_almost_eq(p.y, q.y, 1e-9, label + " y")
+		assert_almost_eq(p.vx, q.vx, 1e-9, label + " vx")
+		assert_almost_eq(p.life, q.life, 1e-9, label + " life")
+
+
+func test_queued_steps_flush_like_single_steps() -> void:
+	# M11c P25: n queued steps integrated at once match n update() calls.
+	var dt: float = 1.0 / 120.0
+	var a: ParticleEngine = ParticleEngine.new()
+	var b: ParticleEngine = ParticleEngine.new()
+	_twin_emit(a, b)
+	for i: int in range(5):
+		a.update(dt)
+		b.step(dt)
+	b.flush()
+	_assert_same_state(a, b, "after 5")
+
+
+func test_a_particle_emitted_mid_batch_integrates_only_later_steps() -> void:
+	var dt: float = 1.0 / 120.0
+	var a: ParticleEngine = ParticleEngine.new()
+	var b: ParticleEngine = ParticleEngine.new()
+	a.update(dt)
+	a.update(dt)
+	b.step(dt)
+	b.step(dt)
+	_twin_emit(a, b)
+	for i: int in range(3):
+		a.update(dt)
+		b.step(dt)
+	b.flush()
+	_assert_same_state(a, b, "born after 2 of 5")

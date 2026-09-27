@@ -12,6 +12,8 @@ for v in "$@"; do
   sleep 30
   "$D/g.sh" shot ab_menu_$v 0 >/dev/null
   $A $S logcat -c
+  "$D/g.sh" tap 1567 405   # the Code Red card (dense from the first second)
+  sleep 2
   "$D/g.sh" tap 1567 643
   $A $S logcat -s godot:I > "$L/ab_$v.log" 2>&1 &
   LP=$!
