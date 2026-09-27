@@ -207,10 +207,14 @@ func is_modal_open() -> bool:
 
 
 ## PORT: web/src/tilt-to-live/GoalsHUD.ts:166-175
+# DIVERGENCE(M11c review, user 2026-09-27: "theres a bar on top which doesnt seem to be
+# doing anything"): the rail never shows. It is unlabelled and not tappable (spec §6.5,
+# R11), and it moves only on a milestone completion, so in play it read as a stuck bar;
+# the Milestones screen and the completion toast carry the same progress.
 func set_menu_mode(in_menu: bool) -> void:
 	in_menu_mode = in_menu
 	if _rail != null:
-		_rail.visible = not in_menu
+		_rail.visible = false
 
 
 ## Legacy support: toggle modal. PORT: web/src/tilt-to-live/GoalsHUD.ts:177-184
@@ -283,6 +287,7 @@ func _init_dom(rail_host: Control, toast_host: Control) -> void:
 	_rail.name = "EdgeRail"
 	# DIVERGENCE(UI-SYSTEM): Hud.dc.html — not tappable (spec §6.5; R11).
 	_rail.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_rail.visible = false  # DIVERGENCE(M11c review): hidden, see set_menu_mode
 	rail_host.add_child(_rail)
 	_rail_fill = ColorRect.new()
 	_rail_fill.name = "EdgeRailFill"

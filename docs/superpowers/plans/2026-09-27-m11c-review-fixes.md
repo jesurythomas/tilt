@@ -391,3 +391,21 @@ User ruling: C++ GDExtension for the hot path, not C# (Android C# is experimenta
   golden hashes with the native path on; fall back to GDScript when
   `ClassDB.class_exists("PerilNative")` is false. Bench: `test_bench_chasing_blob`.
 - [ ] **N3 — native seeker/sweep-dot loop** if N2's A/B leaves the loop dominant.
+
+### User rulings (2026-09-27, evening)
+- [x] **P29 — wall formations spaced out** ("space them out a bit more", then "go a
+  bit wider, smaller ships still cant pass"): spacing 22 → 32 × scale, dot radius
+  8 → 10.5 × scale, gap 5 → 3 slots. Horizontal wall 73 → 51 dots on the A55, vertical
+  33 → 23. Half the spacing (16) < Shuriken × max hull compact contact (16.77), so
+  every ship but Singularity is blocked (test derives it from the ship catalog);
+  Singularity passes (with max hull compact it already did in the TS). Gap clear width
+  107 vs TS 116 (scale-relative). Constants `EnemySwarm.WALL_SPACING/RADIUS/GAP_HALF`.
+- [x] **Milestone rail hidden** ("theres a bar on top which doesnt seem to be doing
+  anything"): GoalsHUD's EdgeRail (goals done / total, unlabelled, not tappable,
+  moves only on a completion) never shows; the Milestones screen and toast remain.
+- [x] **Perf tooling**: `bot.sh` flies a 560 px square; `perf_patch.sh` adds an
+  on-screen readout (FPS, frame ms, enemies, "NUKE!") and compiles both patched
+  scripts before any export (the first A/B builds shipped a parse error from the
+  patch and never started — no data came from them); `nuke_fps.sh` prints fps/enemies
+  around each auto-nuke. First finding: a 200-enemy nuke drops fps 44–52 → 15–17 for
+  ~2 s with far fewer enemies left — the mass kill is its own spike (next to profile).

@@ -146,14 +146,16 @@ func test_toast_goes_into_its_host_at_content_width() -> void:
 	assert_eq(toast.size_flags_horizontal, Control.SIZE_SHRINK_BEGIN)
 
 
-func test_menu_mode_hides_the_rail() -> void:
+func test_rail_stays_hidden_in_menu_and_in_play() -> void:
+	# DIVERGENCE(M11c review): user ruling — the rail read as a stuck bar in play.
 	_hud.bind(_gm, _pm)
 	var rail: Control = _node("EdgeRail") as Control
+	assert_false(rail.visible, "hidden from the start")
 	_hud.set_menu_mode(true)
 	assert_false(rail.visible, ":166-175")
 	assert_true(_hud.in_menu_mode)
 	_hud.set_menu_mode(false)
-	assert_true(rail.visible)
+	assert_false(rail.visible, "hidden in play too")
 
 
 func test_m_toggles_and_escape_closes_the_modal() -> void:

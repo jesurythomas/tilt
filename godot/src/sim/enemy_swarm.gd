@@ -16,6 +16,11 @@ extends RefCounted
 ## render/entity_layer.gd (spec §4.2/D4) because CanvasItem 2D drawing belongs
 ## to Node2D render layers.
 
+## DIVERGENCE(M11c P29): wall-formation dot spacing (TS 22), radius (TS 8) and gap
+## half-width in slots (TS 2); see spawn_wall_formation.
+const WALL_SPACING: float = 32.0
+const WALL_RADIUS: float = 10.5
+const WALL_GAP_HALF: int = 1
 ## DIVERGENCE(M11c P15): separation switches to the windowed sweep at this many
 ## candidates (bench 2026-09-27: the sweep is 2-5x faster from 40 up).
 const SWEEP_MIN_CANDIDATES: int = 32
@@ -528,7 +533,15 @@ func spawn_circle_encirclement(
 ## player to pass through. PORT: web/src/tilt-to-live/EnemySwarm.ts:916-967
 func spawn_wall_formation(bounds: Vector2) -> void:
 	var horizontal: bool = randf() < 0.5  # PORT: web/src/tilt-to-live/EnemySwarm.ts:917
-	var spacing: float = 22.0 * scale  # PORT: web/src/tilt-to-live/EnemySwarm.ts:918
+	# DIVERGENCE(M11c P29, user 2026-09-27: "space them out a bit more", then "go a bit
+	# wider, smaller ships still cant pass"): spacing 22 -> WALL_SPACING (32) x scale,
+	# ~30% fewer dots per wall. To keep ships from slipping between dots the radius
+	# grows 8 -> WALL_RADIUS (10.5): half the spacing (16) stays under the smallest
+	# non-Singularity contact distance, Shuriken 0.85 x max hull compact 0.82:
+	# 9 x 0.697 + 10.5 = 16.77 (all scale-relative). The gap skips 3 slots, not 5, so
+	# its clear width stays near the TS's (4 x 32 - 21 = 107 vs 6 x 22 - 16 = 116).
+	# Singularity (hitbox 0.40) passes; with max hull compact it already did in the TS.
+	var spacing: float = WALL_SPACING * scale  # PORT: web/src/tilt-to-live/EnemySwarm.ts:918
 
 	if horizontal:
 		var from_top: bool = randf() < 0.5  # PORT: web/src/tilt-to-live/EnemySwarm.ts:921
@@ -541,7 +554,7 @@ func spawn_wall_formation(bounds: Vector2) -> void:
 		var gap_index: int = 2 + floori(randf() * float(num_dots - 4))
 
 		for i: int in range(num_dots):
-			if absi(i - gap_index) <= 2:  # PORT: web/src/tilt-to-live/EnemySwarm.ts:928
+			if absi(i - gap_index) <= WALL_GAP_HALF:  # PORT: web/src/tilt-to-live/EnemySwarm.ts:928
 				continue
 			var enemy: Types.Enemy = Types.Enemy.new()
 			enemy.id = _next_enemy_id
@@ -553,7 +566,7 @@ func spawn_wall_formation(bounds: Vector2) -> void:
 			enemy.y = y
 			enemy.vx = 0.0
 			enemy.vy = vy
-			enemy.radius = 8.0 * scale  # PORT: web/src/tilt-to-live/EnemySwarm.ts:936
+			enemy.radius = WALL_RADIUS * scale  # PORT: web/src/tilt-to-live/EnemySwarm.ts:936
 			enemy.frozen = false
 			enemy.freeze_timer = 0.0
 			enemy.age = 0.0
@@ -570,7 +583,7 @@ func spawn_wall_formation(bounds: Vector2) -> void:
 		var gap_index: int = 2 + floori(randf() * float(num_dots - 4))
 
 		for i: int in range(num_dots):
-			if absi(i - gap_index) <= 2:  # PORT: web/src/tilt-to-live/EnemySwarm.ts:951
+			if absi(i - gap_index) <= WALL_GAP_HALF:  # PORT: web/src/tilt-to-live/EnemySwarm.ts:951
 				continue
 			var enemy: Types.Enemy = Types.Enemy.new()
 			enemy.id = _next_enemy_id
@@ -582,7 +595,7 @@ func spawn_wall_formation(bounds: Vector2) -> void:
 			enemy.y = float(i) * spacing + 10.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:956
 			enemy.vx = vx
 			enemy.vy = 0.0
-			enemy.radius = 8.0 * scale  # PORT: web/src/tilt-to-live/EnemySwarm.ts:959
+			enemy.radius = WALL_RADIUS * scale  # PORT: web/src/tilt-to-live/EnemySwarm.ts:959
 			enemy.frozen = false
 			enemy.freeze_timer = 0.0
 			enemy.age = 0.0
