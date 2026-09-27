@@ -188,3 +188,18 @@ the fps."
   grid: max 0.000086 px position / 0.000008 velocity difference (oracle now bounds by
   SETTLE_EPS). Result: `s_grid` 2.75 → 0.45 ms/frame, hot seconds 13 → 1; 50–99
   enemies 35.9 → 50.8 fps. `touch(i)` wakes a point moved directly (tests).
+
+### Task 12: Loading screen and app icons (user, 2026-09-27: "please also add a new loading screen")
+- Boot splash: `godot/assets/splash/boot_splash.png`, rendered by
+  `godot/tools/make_splash.gd` (GUT, windowed, `--render-thread safe`) from the
+  ColdOpen board itself (void, ion glow, ship, "PERIL POINT", empty bar) at 2340×1080,
+  so the hand-over to the cold open is seamless. `application/boot_splash/image`,
+  `bg_color` #08090E (the image's edge), `stretch_mode=4` (Cover).
+- Icons: `godot/tools/make_icons.gd` (headless) draws the ship glyph with an ion glow
+  on the void colour → `assets/icon/` (project icon 512, launcher 192, adaptive
+  foreground/background/monochrome 432); `config/icon` set (clears the export's
+  "No project icon" error); export `launcher_icons/*` and `splash_screen/icon` set.
+- Emulator launch: system splash shows the ship icon (was Godot's), then the new boot
+  splash, then the menu. **Open:** the Android 12 system splash background stays the
+  light theme colour — `splash_screen/background_color` did not apply in this
+  non-Gradle export; a Gradle build (Android build template) would be needed.
