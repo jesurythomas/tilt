@@ -677,6 +677,14 @@ refunded once on the first launch.
 - [ ] 11. **Menu controls (UI R11).** The selected Steer option (Touch or Tilt) is
       clearly blue with its glyph; Armory (chevrons) and Achievements (trophy) stand
       out; the Settings button is a cog. Same Steer look on Pause and Run over.
+- [ ] 12. **No multipliers, casing (UI R12).** The Run over subtitle reads "Swarmed at 0:07
+      — Code Red"; the run-start banner has no "1.5X SCORE". Settings: "Drag anywhere",
+      "Tilt the phone". Any label still oddly capitalised?
+- [ ] 13. **Enemy textures (SKIN R1).** Buy and equip a skin: every dot shows its pattern
+      (Toxic bubbles, Glitch bands, Magma cracks, Void swirl, Gold gleam) and still reads
+      as a threat at arm's length. No hitch when the first dots appear.
+- [ ] 14. **Arena buying (ARMORY R5).** Tapping a card you don't own spends nothing; it
+      gets a blue edge and a "Buy N" button; that button buys and equips it.
 
 ## M11c part 1 — Performance (plan `2026-09-26-m11c-performance.md`)
 

@@ -1733,6 +1733,11 @@ The menu's controls read at a glance (UI R11): the selected Steer segment is ion
 Touch/Tilt glyph (all `SegmentButton`s), Armory and Achievements are raised `NavButton`s
 with ion chevrons / a flare trophy, and Settings is a real cog.
 
+No multiplier text remains in the Run over subtitle or the run-start banner (UI R12);
+UI labels are sentence case, names Title Case. Unlockable enemy skins paint a pattern on
+every default dot (SKIN R1, `render/enemy_textures.gd`, baked into the dot sprites). The
+Arena tab buys only from an explicit Buy button on the picked card (ARMORY R5). Suite 766.
+
 **Next, literally:** when the A55 is on `adb`, run VERIFY-ME §Armory / economy / icons
 rework with the user (economy knobs are listed there), then continue with the list
 below (kill path in C++, weapons section, release libs). The A55 pass on `b4901c1`

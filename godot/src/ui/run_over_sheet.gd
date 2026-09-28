@@ -138,7 +138,7 @@ func set_ui_scale(scale: float) -> void:
 ## Fills every figure. PORT: web/src/tilt-to-live/TiltGame.ts:2093-2122
 func show_result(result: RunResult) -> void:
 	_score.text = UiTheme.group_digits(result.score)  # PORT: :2093
-	_subtitle.text = subtitle_text(result.time_text, result.mode_name, result.mode_multiplier)
+	_subtitle.text = subtitle_text(result.time_text, result.mode_name)
 	_banner.visible = result.best_diff > 0  # PORT: :2097-2102
 	_new_best.text = "New best — up %s" % UiTheme.group_digits(result.best_diff)  # PORT: :2098
 	_kills.text = str(result.kills)  # PORT: :2104
@@ -190,9 +190,11 @@ func _gui_input(event: InputEvent) -> void:
 		finish_count_up()
 
 
-## "Swarmed at 1:42 — Standard, 1.0×". PORT: web/src/tilt-to-live/TiltGame.ts:2095
-static func subtitle_text(time_text: String, mode_name: String, mode_multiplier: float) -> String:
-	return "Swarmed at %s — %s, %.1f×" % [time_text, mode_name, mode_multiplier]
+## "Swarmed at 1:42 — Standard". PORT: web/src/tilt-to-live/TiltGame.ts:2095
+## DIVERGENCE(UI R12, user 2026-09-28: "the game over screen still shows 1.5 soemthing"):
+## no ", 1.0×" (the mode cards dropped their multipliers in UI R8).
+static func subtitle_text(time_text: String, mode_name: String) -> String:
+	return "Swarmed at %s — %s" % [time_text, mode_name]
 
 
 func _build() -> void:

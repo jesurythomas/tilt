@@ -182,9 +182,10 @@ const ARENA_BODY_PAD_X: int = 10
 const ARENA_BODY_PAD_BOTTOM: int = 9
 const ARENA_BODY_GAP: int = 3
 const ARENA_NAME_FONT: int = 13
-const ENEMY_DOT_LARGE: int = 12
-const ENEMY_DOT_SMALL: int = 9
-const ENEMY_DOT_GAP: int = 12
+## DIVERGENCE(SKIN R1): 22/16/8 (the board's 12/9/12) so each skin's pattern reads.
+const ENEMY_DOT_LARGE: int = 22
+const ENEMY_DOT_SMALL: int = 16
+const ENEMY_DOT_GAP: int = 8
 
 ## Boosts layout. DIVERGENCE(UI-SYSTEM): ArmoryBoosts.dc.html — body padding
 ## BODY_PAD_* (Task 6), gap 10. DIVERGENCE(ARMORY R3): the rows are _upgrade_card's.
@@ -254,6 +255,11 @@ var _balance_tween: Tween = null
 var _rendered_tab: int = -1
 ## DIVERGENCE(ARMORY R2): the pips bar whose newest pip pops after the next render.
 var _pop_pips: String = ""
+## DIVERGENCE(ARMORY R5, user 2026-09-28: "arena -- when you click on something it
+## automatically purchases it. it should also show the button when puchasing"): the
+## Arena card picked for buying, "<kind>:<id>" ("" = none). A tap on a card the player
+## does not own picks it; only its Buy button spends points.
+var _arena_pick: String = ""
 
 @onready var _overlay: ColorRect = %Overlay
 @onready var _panel_margin: MarginContainer = %PanelMargin
@@ -315,6 +321,7 @@ func get_starting_weapon_config(weapon_type: Types.WeaponType) -> WeaponConfig:
 
 ## PORT: web/src/tilt-to-live/ArmoryUI.ts:294-315
 func open(tab: String = "") -> void:
+	_arena_pick = ""
 	if not tab.is_empty():
 		active_tab = (TAB_ALIASES[tab] as Tab) if TAB_ALIASES.has(tab) else Tab.WEAPONS  # PORT: :308
 	visible = true
@@ -1029,7 +1036,7 @@ func _render_arena_tab() -> Control:
 	column.add_child(
 		_caption_row(
 			"ThemesPill",
-			"Arena Themes · %d of %d unlocked" % [unlocked_theme_count, themes.size()],
+			"Arena themes · %d of %d unlocked" % [unlocked_theme_count, themes.size()],
 			""
 		)
 	)
@@ -1072,7 +1079,7 @@ func _render_arena_tab() -> Control:
 			unlocked_enemy_count += 1
 	var enemies_caption: HBoxContainer = _caption_row(
 		"EnemiesPill",
-		"Enemy Variations · %d of %d unlocked" % [unlocked_enemy_count, enemies.size()],
+		"Enemy variations · %d of %d unlocked" % [unlocked_enemy_count, enemies.size()],
 		""
 	)
 	var caption_pad: MarginContainer = _pad(ENEMIES_TOP, 0, 0, 0)
@@ -1082,20 +1089,18 @@ func _render_arena_tab() -> Control:
 	enemies_row.add_theme_constant_override("separation", _px(ARENA_GAP))
 	for skin: ProgressionManager.EnemySkinConfig in enemies:
 		# Three dots in the skin's body and rim; glow dropped (rule 02, interface spec §6.4).
-		# PORT-NOTE: the body is the gradient's mid stop, as the M3 two-circle rule does.
+		# DIVERGENCE(SKIN R1): each dot is the in-game dot — inner disc, the skin's pattern,
+		# border and pupil (EnemyTextures.dot_image), not a flat body with a rim.
 		var dots: HBoxContainer = HBoxContainer.new()
 		dots.alignment = BoxContainer.ALIGNMENT_CENTER
 		dots.add_theme_constant_override("separation", _px(ENEMY_DOT_GAP))
 		dots.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		for dot_size: int in [ENEMY_DOT_LARGE, ENEMY_DOT_SMALL, ENEMY_DOT_LARGE]:
-			var dot: Panel = Panel.new()
-			dot.custom_minimum_size = Vector2.ONE * _px(dot_size)
+			var dot: TextureRect = TextureRect.new()
+			dot.texture = _skin_dot(skin, _px(dot_size))
+			dot.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
 			dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 			dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			dot.add_theme_stylebox_override(
-				"panel",
-				UiTheme.flat(skin.body_gradient[1], skin.border_color, int(_px(dot_size) / 2.0))
-			)
 			dots.add_child(dot)
 		var preview: Control = Control.new()
 		preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1120,8 +1125,26 @@ func _render_arena_tab() -> Control:
 	return _scroll_body(margin)
 
 
+## DIVERGENCE(SKIN R1): one preview dot of `skin`, `px` across.
+func _skin_dot(skin: ProgressionManager.EnemySkinConfig, px: int) -> ImageTexture:
+	var r: float = px * 0.5
+	var size: int = px + 4
+	var img: Image = EnemyTextures.dot_image(
+		size,
+		r,
+		PackedColorArray(
+			[skin.body_gradient[1], skin.body_gradient[0], skin.border_color, skin.pupil_color]
+		),
+		maxf(1.0, r * 0.13),
+		skin.id
+	)
+	return ImageTexture.create_from_image(img)
+
+
 ## One tappable arena/enemy card: a Card with a transparent CardButton laid over
-## it. Tapping buys or equips, as the TS's buttons do (:677-693, :731-747).
+## it. Tapping equips an owned card, as the TS's buttons do (:677-693, :731-747).
+## DIVERGENCE(ARMORY R5): tapping one not owned picks it (ion edge) and swaps its price
+## line for a Buy button with the price; the TS bought on the first tap.
 ## DIVERGENCE(UI-SYSTEM): ArmoryArena.dc.html
 # The tap target is a Button over a PanelContainer rather than a Button holding
 # the content: a Button is not a Container and would not size to its children,
@@ -1136,17 +1159,19 @@ func _arena_card_button(
 	points: int,
 	preview: Control
 ) -> PanelContainer:
+	var is_picked: bool = not is_unlocked and _arena_pick == "%s:%s" % [kind, id]
 	var card: PanelContainer = PanelContainer.new()
 	card.name = "%sCard_%s" % [kind, id]
 	card.custom_minimum_size.x = _px(ARENA_CARD_WIDTH)
-	card.add_theme_stylebox_override(
-		"panel",
-		UiTheme.flat(
-			UiTheme.COLOR_PANEL,
-			UiTheme.COLOR_LOCKED_IN if is_equipped else UiTheme.COLOR_LINE,
-			_px(UiTheme.CARD_RADIUS)
-		)
-	)
+	var edge: Color = UiTheme.COLOR_LINE
+	if is_equipped:
+		edge = UiTheme.COLOR_LOCKED_IN
+	elif is_picked:
+		edge = UiTheme.COLOR_ION
+	var card_box: StyleBoxFlat = UiTheme.flat(UiTheme.COLOR_PANEL, edge, _px(UiTheme.CARD_RADIUS))
+	if is_picked:
+		card_box.set_border_width_all(2)
+	card.add_theme_stylebox_override("panel", card_box)
 	var tap: Button = Button.new()
 	tap.theme_type_variation = "CardButton"
 	var state_text: String = format_points(price)
@@ -1165,12 +1190,8 @@ func _arena_card_button(
 		else:
 			tap.pressed.connect(_on_equip_enemy_pressed.bind(id))
 	else:
-		tap.name = "Buy%s_%s" % [kind, id]
-		tap.disabled = points < price
-		if kind == "Arena":
-			tap.pressed.connect(_on_buy_arena_pressed.bind(id))
-		else:
-			tap.pressed.connect(_on_buy_enemy_pressed.bind(id))
+		tap.name = "Pick%s_%s" % [kind, id]
+		tap.pressed.connect(_on_arena_pick.bind(kind, id))
 
 	var stack: VBoxContainer = VBoxContainer.new()
 	stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1206,10 +1227,25 @@ func _arena_card_button(
 	state.add_theme_color_override("font_color", state_color)
 	state.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	lines.add_child(state)
+	if is_picked:
+		# DIVERGENCE(ARMORY R5): the Buy button replaces the price line.
+		state.visible = false
+		var buy: Button = Button.new()
+		buy.name = "Buy%s_%s" % [kind, id]
+		buy.theme_type_variation = "CostButton"
+		buy.text = "Buy %s" % UiTheme.group_digits(price)
+		buy.custom_minimum_size.y = _px(UiTheme.TOUCH_TARGET)
+		buy.disabled = points < price
+		if kind == "Arena":
+			buy.pressed.connect(_on_buy_arena_pressed.bind(id))
+		else:
+			buy.pressed.connect(_on_buy_enemy_pressed.bind(id))
+		lines.add_child(buy)
 	body.add_child(lines)
 	stack.add_child(body)
 	card.add_child(stack)
-	card.add_child(tap)  # last: drawn and hit-tested above the content
+	if not is_picked:
+		card.add_child(tap)  # last: drawn and hit-tested above the content
 	return card
 
 
@@ -1398,6 +1434,7 @@ func _stop_handling_preview() -> void:
 func _on_tab_pressed(tab: Tab) -> void:
 	if tab != active_tab:
 		active_tab = tab
+		_arena_pick = ""
 	render()
 
 
@@ -1456,8 +1493,15 @@ func _on_equip_ship_pressed(id: String) -> void:
 		render()
 
 
+## DIVERGENCE(ARMORY R5): picks an Arena card to buy (see _arena_pick).
+func _on_arena_pick(kind: String, id: String) -> void:
+	_arena_pick = "%s:%s" % [kind, id]
+	render()
+
+
 ## PORT: web/src/tilt-to-live/ArmoryUI.ts:1220-1228
 func _on_buy_arena_pressed(id: String) -> void:
+	_arena_pick = ""
 	if progression.buy_arena_theme(id):
 		state_changed.emit()
 		render()
@@ -1473,6 +1517,7 @@ func _on_equip_arena_pressed(id: String) -> void:
 
 ## PORT: web/src/tilt-to-live/ArmoryUI.ts:1241-1249
 func _on_buy_enemy_pressed(id: String) -> void:
+	_arena_pick = ""
 	if progression.buy_enemy_skin(id):
 		state_changed.emit()
 		render()
@@ -1742,8 +1787,8 @@ func _build_weapons_catalog() -> Array[WeaponConfig]:
 	)
 	# PORT: :113-128
 	var missile_tracks: Array[WeaponTrack] = [
-		_track("count", "Salvo Count", "+1 missile / rank"),
-		_track("blastRadius", "Detonation Radius", "+6 range / rank"),
+		_track("count", "Salvo count", "+1 missile / rank"),
+		_track("blastRadius", "Detonation radius", "+6 range / rank"),
 		_track("flightSpeed", "Propulsion", "+20% / rank"),
 	]
 	var missile_keys: Array[WeaponKeystone] = [
@@ -1764,8 +1809,8 @@ func _build_weapons_catalog() -> Array[WeaponConfig]:
 	)
 	# PORT: :129-143
 	var laser_tracks: Array[WeaponTrack] = [
-		_track("length", "Beam Reach", "+20 range / rank"),
-		_track("duration", "Emission Time", "+0.4s / rank"),
+		_track("length", "Beam reach", "+20 range / rank"),
+		_track("duration", "Emission time", "+0.4s / rank"),
 	]
 	var laser_keys: Array[WeaponKeystone] = [
 		_keystone("crossBeam", "Cross Beam", "Splits beam into 4-way perpendicular cross."),
@@ -1783,8 +1828,8 @@ func _build_weapons_catalog() -> Array[WeaponConfig]:
 	)
 	# PORT: :144-158
 	var nuke_tracks: Array[WeaponTrack] = [
-		_track("radius", "Blast Radius", "+22 range / rank"),
-		_track("speed", "Shockwave Velocity", "+25% / rank"),
+		_track("radius", "Blast radius", "+22 range / rank"),
+		_track("speed", "Shockwave speed", "+25% / rank"),
 	]
 	var nuke_keys: Array[WeaponKeystone] = [
 		_keystone("falloutZone", "Fallout Zone", "Detonation leaves a 3.0s radioactive burn zone."),
@@ -1803,7 +1848,7 @@ func _build_weapons_catalog() -> Array[WeaponConfig]:
 		)
 	)
 	# PORT: :159-172
-	var freeze_tracks: Array[WeaponTrack] = [_track("duration", "Freeze Duration", "+0.7s / rank")]
+	var freeze_tracks: Array[WeaponTrack] = [_track("duration", "Freeze duration", "+0.7s / rank")]
 	var freeze_keys: Array[WeaponKeystone] = [
 		_keystone(
 			"shatterCascade", "Shatter Cascade", "Shattering one enemy destroys nearby frozen dots."
@@ -1822,8 +1867,8 @@ func _build_weapons_catalog() -> Array[WeaponConfig]:
 	)
 	# PORT: :173-187
 	var shield_tracks: Array[WeaponTrack] = [
-		_track("duration", "Shield Duration", "+1.0s / rank"),
-		_track("radius", "Bubble Radius", "+2 range / rank"),
+		_track("duration", "Shield duration", "+1.0s / rank"),
+		_track("radius", "Bubble radius", "+2 range / rank"),
 	]
 	var shield_keys: Array[WeaponKeystone] = [
 		_keystone("batteringRam", "Battering Ram", "Ramming enemies triggers kinetic shockwaves."),
@@ -1841,8 +1886,8 @@ func _build_weapons_catalog() -> Array[WeaponConfig]:
 	)
 	# PORT: :188-202
 	var lightning_tracks: Array[WeaponTrack] = [
-		_track("maxTargets", "Arc Targets", "+3 targets / rank"),
-		_track("chainRange", "Chain Distance", "+22 range / rank"),
+		_track("maxTargets", "Arc targets", "+3 targets / rank"),
+		_track("chainRange", "Chain distance", "+22 range / rank"),
 	]
 	var lightning_keys: Array[WeaponKeystone] = [
 		_keystone("plasmaArc", "Arc Detonation", "Chained enemies explode upon electrocution."),
@@ -1948,6 +1993,9 @@ func _boost(
 
 
 ## Every track in the TS catalog has maxRank 5 (:104-196).
+## DIVERGENCE(UI R12, user 2026-09-28: "fix the capitalization of the texts"): track labels are
+## sentence case like the rest of the UI ("Blast radius", not the TS's "Blast Radius");
+## keystone and boost names stay Title Case (they are names).
 func _track(key: String, name: String, effect: String) -> WeaponTrack:
 	var t: WeaponTrack = WeaponTrack.new()
 	t.key = key

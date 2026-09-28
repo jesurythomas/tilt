@@ -1163,12 +1163,25 @@ func _dot_sprites(radius: float, chilled: bool, is_hazard: bool) -> DotSprites:
 	# Inner: body, inner (0.65), border ring (1.2 px), pupil (0.38).
 	# PORT: web/src/tilt-to-live/EnemySwarm.ts:1588-1632
 	var inner_size: int = ceili(((radius + 0.6) * s + BAKE_MARGIN) * 2.0)
-	var inner: Image = CircleSprites.bake_layers_image(
-		inner_size,
-		PackedFloat32Array([radius * s, radius * 0.65 * s, radius * s, radius * 0.38 * s]),
-		PackedFloat32Array([0.0, 0.0, 1.2 * s, 0.0]),
-		PackedColorArray([palette[2], palette[3], palette[4], palette[5]])
-	)
+	# DIVERGENCE(SKIN R1): an unlockable skin's pattern goes between the inner disc and
+	# the border (EnemyTextures); a frozen-chilled dot keeps the plain chill look.
+	var skin_id: String = _enemy_skin.id if _enemy_skin != null and not chilled else ""
+	var inner: Image
+	if EnemyTextures.has_texture(skin_id):
+		inner = EnemyTextures.dot_image(
+			inner_size,
+			radius * s,
+			PackedColorArray([palette[2], palette[3], palette[4], palette[5]]),
+			1.2 * s,
+			skin_id
+		)
+	else:
+		inner = CircleSprites.bake_layers_image(
+			inner_size,
+			PackedFloat32Array([radius * s, radius * 0.65 * s, radius * s, radius * 0.38 * s]),
+			PackedFloat32Array([0.0, 0.0, 1.2 * s, 0.0]),
+			PackedColorArray([palette[2], palette[3], palette[4], palette[5]])
+		)
 	sprites.inner_half = inner_size * 0.5
 	# DIVERGENCE(M11c N5): outer at the left, inner DOT_ATLAS_GAP clear texels right of it.
 	var atlas: Image = Image.create_empty(

@@ -140,8 +140,9 @@ redesign if needed to make ui/ux feel better as a player". Rulings are Claude's 
   10 min idle on 2424×1080 (`bench/bench_menu.gd`): peak 147 → 32 enemies, 78–118 →
   57–70 µs/tick. `test_an_idle_menu_stays_bounded` (5 min, peak ≤ 38) fails with the cap
   removed (45). PERF gains `men=` (menu swarm size); `tools/emulator/menu_idle.sh`
-  idles APKs on the menu and logs PERF. Emulator A/B (`menu_idle.sh menu-before menu-after`, 8 min each) pending — the first try
-  hit an adb restart mid-install. Suite 762.
+  idles APKs on the menu and logs PERF. Emulator A/B (`menu_idle.sh menu-before menu-after`): uncapped, `men` climbed
+  to 164 within 8 min; capped, it stayed ≤ 27 (47 s logged before a deploy cut the run).
+  Emulator fps did not separate them (its fixed tail, N6). Suite 762.
 - [x] **UI R11** — "make steer and touch as well as the armory and achievements more
   noticeable as well aas change the settings option to the actual settings icon":
   `SegmentButton` (every segmented control: Steer on menu/Pause/Run over, Settings'
@@ -154,3 +155,24 @@ redesign if needed to make ui/ux feel better as a player". Rulings are Claude's 
   8 px sides; `test_device_matrix` checks each label fits its button on 8 devices, and an
   over-wide Armory pushes the panel off screen there (mutation). Menu draws unchanged on
   the emulator (217–300 vs 200–350). The Run over's Armory button keeps SecondaryButton.
+- [x] **UI R12** — "the game over screen still shows 1.5 soemthing aolso fix the
+  capitalization of the texts": the Run over subtitle is "Swarmed at 0:07 — Code Red"
+  (no ", 1.5×") and the run-start banner sublines drop "1.5X SCORE //"; Settings' scheme
+  sublabels are sentence case ("Drag anywhere", "Tilt the phone" — one line, was "phone
+  gyroscope" wrapping); Armory track labels are sentence case ("Blast radius", "Shockwave
+  speed") and the Arena captions ("Arena themes", "Enemy variations"). Names — weapons,
+  keystones, boosts, skins, achievements — stay Title Case; the banners stay all caps.
+- [x] **SKIN R1** — "instead of just base enemy colors changing, add textures to the
+  enemies for unlocks": `render/enemy_textures.gd` paints each unlockable skin's pattern
+  over the default dot's body (under border and pupil), from its palette: Toxic bubbles,
+  Glitch scan bands, Magma obsidian crust with glowing cracks, Void swirl, Gold gleam and
+  star. Baked into EntityLayer._dot_sprites (per radius key; Classic and the menu keep the
+  exact old bake), so draw cost is unchanged; a bake costs ~0.4 ms more on desktop, once
+  per radius (radii are a few constants). The Armory previews show the same dots (22/16
+  px). `bench/skin_sheet.gd` writes build/shots/skin_sheet.png. Charger/artillery/etc. keep
+  their skin colours only.
+- [x] **ARMORY R5** — "arena -- when you click on something it automatically purchases
+  it. it should also show the button when puchasing": a tap on an unowned Arena card picks
+  it (ion 2 px edge) and swaps its price line for a "Buy 400" CostButton (dimmed when
+  unaffordable); only that button buys. Owned cards still equip on tap (free). One pick
+  at a time; opening the Armory or switching tabs clears it. Suite 766.

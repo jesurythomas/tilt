@@ -398,19 +398,19 @@ func test_arena_tab_shows_both_catalogs_with_counts() -> void:
 	_armory.open("arena")
 	await get_tree().process_frame
 	# PORT: web/src/tilt-to-live/ArmoryUI.ts:779, :790 — counts use catalog length
-	assert_eq(_label("ThemesPill").text, "Arena Themes · 1 of 6 unlocked")
-	assert_eq(_label("EnemiesPill").text, "Enemy Variations · 1 of 6 unlocked")
+	assert_eq(_label("ThemesPill").text, "Arena themes · 1 of 6 unlocked")
+	assert_eq(_label("EnemiesPill").text, "Enemy variations · 1 of 6 unlocked")
 	assert_true(_button("EquippedArena_void").disabled)
 	assert_eq(_label("ArenaState_void").text, "✓ Equipped")
 	assert_eq(_label("ArenaState_synthwave").text, "400 pts")
-	assert_false(_button("BuyArena_synthwave").disabled)
+	assert_false(_button("PickArena_synthwave").disabled)
 	assert_true(_button("EquippedEnemy_classic").disabled)
 	assert_eq(_label("EnemyState_gold").text, "1,500 pts")
 
 
 func test_buy_then_equip_arena_theme() -> void:
 	_armory.open("arena")
-	_button("BuyArena_synthwave").pressed.emit()
+	_pick_and_buy("Arena", "synthwave")
 	assert_true(_progression.data.unlocked_arena_themes.has("synthwave"))
 	assert_eq(_progression.data.points, 7331 - 400)
 	assert_eq(
@@ -419,7 +419,7 @@ func test_buy_then_equip_arena_theme() -> void:
 		"buying equips (ProgressionManager.ts:768-777)"
 	)
 	assert_true(_button("EquippedArena_synthwave").disabled)
-	_button("BuyArena_nebula").pressed.emit()
+	_pick_and_buy("Arena", "nebula")
 	watch_signals(_armory)
 	_button("EquipArena_synthwave").pressed.emit()
 	assert_eq(_progression.data.equipped_arena_theme_id, "synthwave")
@@ -430,17 +430,17 @@ func test_buy_then_equip_arena_theme() -> void:
 func test_buy_then_equip_enemy_skin() -> void:
 	_armory.open("arena")
 	watch_signals(_armory)
-	_button("BuyEnemy_toxic").pressed.emit()
+	_pick_and_buy("Enemy", "toxic")
 	assert_true(_progression.data.unlocked_enemy_skins.has("toxic"))
 	assert_eq(
 		_progression.data.equipped_enemy_skin_id,
 		"toxic",
 		"buying equips (ProgressionManager.ts:744-753)"
 	)
-	_button("BuyEnemy_glitch").pressed.emit()
+	_pick_and_buy("Enemy", "glitch")
 	_button("EquipEnemy_toxic").pressed.emit()
 	assert_eq(_progression.data.equipped_enemy_skin_id, "toxic")
-	assert_eq(_label("EnemiesPill").text, "Enemy Variations · 3 of 6 unlocked")
+	assert_eq(_label("EnemiesPill").text, "Enemy variations · 3 of 6 unlocked")
 	assert_signal_emit_count(_armory, "state_changed", 3, "buy toxic, buy glitch, equip toxic")
 	var reloaded: ProgressionManager = ProgressionManager.new()
 	assert_true(reloaded.data.unlocked_enemy_skins.has("glitch"), "buy_enemy_skin saved")
@@ -450,8 +450,35 @@ func test_buy_then_equip_enemy_skin() -> void:
 func test_unaffordable_theme_is_disabled() -> void:
 	_progression.data.points = 0
 	_armory.open("arena")
+	_button("PickArena_blueprint").pressed.emit()
 	assert_true(_button("BuyArena_blueprint").disabled)
+	_button("PickEnemy_void").pressed.emit()
 	assert_true(_button("BuyEnemy_void").disabled)
+
+
+## ARMORY R5 (user: "when you click on something it automatically purchases it"): a tap
+## picks the card and shows its Buy button; only that button spends.
+func test_tapping_an_arena_card_does_not_buy_it() -> void:
+	_armory.open("arena")
+	var before: int = _progression.data.points
+	assert_null(_armory.find_child("BuyArena_synthwave", true, false), "no Buy until picked")
+	_button("PickArena_synthwave").pressed.emit()
+	assert_eq(_progression.data.points, before, "a tap spends nothing")
+	assert_false(_progression.data.unlocked_arena_themes.has("synthwave"))
+	var buy: Button = _button("BuyArena_synthwave")
+	assert_eq(buy.text, "Buy 400")
+	assert_false(_label("ArenaState_synthwave").visible, "the Buy button replaces the price")
+	_button("PickEnemy_toxic").pressed.emit()
+	assert_null(_armory.find_child("BuyArena_synthwave", true, false), "one pick at a time")
+	assert_not_null(_armory.find_child("BuyEnemy_toxic", true, false))
+	_button("BuyEnemy_toxic").pressed.emit()
+	assert_eq(_progression.data.points, before - 400)
+	assert_eq(_progression.data.equipped_enemy_skin_id, "toxic")
+
+
+func _pick_and_buy(kind: String, id: String) -> void:
+	_button("Pick%s_%s" % [kind, id]).pressed.emit()
+	_button("Buy%s_%s" % [kind, id]).pressed.emit()
 
 
 func test_boosts_catalog_matches_the_ts() -> void:
@@ -776,8 +803,8 @@ func test_ship_and_arena_rows_scroll_sideways() -> void:
 
 func test_owned_theme_reads_owned() -> void:
 	_armory.open("arena")
-	_button("BuyArena_synthwave").pressed.emit()
-	_button("BuyArena_nebula").pressed.emit()
+	_pick_and_buy("Arena", "synthwave")
+	_pick_and_buy("Arena", "nebula")
 	assert_eq(_label("ArenaState_synthwave").text, "Owned")
 	assert_false(_button("EquipArena_synthwave").disabled)
 

@@ -972,11 +972,13 @@ func _controls_column() -> VBoxContainer:
 	var cards: HBoxContainer = HBoxContainer.new()
 	cards.add_theme_constant_override("separation", _px(SCHEME_GAP))
 	# Ruling R7: Touch (board sublabel), Tilt (:291) and, off mobile, Keys (:289).
+	# DIVERGENCE(UI R12, user 2026-09-28: "fix the capitalization of the texts"): sentence case
+	# (the board's "drag anywhere", "phone gyroscope"), and "Tilt the phone" fits one line.
 	cards.add_child(
-		_scheme_card("SchemeCard_touch", "Touch", "drag anywhere", Types.ControlScheme.MOUSE)
+		_scheme_card("SchemeCard_touch", "Touch", "Drag anywhere", Types.ControlScheme.MOUSE)
 	)
 	cards.add_child(
-		_scheme_card("SchemeCard_tilt", "Tilt", "phone gyroscope", Types.ControlScheme.GYRO)
+		_scheme_card("SchemeCard_tilt", "Tilt", "Tilt the phone", Types.ControlScheme.GYRO)
 	)
 	var keys: Button = _scheme_card(
 		"SchemeCard_keys", "Keys", "WASD / arrows", Types.ControlScheme.KEYBOARD
