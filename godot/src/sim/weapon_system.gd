@@ -45,6 +45,10 @@ const ICE_ARMOR_SECONDS: float = 2.0
 const OVERCHARGE_RADIUS: float = 180.0
 const PLASMA_ARC_RADIUS: float = 45.0
 
+## DIVERGENCE(M11c P35): true builds the missile snapshot in C++ (PerilNative.
+## missile_snapshot, bit for bit); false keeps the GDScript loop, the reference.
+static var use_native_snapshot: bool = true
+
 ## Live weapon orbs in the arena. PORT: web/src/tilt-to-live/WeaponSystem.ts:14
 var orbs: Array[Types.WeaponOrb] = []
 
@@ -85,10 +89,15 @@ var _orb_spawn_timer: float = 2.0  # PORT: web/src/tilt-to-live/WeaponSystem.ts:
 var _snap_x: PackedFloat64Array = PackedFloat64Array()
 var _snap_y: PackedFloat64Array = PackedFloat64Array()
 var _snap_r: PackedFloat64Array = PackedFloat64Array()
-var _snap_by_id: Dictionary[int, PerilEnemy] = {}
 var _snap_max_r: float = 0.0
 var _snap_order: PackedInt32Array = PackedInt32Array()
 var _snap_sorted_q: PackedFloat64Array = PackedFloat64Array()
+## DIVERGENCE(M11c P35): the snapshot's enemies, which of them a blast has killed since it
+## was taken, each id's slot, and how many are still alive (see _snap_kill).
+var _snap_obj: Array[PerilEnemy] = []
+var _snap_dead: PackedByteArray = PackedByteArray()
+var _snap_index: Dictionary[int, int] = {}
+var _snap_live: int = 0
 
 ## DIVERGENCE(KEY R1): Second Salvo's pending launches (seconds left, missile count), and whether an
 ## Overcharge pulse waits for the power-up shield to end.
@@ -454,11 +463,15 @@ func update(
 
 		# Retarget the closest enemy if the current target died or is missing.
 		# PORT: web/src/tilt-to-live/WeaponSystem.ts:294-306
-		var target: PerilEnemy = _snap_by_id.get(m.target_id, null)
+		# DIVERGENCE(M11c P35): the target's snapshot slot, unless a blast killed it.
+		var slot: int = _snap_index.get(m.target_id, -1)
+		var target: PerilEnemy = null if slot < 0 or _snap_dead[slot] != 0 else _snap_obj[slot]
 		if target == null and enemies.size() > 0:
 			var best_dist: float = INF
 			var best: int = -1
 			for k: int in range(_snap_x.size()):
+				if _snap_dead[k] != 0:
+					continue
 				var sx: float = _snap_x[k]
 				var sy: float = _snap_y[k]
 				var d: float = (sx - m.x) * (sx - m.x) + (sy - m.y) * (sy - m.y)
@@ -466,7 +479,7 @@ func update(
 					best_dist = d
 					best = k
 			if best >= 0:
-				target = enemies[best]
+				target = _snap_obj[best]
 				m.target_id = target.id
 
 		# Homing guidance. PORT: web/src/tilt-to-live/WeaponSystem.ts:308-319
@@ -492,6 +505,8 @@ func update(
 		var hi: int = _snap_sorted_q.bsearch(m.x + reach, false)
 		for t: int in range(lo, hi):
 			var k: int = _snap_order[t]
+			if _snap_dead[k] != 0:
+				continue
 			var edx: float = _snap_x[k] - m.x
 			var edy: float = _snap_y[k] - m.y
 			var er: float = _snap_r[k]
@@ -534,7 +549,12 @@ func update(
 					# PORT: web/src/tilt-to-live/WeaponSystem.ts:351
 					particles.emit_sparks(e.x, e.y, 10, Color("#ffaa33"), 180.0)
 					enemies.remove_at(e_idx)
-					snap_dirty = true
+					_snap_kill(e)
+			# DIVERGENCE(M11c P35): a blast that only removed enemies marks them dead in
+			# the snapshot (the live ones keep their order, so every later scan is the
+			# rebuilt snapshot's); one that added any (a pulsar splits) rebuilds it.
+			if enemies.size() != _snap_live:
+				snap_dirty = true
 
 			# DIVERGENCE(KEY R1) Cluster Split: a first-generation blast splits into two short-lived
 			# missiles (appended past i, so they fly from the next tick).
@@ -580,15 +600,42 @@ func update(
 			lightning_arcs.remove_at(i)
 
 
+## DIVERGENCE(M11c P35): marks a blast's victim dead in the snapshot.
+func _snap_kill(e: PerilEnemy) -> void:
+	var k: int = _snap_index.get(e.id, -1)
+	if k >= 0 and _snap_dead[k] == 0:
+		_snap_dead[k] = 1
+		_snap_live -= 1
+
+
 ## Fills the missile snapshot from enemies (see update's step 4, P32): x, y, radius
 ## in array order, id -> enemy, and x quantised to 1/SNAP_QUANT px (rounded down),
 ## sorted, with the array index for each.
 func _missile_snapshot(enemies: Array[PerilEnemy]) -> void:
 	var n: int = enemies.size()
+	_snap_dead.resize(n)
+	_snap_dead.fill(0)
+	_snap_live = n
+	if use_native_snapshot:
+		var snap: Array = PerilNative.missile_snapshot(
+			enemies, SNAP_QUANT, SNAP_OFFSET, SNAP_INDEX_BITS
+		)
+		_snap_x = snap[0]
+		_snap_y = snap[1]
+		_snap_r = snap[2]
+		_snap_order = snap[3]
+		_snap_sorted_q = snap[4]
+		_snap_max_r = snap[5]
+		var idx: Dictionary = snap[6]
+		_snap_index.assign(idx)
+		var objs: Array = snap[7]
+		_snap_obj.assign(objs)
+		return
 	_snap_x.resize(n)
 	_snap_y.resize(n)
 	_snap_r.resize(n)
-	_snap_by_id.clear()
+	_snap_index.clear()
+	_snap_obj.resize(n)
 	_snap_max_r = 0.0
 	var keys: PackedInt64Array = PackedInt64Array()
 	keys.resize(n)
@@ -599,7 +646,8 @@ func _missile_snapshot(enemies: Array[PerilEnemy]) -> void:
 		_snap_y[k] = e.y
 		_snap_r[k] = e.radius
 		_snap_max_r = maxf(_snap_max_r, _snap_r[k])
-		_snap_by_id[e.id] = e
+		_snap_obj[k] = e
+		_snap_index[e.id] = k
 		keys[k] = (floori((ex + SNAP_OFFSET) * SNAP_QUANT) << SNAP_INDEX_BITS) | k
 	keys.sort()
 	_snap_order.resize(n)

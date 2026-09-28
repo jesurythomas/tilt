@@ -69,6 +69,18 @@ const STAT_GAP: int = 3
 const STAT_VALUE_SIZE: int = 17
 ## DIVERGENCE(UI-SYSTEM): Milestones.dc.html — milestone progress meter 4 tall
 const TEASER_METER_HEIGHT: int = 4
+## DIVERGENCE(UI R6): the NEXT teaser sits on its own card (user 2026-09-28: it "no longer
+## read property because it closely matches the color of the background") — padding
+## 14 / 6, row gap 2, card fill at 92% so the attract-mode swarm stays behind it.
+## DIVERGENCE(UI R7, user 2026-09-28: "things should be dynamically scaling depending on
+## device"): the least gap kept between the title block and the left column, and how
+## far the menu may shrink below the device's ui_scale to keep it.
+const FIT_MIN_GAP: int = 12
+const FIT_MIN_FACTOR: float = 0.75
+const TEASER_PAD_X: int = 14
+const TEASER_PAD_Y: int = 6
+const TEASER_GAP: int = 2
+const TEASER_FILL_ALPHA: float = 0.92
 ## DIVERGENCE(UI-SYSTEM): Main.dc.html — right panel 372 wide, padding
 ## 22/30/22/24, rgba(8,9,14,0.92), gap 8.
 const PANEL_WIDTH: int = 372
@@ -175,6 +187,11 @@ var _scores: ScoreManager = null
 var _settings: ControlSettings = null
 var _ui_scale: float = 1.0
 var _inset: Vector2 = Vector2.ZERO
+## DIVERGENCE(UI R7): the device's ui_scale, and the factor render() applies to it so the
+## title and the left column both fit this screen's height.
+var _base_scale: float = 1.0
+var _fit: float = 1.0
+var _is_fitting: bool = false
 var _menu_container: Control = null
 var _options_modal: PanelContainer = null
 var _reset_confirm: Control = null
@@ -262,7 +279,8 @@ func render() -> void:
 		child.queue_free()
 
 	_menu_container.add_child(_text_scrim())  # DIVERGENCE(UI R2)
-	_menu_container.add_child(_title_block())
+	var title_block: VBoxContainer = _title_block()
+	_menu_container.add_child(title_block)
 	_menu_container.add_child(_mode_panel(current_mode))
 	var left: VBoxContainer = VBoxContainer.new()
 	left.name = "LeftBlock"
@@ -274,7 +292,7 @@ func render() -> void:
 	left.offset_left = _px(LEFT_LEFT) + _inset.x
 	left.offset_bottom = -(_px(LEFT_BOTTOM) + _inset.y)
 	left.offset_top = left.offset_bottom
-	var teaser: VBoxContainer = _next_teaser()
+	var teaser: Control = _next_teaser()
 	if teaser != null:
 		left.add_child(teaser)
 	var picker: ControlPicker = _steer_row(left)
@@ -283,11 +301,45 @@ func render() -> void:
 	left.add_child(_stats_row(best_score, points, completed_goals, total_goals))
 	picker.set_active_scheme(_settings.scheme)
 	_bind_events()
+	_fit_height(title_block, left)
+
+
+## DIVERGENCE(UI R7): if the title block and the left column (plus their margins and the
+## device insets) are taller than this screen, shrinks the menu's scale just enough — at
+## most to FIT_MIN_FACTOR — and renders once more. Taller screens keep the device scale.
+func _fit_height(title_block: Control, left: Control) -> void:
+	if _is_fitting or size.y <= 0.0:
+		return
+	var margins: float = float(_px(TITLE_TOP) + _px(FIT_MIN_GAP) + _px(LEFT_BOTTOM))
+	var content: float = (
+		title_block.get_combined_minimum_size().y + left.get_combined_minimum_size().y + margins
+	)
+	var room: float = size.y - _inset.y * 2.0
+	var wanted: float = 1.0
+	if content > room:
+		wanted = clampf(_fit * room / content, FIT_MIN_FACTOR, 1.0)
+	elif _fit < 1.0:
+		wanted = minf(1.0, _fit * room / content)
+	if is_equal_approx(wanted, _fit):
+		return
+	_fit = wanted
+	_ui_scale = _base_scale * _fit
+	theme = UiTheme.build(_ui_scale)
+	_is_fitting = true
+	render()
+	_is_fitting = false
+
+
+## The factor UI R7 applied to the device scale (1 when everything fits).
+func fit_factor() -> float:
+	return _fit
 
 
 ## Rebuilds the board sizes at `scale` and insets the left and title blocks by
 ## `inset`; the right panel stays flush right, as the board draws it.
 func set_ui_scale(scale: float, inset: Vector2) -> void:
+	_base_scale = scale
+	_fit = 1.0
 	_ui_scale = scale
 	_inset = inset
 	theme = UiTheme.build(scale)
@@ -385,6 +437,7 @@ func _title_block() -> VBoxContainer:
 	UiTheme.legible_over_play(title, _px(UiTheme.OVER_PLAY_OUTLINE))
 	block.add_child(title)
 	var subtitle: Label = UiTheme.text("Move to dodge. The guns fire themselves.", "BodyText")  # :135
+	subtitle.name = "MenuTagline"
 	subtitle.add_theme_font_size_override("font_size", _px(SUBTITLE_SIZE))
 	UiTheme.legible_over_play(subtitle, _px(UiTheme.OVER_PLAY_OUTLINE))
 	block.add_child(subtitle)
@@ -397,7 +450,7 @@ func _title_block() -> VBoxContainer:
 # The next-milestone teaser. PORT: web/src/tilt-to-live/TiltMenu.ts:96-126, :198-207
 # DIVERGENCE(UI-SYSTEM): System.dc.html — Rule N: TS content with no board slot,
 # kept above the Steer row and styled from System tokens (ruling R8).
-func _next_teaser() -> VBoxContainer:
+func _next_teaser() -> Control:
 	var active_goals: Array[GoalManager.ActiveGoal] = _goals.get_active_goals(1)
 	if active_goals.is_empty():
 		return null
@@ -414,23 +467,55 @@ func _next_teaser() -> VBoxContainer:
 	var pct: int = clampi(roundi(current_val / float(g.target) * 100.0), 0, 100)
 	var teaser: VBoxContainer = VBoxContainer.new()
 	teaser.name = "NextTeaser"
-	# DIVERGENCE(UI-SYSTEM): Main.dc.html — the stat column's caps-over-value gap 3
-	teaser.add_theme_constant_override("separation", _px(STAT_GAP))
+	teaser.add_theme_constant_override("separation", _px(TEASER_GAP))
+	# DIVERGENCE(UI R6): "NEXT" and the reward on one line, then the title in full-strength
+	# text and the description under it — the TS ran "title — description" as one faint
+	# line straight over the playfield (:201-202).
+	var top: HBoxContainer = HBoxContainer.new()
 	var tag: Label = UiTheme.caps("Next")  # PORT: :201
 	tag.add_theme_color_override("font_color", UiTheme.COLOR_FLARE)
-	UiTheme.legible_over_play(tag, _px(UiTheme.OVER_PLAY_OUTLINE))
-	teaser.add_child(tag)
-	var desc: Label = UiTheme.text("%s — %s" % [g.title, g.description], "HintText")  # PORT: :202
+	tag.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top.add_child(tag)
+	var reward: Label = UiTheme.text(UiTheme.reward_text(g.reward_points), "MonoText")
+	reward.name = "NextTeaserReward"
+	reward.add_theme_color_override("font_color", UiTheme.COLOR_FLARE)
+	top.add_child(reward)
+	teaser.add_child(top)
+	var title: Label = UiTheme.text(g.title, "StrongText")  # PORT: :202
+	title.name = "NextTeaserTitle"
+	title.add_theme_color_override("font_color", UiTheme.COLOR_TEXT)
+	teaser.add_child(title)
+	var desc: Label = UiTheme.text(g.description, "HintText")  # PORT: :202
+	desc.name = "NextTeaserText"
+	desc.add_theme_color_override("font_color", UiTheme.TEXT_SECONDARY)
 	desc.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	desc.clip_text = true
-	UiTheme.legible_over_play(desc, _px(UiTheme.OVER_PLAY_OUTLINE))
 	teaser.add_child(desc)
 	var fill: ProgressBar = UiTheme.meter(
-		pct / 100.0, UiTheme.COLOR_FLARE, _px(LEFT_WIDTH), _px(TEASER_METER_HEIGHT)
+		pct / 100.0,
+		UiTheme.COLOR_FLARE,
+		_px(LEFT_WIDTH) - 2 * _px(TEASER_PAD_X),
+		_px(TEASER_METER_HEIGHT)
 	)
 	fill.name = "NextTeaserFill"
 	teaser.add_child(fill)
-	return teaser
+	var card: PanelContainer = PanelContainer.new()
+	card.name = "NextTeaserCard"
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.add_theme_stylebox_override(
+		"panel",
+		UiTheme.padded(
+			UiTheme.flat(
+				UiTheme.tint(UiTheme.COLOR_PANEL, TEASER_FILL_ALPHA),
+				UiTheme.COLOR_LINE,
+				_px(UiTheme.CARD_RADIUS)
+			),
+			_px(TEASER_PAD_X),
+			_px(TEASER_PAD_Y)
+		)
+	)
+	card.add_child(teaser)
+	return card
 
 
 # DIVERGENCE(UI-SYSTEM): Main.dc.html — the Steer row (no TS counterpart; ruling R7).

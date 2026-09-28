@@ -1718,6 +1718,11 @@ buttons show plain prices; every power-up has 3 coded keystones (21, `tests/test
 a UI pass fixed the menu balance, menu legibility, multiplier format, stale Settings copy
 and the achievement marks. Suite 752.
 
+With every upgrade maxed, missiles are the heaviest power-up (Cluster Split + Second
+Salvo triple the missiles); P35 (native missile snapshot) cut their weapon cost ~30%.
+The menu fits itself to each device's height (UI R7) and `tests/test_device_matrix.gd`
+checks 8 real resolutions. Suite 757.
+
 **Next, literally:** when the A55 is on `adb`, run VERIFY-ME §Armory / economy / icons
 rework with the user (economy knobs are listed there), then continue with the list
 below (kill path in C++, weapons section, release libs). The A55 pass on `b4901c1`

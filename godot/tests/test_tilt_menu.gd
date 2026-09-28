@@ -1,3 +1,4 @@
+# gdlint:disable=max-public-methods
 ## test_tilt_menu.gd
 ## PORTS: nothing — new file, covers ui/tilt_menu.gd
 extends GutTest
@@ -127,6 +128,13 @@ func test_next_teaser_shows_the_first_active_goal() -> void:
 	var teaser: Control = menu.find_child("NextTeaser", true, false) as Control
 	assert_not_null(teaser, "a fresh save has active goals (TiltMenu.ts:97)")
 	assert_true(teaser.is_visible_in_tree(), "R8")
+	# UI R6: on its own card, title and description on separate lines, with the reward.
+	assert_not_null(menu.find_child("NextTeaserCard", true, false))
+	assert_eq((menu.find_child("NextTeaserTitle", true, false) as Label).text, "Rookie Dodger")
+	assert_eq(
+		(menu.find_child("NextTeaserText", true, false) as Label).text, "Reach 1,000 score in a run"
+	)
+	assert_eq((menu.find_child("NextTeaserReward", true, false) as Label).text, "+50 pts")
 
 
 func test_steer_picker_reports_the_scheme() -> void:
@@ -252,3 +260,20 @@ func test_mode_taglines_are_laid_out_with_height() -> void:
 		if tagline != null:
 			assert_gt(tagline.size.y, 0.0, mode + " tagline has height")
 			assert_gt(tagline.size.x, 0.0, mode + " tagline has width")
+
+
+func test_next_card_clears_the_tagline_on_phone_screens() -> void:
+	# UI R6: the taller NEXT card must not reach the tagline (it touched it at 2424×1080).
+	for size: Vector2 in [Vector2(844.0, 390.0), Vector2(2340.0, 1080.0), Vector2(2424.0, 1080.0)]:
+		var menu: TiltMenu = TiltMenu.new()
+		menu.size = size
+		add_child_autofree(menu)
+		menu.bind(_options, _progression, _goals, _scores, _settings)
+		menu.set_ui_scale(size.y / 390.0, Vector2.ZERO)
+		menu.show_menu()
+		await get_tree().process_frame
+		await get_tree().process_frame
+		var tagline: Control = menu.find_child("MenuTagline", true, false) as Control
+		var card: Control = menu.find_child("NextTeaserCard", true, false) as Control
+		var gap: float = card.get_global_rect().position.y - tagline.get_global_rect().end.y
+		assert_gt(gap, 4.0 * size.y / 390.0, "%s: %.0f px between tagline and card" % [size, gap])

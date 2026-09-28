@@ -353,3 +353,50 @@ Dictionary PerilNative::enemy_type_ids() {
 	d["SPECTER"] = SPECTER;
 	return d;
 }
+
+
+// WeaponSystem._missile_snapshot, line for line (M11c P35): the same floor((x + offset) *
+// quant) keys packed with the slot, the same integer sort, the same derived arrays.
+Array PerilNative::missile_snapshot(const Array &p_enemies, double p_quant, double p_offset, int64_t p_bits) {
+	const int64_t n = p_enemies.size();
+	PackedFloat64Array xs;
+	PackedFloat64Array ys;
+	PackedFloat64Array rs;
+	xs.resize(n);
+	ys.resize(n);
+	rs.resize(n);
+	Dictionary index;
+	double max_r = 0.0;
+	std::vector<int64_t> keys(n);
+	for (int64_t k = 0; k < n; k++) {
+		PerilEnemy *e = Object::cast_to<PerilEnemy>(p_enemies[k]);
+		const double ex = e->x;
+		xs.set(k, ex);
+		ys.set(k, e->y);
+		rs.set(k, e->radius);
+		max_r = std::max(max_r, e->radius);
+		index[e->id] = k;
+		keys[k] = (int64_t(std::floor((ex + p_offset) * p_quant)) << p_bits) | k;
+	}
+	std::sort(keys.begin(), keys.end());
+	PackedInt32Array order;
+	PackedFloat64Array sorted_q;
+	order.resize(n);
+	sorted_q.resize(n);
+	const int64_t mask = (int64_t(1) << p_bits) - 1;
+	for (int64_t t = 0; t < n; t++) {
+		order.set(t, int32_t(keys[t] & mask));
+		sorted_q.set(t, double(keys[t] >> p_bits) / p_quant - p_offset);
+	}
+	Array out;
+	out.append(xs);
+	out.append(ys);
+	out.append(rs);
+	out.append(order);
+	out.append(sorted_q);
+	out.append(max_r);
+	out.append(index);
+	out.append(p_enemies.duplicate());
+	return out;
+}
+

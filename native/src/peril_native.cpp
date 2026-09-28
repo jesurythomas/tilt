@@ -78,6 +78,8 @@ void PerilNative::_bind_methods() {
 	ClassDB::bind_static_method("PerilNative", D_METHOD("collision_candidates", "enemies", "plx", "plr", "start"),
 			&PerilNative::collision_candidates);
 	ClassDB::bind_static_method("PerilNative", D_METHOD("enemy_type_ids"), &PerilNative::enemy_type_ids);
+	ClassDB::bind_static_method("PerilNative", D_METHOD("missile_snapshot", "enemies", "quant", "offset", "bits"),
+			&PerilNative::missile_snapshot);
 	ClassDB::bind_static_method("PerilNative", D_METHOD("particles_flush", "particles", "pool", "total", "flushed", "dt"),
 			&PerilNative::particles_flush);
 	ClassDB::bind_static_method("PerilNative",

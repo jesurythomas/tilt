@@ -80,3 +80,44 @@ redesign if needed to make ui/ux feel better as a player". Rulings are Claude's 
   Looked fine and left: Armory Ships/Arena/Handling/Boosts, HUD, Pause, Run over, cold
   open. Noted, not changed (TS content): the run-start mode banner says "Classic
   Survival" while the menu card says "Standard".
+
+## Keystones tried and FPS validated with max upgrades (user 2026-09-28: "try them and
+## validate fps with max upgrades")
+
+- **Tried in play** (emulator, perf test mode: every rank 5, all 21 keystones on, a
+  power-up every 3 s, Code Red): screenshots show the Fallout Zone's green burn disc,
+  Stun Wave's frozen ring, Event Horizon/Dark Harvest swallowing, missile swarms with
+  Cluster Split children. 0 script errors in 12 runs.
+- **Desktop** `bench/bench_powerups.gd` (new `test_bench_powerups_maxed`), 200 enemies,
+  µs/tick total, defaults → maxed: missiles 163–169 → 257–269 (weapons 70 → 155); laser
+  worst tick 400 → 770 (Heavy Beam); nuke 100 → 75 (Chain Reaction clears all 200); the
+  rest flat.
+- **Emulator A/B** (3 pairs, pre-keystone `0225ad4` vs keystones, both maxed), 3 s after
+  each power-up, s_weapons ms/frame: missiles 5.0 → 13.9 (fps 20.5 → 14.5), nuke 0.9 →
+  3.5, lightning 0.6 → 2.2, others ±0.5; overall 150–249 enemies fps 26.7 → 23.9.
+- **P35 — missile snapshot** (exact): a blast that only removes enemies marks them dead
+  in the snapshot instead of rebuilding it (rebuilds when a pulsar split adds some), the
+  retarget reads the snapshot's own objects, and the snapshot itself is built in C++
+  (`PerilNative.missile_snapshot`, `WeaponSystem.use_native_snapshot`; oracle test
+  native == GDScript bytes; the pre-P32 golden hash still matches). Desktop missiles
+  maxed 265 → 202 µs/tick (weapons 155 → 109), defaults 163 → 138. A native nearest-
+  target scan measured no gain and was reverted.
+- **Emulator A/B after P35** (3 pairs): missiles s_weapons 13.9 → 10.3 ms/frame (pre-
+  keystone 4.9); fps in that window unchanged at 14.5 (the emulator's fixed tail, N6).
+  With everything maxed the sim costs ~3 ms/frame more on the emulator at 150+ enemies
+  (~1 ms on the A55, which ran 8.4 of 16.7 ms at 250 enemies); the A55 is the judge.
+
+## User follow-ups (2026-09-28)
+
+- **UI R6** — the menu's NEXT teaser ("no longer read property because it closely matches
+  the color of the background"): a panel card with NEXT + reward, the title in full text
+  and the description under it, over the meter.
+- **UI R7** — "things should be dynamically scaling depending on device": TiltMenu fits
+  itself — if the title block and the left column (with margins and the device insets)
+  exceed the screen height, it shrinks its scale just enough (floor 0.75) and renders
+  once more. `tests/test_device_matrix.gd` lays out the menu, all five Armory tabs and
+  the Run over on 8 real resolutions (A55, Pixel 10, 20:9 FHD+, 720p, QHD+, 16:9 FHD,
+  4:3 and 16:10 tablets) at their own scale and insets: nothing off screen, no
+  overlapping blocks, touch targets ≥ 48 × scale. Mutation: without the fit and with
+  the old card padding the menu check fails at every 1080-tall phone (−11 px) and 720p
+  (−20 px) — the overlap the emulator showed. Suite 757.

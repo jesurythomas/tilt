@@ -253,3 +253,39 @@ func test_missiles_match_the_pre_p32_full_scans() -> void:
 		"the snapshot scans change nothing"
 	)
 	assert_gte(_last_kills, 15, "the run kills enough to exercise retargets and splits")
+
+
+func test_native_missile_snapshot_matches_the_gdscript_one() -> void:
+	# M11c P35: PerilNative.missile_snapshot builds the same arrays bit for bit.
+	seed(3)
+	var enemies: Array[PerilEnemy] = []
+	for i: int in range(150):
+		var e: PerilEnemy = PerilEnemy.new()
+		e.id = 1000 + i
+		e.x = randf_range(-40.0, 1100.0)
+		e.y = randf_range(0.0, 600.0)
+		e.radius = randf_range(6.0, 30.0)
+		enemies.append(e)
+	var ws: WeaponSystem = WeaponSystem.new()
+	var rows: Array = []
+	for native: bool in [false, true]:
+		WeaponSystem.use_native_snapshot = native
+		ws._missile_snapshot(enemies)
+		rows.append(
+			var_to_bytes(
+				[
+					ws._snap_x,
+					ws._snap_y,
+					ws._snap_r,
+					ws._snap_order,
+					ws._snap_sorted_q,
+					ws._snap_max_r,
+					ws._snap_index,
+					ws._snap_obj.map(func(o: PerilEnemy) -> int: return o.id),
+				]
+			)
+		)
+	WeaponSystem.use_native_snapshot = true
+	var gd: PackedByteArray = rows[0]
+	var cpp: PackedByteArray = rows[1]
+	assert_eq(cpp, gd, "native == GDScript")

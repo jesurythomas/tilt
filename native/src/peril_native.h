@@ -71,6 +71,9 @@ public:
 			double p_x, double p_y, int64_t p_count);
 	static void particles_emit_thruster_sparks(const Array &p_particles, const Array &p_pool, int64_t p_steps,
 			double p_x, double p_y, double p_angle, const Color &p_color);
+	// WeaponSystem._missile_snapshot over the live enemies (M11c P35), bit for bit: returns
+	// [xs, ys, radii, order, sorted_q, max_radius, index (id -> slot), enemies (a copy)].
+	static Array missile_snapshot(const Array &p_enemies, double p_quant, double p_offset, int64_t p_bits);
 	// The EnemyType ordinals the native loop assumes, by name.
 	static Dictionary enemy_type_ids();
 };
