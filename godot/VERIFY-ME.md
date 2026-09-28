@@ -688,7 +688,11 @@ nothing below has run on it. Debug builds print one `PERF` line per second:
       5 pairs, 2026-09-27: Separate is ~40–50% faster at 100–249 enemies despite
       the logcat line "Rendering thread not supported by this display server" —
       ignore that line. The latency feel still needs a person.)
-- [ ] 8. **Late run with walls and carriers.** The user's drop points. Classic past
+- [x] 8. **Late run with walls and carriers.** A55, 2026-09-28, HEAD `b4901c1` (N7): the
+      user played 212 s up to 251 enemies — **60 fps in every bucket** (150–249: 60.8,
+      250+: 60.0), 0 s below 50 fps, maxsteps normal; game work at 150+ ~8.4 ms of 16.7
+      (m_phys 2.7 + m_proc 5.7; m_tail is vsync wait), GPU ~5 ms. User: "FPS actually
+      looks good on mobile now." Original check: The user's drop points. Classic past
       100 enemies: PERF `fps` at 150+ enemies and whether a wall formation still
       causes a visible drop. Emulator (3.4× slower than the A55 per dot) went from
       5.4 to ~18–31 fps at 150–249 enemies across P13–P24.
@@ -714,7 +718,7 @@ nothing below has run on it. Debug builds print one `PERF` line per second:
 - [ ] 14. **Launch.** Home-screen icon is the blue ship; opening the app shows the
       ship on the system splash (light background — needs a Gradle build to change),
       then the PERIL POINT loading screen, then the menu.
-- [ ] 15. **Native swarm (N3, 2026-09-28).** On the A55 (real arm64, not the
+- [x] 15. **Native swarm (N3, 2026-09-28).** A55 2026-09-28 (`b4901c1`): 0 SCRIPT ERROR, 60 fps at 250+ (see 8). On the A55 (real arm64, not the
       emulator's translation): a Code Red run past 250 enemies plays like the
       emulator's (enemies chase, walls sweep, carriers orbit, pulsars pulse, rams
       and shatters kill). `adb logcat -s godot:I` shows no `SCRIPT ERROR` (a missing
