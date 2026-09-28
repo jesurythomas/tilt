@@ -65,4 +65,18 @@ redesign if needed to make ui/ux feel better as a player". Rulings are Claude's 
 
   Radii scale with the arena like the TS's tuned ranges. Effects are added code, so
   their numbers carry `DIVERGENCE(KEY R1)` rather than a TS citation.
-- [ ] **A3 — Screenshot every section, redesign what plays badly.**
+- [x] **A3 — Screenshot every section, redesign what plays badly** (done). Shot on the
+  emulator (fresh save): menu, Armory ×5 (Weapons scrolled to its keystones), Achievements,
+  Settings, cold open, HUD in a run, Pause, Run over; all read. Fixed:
+  - **UI R1** menu stats row (Best / Points / Achievements) always shows — a new player
+    saw no balance (the TS hid the row until a best existed).
+  - **UI R2** a void gradient behind the menu's left column; the attract-mode swarm ran
+    through the title, tagline and NEXT text.
+  - **UI R3** multipliers "1.0× / 1.25× / 1.5×" (was "1.50×").
+  - **UI R4** Settings: the grid hint said "Off by default" (it is on since M11c); the
+    Handling link fits one line.
+  - **UI R5** unearned achievements show a faint star instead of an empty square that
+    read as a checkbox.
+  Looked fine and left: Armory Ships/Arena/Handling/Boosts, HUD, Pause, Run over, cold
+  open. Noted, not changed (TS content): the run-start mode banner says "Classic
+  Survival" while the menu card says "Standard".

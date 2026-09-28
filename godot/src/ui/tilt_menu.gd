@@ -261,6 +261,7 @@ func render() -> void:
 		_menu_container.remove_child(child)
 		child.queue_free()
 
+	_menu_container.add_child(_text_scrim())  # DIVERGENCE(UI R2)
 	_menu_container.add_child(_title_block())
 	_menu_container.add_child(_mode_panel(current_mode))
 	var left: VBoxContainer = VBoxContainer.new()
@@ -277,9 +278,9 @@ func render() -> void:
 	if teaser != null:
 		left.add_child(teaser)
 	var picker: ControlPicker = _steer_row(left)
-	# PORT: web/src/tilt-to-live/TiltMenu.ts:180 — stats only once a best exists
-	if best_score > 0:
-		left.add_child(_stats_row(best_score, points, completed_goals, total_goals))
+	# PORT: web/src/tilt-to-live/TiltMenu.ts:180 — the TS showed stats only once a best
+	# existed. DIVERGENCE(UI R1): always — a new player's 500 points are spendable from the first run.
+	left.add_child(_stats_row(best_score, points, completed_goals, total_goals))
 	picker.set_active_scheme(_settings.scheme)
 	_bind_events()
 
@@ -639,8 +640,31 @@ func _mode_card(config: GameOptionsManager.ModeConfig, is_selected: bool) -> But
 
 
 # PORT: web/src/tilt-to-live/TiltMenu.ts:144 — toFixed(m % 1 === 0 ? 1 : 2) + "×" (:151)
+# DIVERGENCE(UI R3): no trailing zero — "1.5×" beside "1.25×" (the TS read "1.50×").
 func _format_multiplier(multiplier: float) -> String:
-	return ("%.1f×" if fmod(multiplier, 1.0) == 0.0 else "%.2f×") % multiplier
+	var tenths: bool = is_equal_approx(fmod(multiplier * 10.0, 1.0), 0.0)
+	return ("%.1f×" if tenths else "%.2f×") % multiplier
+
+
+## DIVERGENCE(UI R2): the void, fading out left to right behind the title and left
+## column, so the attract-mode swarm reads as background (the text sat on it bare).
+func _text_scrim() -> TextureRect:
+	var gradient: Gradient = Gradient.new()
+	gradient.set_color(0, UiTheme.tint(UiTheme.COLOR_VOID, 0.82))
+	gradient.set_color(1, UiTheme.tint(UiTheme.COLOR_VOID, 0.0))
+	gradient.add_point(0.55, UiTheme.tint(UiTheme.COLOR_VOID, 0.6))
+	var texture: GradientTexture2D = GradientTexture2D.new()
+	texture.gradient = gradient
+	texture.fill_to = Vector2(1.0, 0.0)
+	var scrim: TextureRect = TextureRect.new()
+	scrim.name = "TextScrim"
+	scrim.texture = texture
+	scrim.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	scrim.stretch_mode = TextureRect.STRETCH_SCALE
+	scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	scrim.set_anchors_preset(Control.PRESET_LEFT_WIDE)
+	scrim.anchor_right = 0.5
+	return scrim
 
 
 # PORT: web/src/tilt-to-live/TiltMenu.ts:415-522
@@ -888,7 +912,8 @@ func _armory_link() -> Button:
 	var words: RichTextLabel = RichTextLabel.new()
 	words.bbcode_enabled = true
 	words.text = (
-		"[u color=#%s]Turn rate and sensitivity live in Armory › Handling[/u]"
+		# DIVERGENCE(UI R4): shorter, so it fits one line on the phone.
+		"[u color=#%s]Turn rate & sensitivity: Armory › Handling[/u]"
 		% UiTheme.COLOR_LINE_STRONG.to_html(false)
 	)
 	words.scroll_active = false
@@ -916,12 +941,10 @@ func _readability_column() -> VBoxContainer:
 	)
 	# DIVERGENCE(UI-SYSTEM): System.dc.html — Rule N: the grid row has no board
 	# slot and is kept in the Readability column (ruling R8). PORT: :330-335
+	# DIVERGENCE(UI R4): the hint said "Off by default"; the grid is on by default since M11c.
 	column.add_child(
 		_switch_card(
-			"GridSwitch",
-			"Background grid",
-			"Off by default — it competes with the dots.",
-			s.show_gridlines
+			"GridSwitch", "Background grid", "Ripples when things explode.", s.show_gridlines
 		)
 	)
 	column.add_child(_shake_card())

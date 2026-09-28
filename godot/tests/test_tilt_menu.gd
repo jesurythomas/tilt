@@ -77,7 +77,7 @@ func test_mode_cards_show_ts_names_taglines_and_multipliers() -> void:
 		texts.append((label as Label).text)
 	assert_has(texts, "Code Red", "GameOptions.ts:62")
 	assert_has(texts, "Double density from the first second.", "GameOptions.ts:64")
-	assert_has(texts, "1.50×", "toFixed(2) since 1.5 % 1 != 0 (TiltMenu.ts:144)")
+	assert_has(texts, "1.5×", "UI R3: no trailing zero (the TS read 1.50×, TiltMenu.ts:144)")
 
 
 func test_picking_a_card_saves_the_mode_and_rerenders() -> void:
@@ -108,10 +108,11 @@ func test_nav_buttons_emit_their_requests() -> void:
 	assert_signal_emitted(menu, "calibrate_screen_requested", "R5")
 
 
-func test_stats_row_hides_until_a_best_exists() -> void:
+func test_stats_row_shows_the_balance_from_the_first_launch() -> void:
 	var menu: TiltMenu = _menu()
 	var row: Control = menu.find_child("StatsRow", true, false) as Control
-	assert_false(row != null and row.is_visible_in_tree(), "bestScore 0 → hidden (TiltMenu.ts:180)")
+	assert_true(row.is_visible_in_tree(), "UI R1: shown with no best yet (the TS hid it, :180)")
+	assert_eq((menu.find_child("StatBest", true, false) as Label).text, "0")
 	_scores.stats.best_score = 32420
 	_progression.data.points = 7331
 	menu.render()

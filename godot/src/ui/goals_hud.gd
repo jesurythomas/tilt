@@ -807,9 +807,19 @@ func _milestone_card(goal: GoalManager.Goal) -> PanelContainer:
 		mark.add_child(check)
 		check.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	else:
+		# DIVERGENCE(UI R5): a faint star to earn — the empty rounded square read as a
+		# checkbox to tap.
 		mark.add_theme_stylebox_override(
-			"panel", UiTheme.flat(Color.TRANSPARENT, UiTheme.COLOR_LINE_STRONG, mr)
+			"panel", UiTheme.flat(Color.TRANSPARENT, Color.TRANSPARENT, mr)
 		)
+		var star: TextureRect = TextureRect.new()
+		star.name = "UnearnedStar"
+		star.texture = UiTheme.svg_texture(UiTheme.ICON_STAR, s)
+		star.self_modulate = UiTheme.COLOR_LINE_STRONG
+		star.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+		star.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		mark.add_child(star)
+		star.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	row.add_child(mark)
 
 	var content: VBoxContainer = VBoxContainer.new()

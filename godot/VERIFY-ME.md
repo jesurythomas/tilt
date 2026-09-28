@@ -650,8 +650,8 @@ refunded once on the first launch.
 - [ ] 2. **Prices feel right.** Perk ranks 250/400/650/1,000/1,600; boosts 500–7,000;
       keystones 3,500/5,000. Is the next upgrade usually 1–3 runs away early on?
 - [ ] 3. **Armory on the phone.** Weapons: one column (tracks, then Keystone, then
-      Innate for the Blackhole); each row reads "now → next", pips in the weapon's
-      colour, and the button says the price, "Need N" or Max. The list shows icons,
+      nothing else); each row reads "now → next", pips in the weapon's colour, and the
+      button shows the price (dimmed when you cannot afford it) or Max. The list shows icons,
       "ranks/total" and an orange dot where something is affordable. Boosts: one column
       with icons and "hitbox 100% → 94%"-style values. Buying pops the new pip.
 - [ ] 4. **Icons.** Armory, the HUD weapon timer (icon + name) and the orbs in play use
@@ -660,8 +660,17 @@ refunded once on the first launch.
 - [ ] 5. **Black hole shield is innate.** With no purchase, standing inside an active
       black hole protects you (0.3 s shield refreshed each tick).
 - [ ] 6. **Run over.** No previous balance, no coin count; "Destroyed" shows enemies
-      destroyed; "N upgrades ready in the Armory" when you can afford something; the
-      right button reads "Armory".
+      destroyed; the right button reads "Armory".
+- [ ] 7. **Keystones (2026-09-28).** Every power-up sells three; try a few in play:
+      Fallout Zone's green burn zone, Chain Reaction bursts, Second Salvo, Forked
+      Lightning, Overcharge's pulse when the shield ends, Coin Vacuum. Too strong or too
+      weak? Prices 2,500–5,000 (`Tuning.KEYSTONE_COSTS`), numbers at the top of
+      weapon_system.gd.
+- [ ] 8. **Achievements.** "Milestones" reads "Achievements" everywhere; several earned at
+      once toast one after another; the Run over lists all of the run's under the stats
+      and scrolls.
+- [ ] 9. **Menu.** Your points show under the left column from the first launch; the
+      title and NEXT text read clearly over the attract-mode swarm.
 
 ## M11c part 1 — Performance (plan `2026-09-26-m11c-performance.md`)
 

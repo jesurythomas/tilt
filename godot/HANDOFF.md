@@ -1711,6 +1711,13 @@ HUD timer and the playfield orbs (baked sprites); the Run over shows only "+earn
 (count-up), Destroyed, and an "N upgrades ready" nudge. Suite 734.
 `tools/emulator/deploy.sh [--fresh]` builds, installs and launches on the emulator.
 
+**Then (2026-09-28, plan `docs/superpowers/plans/2026-09-28-achievements-keystones-ui.md`):**
+Milestones are "Achievements" to the player (code names unchanged), a run's achievements
+all reach the Run over (scrolling list under the stats) and their toasts queue; Armory
+buttons show plain prices; every power-up has 3 coded keystones (21, `tests/test_keystones.gd`);
+a UI pass fixed the menu balance, menu legibility, multiplier format, stale Settings copy
+and the achievement marks. Suite 752.
+
 **Next, literally:** when the A55 is on `adb`, run VERIFY-ME §Armory / economy / icons
 rework with the user (economy knobs are listed there), then continue with the list
 below (kill path in C++, weapons section, release libs). The A55 pass on `b4901c1`
