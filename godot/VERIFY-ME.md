@@ -635,6 +635,34 @@ Run §0 first.
 When done: tick M11a in `PORT-PROGRESS.md` with the SHA you tested, and
 resolve Q3 above in `HANDOFF.md`'s Open questions (M11a).
 
+## Armory / economy / icons rework (plan `2026-09-28-armory-economy-icons.md`)
+
+Built 2026-09-28 from the user's request; emulator-checked only (the A55 dropped off
+`adb`). Install the debug APK (§0). Your existing save keeps its balance; any of the
+removed keystones you owned (Aegis, Fallout Zone, Battering Ram, Shatter Cascade) is
+refunded once on the first launch.
+
+- [ ] 1. **Earning feels right.** Play 3–5 normal runs (Classic and Code Red). The Run
+      over shows one "+N" (it counts up; a tap skips). A short death should pay ~100–250,
+      a solid 2–3 min run ~800–1,500, Code Red ×1.5. Too stingy or too generous? The
+      knobs are `ProgressionManager.RUN_PAYOUT_*` (60 base, 3/s alive, 4·kills^0.7),
+      `CoinSystem.COIN_BASE_VALUE` (10) and `GoalManager.MILESTONE_REWARD_SCALE` (50).
+- [ ] 2. **Prices feel right.** Perk ranks 250/400/650/1,000/1,600; boosts 500–7,000;
+      keystones 3,500/5,000. Is the next upgrade usually 1–3 runs away early on?
+- [ ] 3. **Armory on the phone.** Weapons: one column (tracks, then Keystone, then
+      Innate for the Blackhole); each row reads "now → next", pips in the weapon's
+      colour, and the button says the price, "Need N" or Max. The list shows icons,
+      "ranks/total" and an orange dot where something is affordable. Boosts: one column
+      with icons and "hitbox 100% → 94%"-style values. Buying pops the new pip.
+- [ ] 4. **Icons.** Armory, the HUD weapon timer (icon + name) and the orbs in play use
+      the same glyphs and one colour per weapon. Can you tell every orb apart at a
+      glance, at arm's length? (Laser = hub with two beams; black hole = swirl.)
+- [ ] 5. **Black hole shield is innate.** With no purchase, standing inside an active
+      black hole protects you (0.3 s shield refreshed each tick).
+- [ ] 6. **Run over.** No previous balance, no coin count; "Destroyed" shows enemies
+      destroyed; "N upgrades ready in the Armory" when you can afford something; the
+      right button reads "Armory".
+
 ## M11c part 1 — Performance (plan `2026-09-26-m11c-performance.md`)
 
 Code-complete 2026-09-26. The A55 dropped off `adb` at 02:11 that day, so

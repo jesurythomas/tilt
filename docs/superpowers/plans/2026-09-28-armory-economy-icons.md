@@ -141,7 +141,15 @@ silhouette/greyscale readable at 24 px.
   fit.
 - [x] **T8 — Run over** (done: hero "+N" count-up (`finish_count_up`, tap skips), `UpgradesReadyHint` from `ProgressionManager.count_affordable_upgrades` (+ `LIVE_KEYSTONES`), "Destroyed", "Armory" button; balance/coins/hint nodes removed; emulator screenshot checked; suite 734) (RUNOVER R1). Tests: strings, no balance/coin rows, Destroyed
   label, upgrades-ready hint, count-up skip, fit.
-- [ ] **T9 — Verify**: suite, gdformat/gdlint, headless boot, emulator screenshots of
+- [x] **T9 — Verify** (done 2026-09-28: suite 734 green (one pre-existing flaky HUD pulse test fixed on the way: it waited one frame, needs two), gdformat 108 unchanged, gdlint clean, headless boot 0 SCRIPT ERROR, emulator screenshots of Weapons, Boosts, Ships, a run with orbs + HUD timer, and the Run over, all read and matching the rulings; 0 script errors on device. FPS: orbs went from ~6 draw calls to 2 (glow + sprite), the rest is menu UI — no in-run cost added. The A55 was not on `adb`: device checks are VERIFY-ME §Armory / economy / icons rework.): suite, gdformat/gdlint, headless boot, emulator screenshots of
   every Armory tab, the run over and orbs mid-run (Read them); FPS check (PERF line) —
   orbs must not cost more; HANDOFF, VERIFY-ME (device checks for feel and economy
   tuning), commit.
+
+## Outcome (2026-09-28)
+
+All nine tasks done. Open for the user (VERIFY-ME §Armory / economy / icons rework):
+economy feel on the phone (payout and price knobs listed there), icon legibility at arm's
+length, and the Armory on the A55. Not done, deliberately: keystone effects the TS never
+coded (Fallout Zone, Battering Ram, Shatter Cascade, Cluster Split, …) — they left the
+shop rather than being invented (Law 4); re-adding any needs a design ruling first.

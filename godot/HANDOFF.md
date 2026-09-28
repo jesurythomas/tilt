@@ -1698,10 +1698,23 @@ block and output: "## How to verify right now" above. Full report:
 
 ## Next
 
-**In progress (2026-09-28): Armory / economy / icons rework** — plan
-`docs/superpowers/plans/2026-09-28-armory-economy-icons.md` (user request, rulings ECON /
-ARMORY / ICONS / RUNOVER). Work task by task in that plan; its checkboxes say what is
-done. The A55 pass on `b4901c1` held 60 fps up to 251 enemies (VERIFY-ME §M11c 8, 15).
+**Done (2026-09-28): Armory / economy / icons rework** — plan
+`docs/superpowers/plans/2026-09-28-armory-economy-icons.md` (user request; rulings ECON
+R1–R5, ARMORY R1–R4, ICONS R1–R3, RUNOVER R1; all 9 tasks ticked). In short: each run
+now pays `60 + 3·seconds + 4·kills^0.7` (× mode) at death, coins 10, milestones ×50;
+prices rescaled (perk ranks 250→1,600, boosts 500–7,000), fresh saves start at 500 and
+the TS "< 500 → 7,331" reset is gone; only keystones with an effect are sold (Supernova,
+Cross Beam; the others refunded on load); the black hole's inside-shield is innate.
+Armory weapons and boosts are single-column rows (`ArmoryUI._upgrade_card`: now → next,
+"Need N", Max, pip pop); one icon set (`render/weapon_icons.gd`) drives the Armory, the
+HUD timer and the playfield orbs (baked sprites); the Run over shows only "+earned"
+(count-up), Destroyed, and an "N upgrades ready" nudge. Suite 734.
+`tools/emulator/deploy.sh [--fresh]` builds, installs and launches on the emulator.
+
+**Next, literally:** when the A55 is on `adb`, run VERIFY-ME §Armory / economy / icons
+rework with the user (economy knobs are listed there), then continue with the list
+below (kill path in C++, weapons section, release libs). The A55 pass on `b4901c1`
+held 60 fps up to 251 enemies (VERIFY-ME §M11c 8, 15).
 
 **Where it stands (2026-09-28, latest).** N6 (plan → N6): the PERF line now splits the
 main-thread frame into `m_phys` / `m_proc` / `m_tail` (plus `rcpu`, `pmax`, `phmax`);
