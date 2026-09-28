@@ -43,7 +43,7 @@ func test_constants_match_the_typescript() -> void:
 	assert_eq(CoinSystem.MAX_COINS_ON_SCREEN, 6, "CoinSystem.ts:29")
 	assert_almost_eq(CoinSystem.COIN_LIFETIME, 12.0, 0.0001, ":30")
 	assert_almost_eq(CoinSystem.COIN_RADIUS, 9.0, 0.0001, ":31")
-	assert_eq(CoinSystem.COIN_BASE_VALUE, 25, ":32")
+	assert_eq(CoinSystem.COIN_BASE_VALUE, 10, "DIVERGENCE(ECON R1); TS 25 (:32)")
 	assert_almost_eq(CoinSystem.FADE_WARNING_TIME, 3.0, 0.0001, ":33")
 	assert_almost_eq(CoinSystem.MIN_DISTANCE_FROM_PLAYER, 110.0, 0.0001, ":34")
 	assert_almost_eq(CoinSystem.SPAWN_INTERVAL_MIN, 2.5, 0.0001, ":35")
@@ -113,8 +113,8 @@ func test_pickup_credits_through_the_callback_and_tracks_the_credited_figure() -
 	_cs.update(0.01, _player, BOUNDS, _particles, _audio, 1.0, _bank())
 	assert_eq(_cs.coins.size(), 0, "collected coins are removed (:96)")
 	assert_eq(_cs.coins_collected, 1)
-	assert_eq(_credited, [25], "COIN_BASE_VALUE * 1.0, unmultiplied (:88)")
-	assert_eq(_cs.points_from_coins, 50, "what the callback says was credited (:95)")
+	assert_eq(_credited, [10], "COIN_BASE_VALUE * 1.0, unmultiplied (:88)")
+	assert_eq(_cs.points_from_coins, 20, "what the callback says was credited (:95)")
 	assert_gt(_particles.particles.size(), particles_before, "16 sparks (:91)")
 
 
@@ -124,14 +124,14 @@ func test_mode_multiplier_rounds_the_coin_value() -> void:
 	_player.x = coin.x
 	_player.y = coin.y
 	_cs.update(0.01, _player, BOUNDS, _particles, _audio, 1.25, _bank())
-	assert_eq(_credited, [31], "Math.round(25 * 1.25) = 31 (:88)")
+	assert_eq(_credited, [13], "Math.round(10 * 1.25) = 13 (:88)")
 	_credited = []
 	_step(4.0)
 	coin = _cs.coins[0]
 	_player.x = coin.x
 	_player.y = coin.y
 	_cs.update(0.01, _player, BOUNDS, _particles, _audio, 1.5, _bank())
-	assert_eq(_credited, [38], "Math.round(37.5) = 38")
+	assert_eq(_credited, [15], "Math.round(15.0) = 15")
 
 
 func test_reset_clears_everything_and_restarts_the_timer() -> void:

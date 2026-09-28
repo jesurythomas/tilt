@@ -56,8 +56,17 @@ func test_catalog_matches_the_typescript_in_order() -> void:
 		assert_eq(g.id, SaveStore.read_string(e, "id", "?"), "id" + at)
 		assert_eq(g.category, SaveStore.read_string(e, "category", "?"), "category" + at)
 		assert_eq(g.title, SaveStore.read_string(e, "title", "?"), "title" + at)
-		assert_eq(g.description, SaveStore.read_string(e, "description", "?"), "description" + at)
-		assert_eq(g.target, SaveStore.read_int(e, "target", -1), "target" + at)
-		assert_eq(g.reward_points, SaveStore.read_int(e, "rewardPoints", -1), "reward" + at)
+		# DIVERGENCE(ECON R1): rewards ×50, and the two "milestone points" goals count
+		# in those units (targets 500 / 1,250, their descriptions say so).
+		var id: String = SaveStore.read_string(e, "id", "?")
+		var target: int = SaveStore.read_int(e, "target", -1)
+		if id.begins_with("total_points_"):
+			target *= GoalManager.MILESTONE_REWARD_SCALE
+		else:
+			var want_desc: String = SaveStore.read_string(e, "description", "?")
+			assert_eq(g.description, want_desc, "description" + at)
+		assert_eq(g.target, target, "target" + at)
+		var reward: int = SaveStore.read_int(e, "rewardPoints", -1)
+		assert_eq(g.reward_points, reward * GoalManager.MILESTONE_REWARD_SCALE, "reward" + at)
 		assert_eq(g.metric, SaveStore.read_string(e, "metric", "?"), "metric" + at)
 		assert_eq(g.target_id, SaveStore.read_string(e, "targetId", "?"), "targetId" + at)

@@ -51,6 +51,13 @@ const POINTS_MULTIPLIER_COSTS: Array[int] = [1200, 2400, 4200, 7000]
 
 ## DIVERGENCE(ECON R2): perk rank prices, ×1.6 a rank (TS 300/600/1100/1800/2800, :558).
 const PERK_COSTS: Array[int] = [250, 400, 650, 1000, 1600]
+## DIVERGENCE(ECON R1): the run payout banked at death (no TS counterpart; the TS paid
+## only coins and milestones): round((BASE + PER_SECOND·t + KILL_SCALE·kills^KILL_EXPONENT)
+## × mode), t = seconds alive. Tuned in the plan's model (novice ~250, mid ~970 a run).
+const RUN_PAYOUT_BASE: float = 60.0
+const RUN_PAYOUT_PER_SECOND: float = 3.0
+const RUN_PAYOUT_KILL_SCALE: float = 4.0
+const RUN_PAYOUT_KILL_EXPONENT: float = 0.7
 ## DIVERGENCE(ECON R3): a fresh save's balance (TS 7331, :423-424).
 const STARTING_POINTS: int = 500
 ## DIVERGENCE(ECON R4): keystones with no effect (or, for Aegis, now innate — ECON R5)
@@ -222,6 +229,17 @@ func add_points_credited(amount: int) -> int:
 	save()
 	GameEvents.points_changed.emit(data.points)
 	return credited
+
+
+## DIVERGENCE(ECON R1): the points a finished run banks (before the Points Multiplier,
+## which add_points_credited applies).
+static func run_payout(seconds_alive: float, kills: int, mode_multiplier: float) -> int:
+	var base: float = (
+		RUN_PAYOUT_BASE
+		+ RUN_PAYOUT_PER_SECOND * maxf(seconds_alive, 0.0)
+		+ RUN_PAYOUT_KILL_SCALE * pow(float(maxi(kills, 0)), RUN_PAYOUT_KILL_EXPONENT)
+	)
+	return roundi(base * mode_multiplier)
 
 
 ## PORT: web/src/tilt-to-live/ProgressionManager.ts:554-560

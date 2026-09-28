@@ -228,3 +228,17 @@ func test_a_save_keeps_a_low_balance() -> void:
 	_pm.data.points = 12
 	_pm.save()
 	assert_eq(ProgressionManager.new().data.points, 12)
+
+
+func test_run_payout_formula() -> void:
+	# DIVERGENCE(ECON R1): round((60 + 3·t + 4·kills^0.7) × mode).
+	assert_eq(ProgressionManager.run_payout(0.0, 0, 1.0), 60, "the floor")
+	assert_eq(ProgressionManager.run_payout(100.0, 0, 1.0), 360)
+	assert_eq(ProgressionManager.run_payout(0.0, 1000, 1.0), 564, "4 × 1000^0.7 = 503.6")
+	assert_eq(ProgressionManager.run_payout(10.0, 10, 1.5), 165, "(90 + 20.05) × 1.5")
+	assert_eq(ProgressionManager.run_payout(-5.0, -3, 1.0), 60, "negative inputs clamp")
+	assert_gt(
+		ProgressionManager.run_payout(300.0, 1800, 1.0),
+		ProgressionManager.run_payout(150.0, 500, 1.0),
+		"a better run pays more"
+	)

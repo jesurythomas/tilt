@@ -23,6 +23,9 @@ const CUMULATIVE_STORAGE_KEY: String = "tilt_to_live_cumulative_stats_v1"
 const SAVE_PATH: String = "user://" + STORAGE_KEY + ".json"
 ## The lifetime-totals file (CumulativeStats, the TS's cumulative object shape).
 const CUMULATIVE_SAVE_PATH: String = "user://" + CUMULATIVE_STORAGE_KEY + ".json"
+## DIVERGENCE(ECON R1): milestone rewards ×50 (TS 1–8 pts each, 192 in all — nothing
+## next to the run payout); user 2026-09-28 "fix the scaling of getting money".
+const MILESTONE_REWARD_SCALE: int = 50
 
 ## Every goal, in the TS's order — evaluation order and the 3-per-run cap
 ## depend on it. PORT: web/src/tilt-to-live/GoalManager.ts:83-640
@@ -404,7 +407,7 @@ static func _goal(
 	g.title = title
 	g.description = description
 	g.target = target
-	g.reward_points = reward_points
+	g.reward_points = reward_points * MILESTONE_REWARD_SCALE  # DIVERGENCE(ECON R1)
 	g.metric = metric
 	g.target_id = target_id
 	return g
@@ -717,8 +720,8 @@ static func _build_catalog() -> Array[Goal]:
 			"total_points_10",
 			"cumulative",
 			"Vault Apprentice",
-			"Earn 10 milestone points in total",
-			10,
+			"Earn 500 milestone points in total",  # DIVERGENCE(ECON R1): TS 10, rewards ×50
+			500,
 			2,
 			"total_points"
 		),
@@ -727,8 +730,8 @@ static func _build_catalog() -> Array[Goal]:
 			"total_points_25",
 			"cumulative",
 			"Vault Master",
-			"Earn 25 milestone points in total",
-			25,
+			"Earn 1,250 milestone points in total",  # DIVERGENCE(ECON R1): TS 25, rewards ×50
+			1250,
 			5,
 			"total_points"
 		),

@@ -222,8 +222,8 @@ func test_coins_update_at_step_seven_and_credit_progression() -> void:
 	)
 	assert_eq(_coins.coins.size(), 0, "picked up")
 	assert_eq(_coins.coins_collected, 1)
-	assert_eq(_progression.data.points, points_before + 25, "addPointsCredited (TiltGame.ts:1939)")
-	assert_eq(_coins.points_from_coins, 25)
+	assert_eq(_progression.data.points, points_before + 10, "addPointsCredited (TiltGame.ts:1939)")
+	assert_eq(_coins.points_from_coins, 10)
 
 
 func test_coin_value_uses_the_points_multiplier_only_through_the_callback() -> void:
@@ -240,9 +240,9 @@ func test_coin_value_uses_the_points_multiplier_only_through_the_callback() -> v
 		0.016, Types.ControlMode.MOUSE, Vector2(_player.x, _player.y), Vector2.ZERO, Vector2.ZERO
 	)
 	assert_eq(
-		_progression.data.points, points_before + 30, "floor(25 * 1.2) — applied once (:1939)"
+		_progression.data.points, points_before + 12, "floor(10 * 1.2) — applied once (:1939)"
 	)
-	assert_eq(_coins.points_from_coins, 30, "the credited figure, not the base value")
+	assert_eq(_coins.points_from_coins, 12, "the credited figure, not the base value")
 
 
 func test_player_update_reads_tuning_and_the_equipped_ship() -> void:
@@ -516,3 +516,30 @@ func test_close_call_radius_is_touch_plus_sixteen() -> void:
 	e.y = _player.y + edge - 0.01
 	_rc.check_collisions()
 	assert_eq(_scores.stats.close_calls, 1, "just inside: close call")
+
+
+func test_death_banks_the_run_payout_once_through_the_points_multiplier() -> void:
+	# DIVERGENCE(ECON R1): 60 + 3·t + 4·kills^0.7, × mode, then × the Points Multiplier.
+	_rc.reset_run(_bounds)
+	_progression.data.points_multiplier = 2
+	_scores.stats.survival_time = 100.0
+	_scores.stats.kills = 0
+	var before: int = _progression.data.points
+	_rc.lives = 1
+	_player.shield_timer = 0.0
+	_rc.lose_life()
+	assert_true(_player.is_dead)
+	assert_eq(_rc.run_payout_credited, 432, "floor((60 + 300) × 1.2)")
+	assert_eq(_progression.data.points, before + 432)
+	assert_eq(_rc.points_credited_this_run, 432, "the run's total includes the payout")
+	_rc.lose_life()
+	assert_eq(_progression.data.points, before + 432, "a dead player is not paid twice")
+
+
+func test_the_run_total_sums_coins_and_payout_and_resets_per_run() -> void:
+	_rc.reset_run(_bounds)
+	assert_eq(_rc.credit_run_points(10), 10)
+	assert_eq(_rc.credit_run_points(15), 15)
+	assert_eq(_rc.points_credited_this_run, 25)
+	_rc.reset_run(_bounds)
+	assert_eq(_rc.points_credited_this_run, 0)

@@ -67,7 +67,7 @@ func test_bind_wires_progression_and_completes_owned_unlocks() -> void:
 	assert_false(
 		(_node("GoalToast") as Control).visible, "no callback installed yet — see PORT-NOTE"
 	)
-	assert_eq(_gm.cumulative.total_points_earned, 2, "the goal itself still records the reward")
+	assert_eq(_gm.cumulative.total_points_earned, 100, "the goal itself still records the reward")
 
 
 func test_render_fills_the_rail_by_completion() -> void:
@@ -104,7 +104,7 @@ func test_goal_toast_shows_title_reward_and_restarts_its_timer() -> void:
 	_hud.show_goal_toast(_gm.catalog[0])
 	assert_true((_node("GoalToast") as Control).visible)
 	assert_eq((_node("ToastTitle") as Label).text, "Rookie Dodger")
-	assert_eq((_node("ToastReward") as Label).text, "+1 pt")
+	assert_eq((_node("ToastReward") as Label).text, "+50 pts")
 	var timer: Timer = _node("ToastTimer") as Timer
 	assert_almost_eq(timer.wait_time, 3.0, 0.001, "GoalsHUD.ts:209")
 	assert_false(timer.is_stopped())

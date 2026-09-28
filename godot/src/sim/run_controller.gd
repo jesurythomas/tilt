@@ -50,6 +50,11 @@ var goals: GoalManager = null
 var run_tracker: GoalManager.RunTracker = GoalManager.RunTracker.new()
 ## PORT: web/src/tilt-to-live/TiltGame.ts:97
 var points_earned_this_run: int = 0
+## DIVERGENCE(ECON R1): every point credited to the balance during this run (coins,
+## milestones, the payout at death) after the Points Multiplier — the Run over's figure.
+var points_credited_this_run: int = 0
+## DIVERGENCE(ECON R1): the payout banked at death (part of points_credited_this_run).
+var run_payout_credited: int = 0
 ## triggerPlayerDeath's `newlyCompleted` (TiltGame.ts:2086).
 # PORT-NOTE: a local in the TS, read by the game-over setTimeout closure
 # (:2111-2144); kept here so HudController's run_ended handler can read it.
@@ -102,6 +107,8 @@ func reset_run(arena_bounds: Vector2) -> void:
 	scores.set_progression_multiplier(progression.get_score_multiplier())
 	elapsed = 0.0
 	points_earned_this_run = 0  # PORT: web/src/tilt-to-live/TiltGame.ts:1566
+	points_credited_this_run = 0  # DIVERGENCE(ECON R1)
+	run_payout_credited = 0
 	# PORT: web/src/tilt-to-live/TiltGame.ts:1567-1568
 	max_lives = progression.get_starting_lives()
 	lives = max_lives
@@ -242,14 +249,9 @@ func update(
 	# in HudController (M11a R17).
 	var mode_config: GameOptionsManager.ModeConfig = options.get_mode_config(mode)
 	var pt_coins: int = PerfProbe.now()
+	# DIVERGENCE(ECON R1): coins bank through credit_run_points (the run's total).
 	coins.update(
-		dt,
-		player,
-		bounds,
-		particles,
-		audio,
-		mode_config.score_multiplier,
-		progression.add_points_credited
+		dt, player, bounds, particles, audio, mode_config.score_multiplier, credit_run_points
 	)
 	PerfProbe.add("s_coins", pt_coins)
 
@@ -394,6 +396,15 @@ func handle_enemy_killed(enemy: PerilEnemy, weapon_type: Types.WeaponType) -> vo
 	GameEvents.enemy_killed.emit(enemy, weapon_type)
 
 
+## DIVERGENCE(ECON R1): banks `amount` through the Points Multiplier and adds what was
+## credited to points_credited_this_run (reset at each run start; the death tick's step 8
+## live goals, after run_ended, still count). Returns the credit.
+func credit_run_points(amount: int) -> int:
+	var credited: int = progression.add_points_credited(amount)
+	points_credited_this_run += credited
+	return credited
+
+
 ## Decrements lives or triggers player death.
 ## PORT: web/src/tilt-to-live/TiltGame.ts:2050-2069
 func lose_life() -> void:
@@ -429,6 +440,12 @@ func trigger_player_death() -> void:
 	_shake(24.0 * options.get_shake_multiplier())  # PORT: web/src/tilt-to-live/TiltGame.ts:2081
 
 	scores.finalize_game()
+	# DIVERGENCE(ECON R1): bank the run payout (seconds alive, kills, mode) before the
+	# milestones and run_ended, so the Run over reads the whole run's total.
+	var mode_mult: float = options.get_mode_config(mode).score_multiplier
+	run_payout_credited = credit_run_points(
+		ProgressionManager.run_payout(scores.stats.survival_time, scores.stats.kills, mode_mult)
+	)
 	# Finalize run goals check (capped at 3 run milestones, plus any cumulative
 	# total milestones). PORT: web/src/tilt-to-live/TiltGame.ts:2085-2086
 	run_completed_goals = goals.evaluate_run(run_tracker)

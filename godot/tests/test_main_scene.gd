@@ -409,9 +409,9 @@ func test_an_armory_unlock_completes_its_goal_through_game_root() -> void:
 	armory.state_changed.emit()
 	assert_true(root.goals.is_completed("unlock_ship_solar"), "TiltGame.ts:2358 → GoalsHUD.ts:264")
 	assert_eq(
-		root.progression.data.points, ProgressionManager.STARTING_POINTS + 2, "TiltGame.ts:206"
+		root.progression.data.points, ProgressionManager.STARTING_POINTS + 100, "2 × 50 (ECON R1)"
 	)
-	assert_eq(root._run_controller.points_earned_this_run, 2, "TiltGame.ts:202")
+	assert_eq(root._run_controller.points_earned_this_run, 100, "TiltGame.ts:202 (×50)")
 	assert_true((root.find_child("GoalToast", true, false) as Control).visible, ":203")
 	assert_signal_emitted_with_parameters(GameEvents, "goal_completed", ["unlock_ship_solar"])
 
@@ -452,9 +452,9 @@ func test_run_over_lists_the_runs_milestones_and_opens_the_screen() -> void:
 	var text: Label = list.get_child(0).find_child("MilestoneText", true, false) as Label
 	assert_eq(text.text, "Rookie Dodger — Reach 1,000 score in a run", ":2136")
 	var earned: Label = root.find_child("PointsEarnedLabel", true, false) as Label
-	assert_eq(earned.text, "+1", "max(1, 1) + 0 coins (:2118)")
+	assert_eq(earned.text, "+110", "payout 60 + score_1k 50 (ECON R1)")
 	var balance: Label = root.find_child("PointsBalanceLabel", true, false) as Label
-	assert_eq(balance.text, "501", "500 + 1 (:2119)")
+	assert_eq(balance.text, "610", "500 + 110 (:2119)")
 	var click: InputEventMouseButton = InputEventMouseButton.new()
 	click.button_index = MOUSE_BUTTON_LEFT
 	click.pressed = true
@@ -473,8 +473,8 @@ func test_run_over_hides_an_empty_milestones_list() -> void:
 	# after the death tick (I-1).
 	await get_tree().create_timer(0.5).timeout
 	assert_false((root.find_child("MilestonesList", true, false) as Control).visible, ":2141-2143")
-	assert_eq((root.find_child("PointsEarnedLabel", true, false) as Label).text, "+0")
-	assert_eq((root.find_child("PointsBalanceLabel", true, false) as Label).text, "500")
+	assert_eq((root.find_child("PointsEarnedLabel", true, false) as Label).text, "+60")
+	assert_eq((root.find_child("PointsBalanceLabel", true, false) as Label).text, "560")
 
 
 ## I-1 regression: the death tick's step 8 (run_controller.gd:227) runs
@@ -487,10 +487,10 @@ func test_run_over_includes_a_total_goal_completed_on_the_death_tick() -> void:
 	var root: GameRoot = await _boot_into_run()
 	var rc: RunController = root._run_controller
 	var balance_before: int = rc.progression.data.points
-	# One point short of total_points_10's target of 10 (goal_manager.gd:697);
-	# score_1k's +1 reward (evaluate_run step 3) closes the gap, which only
+	# One milestone short of total_points_10's target of 500 (ECON R1: 10 × 50);
+	# score_1k's +50 reward (evaluate_run step 3) closes the gap, which only
 	# evaluate_live_total_goals (step 8) can see (:1954 vs :2086 order).
-	rc.goals.cumulative.total_points_earned = 9
+	rc.goals.cumulative.total_points_earned = 450
 	rc.run_tracker.score = 1000
 	rc.trigger_player_death()
 	assert_false(rc.goals.is_completed("total_points_10"), "not yet — step 8 has not run")
@@ -500,11 +500,12 @@ func test_run_over_includes_a_total_goal_completed_on_the_death_tick() -> void:
 	assert_true(rc.goals.is_completed("total_points_10"), "death-tick live check")
 	await get_tree().create_timer(0.5).timeout
 	var earned: Label = root.find_child("PointsEarnedLabel", true, false) as Label
-	assert_eq(earned.text, "+3", "score_1k +1 and total_points_10 +2 (:2118)")
+	# ECON R1: the payout (60 base, 0 s, 0 kills) + score_1k 50 + total_points_10 100.
+	assert_eq(earned.text, "+210", "payout + both milestones, step 8 included")
 	var balance: Label = root.find_child("PointsBalanceLabel", true, false) as Label
 	assert_eq(
 		balance.text,
-		UiTheme.group_digits(balance_before + 3),
+		UiTheme.group_digits(balance_before + 210),
 		"the death-tick completion must reach the balance (:2119)",
 	)
 	assert_eq(

@@ -201,14 +201,17 @@ func test_cumulative_goals_are_uncapped_and_awarded_before_run_goals() -> void:
 	assert_eq(_gm.cumulative.total_kills, 120, ":789")
 	assert_eq(_gm.cumulative.total_survival_time, 200, "floor (:790)")
 	assert_eq(_gm.cumulative.total_score, 60000, ":791")
-	assert_eq(_gm.cumulative.total_points_earned, 2 + 2 + 3 + 1 + 2 + 3)
+	assert_eq(
+		_gm.cumulative.total_points_earned,
+		(2 + 2 + 3 + 1 + 2 + 3) * GoalManager.MILESTONE_REWARD_SCALE
+	)
 	assert_false(
 		_gm.is_completed("total_points_10"),
 		"7 points when total_points_10 was checked (:796-807 runs before the run goals)"
 	)
 	assert_eq(
 		events.slice(0, 4),
-		["pts:2", "goal:total_kills_100", "pts:2", "goal:total_survival_180"] as Array[String]
+		["pts:100", "goal:total_kills_100", "pts:100", "goal:total_survival_180"] as Array[String]
 	)
 	assert_eq(events.size(), 12, "one pts + one goal callback per completion (:834-841)")
 	assert_true(FileAccess.file_exists(GoalManager.SAVE_PATH))
@@ -225,8 +228,8 @@ func test_live_total_goals_complete_mid_run_and_save_at_once() -> void:
 	var t: GoalManager.RunTracker = _tracker()
 	t.kills = 10
 	assert_eq(_ids(_gm.evaluate_live_total_goals(t)), ["total_kills_100"] as Array[String])
-	assert_eq(events, ["pts:2", "goal:total_kills_100"] as Array[String])
-	assert_eq(_gm.cumulative.total_points_earned, 2)
+	assert_eq(events, ["pts:100", "goal:total_kills_100"] as Array[String])  # 2 × 50
+	assert_eq(_gm.cumulative.total_points_earned, 2 * GoalManager.MILESTONE_REWARD_SCALE)
 	assert_eq(_gm.cumulative.total_kills, 90, "live evaluation never commits the run (:754-780)")
 	assert_eq(
 		SaveStore.load_string_list(GoalManager.SAVE_PATH), ["total_kills_100"] as Array[String]
@@ -329,7 +332,7 @@ func test_unlock_goals_read_progression() -> void:
 		_ids(_gm.evaluate_unlock_goals()),
 		["unlock_ship_solar", "unlock_skin_toxic", "unlock_arena_synthwave"] as Array[String]
 	)
-	assert_eq(_gm.cumulative.total_points_earned, 2 + 2 + 2)
+	assert_eq(_gm.cumulative.total_points_earned, (2 + 2 + 2) * GoalManager.MILESTONE_REWARD_SCALE)
 	assert_eq(_gm.evaluate_unlock_goals(), [] as Array[GoalManager.Goal], "never re-awarded")
 
 

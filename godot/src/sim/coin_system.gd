@@ -23,7 +23,8 @@ const COIN_COLOR: Color = Color("#FFB14D")
 const MAX_COINS_ON_SCREEN: int = 6  # PORT: web/src/tilt-to-live/CoinSystem.ts:29
 const COIN_LIFETIME: float = 12.0  # PORT: web/src/tilt-to-live/CoinSystem.ts:30
 const COIN_RADIUS: float = 9.0  # PORT: web/src/tilt-to-live/CoinSystem.ts:31
-const COIN_BASE_VALUE: int = 25  # PORT: web/src/tilt-to-live/CoinSystem.ts:32
+## DIVERGENCE(ECON R1): 10 (TS 25, CoinSystem.ts:32) — the run payout carries income now.
+const COIN_BASE_VALUE: int = 10
 ## Seconds remaining at which the coin starts fading out.
 const FADE_WARNING_TIME: float = 3.0  # PORT: web/src/tilt-to-live/CoinSystem.ts:33
 const MIN_DISTANCE_FROM_PLAYER: float = 110.0  # PORT: web/src/tilt-to-live/CoinSystem.ts:34

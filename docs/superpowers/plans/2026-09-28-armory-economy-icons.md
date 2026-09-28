@@ -121,7 +121,7 @@ silhouette/greyscale readable at 24 px.
   test keeps comparing the TS fixture for everything else; cost fields are asserted as
   DIVERGENCE values); refund test (each dead keystone refunded once, flag cleared, a
   second load does not refund again).
-- [ ] **T2 — Run payout** (ECON R1): `ProgressionManager.run_payout(t, k, mode)` +
+- [x] **T2 — Run payout** (done: `run_payout` + `RUN_PAYOUT_*`, `RunController.credit_run_points` / `points_credited_this_run` / `run_payout_credited`, coins 10, `GoalManager.MILESTONE_REWARD_SCALE`; ruling on the way: the run's credit total resets at run start and never closes, because the death tick's step 8 live goals credit after run_ended; suite 717) (ECON R1): `ProgressionManager.run_payout(t, k, mode)` +
   constants; banked in `RunController.trigger_player_death` before `run_ended`; coin
   value 10; milestone rewards ×50 at catalog build; `points_credited_this_run` counts
   every credited point (coins, milestones, payout) for the sheet. Tests: formula values,

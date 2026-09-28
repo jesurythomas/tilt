@@ -821,7 +821,7 @@ func _on_goal_completed(goal: GoalManager.Goal) -> void:
 
 ## PORT: web/src/tilt-to-live/TiltGame.ts:205-208 (the onPointsAwarded callback)
 func _on_goal_points_awarded(pts: int) -> void:
-	progression.add_points(pts)
+	_run_controller.credit_run_points(pts)  # DIVERGENCE(ECON R1): counts toward the run total
 	_goals_hud.render()
 
 

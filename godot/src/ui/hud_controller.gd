@@ -412,13 +412,9 @@ static func run_result_for(
 		result.mode_multiplier = mode.score_multiplier
 		if run.scores.is_new_best and run.scores.best_score_diff > 0:  # PORT: :2097
 			result.best_diff = run.scores.best_score_diff
-		var milestone_points: int = 0
-		for goal: GoalManager.Goal in run.run_completed_goals:
-			milestone_points += goal.reward_points  # PORT: :2111-2114
-		# PORT: :2118 — coins are a second income stream folded into the one total.
-		result.earned = (
-			maxi(run.points_earned_this_run, milestone_points) + run.coins.points_from_coins
-		)
+		# DIVERGENCE(ECON R1): everything the run credited (payout, coins, milestones, after
+		# the Points Multiplier). TS :2111-2118 summed raw milestone points and coins.
+		result.earned = run.points_credited_this_run
 		result.milestones = run.run_completed_goals.duplicate()  # PORT: :2132
 		result.balance = run.progression.data.points  # PORT: :2119
 	return result
