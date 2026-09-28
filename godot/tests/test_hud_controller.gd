@@ -361,6 +361,9 @@ func test_a_mass_kill_builds_one_pulse_per_frame_unless_the_tier_changes() -> vo
 	GameEvents.enemy_killed.emit(PerilEnemy.new(), Types.WeaponType.NUKE)
 	assert_ne(hud._score_pulse_tween, first, "a tier change in the frame restarts it")
 	assert_eq(score_lbl.modulate, HudController.tier_color_for(20), "the last tier wins")
+	# Two frames: begun inside a physics step, the first process_frame can arrive before
+	# Engine.get_process_frames() advances (flaked 1 run in 3, 2026-09-28).
+	await get_tree().process_frame
 	await get_tree().process_frame
 	var before: Tween = hud._score_pulse_tween
 	GameEvents.enemy_killed.emit(PerilEnemy.new(), Types.WeaponType.NUKE)
