@@ -59,7 +59,11 @@ func test_bind_wires_progression_and_completes_owned_unlocks() -> void:
 	# check_unlock_goals() BEFORE _setup_listeners() installs the callbacks
 	# (GoalsHUD.ts:30-31, :105) — the TS order. A pre-owned unlock completes
 	# with no addPoints and no toast; only cumulative.totalPointsEarned moves.
-	assert_eq(_pm.data.points, 7331, "no callback installed yet — see PORT-NOTE on bind()")
+	assert_eq(
+		_pm.data.points,
+		ProgressionManager.STARTING_POINTS,
+		"no callback installed yet — see PORT-NOTE on bind()"
+	)
 	assert_false(
 		(_node("GoalToast") as Control).visible, "no callback installed yet — see PORT-NOTE"
 	)
@@ -228,7 +232,7 @@ func test_header_shows_counter_progress_and_points() -> void:
 	assert_eq(_text("TitleLabel"), "Milestones")
 	assert_eq(_text("CounterLabel"), "1", "GoalsHUD.ts:367")
 	assert_eq(_text("CounterDenomLabel"), "/57")
-	assert_eq(_text("HeaderPointsLabel"), "7,331", ":372 toLocaleString")
+	assert_eq(_text("HeaderPointsLabel"), "500", ":372 toLocaleString (ECON R3 start)")
 	assert_eq(_text("HeaderPointsUnit"), "PTS", "Milestones.dc.html caps unit")
 	var fill: Control = _node("ProgressFill") as Control
 	assert_almost_eq(fill.anchor_right, 0.02, 0.0001, "round(1/57*100) = 2 (:317)")

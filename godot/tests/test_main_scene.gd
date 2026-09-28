@@ -408,7 +408,9 @@ func test_an_armory_unlock_completes_its_goal_through_game_root() -> void:
 	var armory: ArmoryUI = root.find_child("Armory", true, false) as ArmoryUI
 	armory.state_changed.emit()
 	assert_true(root.goals.is_completed("unlock_ship_solar"), "TiltGame.ts:2358 → GoalsHUD.ts:264")
-	assert_eq(root.progression.data.points, 7331 + 2, "TiltGame.ts:206")
+	assert_eq(
+		root.progression.data.points, ProgressionManager.STARTING_POINTS + 2, "TiltGame.ts:206"
+	)
 	assert_eq(root._run_controller.points_earned_this_run, 2, "TiltGame.ts:202")
 	assert_true((root.find_child("GoalToast", true, false) as Control).visible, ":203")
 	assert_signal_emitted_with_parameters(GameEvents, "goal_completed", ["unlock_ship_solar"])
@@ -452,7 +454,7 @@ func test_run_over_lists_the_runs_milestones_and_opens_the_screen() -> void:
 	var earned: Label = root.find_child("PointsEarnedLabel", true, false) as Label
 	assert_eq(earned.text, "+1", "max(1, 1) + 0 coins (:2118)")
 	var balance: Label = root.find_child("PointsBalanceLabel", true, false) as Label
-	assert_eq(balance.text, "7,332", "7331 + 1 (:2119)")
+	assert_eq(balance.text, "501", "500 + 1 (:2119)")
 	var click: InputEventMouseButton = InputEventMouseButton.new()
 	click.button_index = MOUSE_BUTTON_LEFT
 	click.pressed = true
@@ -472,7 +474,7 @@ func test_run_over_hides_an_empty_milestones_list() -> void:
 	await get_tree().create_timer(0.5).timeout
 	assert_false((root.find_child("MilestonesList", true, false) as Control).visible, ":2141-2143")
 	assert_eq((root.find_child("PointsEarnedLabel", true, false) as Label).text, "+0")
-	assert_eq((root.find_child("PointsBalanceLabel", true, false) as Label).text, "7,331")
+	assert_eq((root.find_child("PointsBalanceLabel", true, false) as Label).text, "500")
 
 
 ## I-1 regression: the death tick's step 8 (run_controller.gd:227) runs

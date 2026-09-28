@@ -115,7 +115,7 @@ silhouette/greyscale readable at 24 px.
 
 ## Tasks
 
-- [ ] **T1 — Economy core** (ECON R2, R3, R4 data side): costs, ladders, start balance,
+- [x] **T1 — Economy core** (done: `PERK_COSTS`, ladders, `STARTING_POINTS`, `DEAD_KEYSTONE_REFUNDS` in progression_manager.gd; test fixtures that buy now fund themselves with 7331; suite 714) (ECON R2, R3, R4 data side): costs, ladders, start balance,
   load quirk removed, one-time keystone refunds. Tests: update
   `test_progression_economy/parity/manager/armory_ui` pins to the new numbers (parity
   test keeps comparing the TS fixture for everything else; cost fields are asserted as

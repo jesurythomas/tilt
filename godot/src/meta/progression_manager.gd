@@ -38,12 +38,30 @@ const STORAGE_KEY: String = "tilt_to_live_progression_v3"
 ## The localStorage key as a user:// file (spec §4.6).
 const SAVE_PATH: String = "user://" + STORAGE_KEY + ".json"
 
-## PORT: web/src/tilt-to-live/ProgressionManager.ts:607-611
-const EXTRA_LIVES_COSTS: Array[int] = [4000, 9000]
-const HULL_COMPACT_COSTS: Array[int] = [1500, 3000, 5500]
-const ENEMY_SLOW_COSTS: Array[int] = [2000, 4200, 7500]
-const SCORE_MULTIPLIER_COSTS: Array[int] = [1800, 3600, 6500, 11000]
-const POINTS_MULTIPLIER_COSTS: Array[int] = [2500, 5000, 9000, 15000]
+## PORT: web/src/tilt-to-live/ProgressionManager.ts:607-611 (ladder lengths)
+## DIVERGENCE(ECON R2): prices rescaled with the new run payout (user 2026-09-28: "fix
+## the money scaling where it isnt too easy and isnt too hard"); plan
+## docs/superpowers/plans/2026-09-28-armory-economy-icons.md. TS: 4000/9000,
+## 1500/3000/5500, 2000/4200/7500, 1800/3600/6500/11000, 2500/5000/9000/15000.
+const EXTRA_LIVES_COSTS: Array[int] = [2500, 6000]
+const HULL_COMPACT_COSTS: Array[int] = [800, 1600, 3000]
+const ENEMY_SLOW_COSTS: Array[int] = [1000, 2000, 3600]
+const SCORE_MULTIPLIER_COSTS: Array[int] = [500, 1000, 1800, 3000]
+const POINTS_MULTIPLIER_COSTS: Array[int] = [1200, 2400, 4200, 7000]
+
+## DIVERGENCE(ECON R2): perk rank prices, ×1.6 a rank (TS 300/600/1100/1800/2800, :558).
+const PERK_COSTS: Array[int] = [250, 400, 650, 1000, 1600]
+## DIVERGENCE(ECON R3): a fresh save's balance (TS 7331, :423-424).
+const STARTING_POINTS: int = 500
+## DIVERGENCE(ECON R4): keystones with no effect (or, for Aegis, now innate — ECON R5)
+## left the Armory; a save that bought one gets this refund once on load, and the flag
+## clears. Keys are "<weapon>.<perk>" in the save's spelling; values are the TS prices.
+const DEAD_KEYSTONE_REFUNDS: Dictionary[String, int] = {
+	"blackhole.invulnerableInside": 2500,
+	"nuke.falloutZone": 3000,
+	"shield.batteringRam": 3000,
+	"freeze.shatterCascade": 2500,
+}
 
 ## The player's progression. PORT: web/src/tilt-to-live/ProgressionManager.ts:122
 var data: ProgressionData = null
@@ -86,8 +104,8 @@ func _resolve_ship_id(id: String) -> String:
 ## PORT: web/src/tilt-to-live/ProgressionManager.ts:421-478
 func _get_default_data() -> ProgressionData:
 	var d: ProgressionData = ProgressionData.new()
-	d.points = 7331  # PORT: web/src/tilt-to-live/ProgressionManager.ts:423
-	d.lifetime_points = 7331  # PORT: web/src/tilt-to-live/ProgressionManager.ts:424
+	d.points = STARTING_POINTS  # DIVERGENCE(ECON R3)
+	d.lifetime_points = STARTING_POINTS  # DIVERGENCE(ECON R3)
 	# PORT: web/src/tilt-to-live/ProgressionManager.ts:425-461
 	d.perks.blackhole.duration = 3
 	d.perks.blackhole.radius = 2
@@ -142,11 +160,11 @@ func load_data() -> ProgressionData:
 
 	# {...def, ...parsed} plus the perks and tuning deep merges (:488-490, :493-510)
 	def.from_dict(raw)
-	# PORT: web/src/tilt-to-live/ProgressionManager.ts:491
-	var parsed_points: int = SaveStore.read_int(raw, "points", 0)
-	def.points = parsed_points if parsed_points >= 500 else 7331
-	# PORT: web/src/tilt-to-live/ProgressionManager.ts:492
-	def.lifetime_points = maxi(SaveStore.read_int(raw, "lifetimePoints", 0), 7331)
+	# DIVERGENCE(ECON R3): the TS reset a balance under 500 to 7331 and floored lifetime
+	# points at 7331 (:491-492) — unlimited money. The saved figures now stand.
+	def.points = maxi(0, SaveStore.read_int(raw, "points", STARTING_POINTS))
+	def.lifetime_points = maxi(def.points, SaveStore.read_int(raw, "lifetimePoints", 0))
+	_refund_dead_keystones(def)
 	# PORT: web/src/tilt-to-live/ProgressionManager.ts:504-506
 	def.unlocked_cursors = _unique_union(
 		["classic", "tactical", "singularity"], SaveStore.read_string_array(raw, "unlockedCursors")
@@ -158,6 +176,19 @@ func load_data() -> ProgressionData:
 		["void"], SaveStore.read_string_array(raw, "unlockedArenaThemes")
 	)
 	return def
+
+
+## DIVERGENCE(ECON R4): refunds each owned keystone that left the Armory and clears it.
+## Idempotent: the refund is written with the next save, together with the cleared flag.
+func _refund_dead_keystones(d: ProgressionData) -> void:
+	var all: Dictionary = d.perks.to_dict()
+	for path: String in DEAD_KEYSTONE_REFUNDS:
+		var parts: PackedStringArray = path.split(".")
+		var weapon_perks: Dictionary = all[parts[0]]
+		if weapon_perks.get(parts[1], false) == true:
+			weapon_perks[parts[1]] = false
+			d.points += DEAD_KEYSTONE_REFUNDS[path]
+	d.perks.from_dict(all)
 
 
 ## PORT: web/src/tilt-to-live/ProgressionManager.ts:517-523
@@ -199,8 +230,7 @@ func get_perk_cost(current_rank: int, is_keystone: bool = false, keystone_key: S
 		if Tuning.KEYSTONE_COSTS.has(keystone_key):  # PORT: :556
 			return Tuning.KEYSTONE_COSTS[keystone_key]
 		return 2500
-	var costs: Array[int] = [300, 600, 1100, 1800, 2800]  # PORT: :558
-	return costs[mini(current_rank, costs.size() - 1)]
+	return PERK_COSTS[mini(current_rank, PERK_COSTS.size() - 1)]  # DIVERGENCE(ECON R2)
 
 
 ## PORT: web/src/tilt-to-live/ProgressionManager.ts:562-578
@@ -212,13 +242,13 @@ func get_weapon_invested_points(weapon: String) -> int:
 	var p: Dictionary = SaveStore.read_dict(data.perks.to_dict(), weapon)
 	if p.is_empty():
 		return 0
-	var costs: Array[int] = [300, 600, 1100, 1800, 2800]  # PORT: :566
+	# DIVERGENCE(ECON R2): the rank prices are PERK_COSTS (TS :566, :571).
 	for key: String in p.keys():
 		var val: Variant = p[key]
 		if val is int:
 			var rank: int = val
 			for r: int in range(rank):
-				total += costs[r] if r < costs.size() else 2800  # PORT: :571
+				total += get_perk_cost(r)
 		elif val is bool and val:
 			total += get_perk_cost(0, true, key)
 	return total

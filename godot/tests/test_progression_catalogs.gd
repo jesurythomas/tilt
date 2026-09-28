@@ -17,6 +17,7 @@ func _remove_save() -> void:
 func before_each() -> void:
 	_remove_save()
 	_pm = ProgressionManager.new()
+	_pm.data.points = 7331  # DIVERGENCE(ECON R3): buy from a funded save (TS start balance)
 
 
 func after_each() -> void:

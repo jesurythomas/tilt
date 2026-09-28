@@ -7,6 +7,8 @@ extends GutTest
 ## balance readout, and (Tasks 2-5) every purchase path from a tapped button.
 
 const ARMORY_SCENE: PackedScene = preload("res://scenes/armory.tscn")
+## The balance the purchase tests start from (the TS default, 7331).
+const FUNDED_POINTS: int = 7331
 
 var _armory: ArmoryUI = null
 var _progression: ProgressionManager = null
@@ -24,6 +26,9 @@ func before_each() -> void:
 	_remove(SaveStore.corrupt_path_for(ProgressionManager.SAVE_PATH))
 	_remove(ControlSettings.SETTINGS_PATH)
 	_progression = ProgressionManager.new()
+	# DIVERGENCE(ECON R3): a fresh save now starts at 500; these tests buy from a
+	# funded save (the old TS start balance).
+	_progression.data.points = FUNDED_POINTS
 	_settings = ControlSettings.new()
 	_armory = ARMORY_SCENE.instantiate() as ArmoryUI
 	add_child_autofree(_armory)
@@ -253,18 +258,14 @@ func test_selecting_a_weapon_rerenders_its_detail() -> void:
 	assert_eq(_armory.selected_weapon_id, "laser")
 	assert_not_null(_armory.find_child("Track_length", true, false))
 	assert_not_null(_armory.find_child("Keystone_crossBeam", true, false))
-	assert_eq(
-		_label("InvestedValue").text,
-		"900",
-		"laser.length = 2 → 300 + 600 (ProgressionManager.ts:566-571)"
-	)
+	assert_eq(_label("InvestedValue").text, "650", "laser.length = 2 → 250 + 400 (ECON R2)")
 
 
 func test_track_readout_shows_current_and_next_value() -> void:
 	_open_weapons("blackhole")
 	# PORT: web/src/tilt-to-live/ArmoryUI.ts:459-472 — duration rank 3: 4.8 + 0.5*3 → 6.3s → 6.8s
 	assert_eq(_label("TrackValue_duration").text, "6.3s → 6.8s")
-	assert_eq(_button("Track_duration").text, "1,800", "rank 3 costs costs[3] (:450, :558)")
+	assert_eq(_button("Track_duration").text, "1,000", "rank 3 costs PERK_COSTS[3] (ECON R2)")
 	assert_false(_button("Track_duration").disabled)
 
 
@@ -273,9 +274,9 @@ func test_buying_a_track_rank_charges_saves_and_emits() -> void:
 	watch_signals(_armory)
 	_button("Track_duration").pressed.emit()
 	assert_eq(_progression.data.perks.blackhole.duration, 4)
-	assert_eq(_progression.data.points, 7331 - 1800)
+	assert_eq(_progression.data.points, 7331 - 1000)
 	assert_signal_emitted(_armory, "state_changed")
-	assert_eq(_label("BalanceLabel").text, UiTheme.group_digits(7331 - 1800), "re-rendered (:1164)")
+	assert_eq(_label("BalanceLabel").text, UiTheme.group_digits(7331 - 1000), "re-rendered (:1164)")
 	var reloaded: ProgressionManager = ProgressionManager.new()
 	assert_eq(
 		reloaded.data.perks.blackhole.duration, 4, "upgrade_perk saved (spec §8 M8 acceptance)"
@@ -457,7 +458,7 @@ func test_boosts_catalog_matches_the_ts() -> void:
 	var extra_lives_cost: int = 0
 	if cost_value is int:
 		extra_lives_cost = cost_value
-	assert_eq(extra_lives_cost, 4000, "EXTRA_LIVES_COSTS[0]")
+	assert_eq(extra_lives_cost, 2500, "EXTRA_LIVES_COSTS[0] (ECON R2)")
 
 
 func test_boosts_tab_shows_rank_and_cost() -> void:
@@ -465,8 +466,8 @@ func test_boosts_tab_shows_rank_and_cost() -> void:
 	await get_tree().process_frame
 	assert_eq(_filled_pips("BoostPips_extraLives"), 0)
 	assert_eq(_armory.find_child("BoostPips_extraLives", true, false).get_child_count(), 2)
-	assert_eq(_button("Boost_extraLives").text, "4,000")
-	assert_eq(_button("Boost_pointsMultiplier").text, "2,500")
+	assert_eq(_button("Boost_extraLives").text, "2,500")
+	assert_eq(_button("Boost_pointsMultiplier").text, "1,200")
 	assert_false(_button("Boost_hullCompact").disabled)
 
 
@@ -475,10 +476,10 @@ func test_buying_a_boost_charges_saves_and_emits() -> void:
 	watch_signals(_armory)
 	_button("Boost_hullCompact").pressed.emit()
 	assert_eq(_progression.data.hull_compact, 1)
-	assert_eq(_progression.data.points, 7331 - 1500)
+	assert_eq(_progression.data.points, 7331 - 800)
 	assert_signal_emitted(_armory, "state_changed")
 	assert_eq(_filled_pips("BoostPips_hullCompact"), 1)
-	assert_eq(_button("Boost_hullCompact").text, "3,000", "next rung of HULL_COMPACT_COSTS")
+	assert_eq(_button("Boost_hullCompact").text, "1,600", "next rung of HULL_COMPACT_COSTS")
 	assert_eq(ProgressionManager.new().data.hull_compact, 1, "persisted")
 
 
@@ -493,10 +494,10 @@ func test_maxed_boost_reads_maxed() -> void:
 
 
 func test_unaffordable_boost_is_disabled() -> void:
-	_progression.data.points = 3999
+	_progression.data.points = 2499
 	_armory.open("boosts")
 	assert_true(_button("Boost_extraLives").disabled)
-	assert_false(_button("Boost_hullCompact").disabled, "1,500 is affordable")
+	assert_false(_button("Boost_hullCompact").disabled, "800 is affordable")
 
 
 func test_locked_keystone_is_dimmed_with_a_lock() -> void:

@@ -137,7 +137,11 @@ func _assert_dict_numbers_equal(actual: Dictionary, expected: Dictionary, what: 
 func test_default_data_matches_the_typescript() -> void:
 	# PORT-NOTE: same Variant-narrowing gap as _assert_dict_numbers_equal
 	# above — bind a typed local before passing it as a call argument.
-	var expected: Dictionary = _fixture["default_data"]
+	var ts_default: Dictionary = _fixture["default_data"]
+	var expected: Dictionary = ts_default.duplicate(true)
+	# DIVERGENCE(ECON R3): the start balance is 500 (TS 7331); the rest is the TS's.
+	expected["points"] = float(ProgressionManager.STARTING_POINTS)  # JSON numbers are floats
+	expected["lifetimePoints"] = float(ProgressionManager.STARTING_POINTS)
 	_assert_dict_numbers_equal(_pm.data.to_dict(), expected, "default_data")
 
 
@@ -237,11 +241,15 @@ func test_arena_theme_catalog_matches_the_typescript() -> void:
 		_assert_color(arena.dust_color, SaveStore.read_string(want, "dustColor", ""), tag + " dust")
 
 
-func test_perk_cost_curve_matches_the_typescript() -> void:
+func test_perk_cost_curve_keeps_the_typescript_shape() -> void:
+	# DIVERGENCE(ECON R2): the prices are the plan's; the shape (one price per rank,
+	# clamped past the last) is the TS's.
 	var curve: Array = _fixture["perk_cost_curve"]
+	var last: int = ProgressionManager.PERK_COSTS.size() - 1
 	for entry: Dictionary in curve:
 		var rank: int = SaveStore.read_int(entry, "rank", -1)
-		assert_eq(_pm.get_perk_cost(rank), SaveStore.read_int(entry, "cost", -1), "rank %d" % rank)
+		var want: int = ProgressionManager.PERK_COSTS[mini(rank, last)]
+		assert_eq(_pm.get_perk_cost(rank), want, "rank %d" % rank)
 
 
 func test_keystone_costs_through_get_perk_cost_match_the_typescript() -> void:
@@ -253,6 +261,14 @@ func test_keystone_costs_through_get_perk_cost_match_the_typescript() -> void:
 			SaveStore.read_int(entry, "cost", -1),
 			"keystone %s" % key
 		)
+
+
+## DIVERGENCE(ECON R2): the ladder lengths (where each turns null) are the TS's; the
+## prices are the plan's.
+func _econ_cost(ts_entry: Variant, ladder: Array[int], rank: int) -> int:
+	if _ladder_cost(ts_entry) == Types.ABSENT:
+		return Types.ABSENT
+	return ladder[rank]
 
 
 func test_purchasable_ladders_match_the_typescript() -> void:
@@ -268,15 +284,29 @@ func test_purchasable_ladders_match_the_typescript() -> void:
 		_pm.data.enemy_slow = rank
 		_pm.data.score_multiplier = rank
 		_pm.data.points_multiplier = rank
-		assert_eq(_pm.get_extra_lives_cost(), _ladder_cost(extra[rank]), "extraLives %d" % rank)
-		assert_eq(_pm.get_hull_compact_cost(), _ladder_cost(hull[rank]), "hullCompact %d" % rank)
-		assert_eq(_pm.get_enemy_slow_cost(), _ladder_cost(slow[rank]), "enemySlow %d" % rank)
 		assert_eq(
-			_pm.get_score_multiplier_cost(), _ladder_cost(score[rank]), "scoreMultiplier %d" % rank
+			_pm.get_extra_lives_cost(),
+			_econ_cost(extra[rank], ProgressionManager.EXTRA_LIVES_COSTS, rank),
+			"extraLives %d" % rank
+		)
+		assert_eq(
+			_pm.get_hull_compact_cost(),
+			_econ_cost(hull[rank], ProgressionManager.HULL_COMPACT_COSTS, rank),
+			"hullCompact %d" % rank
+		)
+		assert_eq(
+			_pm.get_enemy_slow_cost(),
+			_econ_cost(slow[rank], ProgressionManager.ENEMY_SLOW_COSTS, rank),
+			"enemySlow %d" % rank
+		)
+		assert_eq(
+			_pm.get_score_multiplier_cost(),
+			_econ_cost(score[rank], ProgressionManager.SCORE_MULTIPLIER_COSTS, rank),
+			"scoreMultiplier %d" % rank
 		)
 		assert_eq(
 			_pm.get_points_multiplier_cost(),
-			_ladder_cost(points[rank]),
+			_econ_cost(points[rank], ProgressionManager.POINTS_MULTIPLIER_COSTS, rank),
 			"pointsMultiplier %d" % rank
 		)
 
@@ -291,12 +321,13 @@ func _ladder_cost(value: Variant) -> int:
 
 func test_invested_points_and_multipliers_at_defaults_match_the_typescript() -> void:
 	var invested: Dictionary = _fixture["invested_points_at_defaults"]
+	# DIVERGENCE(ECON R2): the same default ranks priced on the new curve.
+	var econ: Dictionary[String, int] = {
+		"blackhole": 4250, "nuke": 250, "shield": 0, "missiles": 3900, "laser": 650
+	}
 	for weapon: String in invested.keys():
-		assert_eq(
-			_pm.get_weapon_invested_points(weapon),
-			SaveStore.read_int(invested, weapon, -1),
-			"invested %s" % weapon
-		)
+		var want: int = econ.get(weapon, 0)
+		assert_eq(_pm.get_weapon_invested_points(weapon), want, "invested %s" % weapon)
 	var m: Dictionary = _fixture["multipliers_at_defaults"]
 	assert_eq(_pm.get_starting_lives(), SaveStore.read_int(m, "startingLives", -1))
 	assert_almost_eq(_pm.get_hitbox_multiplier(), SaveStore.read_float(m, "hitbox", -1.0), 0.0001)

@@ -16,6 +16,8 @@ func _remove_save() -> void:
 func before_each() -> void:
 	_remove_save()
 	_pm = ProgressionManager.new()
+	_pm.data.points = 7331  # DIVERGENCE(ECON R3): a funded save (the TS start balance)
+	_pm.data.lifetime_points = 7331
 
 
 func after_each() -> void:
@@ -48,13 +50,14 @@ func test_add_points_ignores_zero_and_negative() -> void:
 
 
 func test_perk_cost_curve() -> void:
-	assert_eq(_pm.get_perk_cost(0), 300, "ProgressionManager.ts:558")
-	assert_eq(_pm.get_perk_cost(1), 600)
-	assert_eq(_pm.get_perk_cost(2), 1100)
-	assert_eq(_pm.get_perk_cost(3), 1800)
-	assert_eq(_pm.get_perk_cost(4), 2800)
-	assert_eq(_pm.get_perk_cost(5), 2800, "clamped to the last entry (:559)")
-	assert_eq(_pm.get_perk_cost(99), 2800)
+	# DIVERGENCE(ECON R2): 250 × ~1.6 a rank (TS 300/600/1100/1800/2800).
+	assert_eq(_pm.get_perk_cost(0), 250)
+	assert_eq(_pm.get_perk_cost(1), 400)
+	assert_eq(_pm.get_perk_cost(2), 650)
+	assert_eq(_pm.get_perk_cost(3), 1000)
+	assert_eq(_pm.get_perk_cost(4), 1600)
+	assert_eq(_pm.get_perk_cost(5), 1600, "clamped to the last entry (:559)")
+	assert_eq(_pm.get_perk_cost(99), 1600)
 
 
 func test_keystone_cost_reads_the_tuning_table() -> void:
@@ -67,23 +70,24 @@ func test_keystone_cost_reads_the_tuning_table() -> void:
 
 
 func test_weapon_invested_points_at_defaults() -> void:
-	assert_eq(_pm.get_weapon_invested_points("blackhole"), 6700, "2000 + 900 + 3800")
-	assert_eq(_pm.get_weapon_invested_points("nuke"), 300)
+	# ECON R2 curve: ranks 3/2/4 = 1300 + 650 + 2300.
+	assert_eq(_pm.get_weapon_invested_points("blackhole"), 4250, "1300 + 650 + 2300")
+	assert_eq(_pm.get_weapon_invested_points("nuke"), 250)
 	assert_eq(_pm.get_weapon_invested_points("shield"), 0)
-	assert_eq(_pm.get_weapon_invested_points("missiles"), 6600, "300+600+1100+1800+2800")
-	assert_eq(_pm.get_weapon_invested_points("laser"), 900)
+	assert_eq(_pm.get_weapon_invested_points("missiles"), 3900, "250+400+650+1000+1600")
+	assert_eq(_pm.get_weapon_invested_points("laser"), 650)
 	assert_eq(_pm.get_weapon_invested_points("nosuch"), 0, ":565")
 	_pm.data.perks.laser.cross_beam = true
-	assert_eq(_pm.get_weapon_invested_points("laser"), 4400, "900 + keystone 3500 (:573-574)")
+	assert_eq(_pm.get_weapon_invested_points("laser"), 4150, "650 + keystone 3500 (:573-574)")
 
 
 func test_upgrade_perk_rank_charges_the_curve_and_increments() -> void:
 	assert_eq(_pm.data.perks.nuke.speed, 0)
 	assert_true(_pm.upgrade_perk("nuke", "speed"))
 	assert_eq(_pm.data.perks.nuke.speed, 1)
-	assert_eq(_pm.data.points, 7331 - 300)
+	assert_eq(_pm.data.points, 7331 - 250)
 	assert_true(_pm.upgrade_perk("nuke", "speed"))
-	assert_eq(_pm.data.points, 7331 - 300 - 600)
+	assert_eq(_pm.data.points, 7331 - 250 - 400)
 	assert_eq(_pm.data.perks.nuke.speed, 2)
 	var again: ProgressionManager = ProgressionManager.new()
 	assert_eq(again.data.perks.nuke.speed, 2, "upgradePerk saves (:599)")
@@ -95,8 +99,8 @@ func test_upgrade_perk_refuses_max_rank_unknown_and_unaffordable() -> void:
 	assert_eq(_pm.data.points, 7331)
 	assert_false(_pm.upgrade_perk("nosuch", "count"), ":582")
 	assert_false(_pm.upgrade_perk("nuke", "nosuch"), ":582")
-	_pm.data.points = 299
-	assert_false(_pm.upgrade_perk("nuke", "speed"), "cannot afford 300 (:596)")
+	_pm.data.points = 249
+	assert_false(_pm.upgrade_perk("nuke", "speed"), "cannot afford 250 (:596)")
 	assert_eq(_pm.data.perks.nuke.speed, 0)
 	# PORT-NOTE: the TS caps ranks at 5 for every track even where the
 	# WeaponPerks comment says 0..3 (:18, :23, :28, :33, :38) — preserved.
@@ -119,17 +123,18 @@ func test_upgrade_perk_keystone_charges_its_price_once() -> void:
 
 
 func test_purchasable_ladders_and_absent_past_the_end() -> void:
-	assert_eq(_pm.get_extra_lives_cost(), 4000, ":607")
-	assert_eq(_pm.get_hull_compact_cost(), 1500, ":608")
-	assert_eq(_pm.get_enemy_slow_cost(), 2000, ":609")
-	assert_eq(_pm.get_score_multiplier_cost(), 1800, ":610")
-	assert_eq(_pm.get_points_multiplier_cost(), 2500, ":611")
+	# DIVERGENCE(ECON R2) prices; ladder lengths as :607-611.
+	assert_eq(_pm.get_extra_lives_cost(), 2500)
+	assert_eq(_pm.get_hull_compact_cost(), 800)
+	assert_eq(_pm.get_enemy_slow_cost(), 1000)
+	assert_eq(_pm.get_score_multiplier_cost(), 500)
+	assert_eq(_pm.get_points_multiplier_cost(), 1200)
 	_pm.data.extra_lives = 2
 	assert_eq(_pm.get_extra_lives_cost(), Types.ABSENT, "null past the ladder (:615)")
 	_pm.data.hull_compact = 3
 	assert_eq(_pm.get_hull_compact_cost(), Types.ABSENT)
 	_pm.data.score_multiplier = 3
-	assert_eq(_pm.get_score_multiplier_cost(), 11000)
+	assert_eq(_pm.get_score_multiplier_cost(), 3000)
 	_pm.data.score_multiplier = 4
 	assert_eq(_pm.get_score_multiplier_cost(), Types.ABSENT)
 
@@ -138,27 +143,27 @@ func test_every_buy_method_charges_increments_and_saves() -> void:
 	_pm.data.points = 50000
 	assert_true(_pm.buy_extra_life())
 	assert_eq(_pm.data.extra_lives, 1)
-	assert_eq(_pm.data.points, 46000)
+	assert_eq(_pm.data.points, 47500)
 	assert_true(_pm.buy_hull_compact())
 	assert_eq(_pm.data.hull_compact, 1)
-	assert_eq(_pm.data.points, 44500)
+	assert_eq(_pm.data.points, 46700)
 	assert_true(_pm.buy_enemy_slow())
 	assert_eq(_pm.data.enemy_slow, 1)
-	assert_eq(_pm.data.points, 42500)
+	assert_eq(_pm.data.points, 45700)
 	assert_true(_pm.buy_score_multiplier())
 	assert_eq(_pm.data.score_multiplier, 1)
-	assert_eq(_pm.data.points, 40700)
+	assert_eq(_pm.data.points, 45200)
 	assert_true(_pm.buy_points_multiplier())
 	assert_eq(_pm.data.points_multiplier, 1)
-	assert_eq(_pm.data.points, 38200)
+	assert_eq(_pm.data.points, 44000)
 	var again: ProgressionManager = ProgressionManager.new()
-	assert_eq(again.data.points, 38200, "each buy saves")
+	assert_eq(again.data.points, 44000, "each buy saves")
 	assert_eq(again.data.points_multiplier, 1)
 
 
 func test_buy_refuses_when_maxed_or_unaffordable() -> void:
-	_pm.data.points = 3999
-	assert_false(_pm.buy_extra_life(), "4000 > 3999 (:621)")
+	_pm.data.points = 2499
+	assert_false(_pm.buy_extra_life(), "2500 > 2499 (:621)")
 	assert_eq(_pm.data.extra_lives, 0)
 	_pm.data.points = 100000
 	_pm.data.extra_lives = 2
@@ -196,3 +201,30 @@ func test_multipliers_per_rank() -> void:
 	assert_almost_eq(_pm.get_enemy_speed_multiplier(), 0.92, 0.0001, "1 - 0.04 * 2 (:700)")
 	assert_almost_eq(_pm.get_score_multiplier(), 1.4, 0.0001, "1 + 0.10 * 4 (:704)")
 	assert_almost_eq(_pm.get_points_multiplier(), 1.1, 0.0001, "1 + 0.10 * 1 (:708)")
+
+
+func test_dead_keystones_are_refunded_once_and_cleared() -> void:
+	# DIVERGENCE(ECON R4): keystones that left the Armory are refunded on load.
+	_pm.data.points = 1000
+	_pm.data.perks.blackhole.invulnerable_inside = true
+	_pm.data.perks.nuke.fallout_zone = true
+	_pm.data.perks.shield.battering_ram = true
+	_pm.data.perks.freeze.shatter_cascade = true
+	_pm.data.perks.laser.cross_beam = true
+	_pm.save()
+	var loaded: ProgressionManager = ProgressionManager.new()
+	assert_eq(loaded.data.points, 1000 + 2500 + 3000 + 3000 + 2500)
+	assert_false(loaded.data.perks.blackhole.invulnerable_inside)
+	assert_false(loaded.data.perks.nuke.fallout_zone)
+	assert_false(loaded.data.perks.shield.battering_ram)
+	assert_false(loaded.data.perks.freeze.shatter_cascade)
+	assert_true(loaded.data.perks.laser.cross_beam, "a live keystone is kept")
+	loaded.save()
+	assert_eq(ProgressionManager.new().data.points, 12000, "a second load refunds nothing")
+
+
+func test_a_save_keeps_a_low_balance() -> void:
+	# DIVERGENCE(ECON R3): the TS reset balances under 500 to 7331 (:491).
+	_pm.data.points = 12
+	_pm.save()
+	assert_eq(ProgressionManager.new().data.points, 12)

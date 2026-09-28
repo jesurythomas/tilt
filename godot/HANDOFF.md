@@ -1698,6 +1698,11 @@ block and output: "## How to verify right now" above. Full report:
 
 ## Next
 
+**In progress (2026-09-28): Armory / economy / icons rework** — plan
+`docs/superpowers/plans/2026-09-28-armory-economy-icons.md` (user request, rulings ECON /
+ARMORY / ICONS / RUNOVER). Work task by task in that plan; its checkboxes say what is
+done. The A55 pass on `b4901c1` held 60 fps up to 251 enemies (VERIFY-ME §M11c 8, 15).
+
 **Where it stands (2026-09-28, latest).** N6 (plan → N6): the PERF line now splits the
 main-thread frame into `m_phys` / `m_proc` / `m_tail` (plus `rcpu`, `pmax`, `phmax`);
 `tools/emulator/perf_buckets.sh` prints the split. On the emulator `m_tail` (RenderingServer
