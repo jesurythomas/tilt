@@ -34,7 +34,7 @@ async function run() {
   await delay(600);
 
   // 1. Launch Tilt to Live
-  console.log('Launching Tilt to Live from arcade portal...');
+  console.log('Launching Tilt to Live...');
   await page.click('#card-tilt-to-live .choice-launch');
   await delay(300);
 
