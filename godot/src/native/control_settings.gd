@@ -20,6 +20,11 @@ const MAX_SENSITIVITY: float = 2.5
 ## Smoothing bounds. 0.0 reproduces unsmoothed M2 behaviour exactly.
 const MIN_SMOOTHING: float = 0.0
 const MAX_SMOOTHING: float = 0.9
+## DIVERGENCE(TOUCH R1, player feedback 2026-09-29: "is the stick control radius
+## configurable"): Stick size bounds, a multiple of the A55-measured radius
+## (FloatingJoystick.set_size). 1.0 is the M2.5 stick.
+const MIN_STICK_SIZE: float = 0.6
+const MAX_STICK_SIZE: float = 1.6
 
 ## Which control scheme drives the ship.
 var scheme: Types.ControlScheme = Types.ControlScheme.MOUSE
@@ -27,6 +32,8 @@ var scheme: Types.ControlScheme = Types.ControlScheme.MOUSE
 var tilt_sensitivity: float = 1.0
 ## Interpolation weight applied to tilt_vector each poll.
 var tilt_smoothing: float = 0.0
+## DIVERGENCE(TOUCH R1): the touch stick's radius, as a multiple of its default.
+var stick_size: float = 1.0
 
 
 func _init() -> void:
@@ -44,6 +51,7 @@ func save_settings() -> void:
 				"scheme": int(scheme),
 				"tilt_sensitivity": tilt_sensitivity,
 				"tilt_smoothing": tilt_smoothing,
+				"stick_size": stick_size,
 			}
 		)
 	)
@@ -69,4 +77,7 @@ func _load_settings() -> void:
 	)
 	tilt_smoothing = clampf(
 		SaveStore.read_float(data, "tilt_smoothing", tilt_smoothing), MIN_SMOOTHING, MAX_SMOOTHING
+	)
+	stick_size = clampf(
+		SaveStore.read_float(data, "stick_size", stick_size), MIN_STICK_SIZE, MAX_STICK_SIZE
 	)

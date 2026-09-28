@@ -694,6 +694,10 @@ refunded once on the first launch.
 - [ ] 17. **Orb magnet (ORB R1).** Fly near a power-up orb and it flies to you, like
       coins. The run's opening orbs stay where they are until you take them. Too strong?
       `WeaponSystem.ORB_MAGNET_*`.
+- [ ] 18. **Touch stick (TOUCH R1).** On Touch, drag past the stick's rim and back — the
+      base follows, so the ship turns round at once. Full push is as fast as full tilt.
+      Try Armory → Handling → Stick size at 60–160%. Does it now feel as good as tilt?
+      Knobs: FloatingJoystick.DEAD_FRACTION, GameRoot.TOUCH_JOYSTICK_SPEED_SCALE.
 
 ## M11c part 1 — Performance (plan `2026-09-26-m11c-performance.md`)
 

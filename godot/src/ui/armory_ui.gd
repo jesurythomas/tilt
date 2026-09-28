@@ -194,9 +194,12 @@ const BOOST_NOUNS: Dictionary[String, String] = {
 ## value Mono 14 ion; bottom row gap 8; preview stack gap 8, box r 8; legend at
 ## left 14 / bottom 12, gap 16, glyph 8, glyph-label gap 6.
 const HANDLING_COLUMN_GAP: int = 28
-const HANDLING_STACK_GAP: int = 10
+const HANDLING_STACK_GAP: int = 6  # DIVERGENCE(TOUCH R1): 10 before Stick size
 const HANDLING_FIELD_GAP: int = 2
-const HANDLING_SLIDER_HEIGHT: int = 40
+## DIVERGENCE(TOUCH R1): 32 (the board's 40), with each slider's bounds beside it on one row,
+## so a third field (Stick size) fits the tab without scrolling.
+const HANDLING_SLIDER_HEIGHT: int = 32
+const HANDLING_BOUNDS_GAP: int = 8
 const HANDLING_VALUE_FONT: int = 14
 const HANDLING_ROW_GAP: int = 8
 const PREVIEW_RADIUS: int = 8
@@ -215,6 +218,13 @@ const TURN_STEP: float = 0.1
 const TILT_MIN: float = 0.5
 const TILT_MAX: float = 2.0
 const TILT_STEP: float = 0.1
+## DIVERGENCE(TOUCH R1, player feedback 2026-09-29: "is the stick control radius
+## configurable"): the Stick size slider (ControlSettings.stick_size), shown as a percent
+## of the default stick.
+const STICK_MIN: float = 0.6
+const STICK_MAX: float = 1.6
+const STICK_STEP: float = 0.1
+const DEFAULT_STICK_SIZE: float = 1.0
 ## Reset defaults. PORT: web/src/tilt-to-live/ArmoryUI.ts:1287-1288
 const DEFAULT_SENSITIVITY: float = 1.0
 const DEFAULT_DEADZONE: float = 4.0
@@ -1345,6 +1355,19 @@ func _render_handling_tab() -> Control:
 				_on_tilt_sensitivity_changed
 			)
 		)
+		# DIVERGENCE(TOUCH R1): the touch stick's size, beside tilt's sensitivity.
+		controls.add_child(
+			_handling_field(
+				"Stick size",
+				"StickValue",
+				stick_size_text(_settings.stick_size),
+				"Smaller reaches full speed with less thumb.",
+				"StickSlider",
+				[STICK_MIN, STICK_MAX, STICK_STEP, _settings.stick_size],
+				_on_stick_size_changed,
+				stick_size_text
+			)
+		)
 	var fill: Control = Control.new()
 	fill.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	controls.add_child(fill)
@@ -1647,6 +1670,21 @@ func _on_tilt_sensitivity_changed(value: float) -> void:
 	state_changed.emit()
 
 
+## DIVERGENCE(TOUCH R1): the Stick size slider, updated in place like the tilt slider.
+func _on_stick_size_changed(value: float) -> void:
+	_settings.stick_size = value
+	_settings.save_settings()
+	var disp: Label = find_child("StickValue", true, false) as Label
+	if disp != null:
+		disp.text = stick_size_text(value)
+	state_changed.emit()
+
+
+## "100%" — Stick size as a percent of the default stick.
+static func stick_size_text(value: float) -> String:
+	return "%d%%" % roundi(value * 100.0)
+
+
 ## Handling's "Calibrate tilt" (interface spec §5).
 func _on_calibrate_pressed() -> void:
 	calibrate_requested.emit()
@@ -1659,6 +1697,7 @@ func _on_handling_reset_pressed() -> void:
 	# Ruling O: the tilt slider resets to ControlSettings' default too.
 	if _settings != null:
 		_settings.tilt_sensitivity = DEFAULT_TILT_SENSITIVITY
+		_settings.stick_size = DEFAULT_STICK_SIZE  # DIVERGENCE(TOUCH R1)
 		_settings.save_settings()
 	state_changed.emit()
 	render()
@@ -1700,7 +1739,8 @@ func _handling_field(
 	hint: String,
 	slider_name: String,
 	range_value: Array[float],
-	on_changed: Callable
+	on_changed: Callable,
+	format: Callable = Callable()
 ) -> VBoxContainer:
 	var field: VBoxContainer = VBoxContainer.new()
 	field.add_theme_constant_override("separation", _px(HANDLING_FIELD_GAP))
@@ -1723,13 +1763,24 @@ func _handling_field(
 	slider.step = range_value[2]
 	slider.value = range_value[3]
 	slider.custom_minimum_size.y = _px(HANDLING_SLIDER_HEIGHT)
+	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	slider.value_changed.connect(on_changed)
-	field.add_child(slider)
-	var bounds: HBoxContainer = HBoxContainer.new()  # PORT: :828-831
-	var low: Label = UiTheme.text("%.1f×" % range_value[0], "MonoFaintText")
-	low.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# PORT: :828-831 — the bounds; DIVERGENCE(TOUCH R1): either side of the slider.
+	var bounds: HBoxContainer = HBoxContainer.new()
+	bounds.add_theme_constant_override("separation", _px(HANDLING_BOUNDS_GAP))
+	# The bounds read like the value: "%.1f×" unless `format` says otherwise (TOUCH R1).
+	var low_text: String = "%.1f×" % range_value[0]
+	var high_text: String = "%.1f×" % range_value[1]
+	if format.is_valid():
+		low_text = format.call(range_value[0])
+		high_text = format.call(range_value[1])
+	var low: Label = UiTheme.text(low_text, "MonoFaintText")
+	low.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	bounds.add_child(low)
-	bounds.add_child(UiTheme.text("%.1f×" % range_value[1], "MonoFaintText"))
+	bounds.add_child(slider)
+	var high: Label = UiTheme.text(high_text, "MonoFaintText")
+	high.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	bounds.add_child(high)
 	field.add_child(bounds)
 	return field
 

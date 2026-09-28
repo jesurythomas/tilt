@@ -103,3 +103,14 @@ func test_corrupt_settings_file_is_quarantined_and_keeps_defaults() -> void:
 	var backup: String = SaveStore.corrupt_path_for(ControlSettings.SETTINGS_PATH)
 	assert_true(FileAccess.file_exists(backup))
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(backup))
+
+
+## TOUCH R1: Stick size persists and is clamped on load.
+func test_stick_size_persists_and_clamps() -> void:
+	var s: ControlSettings = ControlSettings.new()
+	assert_eq(s.stick_size, 1.0, "default: the M2.5 stick")
+	s.stick_size = 0.8
+	s.save_settings()
+	assert_almost_eq(ControlSettings.new().stick_size, 0.8, 0.0001)
+	SaveStore.save_dict(ControlSettings.SETTINGS_PATH, {"stick_size": 9.0})
+	assert_eq(ControlSettings.new().stick_size, ControlSettings.MAX_STICK_SIZE)

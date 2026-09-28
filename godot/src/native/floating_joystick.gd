@@ -15,24 +15,40 @@ extends RefCounted
 
 # DIVERGENCE(M2.5 §8.1): measured on SM_A556E — 90px was too small a travel
 # on 1080p mobile screens; 115px gives comfortable thumb travel range.
-## Distance from the base at which the knob reaches full deflection.
+## Distance from the base at which the knob reaches full deflection, before
+## set_size() (the A55's measure).
 const BASE_RADIUS: float = 115.0
-## Radius inside which a resting thumb produces no steering.
-const DEAD_RADIUS: float = 8.0
+## DIVERGENCE(TOUCH R1, player feedback 2026-09-29: "is the stick control radius
+## configurable"): the radius in UI px at ui_scale 1 — BASE_RADIUS on the A55
+## (ui_scale 1080 / 390) — so a stick is the same physical size on every phone.
+const RADIUS_UNITS: float = BASE_RADIUS * 390.0 / 1080.0
+## DIVERGENCE(TOUCH R1): the dead zone as a fraction of the radius — tilt's radial
+## deadzone (TiltInput.DEADZONE_THRESHOLD, GyroscopeController.ts:178); M2.5 used a
+## flat 8 px, 0.07 of 115.
+const DEAD_FRACTION: float = 0.07
 
 ## True while a finger is driving the stick.
 var is_active: bool = false
-## Where the finger landed. Meaningless while is_active is false.
+## Where the finger landed; it follows a thumb that runs past the rim (TOUCH R1).
+## Meaningless while is_active is false.
 var base_position: Vector2 = Vector2.ZERO
-## Where the knob is drawn, clamped to BASE_RADIUS from the base.
+## Where the knob is drawn, clamped to `radius` from the base.
 var knob_position: Vector2 = Vector2.ZERO
 ## Steering direction, magnitude 0.0 to 1.0.
 var vector: Vector2 = Vector2.ZERO
+## Full-deflection distance in px (see set_size).
+var radius: float = BASE_RADIUS
 
 # Which touch index owns the stick, or Types.ABSENT when it is idle. A second
 # simultaneous finger is ignored rather than stealing control, so a stray palm
 # touch cannot yank the ship mid-run.
 var _owner_index: int = Types.ABSENT
+
+
+## DIVERGENCE(TOUCH R1): sizes the stick for this screen — RADIUS_UNITS at `ui_scale`,
+## times the player's Stick size setting (ControlSettings.stick_size).
+func set_size(ui_scale: float, stick_size: float) -> void:
+	radius = maxf(1.0, RADIUS_UNITS * ui_scale * stick_size)
 
 
 ## Engages the stick if no finger already owns it.
@@ -47,6 +63,12 @@ func on_touch(index: int, position: Vector2) -> void:
 
 
 ## Moves the knob, if this is the owning finger.
+## DIVERGENCE(TOUCH R1, player feedback: "the stick responsiveness is nowhere close to
+## being as intuitive or feels as good as gyro"): a thumb past the rim drags the base
+## after it, so reversing is always at most one diameter away (a fixed base made a
+## drifted thumb cross the whole old offset first); and the output ramps from 0 at the
+## dead zone's edge to 1 at the rim, as tilt re-normalises past its deadzone
+## (GyroscopeController.ts:183-187), instead of jumping to 0.07.
 func on_drag(index: int, position: Vector2) -> void:
 	if index != _owner_index:
 		return
@@ -54,16 +76,17 @@ func on_drag(index: int, position: Vector2) -> void:
 	var offset: Vector2 = position - base_position
 	var distance: float = offset.length()
 
-	if distance <= DEAD_RADIUS:
-		knob_position = position
-		vector = Vector2.ZERO
-		return
-
-	if distance > BASE_RADIUS:
-		offset = offset / distance * BASE_RADIUS
+	if distance > radius:
+		offset = offset / distance * radius
+		base_position = position - offset
+		distance = radius
 
 	knob_position = base_position + offset
-	vector = offset / BASE_RADIUS
+	var mag: float = distance / radius
+	if mag < DEAD_FRACTION:
+		vector = Vector2.ZERO
+		return
+	vector = offset / distance * ((mag - DEAD_FRACTION) / (1.0 - DEAD_FRACTION))
 
 
 ## Disengages the stick, if this is the owning finger.

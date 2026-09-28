@@ -45,7 +45,8 @@ func test_drag_beyond_the_base_radius_clamps_to_unit_magnitude() -> void:
 
 func test_a_drag_inside_the_dead_radius_yields_no_steering() -> void:
 	_stick.on_touch(0, Vector2(300.0, 400.0))
-	_stick.on_drag(0, Vector2(300.0 + FloatingJoystick.DEAD_RADIUS * 0.5, 400.0))
+	var dead: float = FloatingJoystick.BASE_RADIUS * FloatingJoystick.DEAD_FRACTION
+	_stick.on_drag(0, Vector2(300.0 + dead * 0.5, 400.0))
 	assert_eq(_stick.vector, Vector2.ZERO, "a resting thumb does not steer")
 
 
@@ -79,3 +80,36 @@ func test_reset_clears_an_engaged_stick() -> void:
 	_stick.reset()
 	assert_false(_stick.is_active, "reset disengages, for a scheme change mid-touch")
 	assert_eq(_stick.vector, Vector2.ZERO, "reset stops the ship steering")
+
+
+## TOUCH R1 (player: the stick "is nowhere close to being as intuitive or feels as good as
+## gyro"): a thumb past the rim drags the base with it, so reversing is one flick.
+func test_the_base_follows_a_thumb_past_the_rim() -> void:
+	_stick.on_touch(0, Vector2(300.0, 400.0))
+	_stick.on_drag(0, Vector2(300.0 + 400.0, 400.0))
+	assert_eq(_stick.base_position, Vector2(700.0 - FloatingJoystick.BASE_RADIUS, 400.0))
+	# Back the other way: one diameter reverses it fully (a fixed base needed 400 px + r).
+	_stick.on_drag(0, Vector2(700.0 - FloatingJoystick.BASE_RADIUS * 2.0, 400.0))
+	assert_almost_eq(_stick.vector.x, -1.0, 0.0001, "full reverse after one diameter")
+
+
+## TOUCH R1: past the dead zone the output ramps from 0, as tilt's does, not from 0.07.
+func test_the_output_ramps_from_zero_past_the_dead_zone() -> void:
+	_stick.on_touch(0, Vector2(300.0, 400.0))
+	var dead: float = FloatingJoystick.BASE_RADIUS * FloatingJoystick.DEAD_FRACTION
+	_stick.on_drag(0, Vector2(300.0 + dead + 0.01, 400.0))
+	assert_lt(_stick.vector.x, 0.001, "just past the dead zone is barely moving")
+	_stick.on_drag(0, Vector2(300.0 + FloatingJoystick.BASE_RADIUS * 0.5, 400.0))
+	assert_between(_stick.vector.x, 0.45, 0.5, "half travel is about half speed")
+
+
+## TOUCH R1 (player: "is the stick control radius configurable"): the Stick size setting
+## scales the radius, and the radius scales with the screen's ui_scale.
+func test_set_size_scales_the_radius() -> void:
+	_stick.set_size(1080.0 / 390.0, 1.0)
+	assert_almost_eq(_stick.radius, FloatingJoystick.BASE_RADIUS, 0.001, "the A55's 115 px")
+	_stick.set_size(1080.0 / 390.0, 0.6)
+	assert_almost_eq(_stick.radius, FloatingJoystick.BASE_RADIUS * 0.6, 0.001)
+	_stick.on_touch(0, Vector2(300.0, 400.0))
+	_stick.on_drag(0, Vector2(300.0 + FloatingJoystick.BASE_RADIUS * 0.6, 400.0))
+	assert_almost_eq(_stick.vector.x, 1.0, 0.0001, "a smaller stick hits full speed sooner")

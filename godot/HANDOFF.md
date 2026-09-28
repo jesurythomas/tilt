@@ -1762,6 +1762,9 @@ Nav buttons share `UiTheme.nav_button()`: a glyph beside the label on the menu, 
 and Run over (UI R13). Power-up orbs have a coin-style magnet, except the run's opening
 orbs (ORB R1). Suite 770.
 
+The touch stick's base follows the thumb, full push matches tilt's top speed, and its
+size is a Handling slider (TOUCH R1, player feedback). Suite 775.
+
 **Next, literally:** when the A55 is on `adb`, run VERIFY-ME §Armory / economy / icons
 rework with the user (economy knobs are listed there), then continue with the list
 below (kill path in C++, weapons section, release libs). The A55 pass on `b4901c1`

@@ -19,6 +19,9 @@ const KNOB_COLOR: Color = Color(0.0, 220.0 / 255.0, 1.0, 0.75)
 # Knob radius in pixels; sized by eye against BASE_RADIUS for a comfortable
 # thumb target. Provisional — to be confirmed in the M2.5 device pass.
 const KNOB_RADIUS: float = 34.0
+## DIVERGENCE(TOUCH R1): the knob keeps KNOB_RADIUS's share of the base as the stick's
+## size changes (FloatingJoystick.set_size).
+const KNOB_FRACTION: float = KNOB_RADIUS / FloatingJoystick.BASE_RADIUS
 
 var _joystick: FloatingJoystick = null
 var _arena_origin: Vector2 = Vector2.ZERO
@@ -39,9 +42,7 @@ func _draw() -> void:
 		return
 
 	draw_set_transform(_arena_origin, 0.0, Vector2.ONE)
-	draw_circle(_joystick.base_position, FloatingJoystick.BASE_RADIUS, BASE_COLOR)
-	draw_arc(
-		_joystick.base_position, FloatingJoystick.BASE_RADIUS, 0.0, TAU, 48, BASE_RING_COLOR, 2.0
-	)
-	draw_circle(_joystick.knob_position, KNOB_RADIUS, KNOB_COLOR)
+	draw_circle(_joystick.base_position, _joystick.radius, BASE_COLOR)
+	draw_arc(_joystick.base_position, _joystick.radius, 0.0, TAU, 48, BASE_RING_COLOR, 2.0)
+	draw_circle(_joystick.knob_position, _joystick.radius * KNOB_FRACTION, KNOB_COLOR)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)

@@ -41,8 +41,12 @@ const MOBILE_ARENA_SCALE_CEILING: float = 1.25
 const MOBILE_MODEL_SCALE: float = 1.5
 
 # DIVERGENCE(M2.5 §8.1): measured on SM_A556E — full 540 px/s speed on a touch
-# screen caused overshooting and twitchy dodging. 0.72 caps top speed to 390 px/s.
-const TOUCH_JOYSTICK_SPEED_SCALE: float = 0.72
+# screen caused overshooting and twitchy dodging. 0.72 capped top speed to 390 px/s.
+# DIVERGENCE(TOUCH R1, player feedback 2026-09-29: the stick "is nowhere close to being
+# as intuitive or feels as good as gyro"): 1.0 — full deflection reaches tilt's top
+# speed. The overshoot came from the fixed base (a drifted thumb had to cross it to
+# brake); the base now follows the thumb, and Stick size tunes the travel.
+const TOUCH_JOYSTICK_SPEED_SCALE: float = 1.0
 
 ## The playfield's top-left corner in viewport space. Render layers translate
 ## by this; the simulation never sees it (M2.5 spec §6.1).
@@ -77,6 +81,8 @@ var _router: InputRouter = null
 var _touch: TouchInput = null
 var _tilt: TiltInput = null
 var _joystick: FloatingJoystick = null
+## The HUD's ui_scale, kept for re-sizing the stick when Stick size changes (TOUCH R1).
+var _ui_scale: float = 1.0
 var _state: GameStateMachine = null
 ## The menu's attract-mode sim. PORT: web/src/tilt-to-live/TiltGame.ts:69-75
 var _backdrop: MenuBackdrop = null
@@ -792,6 +798,8 @@ func resize_canvas() -> void:
 	# overlay must cover the whole screen), and on mobile only the panel is
 	# inset by arena_origin so it stays inside the safe area (spec §8 M8).
 	var ui_scale: float = HudController.ui_scale_for(viewport)
+	_ui_scale = ui_scale
+	_joystick.set_size(ui_scale, settings.stick_size)  # DIVERGENCE(TOUCH R1)
 	_armory.set_ui_scale(ui_scale, arena_origin)
 	_goals_hud.set_ui_scale(ui_scale, arena_origin)
 	_menu.set_ui_scale(ui_scale, arena_origin)
@@ -837,6 +845,7 @@ func _on_armory_state_changed() -> void:
 	_menu.render()  # PORT: web/src/tilt-to-live/TiltGame.ts:2359
 	# Interface spec §6.4: the Handling tab's tilt slider edits settings.tilt_sensitivity.
 	_tilt.tilt_sensitivity = settings.tilt_sensitivity
+	_joystick.set_size(_ui_scale, settings.stick_size)  # DIVERGENCE(TOUCH R1): Stick size
 	# PORT-NOTE: the menu render takes no skin (:2274-2276), so an Armory opened
 	# from the menu must not re-skin the backdrop.
 	if not is_in_menu():

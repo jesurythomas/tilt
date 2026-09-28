@@ -968,7 +968,7 @@ func test_maxed_boost_shows_only_its_value() -> void:
 func test_showcase_tabs_fit_without_scrolling() -> void:
 	for size: Vector2 in [Vector2(2340.0, 1080.0), Vector2(1600.0, 720.0)]:
 		var scale: float = HudController.ui_scale_for(size)
-		for tab: String in ["arena", "ships"]:
+		for tab: String in ["arena", "ships", "handling"]:
 			var armory: ArmoryUI = _hosted(size, scale)
 			armory.open(tab)
 			await get_tree().process_frame
@@ -978,3 +978,18 @@ func test_showcase_tabs_fit_without_scrolling() -> void:
 			)
 			var need: float = (body.get_child(0) as Control).get_combined_minimum_size().y
 			assert_lte(need, body.size.y, "%s %s: %.0f of %.0f px" % [tab, size, need, body.size.y])
+
+
+## TOUCH R1 (player: "is the stick control radius configurable"): Handling has a Stick
+## size slider that saves ControlSettings.stick_size, and Reset puts it back.
+func test_handling_has_a_stick_size_slider() -> void:
+	_armory.open("handling")
+	var slider: HSlider = _armory.find_child("StickSlider", true, false) as HSlider
+	assert_not_null(slider)
+	assert_eq(_label("StickValue").text, "100%")
+	slider.value = 0.7
+	assert_almost_eq(_settings.stick_size, 0.7, 0.0001)
+	assert_eq(_label("StickValue").text, "70%")
+	assert_almost_eq(ControlSettings.new().stick_size, 0.7, 0.0001, "saved")
+	_button("ResetButton").pressed.emit()
+	assert_eq(_settings.stick_size, 1.0, "Reset restores the default stick")

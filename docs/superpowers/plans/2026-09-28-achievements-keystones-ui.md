@@ -221,3 +221,25 @@ redesign if needed to make ui/ux feel better as a player". Rulings are Claude's 
   opens with (the cold open's nuke or vortex, and the ship's starting orb) are not
   magnetic (`WeaponOrb.magnetic`): they sit 27–150 px from the ship by design, and the
   player picks when to take them. The cost is a distance test per orb (≤ 5). Suite 770.
+- [x] **TOUCH R1** — player feedback relayed 2026-09-29: "is the stick control radius
+  configurable" and "the stick responsiveness is nowhere close to being as intuitive or
+  feels as good as gyro". The stick and tilt feed the same steering branch; three things
+  made the stick worse:
+  - its top speed was capped at 0.72 (M2.5's overshoot fix), where tilt reaches 1.0;
+  - its base never moved, so a thumb that drifted past the rim had to cross the whole
+    offset back before the ship would turn around;
+  - nothing about it could be tuned.
+  Fixes:
+  - **Follow base.** A thumb past the rim drags the base with it, so reversing is at most
+    one diameter.
+  - **Tilt parity.** Full deflection reaches tilt's top speed (TOUCH_JOYSTICK_SPEED_SCALE
+    1.0). The output ramps from 0 past a dead zone of 0.07 of the radius, as tilt
+    re-normalises past its deadzone.
+  - **Stick size.** A Handling slider, 60–160% of the M2.5 stick, saved in
+    `ControlSettings.stick_size` and reset by Reset. `FloatingJoystick.set_size` scales
+    it by ui_scale, so it is the same physical size on every phone (115 px on the A55).
+  - **Layout.** The Handling sliders now carry their bounds on the slider row and the gaps
+    are tighter, so three fields fit without scrolling (`test_showcase_tabs_fit_…` now
+    covers Handling).
+  Emulator: the base follows a drag past the rim. The feel still needs the A55 and the
+  player. Suite 775.
