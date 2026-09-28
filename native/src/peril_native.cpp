@@ -78,6 +78,29 @@ void PerilNative::_bind_methods() {
 	ClassDB::bind_static_method("PerilNative", D_METHOD("collision_candidates", "enemies", "plx", "plr", "start"),
 			&PerilNative::collision_candidates);
 	ClassDB::bind_static_method("PerilNative", D_METHOD("enemy_type_ids"), &PerilNative::enemy_type_ids);
+	ClassDB::bind_static_method("PerilNative", D_METHOD("particles_flush", "particles", "pool", "total", "flushed", "dt"),
+			&PerilNative::particles_flush);
+	ClassDB::bind_static_method("PerilNative",
+			D_METHOD("particles_emit_sparks", "particles", "pool", "steps", "x", "y", "count", "color", "speed_max"),
+			&PerilNative::particles_emit_sparks);
+	ClassDB::bind_static_method("PerilNative",
+			D_METHOD("particles_emit_explosion", "particles", "pool", "steps", "x", "y", "color", "count"),
+			&PerilNative::particles_emit_explosion);
+	ClassDB::bind_static_method("PerilNative",
+			D_METHOD("particles_emit_smoke", "particles", "pool", "steps", "x", "y", "color"),
+			&PerilNative::particles_emit_smoke);
+	ClassDB::bind_static_method("PerilNative",
+			D_METHOD("particles_emit_ice_shatter", "particles", "pool", "steps", "x", "y", "count"),
+			&PerilNative::particles_emit_ice_shatter);
+	ClassDB::bind_static_method("PerilNative",
+			D_METHOD("particles_emit_blizzard_snow", "particles", "pool", "steps", "bounds", "count"),
+			&PerilNative::particles_emit_blizzard_snow);
+	ClassDB::bind_static_method("PerilNative",
+			D_METHOD("particles_emit_kinetic_ice_shards", "particles", "pool", "steps", "x", "y", "count"),
+			&PerilNative::particles_emit_kinetic_ice_shards);
+	ClassDB::bind_static_method("PerilNative",
+			D_METHOD("particles_emit_thruster_sparks", "particles", "pool", "steps", "x", "y", "angle", "color"),
+			&PerilNative::particles_emit_thruster_sparks);
 }
 
 String PerilNative::version() {

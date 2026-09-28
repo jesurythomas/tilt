@@ -20,6 +20,10 @@ const BANNER_GAUNTLET_BG: Color = Color(38.0 / 255.0, 28.0 / 255.0, 16.0 / 255.0
 ## PORT: web/src/tilt-to-live/TiltRenderer.ts:555 (the subline)
 const BANNER_SUB: Color = Color("#99A1B3")
 
+## DIVERGENCE(M11c N7c): true draws the particles through PerilParticleDrawer (C++, the
+## same CanvasItem calls in the same order); false keeps the GDScript loop, the reference.
+static var use_native_draw: bool = true
+
 var _particles: ParticleEngine = null
 var _scores: ScoreManager = null
 var _weapons: WeaponSystem = null
@@ -39,6 +43,8 @@ var _is_banner_shown: bool = false
 var _banner_title_font: FontVariation = UiTheme.archivo(100.0)
 ## PORT: web/src/tilt-to-live/TiltRenderer.ts:554 ('500 … "IBM Plex Mono"')
 var _banner_sub_font: FontVariation = UiTheme.mono(UiTheme.Weight.MEDIUM)
+## DIVERGENCE(M11c N7c): the native particle loop.
+var _native_drawer: PerilParticleDrawer = PerilParticleDrawer.new()
 
 
 ## Binds particle engine, score manager, and weapon system data sources.
@@ -296,7 +302,10 @@ func _draw_weapon_fx() -> void:
 func _draw_particles() -> void:
 	if _particles == null:
 		return
-	for p: ParticleEngine.Particle in _particles.particles:
+	if use_native_draw:
+		_native_drawer.draw(self, _particles.particles, _arena_origin)
+		return
+	for p: PerilParticle in _particles.particles:
 		var alpha: float = maxf(0.0, p.life / p.max_life)
 		var col: Color = p.color
 		col.a *= alpha
@@ -326,6 +335,16 @@ func _draw_particles() -> void:
 				# ParticleEngine.Shape.CIRCLE and default
 				# PORT: web/src/tilt-to-live/ParticleEngine.ts:227-230
 				CircleSprites.draw_disc(self, Vector2(p.x, p.y), maxf(0.5, p.size), col)
+
+
+## DIVERGENCE(M11c N7c): PerilParticleDrawer's disc texture, CircleSprites' own.
+func _particle_disc() -> Texture2D:
+	return CircleSprites.disc()
+
+
+## DIVERGENCE(M11c N7c): PerilParticleDrawer's ring texture for a key, CircleSprites' own.
+func _particle_ring(key: int) -> Texture2D:
+	return CircleSprites.ring(key)
 
 
 ## PORT: web/src/tilt-to-live/ScoreManager.ts:186-205

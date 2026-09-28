@@ -8,6 +8,7 @@
 #include "peril_draw.h"
 #include "peril_enemy.h"
 #include "peril_native.h"
+#include "peril_particle.h"
 
 using namespace godot;
 
@@ -18,6 +19,8 @@ void initialize_peril_module(ModuleInitializationLevel p_level) {
 	GDREGISTER_CLASS(PerilEnemy);
 	GDREGISTER_CLASS(PerilNative);
 	GDREGISTER_CLASS(PerilEnemyDrawer);
+	GDREGISTER_CLASS(PerilParticle);
+	GDREGISTER_CLASS(PerilParticleDrawer);
 }
 
 void uninitialize_peril_module(ModuleInitializationLevel p_level) {}

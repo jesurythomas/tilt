@@ -41,7 +41,7 @@ func test_emit_explosion_spawns_sparks_and_shockwave_ring() -> void:
 	var engine: ParticleEngine = ParticleEngine.new()
 	engine.emit_explosion(50.0, 50.0, Color("#ff3344"), 10)
 	assert_eq(engine.particles.size(), 11, "10 sparks plus 1 expanding ring")
-	var ring: ParticleEngine.Particle = engine.particles[10]
+	var ring: PerilParticle = engine.particles[10]
 	assert_eq(ring.shape, ParticleEngine.Shape.RING, "last particle is shockwave ring")
 	assert_almost_eq(ring.size, 8.0, 0.001, "initial ring size is 8.0")
 
@@ -57,7 +57,7 @@ func test_emit_ice_shatter_spawns_shards() -> void:
 	var engine: ParticleEngine = ParticleEngine.new()
 	engine.emit_ice_shatter(15.0, 25.0, 6)
 	assert_eq(engine.particles.size(), 6, "6 ice shards emitted")
-	for p: ParticleEngine.Particle in engine.particles:
+	for p: PerilParticle in engine.particles:
 		assert_eq(p.shape, ParticleEngine.Shape.SHARD, "ice shatter is SHARD shape")
 
 
@@ -80,7 +80,7 @@ func test_retired_particles_are_reused_by_the_next_emit() -> void:
 	# DIVERGENCE(M11c P12): pooled particles — no allocation per spark after warm-up.
 	var pe: ParticleEngine = ParticleEngine.new()
 	pe.emit_sparks(0.0, 0.0, 5, Color.RED)
-	var retired: Array[ParticleEngine.Particle] = pe.particles.duplicate()
+	var retired: Array[PerilParticle] = pe.particles.duplicate()
 	pe.update(10.0)
 	assert_eq(pe.particles.size(), 0, "everything retired")
 	assert_eq(pe.pooled_count(), 5, "retired particles wait in the pool")
@@ -97,7 +97,7 @@ func test_update_keeps_survivors_oldest_first() -> void:
 		pe.emit_smoke(float(i), 0.0)
 	pe.particles[1].life = 0.001
 	pe.particles[4].life = 0.001
-	var survivors: Array[ParticleEngine.Particle] = [
+	var survivors: Array[PerilParticle] = [
 		pe.particles[0], pe.particles[2], pe.particles[3], pe.particles[5]
 	]
 	pe.update(0.01)
@@ -116,8 +116,8 @@ func _twin_emit(a: ParticleEngine, b: ParticleEngine) -> void:
 func _assert_same_state(a: ParticleEngine, b: ParticleEngine, label: String) -> void:
 	assert_eq(a.particles.size(), b.particles.size(), label + " count")
 	for i: int in range(mini(a.particles.size(), b.particles.size())):
-		var p: ParticleEngine.Particle = a.particles[i]
-		var q: ParticleEngine.Particle = b.particles[i]
+		var p: PerilParticle = a.particles[i]
+		var q: PerilParticle = b.particles[i]
 		assert_almost_eq(p.x, q.x, 1e-9, label + " x")
 		assert_almost_eq(p.y, q.y, 1e-9, label + " y")
 		assert_almost_eq(p.vx, q.vx, 1e-9, label + " vx")

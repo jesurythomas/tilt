@@ -533,6 +533,40 @@ User ruling: C++ GDExtension for the hot path, not C# (Android C# is experimenta
   Separate moves off the main thread. Keep Separate. 0 errors in 11 runs.
   **Next:** particles in C++, then the kill path (both show in m_phys/m_proc, which are
   the game's share); judge each by its section times on the emulator and by fps on the A55.
+- [x] **N7 — particles in C++** (done 2026-09-28; the Power-up FPS item's step 4).
+  Rulings (Claude, "always proceed"), the N3/N4 pattern:
+  - **N7a** — `ParticleEngine.Particle` becomes the C++ class `PerilParticle`
+    (`native/src/peril_particle.h`; same 12 fields and defaults, doubles, `color` a
+    float32 Color), renamed everywhere.
+  - **N7b** — `PerilNative.particles_flush` runs ParticleEngine.flush on the live
+    `particles`/`_pool` arrays (in-place compaction, the dead appended in order, the
+    engine's `pow`).
+  - **N7c** — `PerilParticleDrawer` (one per EffectLayer) runs `_draw_particles` with
+    the same CanvasItem calls and float32 math, CircleSprites' ring/disc helpers inline;
+    textures come from the layer's `_particle_disc()` / `_particle_ring(key)` on a miss.
+  - **N7d** — the seven emitters in C++ too. Needed because N7a made GDScript emits
+    ~54% slower (field writes to a native object: 424 → 650 µs per 12×32 sparks). They
+    call the engine's `randf`/`sin`/`cos` via `UtilityFunctions` in the same order, so
+    the global RNG sequence is unchanged; colour literals via `Color::html`.
+  `ParticleEngine.use_native` / `EffectLayer.use_native_draw` (default true) keep the
+  GDScript bodies as the reference. Checks: `tests/test_native_particles.gd` (3 tests: a
+  40-round run of every emitter with mid-batch emits and retirements, native vs
+  GDScript, every field + pool + RNG as bytes — identical; pool order; the drawer asks
+  for each faithful ring key once, in draw order, and the disc once, with a draw_arc
+  ring present); `bench/pixel_native_particles.gd` (windowed, every shape, fading,
+  arena origin (7, 5)): **0 of 921,600 px differ**. Mutants: 8 C++ flush/emit/key
+  mutants fail the test, 3 draw mutants (alpha unapplied, streak length, disc edge)
+  differ by 9,308 / 80 / 506 px. Suite 712, gdlint/gdformat clean, 0 script errors.
+  Desktop (400 particles, `bench/bench_particles.gd` / `bench_emit.gd`, HEAD → N7):
+  flush ~330 → 79 µs/frame, draw ~400 → 89 µs/frame, emit 424 → ~185 µs per 12×32 sparks.
+  Emulator A/B (3 pairs, test mode, HEAD `marks` vs `n7`), ms/frame: s_particles 1.37 →
+  0.25 (250+) and 1.66 → 0.25 (150–249); d_effect 1.76 → 0.45 and 2.08 → 0.47; m_proc
+  12.4 → 10.1 and 11.9 → 8.5. fps within noise as N6 predicts (250+ 19.2 → 18.4,
+  150–249 18.2 → 19.4; per-pair 250+ 19.0/20.6/17.9 vs 19.6/16.8/19.3), and m_tail was
+  30–34 ms in these runs (the emulator had been up ~11 h; it slows with uptime). 0 errors
+  in 6 runs.
+  **Next:** the kill path (`on_enemy_killed`, `register_kill`), then weapons (s_weapons
+  3.5–5 ms/frame at 150+ in the test mode, the largest script section left after the swarm).
 
 ### User rulings (2026-09-27, evening)
 - [x] **P29 — wall formations spaced out** ("space them out a bit more", then "go a

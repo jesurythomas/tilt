@@ -5,7 +5,7 @@ Rewritten at every module stop. Written for a session with zero context.
 ## State
 
 **Current (2026-09-28): M11c review fixes + FPS work in progress, on the C++ path;
-N3–N5 (native swarm loop, enemy draw loop, dot atlas) and N6 (frame split) landed.** Active plan
+N3–N5 (native swarm loop, enemy draw loop, dot atlas), N6 (frame split) and N7 (particles) landed.** Active plan
 `docs/superpowers/plans/2026-09-27-m11c-review-fixes.md`; the head of `## Next`
 below says exactly where it stands and what to do first. Everything is committed;
 the tree is clean. **The native extension is now required**: enemies are the C++
@@ -370,7 +370,7 @@ report: `.superpowers/sdd/2026-09-20-m11b-entrance-cinematic/task-3-report.md`.
 | gdtoolkit | 4.5.0 on PATH |
 | Device | **SM_A556E** (Galaxy A55), serial `RRCXB04L8EJ`; always pass `-s` |
 | ADB | `C:\Users\Jesury\AppData\Local\Android\Sdk\platform-tools\adb.exe` |
-| Native (C++) | GDExtension `PerilNative` + `PerilEnemyDrawer` (N4) + `PerilEnemy` (the enemy record; required since N3 — the game does not parse without the library) in `native/` (godot-cpp 10.0.0 submodule, `api_version=4.7`); outputs `godot/bin/libperil.*` (committed), registered by `godot/peril_native.gdextension`. SCons 4.11 via `python -m SCons` (pip --user). NDK r29 at `Sdk/ndk/29.0.14206865`. Build from `native/`: `python -m SCons platform=windows target=template_debug` and `ANDROID_HOME=C:/Users/Jesury/AppData/Local/Android/Sdk python -m SCons platform=android arch=arm64 target=template_debug ndk_version=29.0.14206865` (`template_release` for release exports). Flags: `-ffp-contract=off` on clang (bit-exact with GDScript). Close the editor before rebuilding the DLL (it locks it). After a fresh clone: `git submodule update --init`. |
+| Native (C++) | GDExtension `PerilNative` + `PerilEnemyDrawer` (N4) + `PerilParticle`/`PerilParticleDrawer` (N7) + `PerilEnemy` (the enemy record; required since N3 — the game does not parse without the library) in `native/` (godot-cpp 10.0.0 submodule, `api_version=4.7`); outputs `godot/bin/libperil.*` (committed), registered by `godot/peril_native.gdextension`. SCons 4.11 via `python -m SCons` (pip --user). NDK r29 at `Sdk/ndk/29.0.14206865`. Build from `native/`: `python -m SCons platform=windows target=template_debug` and `ANDROID_HOME=C:/Users/Jesury/AppData/Local/Android/Sdk python -m SCons platform=android arch=arm64 target=template_debug ndk_version=29.0.14206865` (`template_release` for release exports). Flags: `-ffp-contract=off` on clang (bit-exact with GDScript). Close the editor before rebuilding the DLL (it locks it). After a fresh clone: `git submodule update --init`. |
 
 The source web game keeps the name *Tilt to Live* in `web/src/tilt-to-live/`
 and in every `# PORT:` citation. Never rename those — Law 1 depends on them.
@@ -1707,12 +1707,21 @@ own share at 250+ is ~24 ms (m_phys 12.4 + m_proc 11.5) of a ~50 ms frame, so sc
 barely move emulator fps. Separate render thread re-confirmed (250+: ~22.5 vs ~14.5 fps
 for Safe). `Performance.TIME_PROCESS` is a per-second max, not a per-frame cost.
 
+**N7 landed** (plan → N7): particles are the C++ class `PerilParticle`; flush, draw
+and all seven emitters run in C++ (`native/src/peril_particle.*`), bit-identical
+(`tests/test_native_particles.gd` oracle incl. RNG; `bench/pixel_native_particles.gd` 0 px).
+`ParticleEngine.use_native` / `EffectLayer.use_native_draw = false` are the references.
+Emulator at 250+: s_particles 1.37 → 0.25, d_effect 1.76 → 0.45 ms/frame; fps within
+noise (the emulator tail). Suite 712.
+
 **Next, literally:**
-1. Particles in C++ (plan's Power-up FPS step 4; `s_particles` 1–2.5 ms/frame and part of
-   `d_effect` ~2 ms at 250+), output-identical with an oracle or pixel check, as N3–N5.
-   Judge by section times on the emulator (`perf_buckets.sh`), not its fps.
-2. Then the kill path (`on_enemy_killed`, `register_kill`; slower on native fields).
-3. Items 2–3 of the list below (A55 pass — fps is judged there now; release libs).
+1. The kill path (`RunController.on_enemy_killed` / `handle_enemy_killed`,
+   `ScoreManager.register_kill`; slower since N3 on native fields): profile a mass kill
+   (`bench/bench_sim.gd` 30 kills, `bench_powerups.gd` nuke worst tick), then move what
+   dominates, output-identical as N3–N7. Then weapons (`s_weapons` 3.5–5 ms/frame at 150+).
+   Judge by section times on the emulator (`perf_buckets.sh`), not its fps; reboot the
+   emulator first if it has been up many hours (m_tail grows with uptime).
+2. Items 2–3 of the list below (A55 pass — fps is judged there now; release libs).
 
 **Earlier (2026-09-28, later).** N4 landed (plan, "Native swarm tick" → N4):
 EntityLayer's enemy loop runs in C++ (`PerilEnemyDrawer`, `native/src/peril_draw.*`):

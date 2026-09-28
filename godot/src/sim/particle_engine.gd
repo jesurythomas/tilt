@@ -19,13 +19,17 @@ enum Shape { CIRCLE, STREAK, RING, SHARD }
 # garbage collection and GPU spikes on mobile.
 const MAX_PARTICLES: int = 400
 
+## DIVERGENCE(M11c N7b, N7d): true flushes and emits through PerilNative (C++, bit for
+## bit the same); false keeps the GDScript bodies below, the reference the oracle compares.
+static var use_native: bool = true
+
 # PORT-NOTE: private in ParticleEngine.ts:20; public here because
 # ParticleEngine.render() relocates to render/effect_layer.gd (spec §4.2/D4).
 ## Live particles, oldest first.
-var particles: Array[Particle] = []
+var particles: Array[PerilParticle] = []
 ## DIVERGENCE(M11c P12): retired particles, reused by the next emit instead of
 ## allocating (the TS relies on its GC; a GDScript object per spark costs ~2 us).
-var _pool: Array[Particle] = []
+var _pool: Array[PerilParticle] = []
 ## DIVERGENCE(M11c P25): steps queued so far, the last flushed, and the step length.
 var _steps: int = 0
 var _flushed: int = 0
@@ -45,8 +49,8 @@ func pooled_count() -> int:
 
 ## A fresh or recycled particle; every emitter sets every field it reads.
 ## DIVERGENCE(M11c P12): replaces Particle.new() at each emit site.
-func _take() -> Particle:
-	var p: Particle = Particle.new() if _pool.is_empty() else _pool.pop_back()
+func _take() -> PerilParticle:
+	var p: PerilParticle = PerilParticle.new() if _pool.is_empty() else _pool.pop_back()
 	p.born = _steps  # DIVERGENCE(M11c P25): it integrates from the next queued step
 	return p
 
@@ -73,11 +77,15 @@ func step(dt: float) -> void:
 # DIVERGENCE(M11c P12): one forward pass compacts survivors in place (oldest first,
 # as before) instead of remove_at per death, which shifted the array each time.
 func flush() -> void:
+	if use_native:
+		PerilNative.particles_flush(particles, _pool, _steps, _flushed, _step_dt)
+		_flushed = _steps
+		return
 	var total: int = _steps
 	var dt: float = _step_dt
 	var kept: int = 0
 	for i: int in range(particles.size()):
-		var p: Particle = particles[i]
+		var p: PerilParticle = particles[i]
 		var n: int = total - maxi(p.born, _flushed)
 		if n > 0:
 			var f: float = p.friction
@@ -106,6 +114,10 @@ func flush() -> void:
 
 ## Emits omnidirectional sparks. PORT: web/src/tilt-to-live/ParticleEngine.ts:46-67
 func emit_sparks(x: float, y: float, count: int, color: Color, speed_max: float = 180.0) -> void:
+	# DIVERGENCE(M11c N7d): the same emitter in C++ (same randf() order, bit for bit).
+	if use_native:
+		PerilNative.particles_emit_sparks(particles, _pool, _steps, x, y, count, color, speed_max)
+		return
 	for i: int in range(count):
 		if particles.size() >= MAX_PARTICLES:
 			break
@@ -113,7 +125,7 @@ func emit_sparks(x: float, y: float, count: int, color: Color, speed_max: float 
 		var speed: float = 20.0 + randf() * speed_max  # PORT: web/src/tilt-to-live/ParticleEngine.ts:50
 		var life: float = 0.3 + randf() * 0.45  # PORT: web/src/tilt-to-live/ParticleEngine.ts:51
 
-		var p: Particle = _take()
+		var p: PerilParticle = _take()
 		p.x = x
 		p.y = y
 		p.vx = cos(angle) * speed
@@ -131,11 +143,15 @@ func emit_sparks(x: float, y: float, count: int, color: Color, speed_max: float 
 
 ## Emits explosion shockwave and sparks. PORT: web/src/tilt-to-live/ParticleEngine.ts:69-88
 func emit_explosion(x: float, y: float, color: Color = Color("#ff3344"), count: int = 32) -> void:
+	# DIVERGENCE(M11c N7d): the same emitter in C++ (same randf() order, bit for bit).
+	if use_native:
+		PerilNative.particles_emit_explosion(particles, _pool, _steps, x, y, color, count)
+		return
 	emit_sparks(x, y, count, color, 300.0)  # PORT: web/src/tilt-to-live/ParticleEngine.ts:70
 
 	# Add expanding shockwave ring. PORT: web/src/tilt-to-live/ParticleEngine.ts:72-87
 	if particles.size() < MAX_PARTICLES:
-		var p: Particle = _take()
+		var p: PerilParticle = _take()
 		p.x = x
 		p.y = y
 		p.vx = 0.0
@@ -154,13 +170,17 @@ func emit_explosion(x: float, y: float, color: Color = Color("#ff3344"), count: 
 func emit_smoke(
 	x: float, y: float, color: Color = Color(200.0 / 255.0, 210.0 / 255.0, 225.0 / 255.0, 0.4)
 ) -> void:
+	# DIVERGENCE(M11c N7d): the same emitter in C++ (same randf() order, bit for bit).
+	if use_native:
+		PerilNative.particles_emit_smoke(particles, _pool, _steps, x, y, color)
+		return
 	if particles.size() >= MAX_PARTICLES:
 		return
 	var angle: float = randf() * PI * 2.0
 	var speed: float = 10.0 + randf() * 30.0  # PORT: web/src/tilt-to-live/ParticleEngine.ts:93
 	var life: float = 0.4 + randf() * 0.3  # PORT: web/src/tilt-to-live/ParticleEngine.ts:94
 
-	var p: Particle = _take()
+	var p: PerilParticle = _take()
 	p.x = x
 	p.y = y
 	p.vx = cos(angle) * speed
@@ -177,6 +197,10 @@ func emit_smoke(
 
 ## Emits shattering ice shards. PORT: web/src/tilt-to-live/ParticleEngine.ts:111-132
 func emit_ice_shatter(x: float, y: float, count: int = 18) -> void:
+	# DIVERGENCE(M11c N7d): the same emitter in C++ (same randf() order, bit for bit).
+	if use_native:
+		PerilNative.particles_emit_ice_shatter(particles, _pool, _steps, x, y, count)
+		return
 	for i: int in range(count):
 		if particles.size() >= MAX_PARTICLES:
 			break
@@ -184,7 +208,7 @@ func emit_ice_shatter(x: float, y: float, count: int = 18) -> void:
 		var speed: float = 60.0 + randf() * 220.0  # PORT: web/src/tilt-to-live/ParticleEngine.ts:115
 		var life: float = 0.4 + randf() * 0.4  # PORT: web/src/tilt-to-live/ParticleEngine.ts:116
 
-		var p: Particle = _take()
+		var p: PerilParticle = _take()
 		p.x = x
 		p.y = y
 		p.vx = cos(angle) * speed
@@ -202,6 +226,10 @@ func emit_ice_shatter(x: float, y: float, count: int = 18) -> void:
 
 ## Emits drifting blizzard snow particles. PORT: web/src/tilt-to-live/ParticleEngine.ts:134-154
 func emit_blizzard_snow(bounds: Vector2, count: int = 2) -> void:
+	# DIVERGENCE(M11c N7d): the same emitter in C++ (same randf() order, bit for bit).
+	if use_native:
+		PerilNative.particles_emit_blizzard_snow(particles, _pool, _steps, bounds, count)
+		return
 	for i: int in range(count):
 		if particles.size() >= MAX_PARTICLES:
 			break
@@ -209,7 +237,7 @@ func emit_blizzard_snow(bounds: Vector2, count: int = 2) -> void:
 		var y: float = -10.0  # PORT: web/src/tilt-to-live/ParticleEngine.ts:138
 		var life: float = 3.5 + randf() * 2.0  # PORT: web/src/tilt-to-live/ParticleEngine.ts:139
 
-		var p: Particle = _take()
+		var p: PerilParticle = _take()
 		p.x = x
 		p.y = y
 		# PORT: web/src/tilt-to-live/ParticleEngine.ts:143-144
@@ -228,6 +256,10 @@ func emit_blizzard_snow(bounds: Vector2, count: int = 2) -> void:
 
 ## Emits radial kinetic ice shards. PORT: web/src/tilt-to-live/ParticleEngine.ts:156-176
 func emit_kinetic_ice_shards(x: float, y: float, count: int = 8) -> void:
+	# DIVERGENCE(M11c N7d): the same emitter in C++ (same randf() order, bit for bit).
+	if use_native:
+		PerilNative.particles_emit_kinetic_ice_shards(particles, _pool, _steps, x, y, count)
+		return
 	for i: int in range(count):
 		if particles.size() >= MAX_PARTICLES:
 			break
@@ -236,7 +268,7 @@ func emit_kinetic_ice_shards(x: float, y: float, count: int = 8) -> void:
 		var speed: float = 340.0 + randf() * 100.0
 		var life: float = 0.45 + randf() * 0.25
 
-		var p: Particle = _take()
+		var p: PerilParticle = _take()
 		p.x = x
 		p.y = y
 		p.vx = cos(angle) * speed
@@ -255,6 +287,10 @@ func emit_kinetic_ice_shards(x: float, y: float, count: int = 8) -> void:
 func emit_thruster_sparks(
 	x: float, y: float, angle: float, color: Color = Color("#ff5500")
 ) -> void:
+	# DIVERGENCE(M11c N7d): the same emitter in C++ (same randf() order, bit for bit).
+	if use_native:
+		PerilNative.particles_emit_thruster_sparks(particles, _pool, _steps, x, y, angle, color)
+		return
 	if particles.size() >= MAX_PARTICLES:
 		return
 	var spread: float = (randf() - 0.5) * 0.6  # PORT: web/src/tilt-to-live/ParticleEngine.ts:180
@@ -262,7 +298,7 @@ func emit_thruster_sparks(
 	var speed: float = 70.0 + randf() * 120.0  # PORT: web/src/tilt-to-live/ParticleEngine.ts:182
 	var life: float = 0.2 + randf() * 0.2  # PORT: web/src/tilt-to-live/ParticleEngine.ts:183
 
-	var p: Particle = _take()
+	var p: PerilParticle = _take()
 	p.x = x
 	p.y = y
 	p.vx = cos(final_angle) * speed
@@ -276,21 +312,6 @@ func emit_thruster_sparks(
 	p.friction = 0.92  # PORT: web/src/tilt-to-live/ParticleEngine.ts:195
 	particles.append(p)
 
-
-## PORT: web/src/tilt-to-live/ParticleEngine.ts:5-17
-class Particle:
-	extends RefCounted
-	var x: float = 0.0
-	var y: float = 0.0
-	var vx: float = 0.0
-	var vy: float = 0.0
-	var life: float = 0.0
-	var max_life: float = 0.0
-	var size: float = 0.0
-	# PORT-NOTE: ParticleEngine.ts:13 types this as a CSS colour string.
-	var color: Color = Color.WHITE
-	var shape: Shape = Shape.CIRCLE
-	var decay: float = 0.0
-	var friction: float = 0.0
-	## DIVERGENCE(M11c P25): the queued step count when it was emitted.
-	var born: int = 0
+# PORT: web/src/tilt-to-live/ParticleEngine.ts:5-17 — the particle record.
+# DIVERGENCE(M11c N7a): it is the C++ class PerilParticle (native/src/peril_particle.h;
+# same fields and defaults), so the native flush and draw loop read its fields directly.

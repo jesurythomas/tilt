@@ -2,6 +2,7 @@
 
 #include <godot_cpp/classes/ref_counted.hpp>
 #include <godot_cpp/variant/array.hpp>
+#include <godot_cpp/variant/color.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
 #include <godot_cpp/variant/vector2.hpp>
 #include <godot_cpp/variant/packed_byte_array.hpp>
@@ -48,6 +49,28 @@ public:
 	// RunController.check_collisions' x reject: indices p_start..0 (descending) that
 	// can touch or near-miss the player.
 	static PackedInt32Array collision_candidates(const Array &p_enemies, double p_plx, double p_plr, int64_t p_start);
+	// ParticleEngine.flush on its live particles and pool arrays (peril_particle.cpp),
+	// bit for bit: integrates the steps queued since p_flushed (up to p_total) and
+	// retires the dead to the pool.
+	static void particles_flush(const Array &p_particles, const Array &p_pool, int64_t p_total, int64_t p_flushed,
+			double p_dt);
+	// ParticleEngine's emitters on its live particles and pool arrays, bit for bit
+	// (peril_particle.cpp): the same randf() calls in the same order. p_steps is the
+	// engine's queued step count (a new particle's `born`).
+	static void particles_emit_sparks(const Array &p_particles, const Array &p_pool, int64_t p_steps, double p_x,
+			double p_y, int64_t p_count, const Color &p_color, double p_speed_max);
+	static void particles_emit_explosion(const Array &p_particles, const Array &p_pool, int64_t p_steps, double p_x,
+			double p_y, const Color &p_color, int64_t p_count);
+	static void particles_emit_smoke(const Array &p_particles, const Array &p_pool, int64_t p_steps, double p_x,
+			double p_y, const Color &p_color);
+	static void particles_emit_ice_shatter(const Array &p_particles, const Array &p_pool, int64_t p_steps, double p_x,
+			double p_y, int64_t p_count);
+	static void particles_emit_blizzard_snow(const Array &p_particles, const Array &p_pool, int64_t p_steps,
+			const Vector2 &p_bounds, int64_t p_count);
+	static void particles_emit_kinetic_ice_shards(const Array &p_particles, const Array &p_pool, int64_t p_steps,
+			double p_x, double p_y, int64_t p_count);
+	static void particles_emit_thruster_sparks(const Array &p_particles, const Array &p_pool, int64_t p_steps,
+			double p_x, double p_y, double p_angle, const Color &p_color);
 	// The EnemyType ordinals the native loop assumes, by name.
 	static Dictionary enemy_type_ids();
 };
