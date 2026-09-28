@@ -25,6 +25,14 @@ inline void draw_centred(CanvasItem *p_ci, const Ref<Texture2D> &p_tex, const Ve
 	p_ci->draw_texture_rect(p_tex, Rect2(p_pos - h, h * 2.0), false);
 }
 
+// The same rect, from a region of an atlas (N5), as _draw_default_dot draws it: no
+// clip_uv (every region is bordered by clear texels).
+inline void draw_centred_region(CanvasItem *p_ci, const Ref<Texture2D> &p_tex, const Vector2 &p_pos, double p_half,
+		const Rect2 &p_src) {
+	const Vector2 h(p_half, p_half);
+	p_ci->draw_texture_rect_region(p_tex, Rect2(p_pos - h, h * 2.0), p_src, Color(1, 1, 1, 1), false, false);
+}
+
 } // namespace
 
 void PerilEnemyDrawer::_bind_methods() {
@@ -51,9 +59,10 @@ void PerilEnemyDrawer::draw(Object *p_layer, const Array &p_enemies, Dictionary 
 		int64_t p_look_slot, const Vector2 &p_arena_origin, double p_model_scale) {
 	static const StringName sn_frozen_sprite("_frozen_sprite");
 	static const StringName sn_dot_sprites("_dot_sprites");
-	static const StringName sn_outer("outer");
+	static const StringName sn_atlas("atlas");
+	static const StringName sn_outer_src("outer_src");
+	static const StringName sn_inner_src("inner_src");
 	static const StringName sn_outer_half("outer_half");
-	static const StringName sn_inner("inner");
 	static const StringName sn_inner_half("inner_half");
 	static const StringName sn_charger("_draw_charger");
 	static const StringName sn_artillery("_draw_artillery");
@@ -140,14 +149,15 @@ void PerilEnemyDrawer::draw(Object *p_layer, const Array &p_enemies, Dictionary 
 			const Variant sv = p_layer->call(sn_dot_sprites, e->radius, e->chilled, e->is_hazard);
 			Object *s = sv;
 			DotEntry entry;
-			entry.outer = s->get(sn_outer);
+			entry.atlas = s->get(sn_atlas);
+			entry.outer_src = s->get(sn_outer_src);
 			entry.outer_half = s->get(sn_outer_half);
-			entry.inner = s->get(sn_inner);
+			entry.inner_src = s->get(sn_inner_src);
 			entry.inner_half = s->get(sn_inner_half);
 			it = dots.emplace(key, entry).first;
 		}
-		draw_centred(ci, it->second.outer, e_pos, it->second.outer_half * pulse);
-		draw_centred(ci, it->second.inner, e_pos, it->second.inner_half);
+		draw_centred_region(ci, it->second.atlas, e_pos, it->second.outer_half * pulse, it->second.outer_src);
+		draw_centred_region(ci, it->second.atlas, e_pos, it->second.inner_half, it->second.inner_src);
 
 		// Turret dot warning indicator (PORT: EnemySwarm.ts:1635-1643)
 		if (e->type == TURRET_DOT && !std::isnan(e->target_angle) && e->orbit_center == Vector2()) {

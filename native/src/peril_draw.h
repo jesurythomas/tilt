@@ -4,6 +4,7 @@
 #include <godot_cpp/classes/texture2d.hpp>
 #include <godot_cpp/variant/array.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
+#include <godot_cpp/variant/rect2.hpp>
 #include <godot_cpp/variant/vector2.hpp>
 
 #include <cstdint>
@@ -34,9 +35,10 @@ public:
 
 private:
 	struct DotEntry {
-		Ref<Texture2D> outer;
+		Ref<Texture2D> atlas; // N5: both sprites are regions of one texture
+		Rect2 outer_src;
 		double outer_half = 0.0;
-		Ref<Texture2D> inner;
+		Rect2 inner_src;
 		double inner_half = 0.0;
 	};
 	struct FrozenEntry {

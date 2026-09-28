@@ -1709,14 +1709,20 @@ Desktop entity draw 430 → 172 µs/frame (115 seekers). Emulator d_entity at 25
 sections are ~17 ms of a ~43 ms frame, and the draw-call count is ~2 per enemy (669
 at 327) because each dot alternates two textures, so nothing batches.
 
+**N5 landed too** (plan → N5): each dot look is one atlas texture (two regions, no
+`clip_uv`; ruling in the plan: 1 px at 1/255 vs the pre-atlas render, accepted).
+Desktop draw calls 258 → 29 (115 seekers); emulator 250+ draws 651 → 477, **fps again
+unchanged** (24.4 → 23.3, noise).
+
 **Next, literally:**
-1. N5 (plan, end of N4): put each dot look's outer and inner sprites in one atlas
-   texture (transparent padding) and draw regions, so consecutive dots batch.
-   Gate: `bench/pixel_native_draw.gd` at 0 px (run windowed, see its header), then
-   the emulator A/B — watch `draws=` and fps, not only d_entity. A/B recipe: build the
-   native lib (HANDOFF toolchain row), `tools/emulator/perf_patch.sh apply`, export
-   `build/peril-point-god-<tag>.apk` for each variant, `perf_patch.sh revert`, then
+1. Find the emulator frame time the PERF probes do not see (~26 of ~43 ms at 250+)
+   before more script-side work: add `Performance.TIME_PROCESS` and
+   `TIME_PHYSICS_PROCESS` to the PERF line (`GameRoot._report_perf`), and A/B a
+   Safe-render-thread build against Separate (P24) at 250+. A/B recipe: build the
+   native lib (toolchain row below), `tools/emulator/perf_patch.sh apply`, export
+   `build/peril-point-god-<tag>.apk` per variant, `perf_patch.sh revert`, then
    `LOGS=<dir> tools/emulator/ab.sh <a> <b>` ×3 and `tools/emulator/perf_buckets.sh`.
+   The emulator translates the whole arm64 engine, so the A55 is the real judge.
 2. Then particles in C++ and the kill path (items (b), (c) below).
 3. Items 2–3 of the list below (A55 pass; release libs) are unchanged.
 

@@ -471,10 +471,30 @@ User ruling: C++ GDExtension for the hot path, not C# (Android C# is experimenta
   is engine time outside the probes. `draws` (RENDER_TOTAL_DRAW_CALLS_IN_FRAME) is ~2 per
   enemy (669 at 327): each dot draws its outer then its inner texture, so no two
   consecutive rects share a texture and the canvas renderer cannot batch them.
-  **Next (N5):** one atlas texture per dot look (outer + inner regions, transparent
-  padding), drawn with `draw_texture_rect_region`, so consecutive dots batch; gate: the
-  pixel check at 0 px (or a ruling if linear filtering at region edges differs), then
-  `draws` and fps in the emulator A/B. Particles in C++ and the kill path after.
+- [x] **N5 — dot atlas** (done 2026-09-28): `DotSprites` holds one atlas per look
+  (outer at x 0, inner `DOT_ATLAS_GAP` = 2 clear texels right of it; new
+  `CircleSprites.bake_layers_image`), drawn with `draw_texture_rect_region` on both
+  paths, so consecutive dots share a texture and batch. Ruling (Claude, "always
+  proceed"): **no `clip_uv`**. With it (the default) 733 px of 921,600 differed from the
+  pre-atlas render (max 9/255, region-edge clamping); without it 0 px (no skin, halo
+  on) and 1 px at 1/255 (alt skin, halo off; float UV rounding), accepted as identical.
+  Safe because every texel filtering can reach outside a region is clear:
+  `test_dot_atlas_regions_are_bordered_by_clear_texels` (a mutant filling the atlas
+  background fails it). Native vs GDScript still 0 px (`bench/pixel_native_draw.gd`).
+  Desktop `bench_draw` (now prints `draws`): 115 seekers 258 → 29 draw calls, 172 →
+  162–165 µs; mix 296 → 72 draws. Emulator A/B (3 pairs, N4 vs N5 APKs, test mode):
+  250+ draws 651 → 477, fps 24.4 → 23.3; 150–249 draws 467 → 394, fps 22.9 → 22.6 —
+  **fps unchanged within noise** again. One `_texture_2d_update: p_image is empty`
+  engine error at run start in 1 of 3 N5 runs; pre-existing (same line in a 2026-09-27
+  N2 GDScript-build log), intermittent, not investigated.
+  **Finding for the next step:** two script-side wins (N4 −2.2 ms d_entity, N5 −170
+  draws) did not move emulator fps. At 250+ the probed sections are ~17 ms of a ~43 ms
+  frame; the emulator runs the arm64 APK (engine included) under translation, so its
+  frame is likely bound by engine time the probes do not see. **Next:** find that time
+  before more script work — log `Performance.TIME_PROCESS` / `TIME_PHYSICS_PROCESS`
+  next to PERF, and A/B a `rendering/driver/threads/thread_model` Safe build against
+  Separate (P24) at 250+; the A55 (native arm64, real GPU) remains the real judge.
+  Particles in C++ and the kill path after that.
 
 ### User rulings (2026-09-27, evening)
 - [x] **P29 — wall formations spaced out** ("space them out a bit more", then "go a

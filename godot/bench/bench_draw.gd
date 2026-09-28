@@ -33,7 +33,13 @@ func test_bench_entity_draw() -> void:
 		layer.queue_redraw()
 		await get_tree().process_frame
 	var per_frame: float = PerfProbe.accumulated("d_entity") / float(FRAMES)
-	print("BENCH entity _draw        %8.1f us/frame  (en=%d)" % [per_frame, swarm.enemies.size()])
+	var draws: int = int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))
+	print(
+		(
+			"BENCH entity _draw        %8.1f us/frame  (en=%d, draws=%d)"
+			% [per_frame, swarm.enemies.size(), draws]
+		)
+	)
 	pass_test("bench")
 
 
@@ -74,5 +80,11 @@ func test_bench_entity_draw_mix() -> void:
 		layer.queue_redraw()
 		await get_tree().process_frame
 	var per_frame: float = PerfProbe.accumulated("d_entity") / float(FRAMES)
-	print("BENCH entity _draw mix    %8.1f us/frame  (en=%d)" % [per_frame, swarm.enemies.size()])
+	var draws: int = int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))
+	print(
+		(
+			"BENCH entity _draw mix    %8.1f us/frame  (en=%d, draws=%d)"
+			% [per_frame, swarm.enemies.size(), draws]
+		)
+	)
 	pass_test("bench")

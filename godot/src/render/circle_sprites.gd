@@ -129,11 +129,18 @@ static func _radial(offsets: PackedFloat32Array, alphas: PackedFloat32Array) -> 
 static func bake_layers(
 	size: int, radii: PackedFloat32Array, widths: PackedFloat32Array, colors: PackedColorArray
 ) -> ImageTexture:
+	return ImageTexture.create_from_image(bake_layers_image(size, radii, widths, colors))
+
+
+## bake_layers' image, before it becomes a texture (M11c N5 packs two into an atlas).
+static func bake_layers_image(
+	size: int, radii: PackedFloat32Array, widths: PackedFloat32Array, colors: PackedColorArray
+) -> Image:
 	var canvas: Image = Image.create_empty(size, size, false, Image.FORMAT_RGBA8)
 	for i: int in range(radii.size()):
 		var layer: Image = _layer_image(size, radii[i], widths[i], colors[i])
 		canvas.blend_rect(layer, Rect2i(0, 0, size, size), Vector2i.ZERO)
-	return ImageTexture.create_from_image(canvas)
+	return canvas
 
 
 ## One anti-aliased disc or ring as a size x size image (see bake_layers).

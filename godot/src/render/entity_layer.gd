@@ -47,6 +47,8 @@ const BAKE_MARGIN: float = 1.0
 const LOOK_KEY_STRIDE: int = 256
 ## DIVERGENCE(M11c P14): chords per dash of a dashed arc (a dash spans at most ~0.5 rad).
 const DASH_ARC_CHORDS: int = 3
+## DIVERGENCE(M11c N5): clear texels between the two sprites of a dot atlas.
+const DOT_ATLAS_GAP: int = 2
 ## DIVERGENCE(M11c P19): room for the charger tip's miter in its baked texture (px).
 const CHARGER_MITER: float = 3.0
 ## DIVERGENCE(M11c P14): points of the draw_arc fallback in _ring (the TS arcs are analytic;
@@ -71,14 +73,18 @@ const _NO_SATS: Array[PerilEnemy] = []
 static var use_native_draw: bool = true
 
 
-## DIVERGENCE(M11c P13): the two baked textures of one default-dot look. Each is
+## DIVERGENCE(M11c P13): the two baked sprites of one default-dot look. Each is
 ## drawn at exactly its texel size (half-extents in screen px); outer scales with
 ## the pulse.
+## DIVERGENCE(M11c N5): both sprites are regions of one atlas texture, so consecutive
+## dots of a look share a texture and the canvas renderer batches them (two textures
+## alternated per dot, one draw call each).
 class DotSprites:
 	extends RefCounted
-	var outer: ImageTexture = null
+	var atlas: ImageTexture = null
+	var outer_src: Rect2 = Rect2()
 	var outer_half: float = 0.0
-	var inner: ImageTexture = null
+	var inner_src: Rect2 = Rect2()
 	var inner_half: float = 0.0
 
 
@@ -1104,15 +1110,21 @@ func _draw_default_dot(e: PerilEnemy) -> void:
 	var pulse: float = 0.85 + 0.15 * sin(_elapsed * 9.0 + float(e.id))
 	var sprites: DotSprites = _dot_sprites(e.radius, e.chilled, e.is_hazard)
 	var outer_half: float = sprites.outer_half * pulse
-	draw_texture_rect(
-		sprites.outer,
+	draw_texture_rect_region(
+		sprites.atlas,
 		Rect2(e_pos - Vector2(outer_half, outer_half), Vector2(outer_half, outer_half) * 2.0),
-		false
+		sprites.outer_src,
+		Color.WHITE,
+		false,
+		false  # no clip_uv: every region is bordered by clear texels (N5)
 	)
 	var inner_half: float = sprites.inner_half
-	draw_texture_rect(
-		sprites.inner,
+	draw_texture_rect_region(
+		sprites.atlas,
 		Rect2(e_pos - Vector2(inner_half, inner_half), Vector2(inner_half, inner_half) * 2.0),
+		sprites.inner_src,
+		Color.WHITE,
+		false,
 		false
 	)
 
@@ -1221,18 +1233,31 @@ func _dot_sprites(radius: float, chilled: bool, is_hazard: bool) -> DotSprites:
 	radii.append((radius + 4.0) * s)
 	widths.append(0.0)
 	colors.append(palette[1])
-	sprites.outer = CircleSprites.bake_layers(outer_size, radii, widths, colors)
+	var outer: Image = CircleSprites.bake_layers_image(outer_size, radii, widths, colors)
 	sprites.outer_half = outer_size * 0.5
 	# Inner: body, inner (0.65), border ring (1.2 px), pupil (0.38).
 	# PORT: web/src/tilt-to-live/EnemySwarm.ts:1588-1632
 	var inner_size: int = ceili(((radius + 0.6) * s + BAKE_MARGIN) * 2.0)
-	sprites.inner = CircleSprites.bake_layers(
+	var inner: Image = CircleSprites.bake_layers_image(
 		inner_size,
 		PackedFloat32Array([radius * s, radius * 0.65 * s, radius * s, radius * 0.38 * s]),
 		PackedFloat32Array([0.0, 0.0, 1.2 * s, 0.0]),
 		PackedColorArray([palette[2], palette[3], palette[4], palette[5]])
 	)
 	sprites.inner_half = inner_size * 0.5
+	# DIVERGENCE(M11c N5): outer at the left, inner DOT_ATLAS_GAP clear texels right of it.
+	var atlas: Image = Image.create_empty(
+		outer_size + DOT_ATLAS_GAP + inner_size,
+		maxi(outer_size, inner_size),
+		false,
+		Image.FORMAT_RGBA8
+	)
+	atlas.blit_rect(outer, Rect2i(0, 0, outer_size, outer_size), Vector2i.ZERO)
+	var inner_x: int = outer_size + DOT_ATLAS_GAP
+	atlas.blit_rect(inner, Rect2i(0, 0, inner_size, inner_size), Vector2i(inner_x, 0))
+	sprites.atlas = ImageTexture.create_from_image(atlas)
+	sprites.outer_src = Rect2(0.0, 0.0, outer_size, outer_size)
+	sprites.inner_src = Rect2(inner_x, 0.0, inner_size, inner_size)
 	_dot_cache[key] = sprites
 	return sprites
 

@@ -116,3 +116,42 @@ func test_dot_sprites_survive_a_skin_round_trip() -> void:
 	assert_same(layer._dot_sprites(10.0, false, false), in_run, "back in a run: reused")
 	layer.set_high_contrast_halo(false)
 	assert_ne(layer._dot_sprites(10.0, false, false), in_run, "the halo is part of the look")
+
+
+func test_dot_atlas_regions_are_bordered_by_clear_texels() -> void:
+	# M11c N5: the dot sprites draw from atlas regions without clip_uv, which reads
+	# the same as the old standalone textures only while every texel a region's
+	# filtering can reach outside it is clear.
+	var layer: EntityLayer = EntityLayer.new()
+	autofree(layer)
+	for scale: float in [1.0, 1.5, 2.25]:
+		layer.set_model_scale(scale)
+		for look: Vector2i in [Vector2i(0, 0), Vector2i(1, 0), Vector2i(0, 1)]:
+			var sprites: EntityLayer.DotSprites = layer._dot_sprites(
+				10.625, look.x == 1, look.y == 1
+			)
+			var img: Image = sprites.atlas.get_image()
+			for src: Rect2 in [sprites.outer_src, sprites.inner_src]:
+				var r: Rect2i = Rect2i(src)
+				assert_eq(r.size.x, r.size.y, "square region")
+				var opaque: int = 0
+				for i: int in range(r.size.x):
+					for p: Vector2i in [
+						Vector2i(r.position.x + i, r.position.y),
+						Vector2i(r.position.x + i, r.end.y - 1),
+						Vector2i(r.position.x, r.position.y + i),
+						Vector2i(r.end.x - 1, r.position.y + i),
+					]:
+						if img.get_pixelv(p).a > 0.0:
+							opaque += 1
+				assert_eq(opaque, 0, "region %s's edge texels are clear" % r)
+			var gap: int = 0
+			for x: int in range(int(sprites.outer_src.end.x), int(sprites.inner_src.position.x)):
+				for y: int in range(img.get_height()):
+					if img.get_pixel(x, y).a > 0.0:
+						gap += 1
+			assert_eq(gap, 0, "the gap between the regions is clear")
+			assert_eq(
+				int(sprites.inner_src.position.x - sprites.outer_src.end.x),
+				EntityLayer.DOT_ATLAS_GAP
+			)
