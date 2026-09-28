@@ -83,3 +83,33 @@ func test_pause_has_quit_to_menu_and_settings_and_no_mode_picker() -> void:
 	assert_not_null(sheet.find_child("QuitToMenuButton", true, false), "TiltGame.ts:1153")
 	assert_not_null(sheet.find_child("PauseSettingsButton", true, false), "Pause.dc.html")
 	assert_null(sheet.find_child("ModePicker", true, false), "M10 R1 removed with the menu")
+
+
+## UI R13 (user: "there are inconsistencies with the buttons. e.g. menu achivements has the
+## icons, game over achivements do not have it"): the menu, Pause and Run over share one
+## nav button — the NavButton face with a glyph beside its label.
+func test_every_nav_button_carries_its_glyph() -> void:
+	var pause: PauseSheet = PauseSheet.new()
+	add_child_autofree(pause)
+	pause.set_ui_scale(1.0)
+	var over: RunOverSheet = RunOverSheet.new()
+	add_child_autofree(over)
+	over.set_ui_scale(1.0)
+	var hosts: Dictionary[String, Node] = {
+		"RestartRunButton": pause,
+		"QuitToMenuButton": pause,
+		"PauseArmoryButton": pause,
+		"PauseSettingsButton": pause,
+		"GameOverMenuButton": over,
+		"GameOverArmoryButton": over,
+	}
+	for button_name: String in hosts:
+		var host: Node = hosts[button_name]
+		var button: Button = host.find_child(button_name, true, false) as Button
+		assert_eq(button.theme_type_variation, "NavButton", button_name)
+		var icon: TextureRect = button.find_child("NavIcon", true, false) as TextureRect
+		assert_not_null(icon.texture, "%s has its glyph" % button_name)
+	assert_not_null((pause.find_child("ResumeButton", true, false) as Button).icon, "Resume ▶")
+	assert_not_null((over.find_child("RestartButton", true, false) as Button).icon, "Retry ↻")
+	var trophy: TextureRect = over.find_child("AchievementsTrophy", true, false) as TextureRect
+	assert_not_null(trophy.texture, "the Run over's achievements header has the trophy")

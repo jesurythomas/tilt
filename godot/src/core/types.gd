@@ -92,6 +92,10 @@ class WeaponOrb:
 	var spawn_time: float = 0.0
 	var lifetime: float = 0.0
 	var pulse_offset: float = 0.0
+	## DIVERGENCE(ORB R1): false for the orbs a run opens with (the cold open's and the
+	## ship's starting orb), which sit inside the magnet's reach by design — the player
+	## picks when to take them. Every orb spawned in play is magnetic.
+	var magnetic: bool = true
 
 
 ## PORT: web/src/tilt-to-live/Types.ts:54-65

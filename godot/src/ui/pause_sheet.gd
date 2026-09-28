@@ -63,7 +63,9 @@ func set_ui_scale(scale: float) -> void:
 	_resume.custom_minimum_size.y = UiTheme.HERO_TARGET * scale
 	_resume.add_theme_font_size_override("font_size", UiTheme.px(RESUME_FONT, scale))
 	for button: Button in [_restart, _quit, _armory, _settings]:
-		button.custom_minimum_size.y = UiTheme.TOUCH_TARGET * scale
+		UiTheme.scale_nav_button(button, scale)
+	# DIVERGENCE(UI R13): Resume carries the menu's Play triangle.
+	_resume.icon = UiTheme.svg_texture(UiTheme.ICON_PLAY, scale)
 	for row: HBoxContainer in [_steer_row, _bottom]:
 		row.add_theme_constant_override("separation", UiTheme.px(ROW_GAP, scale))
 	_calibrate.custom_minimum_size = Vector2.ONE * UiTheme.TOUCH_TARGET * scale
@@ -113,10 +115,12 @@ func _build() -> void:
 	_left.add_child(_title_spacer)
 	_resume = _button("ResumeButton", "PrimaryButton", "Resume")
 	_left.add_child(_resume)
-	_restart = _button("RestartRunButton", "SecondaryButton", "Restart run")
+	# DIVERGENCE(UI R13): the secondary actions are nav buttons (glyph + label), as on the
+	# menu and the Run over.
+	_restart = UiTheme.nav_button("RestartRunButton", "Restart run", UiTheme.ICON_RESTART)
 	_left.add_child(_restart)
 	# PORT: web/src/tilt-to-live/TiltGame.ts:1153 (btn-tilt-menu-pause)
-	_quit = _button("QuitToMenuButton", "SecondaryButton", "Quit to menu")
+	_quit = UiTheme.nav_button("QuitToMenuButton", "Quit to menu", UiTheme.ICON_HOME)
 	_left.add_child(_quit)
 	_columns.add_child(_left)
 	# DIVERGENCE(UI-SYSTEM): Pause.dc.html — column rule in line
@@ -146,12 +150,12 @@ func _build() -> void:
 	fill.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_right.add_child(fill)
 	_bottom = HBoxContainer.new()
-	_armory = _button("PauseArmoryButton", "SecondaryButton", "Armory")
+	_armory = UiTheme.nav_button("PauseArmoryButton", "Armory", UiTheme.ICON_ARMORY)
 	_armory.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_bottom.add_child(_armory)
 	# PORT: web/src/tilt-to-live/TiltGame.ts:1169 (btn-tilt-all-settings, "All settings").
 	# DIVERGENCE(UI-SYSTEM): Pause.dc.html — a "Settings" button beside Armory.
-	_settings = _button("PauseSettingsButton", "SecondaryButton", "Settings")
+	_settings = UiTheme.nav_button("PauseSettingsButton", "Settings", UiTheme.ICON_GEAR)
 	_settings.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_bottom.add_child(_settings)
 	_right.add_child(_bottom)

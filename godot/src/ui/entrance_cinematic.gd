@@ -197,11 +197,11 @@ func _finish(width: float, height: float) -> void:
 
 	if _game_mode == Types.GameMode.CODE_RED:
 		_swarm.spawn_mode_armada(Types.GameMode.CODE_RED, bounds, player_pos)
-		_weapons.spawn_orb(bounds, Types.WeaponType.VORTEX, width / 2.0 - ORB_SPREAD, orb_y)  # PORT: :197
-		_weapons.spawn_orb(bounds, Types.WeaponType.NUKE, width / 2.0 + ORB_SPREAD, orb_y)  # PORT: :198
+		_opening_orb(bounds, Types.WeaponType.VORTEX, width / 2.0 - ORB_SPREAD, orb_y)  # PORT: :197
+		_opening_orb(bounds, Types.WeaponType.NUKE, width / 2.0 + ORB_SPREAD, orb_y)  # PORT: :198
 	elif _game_mode == Types.GameMode.GAUNTLET:
 		_swarm.spawn_mode_armada(Types.GameMode.GAUNTLET, bounds, player_pos)
-		_weapons.spawn_orb(bounds, Types.WeaponType.NUKE, width / 2.0, orb_y)  # PORT: :201
+		_opening_orb(bounds, Types.WeaponType.NUKE, width / 2.0, orb_y)  # PORT: :201
 	else:
 		var radius: float = maxf(SEEKER_RADIUS, minf(width, height) * SEEKER_RADIUS_FRACTION)
 		for i: int in range(SEEKER_COUNT):
@@ -213,7 +213,7 @@ func _finish(width: float, height: float) -> void:
 				height / 2.0 + sin(ang) * radius, SEEKER_MARGIN, height - SEEKER_MARGIN
 			)  # PORT: web/src/tilt-to-live/TiltEntranceCinematic.ts:209
 			_swarm.spawn_seeker(bounds, x, y)
-		_weapons.spawn_orb(bounds, Types.WeaponType.NUKE, width / 2.0, orb_y)  # PORT: :212
+		_opening_orb(bounds, Types.WeaponType.NUKE, width / 2.0, orb_y)  # PORT: :212
 
 	_player.activate_shield(SPAWN_SHIELD)
 
@@ -346,3 +346,9 @@ func _bar() -> Panel:
 	_fill.size = Vector2(0.0, height)
 	track.add_child(_fill)
 	return track
+
+
+## DIVERGENCE(ORB R1): an opening orb — spawned as the TS spawns it, but not magnetic, so
+## the magnet does not take it before the player chooses to (Types.WeaponOrb.magnetic).
+func _opening_orb(bounds: Vector2, type: Types.WeaponType, x: float, y: float) -> void:
+	_weapons.spawn_orb(bounds, type, x, y).magnetic = false

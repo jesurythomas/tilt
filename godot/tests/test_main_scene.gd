@@ -375,7 +375,8 @@ func test_run_over_shows_points_and_the_armory_button() -> void:
 	# RUNOVER R1: what the run earned, no balance; the button reads "Armory".
 	assert_eq((panel.find_child("PointsEarnedLabel", true, false) as Label).text, "+0")
 	assert_null(panel.find_child("PointsBalanceLabel", true, false))
-	assert_eq((panel.find_child("GameOverArmoryButton", true, false) as Button).text, "Armory")
+	var armory: Button = panel.find_child("GameOverArmoryButton", true, false) as Button
+	assert_eq((armory.find_child("NavLabel", true, false) as Label).text, "Armory", "UI R13")
 	assert_false(
 		(panel.find_child("NewBestBanner", true, false) as Control).visible,
 		"a zero-score run is not a new best (:2097)"

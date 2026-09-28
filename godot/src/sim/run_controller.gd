@@ -177,7 +177,8 @@ func spawn_starting_weapon_orb(arena_bounds: Vector2) -> void:
 	var margin: float = 60.0
 	var x: float = clampf(arena_bounds.x * 0.5 + cos(angle) * dist, margin, arena_bounds.x - margin)
 	var y: float = clampf(arena_bounds.y * 0.5 + sin(angle) * dist, margin, arena_bounds.y - margin)
-	weapons.spawn_orb(arena_bounds, starting_weapon, x, y)
+	# DIVERGENCE(ORB R1): the opening orb is not magnetic (Types.WeaponOrb.magnetic).
+	weapons.spawn_orb(arena_bounds, starting_weapon, x, y).magnetic = false
 
 
 ## Executes fixed frame order simulation steps (spec §5.4).

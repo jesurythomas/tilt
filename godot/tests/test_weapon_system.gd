@@ -239,3 +239,45 @@ func test_orb_spawning_draws_from_the_drop_table_not_only_nuke() -> void:
 		for orb: Types.WeaponOrb in ws.orbs:
 			seen[orb.type] = true
 	assert_gt(seen.size(), 1, "M2's stub returned NUKE only")
+
+
+func _tick(ws: WeaponSystem, seconds: float) -> void:
+	var enemies: Array[PerilEnemy] = []
+	for i: int in range(roundi(seconds * 120.0)):
+		ws.update(
+			1.0 / 120.0,
+			_player,
+			enemies,
+			Vector2(1000.0, 600.0),
+			_particles,
+			_grid,
+			_audio,
+			func(_e: PerilEnemy, _w: Types.WeaponType) -> void: pass
+		)
+
+
+## ORB R1 (user: "add a magnetic field similar to the coins to the power ups"): an orb
+## inside the field flies to the ship and is picked up; one outside it stays put.
+func test_the_orb_magnet_pulls_a_near_orb_in() -> void:
+	var ws: WeaponSystem = WeaponSystem.new()
+	var bounds: Vector2 = Vector2(1000.0, 600.0)
+	ws.spawn_orb(bounds, Types.WeaponType.LASER, 500.0 + 150.0, 300.0)
+	var far: Types.WeaponOrb = ws.spawn_orb(bounds, Types.WeaponType.NUKE, 500.0, 300.0 - 250.0)
+	var activated: Array[Types.WeaponType] = []
+	ws.on_weapon_activated = func(type: Types.WeaponType) -> void: activated.append(type)
+	_tick(ws, 0.05)
+	assert_lt(ws.orbs[0].x, 650.0, "the near orb moved toward the ship")
+	_tick(ws, 1.0)
+	assert_eq(activated, [Types.WeaponType.LASER], "pulled in and picked up")
+	assert_eq(ws.orbs.size(), 1)
+	assert_eq(far.y, 50.0, "outside the field it stays put")
+
+
+func test_the_orb_magnet_can_be_turned_off() -> void:
+	var ws: WeaponSystem = WeaponSystem.new()
+	ws.orb_magnet_radius = 0.0
+	var orb: Types.WeaponOrb = ws.spawn_orb(
+		Vector2(1000.0, 600.0), Types.WeaponType.LASER, 600.0, 300.0
+	)
+	_tick(ws, 0.5)
+	assert_eq(orb.x, 600.0, "TS rules: orbs never move")

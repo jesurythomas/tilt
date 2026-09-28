@@ -54,6 +54,8 @@ var _count_tween: Tween = null
 var _milestones: VBoxContainer = null
 ## DIVERGENCE(ACH R3): "ACHIEVEMENTS · 3" over the list.
 var _achievements_header: Label = null
+var _achievements_row: HBoxContainer = null
+var _trophy: TextureRect = null
 var _press_at: Vector2 = Vector2.ZERO
 var _shown_milestones: Array[GoalManager.Goal] = []
 var _sheet: PanelContainer = null
@@ -128,7 +130,11 @@ func set_ui_scale(scale: float) -> void:
 	_retry.custom_minimum_size.y = UiTheme.HERO_TARGET * scale
 	_bottom.add_theme_constant_override("separation", UiTheme.px(BOTTOM_GAP, scale))
 	for button: Button in [_menu, _spend]:
-		button.custom_minimum_size.y = UiTheme.TOUCH_TARGET * scale
+		UiTheme.scale_nav_button(button, scale)
+	# DIVERGENCE(UI R13): Retry carries the restart glyph, as Play carries its triangle.
+	_retry.icon = UiTheme.svg_texture(UiTheme.ICON_RETRY, scale)
+	_trophy.texture = UiTheme.svg_texture(UiTheme.ICON_ACHIEVEMENTS, scale)
+	_achievements_row.add_theme_constant_override("separation", UiTheme.px(BANNER_GAP, scale))
 	_earned.add_theme_font_size_override("font_size", UiTheme.px(UiTheme.SCORE_SIZE, scale))
 	_picker.set_ui_scale(scale)
 	_milestones.add_theme_constant_override("separation", UiTheme.px(LIST_GAP, scale))
@@ -253,10 +259,20 @@ func _build_left() -> VBoxContainer:
 	# DIVERGENCE(ACH R3, user 2026-09-28: "when there are multiple achivements completed
 	# on a run, the user cannot see all of those achievements"): it scrolls there, under
 	# a count, instead of clipping.
+	# DIVERGENCE(UI R13): the header carries the menu's trophy, as its nav button does.
+	_achievements_row = HBoxContainer.new()
+	_achievements_row.name = "AchievementsRow"
+	_achievements_row.visible = false
+	_trophy = TextureRect.new()
+	_trophy.name = "AchievementsTrophy"
+	_trophy.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+	_achievements_row.add_child(_trophy)
 	_achievements_header = UiTheme.caps("")
 	_achievements_header.name = "AchievementsHeader"
 	_achievements_header.visible = false
-	_left.add_child(_achievements_header)
+	_achievements_header.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_achievements_row.add_child(_achievements_header)
+	_left.add_child(_achievements_row)
 	var clip: ScrollContainer = ScrollContainer.new()
 	clip.name = "MilestonesClip"
 	clip.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -315,19 +331,14 @@ func _build_right() -> VBoxContainer:
 	_right.add_child(_retry)
 
 	_bottom = HBoxContainer.new()
-	_menu = Button.new()
-	_menu.name = "GameOverMenuButton"
-	_menu.theme_type_variation = "SecondaryButton"
-	_menu.text = "Menu"  # PORT: web/src/tilt-to-live/TiltGame.ts:1226
+	# DIVERGENCE(UI R13): Menu and Armory are the menu's nav buttons (glyph + label).
+	_menu = UiTheme.nav_button("GameOverMenuButton", "Menu", UiTheme.ICON_HOME)  # PORT: :1226
 	_menu.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_bottom.add_child(_menu)
-	_spend = Button.new()
-	_spend.name = "GameOverArmoryButton"
-	_spend.theme_type_variation = "SecondaryButton"
-	_spend.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	# DIVERGENCE(RUNOVER R1): "Armory" — the TS's "Spend <balance>" (:2122) showed the
 	# balance again.
-	_spend.text = "Armory"
+	_spend = UiTheme.nav_button("GameOverArmoryButton", "Armory", UiTheme.ICON_ARMORY)
+	_spend.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_bottom.add_child(_spend)
 	_right.add_child(_bottom)
 	return _right
@@ -367,6 +378,7 @@ func _fill_milestones(goals: Array[GoalManager.Goal]) -> void:
 		_milestones.add_child(_milestone_row(goal))
 	_milestones.visible = not goals.is_empty()
 	_achievements_header.visible = not goals.is_empty()
+	_achievements_row.visible = _achievements_header.visible
 	# The stats sit centred until a list needs the space below them (ACH R3).
 	_left.alignment = (
 		BoxContainer.ALIGNMENT_BEGIN if not goals.is_empty() else BoxContainer.ALIGNMENT_CENTER

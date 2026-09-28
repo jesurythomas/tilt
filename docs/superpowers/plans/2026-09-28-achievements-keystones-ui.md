@@ -205,5 +205,19 @@ redesign if needed to make ui/ux feel better as a player". Rulings are Claude's 
   verifies `godot/build/peril-point-0.1.0.apk` (79 MB, not debuggable). "update the
   readme ... so that it reflects what this project really is about": README.md was
   rewritten (it still described two web games that no longer exist), and `tools/README.md`,
-  `web/README.md` and the HANDOFF state were added or refreshed. Not boot-tested on a
-  device yet.
+  `web/README.md` and the HANDOFF state were added or refreshed. Booted on the A55 as
+  the phone-keyed build (save kept).
+- [x] **UI R13** — "there are inconsistencies with the buttons. e.g. menu achivements has
+  the icons, game over achivements do not have it": one nav button,
+  `UiTheme.nav_button()` + `scale_nav_button()` (the NavButton face, with a glyph beside
+  its centred label), serves the menu (Armory, Achievements, the Settings cog), the Run
+  over (Menu ⌂, Armory) and Pause (Restart run ↻, Quit to menu ⌂, Armory, Settings ⚙).
+  The Primary buttons carry glyphs too (Play/Resume ▶, Retry ↻), and the Run over's
+  achievements header has the menu's trophy. The glyphs moved from TiltMenu into
+  UiTheme. `test_every_nav_button_carries_its_glyph`.
+- [x] **ORB R1** — "add a magnetic field similar to the coins to the power ups": within
+  180 arena px, power-up orbs fly to the ship at 160→700 px/s (CoinSystem's numbers) and
+  are picked up; `WeaponSystem.orb_magnet_radius` (0 = the TS rules). The orbs a run
+  opens with (the cold open's nuke or vortex, and the ship's starting orb) are not
+  magnetic (`WeaponOrb.magnetic`): they sit 27–150 px from the ship by design, and the
+  player picks when to take them. The cost is a distance test per orb (≤ 5). Suite 770.

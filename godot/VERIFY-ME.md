@@ -688,6 +688,12 @@ refunded once on the first launch.
       what you are browsing. Only the card's button buys or equips. Nothing scrolls.
 - [ ] 15. **Clickable vs not (ARMORY R6).** Prices you can't afford are dim with a lock;
       Equip is blue; Reset, Menu and Armory look pressable. Anything still ambiguous?
+- [ ] 16. **Same buttons everywhere (UI R13).** Menu, Pause and Run over buttons share
+      one look with icons (⌂ Menu, ↻ Restart/Retry, ▶ Resume, chevrons Armory, ⚙ Settings,
+      trophy on the Run over's achievements).
+- [ ] 17. **Orb magnet (ORB R1).** Fly near a power-up orb and it flies to you, like
+      coins. The run's opening orbs stay where they are until you take them. Too strong?
+      `WeaponSystem.ORB_MAGNET_*`.
 
 ## M11c part 1 — Performance (plan `2026-09-26-m11c-performance.md`)
 

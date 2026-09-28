@@ -83,7 +83,8 @@ func test_sheet_carries_the_board_controls() -> void:
 		"PointsBalanceLabel", "SpendValueLabel", "CoinsRow", "PointsEarnedHint", "UpgradesReadyHint"
 	]:
 		assert_null(sheet.find_child(gone, true, false), gone)
-	assert_eq((sheet.find_child("GameOverArmoryButton", true, false) as Button).text, "Armory")
+	var armory: Button = sheet.find_child("GameOverArmoryButton", true, false) as Button
+	assert_eq((armory.find_child("NavLabel", true, false) as Label).text, "Armory", "UI R13")
 	assert_null(sheet.find_child("MenuButton", true, false), "Menu is M11's (spec §5)")
 	assert_null(sheet.find_child("FinalCoinsLabel", true, false), "coins cell dropped (spec §6.3)")
 	assert_false(
@@ -273,4 +274,4 @@ func test_run_over_has_a_menu_button() -> void:
 	var sheet: RunOverSheet = _sheet(Vector2(844, 390), 1.0)
 	var menu: Button = sheet.find_child("GameOverMenuButton", true, false) as Button
 	assert_not_null(menu, "TiltGame.ts:1226")
-	assert_eq(menu.text, "Menu")
+	assert_eq((menu.find_child("NavLabel", true, false) as Label).text, "Menu", "UI R13")

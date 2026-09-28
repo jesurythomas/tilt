@@ -45,12 +45,22 @@ const ICE_ARMOR_SECONDS: float = 2.0
 const OVERCHARGE_RADIUS: float = 180.0
 const PLASMA_ARC_RADIUS: float = 45.0
 
+## DIVERGENCE(ORB R1, user 2026-09-28: "add a magnetic field similar to the coins to the
+## power ups"): orbs near the ship fly to it, as coins do (CoinSystem.MAGNET_*; the TS has
+## no magnet). Arena px within which an orb is pulled, and the pull speed (px/s) at the
+## field's edge and at the ship, ramping linearly in between.
+const ORB_MAGNET_RADIUS: float = 180.0
+const ORB_MAGNET_SPEED_EDGE: float = 160.0
+const ORB_MAGNET_SPEED_CLOSE: float = 700.0
+
 ## DIVERGENCE(M11c P35): true builds the missile snapshot in C++ (PerilNative.
 ## missile_snapshot, bit for bit); false keeps the GDScript loop, the reference.
 static var use_native_snapshot: bool = true
 
 ## Live weapon orbs in the arena. PORT: web/src/tilt-to-live/WeaponSystem.ts:14
 var orbs: Array[Types.WeaponOrb] = []
+## DIVERGENCE(ORB R1): the orb magnet's pull radius; 0 disables it (tests of the TS rules).
+var orb_magnet_radius: float = ORB_MAGNET_RADIUS
 
 ## Active superweapons currently expanding/firing. PORT: web/src/tilt-to-live/WeaponSystem.ts:15
 var active_weapons: Array[Types.ActiveWeapon] = []
@@ -167,6 +177,17 @@ func update(
 		var dx: float = player.x - orb.x
 		var dy: float = player.y - orb.y
 		var dist: float = sqrt(dx * dx + dy * dy)
+
+		# DIVERGENCE(ORB R1): the magnet, before the TS pickup test (CoinSystem.update's).
+		if orb.magnetic and dist < orb_magnet_radius and dist > 0.0:
+			var closeness: float = 1.0 - dist / orb_magnet_radius
+			var speed: float = (
+				ORB_MAGNET_SPEED_EDGE + (ORB_MAGNET_SPEED_CLOSE - ORB_MAGNET_SPEED_EDGE) * closeness
+			)
+			var step: float = minf(speed * dt, dist)
+			orb.x += dx / dist * step
+			orb.y += dy / dist * step
+			dist -= step
 
 		if dist < player.radius + orb.radius:
 			# Collect orb! PORT: web/src/tilt-to-live/WeaponSystem.ts:92-98

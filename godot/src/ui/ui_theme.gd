@@ -103,6 +103,10 @@ const SEGMENT_BUTTON_PAD_X: int = 10
 const SEGMENT_ICON_GAP: int = 6
 const SEGMENT_ON_ALPHA: float = 0.22
 const NAV_LABEL_SIZE: int = 15
+## DIVERGENCE(UI R11, R13): a nav button's glyph-to-label gap, and the side room it
+## keeps around them (the row is centred, so not the stylebox's 14).
+const NAV_ICON_GAP: int = 8
+const NAV_PAD_X: int = 8
 const METER_HEIGHT: int = 3
 const METER_RADIUS: int = 2
 const PIP_HEIGHT: int = 5
@@ -203,6 +207,62 @@ const ICON_TILT: String = (
 	+ 'transform="rotate(24 8 8)"/>'
 	+ '<path d="M1.5 11 A7 7 0 0 1 2.4 4.6 M14.5 5 A7 7 0 0 1 13.6 11.4" stroke="#FFFFFF" '
 	+ 'stroke-width="1.2" stroke-linecap="round"/></svg>'
+)
+## DIVERGENCE(UI-SYSTEM): Main.dc.html — Play glyph (verbatim but for the xmlns)
+const ICON_PLAY: String = (
+	'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">'
+	+ '<path d="M4 2.5 L13 8 L4 13.5 Z" fill="#08090E"/></svg>'
+)
+## DIVERGENCE(UI R11, user 2026-09-28: "change the settings option to the actual settings
+## icon"): an eight-tooth cog; Main.dc.html's rayed circle read as a brightness sun.
+const ICON_GEAR: String = (
+	'<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 16 16" fill="none">'
+	+ '<path fill="#E6E9F0" fill-rule="evenodd" d="'
+	+ "M12.97 6.46 L15.06 6.57 L15.06 9.43 L12.97 9.54 L12.60 10.43 L14.00 "
+	+ "11.98 L11.98 14.00 L10.43 12.60 L9.54 12.97 L9.43 15.06 L6.57 15.06 "
+	+ "L6.46 12.97 L5.57 12.60 L4.02 14.00 L2.00 11.98 L3.40 10.43 L3.03 9.54 "
+	+ "L0.94 9.43 L0.94 6.57 L3.03 6.46 L3.40 5.57 L2.00 4.02 L4.02 2.00 "
+	+ "L5.57 3.40 L6.46 3.03 L6.57 0.94 L9.43 0.94 L9.54 3.03 L10.43 3.40 "
+	+ "L11.98 2.00 L14.00 4.02 L12.60 5.57 Z M10.40 8 A2.4 2.4 0 1 0 5.60 8 "
+	+ "A2.4 2.4 0 1 0 10.40 8 Z"
+	+ '"/></svg>'
+)
+## DIVERGENCE(UI R11, user 2026-09-28: "make steer and touch as well as the armory and
+## achievements more noticeable"): the nav
+## buttons' glyphs — upgrade chevrons (ion) and a trophy (flare).
+const ICON_ARMORY: String = (
+	'<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 16 16" fill="none">'
+	+ '<path d="M3.5 8.5 L8 4 L12.5 8.5 M3.5 13 L8 8.5 L12.5 13" stroke="#8FB0FF" '
+	+ 'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+)
+const ICON_ACHIEVEMENTS: String = (
+	'<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 16 16" fill="none">'
+	+ '<path d="M4.5 2 H11.5 V6.5 A3.5 3.5 0 0 1 4.5 6.5 Z" fill="#FFB14D"/>'
+	+ '<path d="M4.5 3.5 H2.5 V5 A2.5 2.5 0 0 0 5 7.5 M11.5 3.5 H13.5 V5 A2.5 2.5 0 0 1 11 7.5" '
+	+ 'stroke="#FFB14D" stroke-width="1.2" stroke-linecap="round"/>'
+	+ '<path d="M8 10 V12.5 M5 14 H11" stroke="#FFB14D" stroke-width="1.6" '
+	+ 'stroke-linecap="round"/></svg>'
+)
+## DIVERGENCE(UI R13, user 2026-09-28: "there are inconsistencies with the buttons. e.g.
+## menu achivements has the icons, game over achivements do not have it"): the glyphs
+## every nav button uses — home (Menu, Quit to menu) and restart (Restart run), on the
+## raised face; Retry's restart in void, on the ion Primary face.
+const ICON_HOME: String = (
+	'<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 16 16" fill="none">'
+	+ '<path d="M2.5 7.5 L8 2.8 L13.5 7.5 M4 6.5 V13.2 H6.8 V9.8 H9.2 V13.2 H12 V6.5" '
+	+ 'stroke="#E6E9F0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+)
+const ICON_RESTART: String = (
+	'<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 16 16" fill="none">'
+	+ '<path d="M12.6 9.2 A4.8 4.8 0 1 1 11.2 4.4" stroke="#E6E9F0" stroke-width="1.6" '
+	+ 'stroke-linecap="round"/><path d="M11.8 1.8 L11.6 4.9 L8.5 4.7" stroke="#E6E9F0" '
+	+ 'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+)
+const ICON_RETRY: String = (
+	'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">'
+	+ '<path d="M12.6 9.2 A4.8 4.8 0 1 1 11.2 4.4" stroke="#08090E" stroke-width="1.8" '
+	+ 'stroke-linecap="round"/><path d="M11.8 1.8 L11.6 4.9 L8.5 4.7" stroke="#08090E" '
+	+ 'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 )
 ## Switch track + knob, 48×28. DIVERGENCE(UI-SYSTEM): Pause.dc.html — p-sfx (on), p-mus (off)
 const SWITCH_ON: String = (
@@ -728,3 +788,64 @@ static func _tag(name: String) -> int:
 ## singular follows the coins row's rule (TiltGame.ts:2126).
 static func reward_text(points: int) -> String:
 	return "+%s %s" % [group_digits(points), "pt" if points == 1 else "pts"]
+
+
+## DIVERGENCE(UI R13, user 2026-09-28: "there are inconsistencies with the buttons. e.g.
+## menu achivements has the icons, game over achivements do not have it"): one nav button for
+## the menu, Pause and Run over — a NavButton with its glyph beside its centred label (a
+## Button's own icon hugs the left edge). `label` "" is glyph-only; `tip` its tooltip.
+## The content row ignores the mouse, so the button takes the tap. Call
+## scale_nav_button() for the glyph, font and width (a sheet scales after building).
+static func nav_button(
+	button_name: String, label: String, glyph: String, tip: String = ""
+) -> Button:
+	var button: Button = Button.new()
+	button.name = button_name
+	button.theme_type_variation = "NavButton"
+	button.tooltip_text = tip if not tip.is_empty() else label
+	button.set_meta("nav_glyph", glyph)
+	var row: HBoxContainer = HBoxContainer.new()
+	row.name = "NavContent"
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var icon: TextureRect = TextureRect.new()
+	icon.name = "NavIcon"
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(icon)
+	var caption: Label = text(label, "")
+	caption.name = "NavLabel"
+	caption.visible = not label.is_empty()
+	caption.add_theme_font_override("font", sans(Weight.SEMIBOLD))
+	caption.add_theme_color_override("font_color", COLOR_TEXT)
+	caption.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(caption)
+	button.add_child(row)
+	return button
+
+
+## Sizes a nav_button() for `scale`: glyph, label font, touch-target height, and a minimum
+## width that holds glyph and label (measured from the font — the row has no size until
+## it enters the tree).
+static func scale_nav_button(button: Button, scale: float) -> void:
+	var row: HBoxContainer = button.get_node("NavContent") as HBoxContainer
+	var icon: TextureRect = row.get_node("NavIcon") as TextureRect
+	var label: Label = row.get_node("NavLabel") as Label
+	var gap: int = px(NAV_ICON_GAP, scale)
+	row.add_theme_constant_override("separation", gap)
+	icon.texture = svg_texture(str(button.get_meta("nav_glyph")), scale)
+	var font_px: int = px(NAV_LABEL_SIZE, scale)
+	label.add_theme_font_size_override("font_size", font_px)
+	var width: float = icon.texture.get_width() + px(NAV_PAD_X, scale) * 2
+	if label.visible:
+		width += (
+			gap
+			+ (
+				sans(Weight.SEMIBOLD)
+				. get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_px)
+				. x
+			)
+		)
+	button.custom_minimum_size = Vector2(ceilf(width), TOUCH_TARGET * scale)
