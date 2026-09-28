@@ -131,7 +131,7 @@ silhouette/greyscale readable at 24 px.
 - [x] **T4 — Icon set** (done: `render/weapon_icons.gd` (`WeaponIcons`: 12 glyphs, orb sprite, colours; `WeaponSystem.get_weapon_color` made static); `bench/icon_sheet.gd` renders `godot/build/icon_sheet.png` — reviewed; the laser needed three redesigns ("O=", then a wand, then a compass) and is now a hub with two beams and motion arcs; `tests/test_weapon_icons.gd` 4 tests) (ICONS R1): `weapon_icons.gd`, glyph SVGs, colour table, cached
   textures; a render sheet (`bench/icon_sheet.gd`, windowed) for review at 24/48 px and
   greyscale; tests (every weapon/boost has a glyph, SVG parses, texture size).
-- [ ] **T5 — Orbs and HUD** (ICONS R2, R3): baked orb sprite in EntityLayer, HUD timer
+- [x] **T5 — Orbs and HUD** (done: EntityLayer draws `WeaponIcons.orb_texture` (one draw per orb; `_draw_orb_glyph` removed), main.tscn WeaponTimerRow > WeaponTimerIcon + label, tint = `WeaponIcons.ui_color_of`; emulator screenshot checked (restarted the emulator first: 13 h up, 164% irq, fps 1); the PERF line lost `rcpu` (it forced a sync and logged an engine warning)) (ICONS R2, R3): baked orb sprite in EntityLayer, HUD timer
   icon. Tests: sprite cache keys, HUD icon visible with the timer; screenshot check.
 - [ ] **T6 — Weapons tab** (ARMORY R1, R2, ECON R4/R5 UI). Tests updated/added: single
   column (no keystone column), card states (cost / need N / Max), "9/15" rank text,

@@ -35,6 +35,9 @@ const PAUSE_INSET_Y: int = 12  # top 24 − 12
 const TIMER_BOTTOM: int = 14  # weapon timer bottom 26 − 12
 const TIMER_GAP: int = 7
 const TIMER_METER_WIDTH: int = 160
+## DIVERGENCE(ICONS R3): the weapon icon left of the timer label, and its gap (px at 1x).
+const TIMER_ICON: int = 16
+const TIMER_ICON_GAP: int = 6
 
 ## The shield's fixed total for the indicator's fraction.
 ## PORT: web/src/tilt-to-live/TiltGame.ts:2190
@@ -48,18 +51,6 @@ const WEAPON_TIMER_NAMES: Dictionary[int, String] = {
 	Types.WeaponType.VORTEX: "Vortex",
 	Types.WeaponType.FREEZE: "Freeze",
 	Types.WeaponType.SHIELD: "Shield",
-}
-## The timer's tint. DIVERGENCE(UI-SYSTEM): Hud.dc.html ("in the weapon's colour",
-## interface spec §6.1); the colours are the Armory catalog dots, read through
-## UiTheme's tokens (spec §4.1 — no private hex copies).
-const WEAPON_TIMER_COLORS: Dictionary[int, Color] = {
-	Types.WeaponType.VORTEX: UiTheme.COLOR_PLASMA,  # PORT: web/src/tilt-to-live/ArmoryUI.ts:100
-	Types.WeaponType.MISSILES: UiTheme.COLOR_ION,  # PORT: web/src/tilt-to-live/ArmoryUI.ts:116
-	Types.WeaponType.LASER: UiTheme.COLOR_ION,  # PORT: web/src/tilt-to-live/ArmoryUI.ts:132
-	Types.WeaponType.NUKE: UiTheme.COLOR_FLARE,  # PORT: web/src/tilt-to-live/ArmoryUI.ts:147
-	Types.WeaponType.FREEZE: UiTheme.ION_TEXT,  # PORT: web/src/tilt-to-live/ArmoryUI.ts:162
-	Types.WeaponType.SHIELD: UiTheme.COLOR_LOCKED_IN,  # PORT: web/src/tilt-to-live/ArmoryUI.ts:176
-	Types.WeaponType.LIGHTNING: UiTheme.COLOR_FLARE,  # PORT: web/src/tilt-to-live/ArmoryUI.ts:191
 }
 
 # Multiplier tiers for the score pulse and multiplier chip (D3).
@@ -91,6 +82,7 @@ var _pulse_frame: int = -1
 var _pulse_tier: Color = Color.TRANSPARENT
 var _weapon_timer: VBoxContainer = null
 var _weapon_timer_label: Label = null
+var _weapon_timer_icon: TextureRect = null
 var _weapon_timer_meter: ProgressBar = null
 var _life_on: ImageTexture = null
 var _life_off: ImageTexture = null
@@ -166,6 +158,7 @@ func _ready() -> void:
 	_lives_row = find_child("LivesRow", true, false) as HBoxContainer
 	_weapon_timer = find_child("WeaponTimer", true, false) as VBoxContainer
 	_weapon_timer_label = find_child("WeaponTimerLabel", true, false) as Label
+	_weapon_timer_icon = find_child("WeaponTimerIcon", true, false) as TextureRect
 	_weapon_timer_meter = find_child("WeaponTimerMeter", true, false) as ProgressBar
 	if _weapon_timer_label != null:
 		UiTheme.legible_over_play(_weapon_timer_label)
@@ -299,6 +292,11 @@ func set_ui_scale(scale: float) -> void:
 		_weapon_timer.offset_bottom = -TIMER_BOTTOM * scale
 		_weapon_timer.offset_top = _weapon_timer.offset_bottom
 		_weapon_timer.add_theme_constant_override("separation", UiTheme.px(TIMER_GAP, scale))
+	if _weapon_timer_icon != null:
+		var icon_px: float = float(UiTheme.px(TIMER_ICON, scale))
+		_weapon_timer_icon.custom_minimum_size = Vector2(icon_px, icon_px)
+		var row: HBoxContainer = _weapon_timer_icon.get_parent() as HBoxContainer
+		row.add_theme_constant_override("separation", UiTheme.px(TIMER_ICON_GAP, scale))
 	if _weapon_timer_meter != null:
 		_weapon_timer_meter.custom_minimum_size = Vector2(
 			TIMER_METER_WIDTH * scale, UiTheme.px(UiTheme.METER_HEIGHT, scale)
@@ -526,8 +524,16 @@ func _show_weapon_timer(reading: WeaponTimer) -> void:
 	if int(reading.weapon_type) == _timer_type:
 		return
 	_timer_type = reading.weapon_type
-	var tint: Color = WEAPON_TIMER_COLORS.get(reading.weapon_type, UiTheme.COLOR_ION)
+	# DIVERGENCE(ICONS R1/R3): the weapon's own colour (the orb's, lifted for the dark UI)
+	# and its icon; the TS tinted the label with the Armory dot colours (ArmoryUI.ts).
+	var tint: Color = WeaponIcons.ui_color_of(reading.weapon_type)
 	_weapon_timer_label.add_theme_color_override("font_color", tint)
+	if _weapon_timer_icon != null:
+		var icon_px: int = UiTheme.px(TIMER_ICON, _ui_scale)
+		_weapon_timer_icon.texture = WeaponIcons.texture(
+			WeaponIcons.weapon_key(reading.weapon_type), icon_px
+		)
+		_weapon_timer_icon.self_modulate = tint
 	_weapon_timer_meter.add_theme_stylebox_override(
 		"fill", UiTheme.flat(tint, Color.TRANSPARENT, UiTheme.px(UiTheme.METER_RADIUS, _ui_scale))
 	)

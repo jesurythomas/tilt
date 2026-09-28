@@ -27,8 +27,9 @@ const THRUSTER_COLOR: Color = Color("#00ddff")
 const TRAIL_COLOR: Color = Color(0.0, 220.0 / 255.0, 1.0, 0.4)
 ## PORT: web/src/tilt-to-live/PlayerShip.ts:356-357 (shielded stroke and core)
 const SHIELD_STROKE: Color = Color("#00ffff")
-## The orb radius the glyphs were drawn for. PORT: web/src/tilt-to-live/WeaponSystem.ts:593
-const BASE_ORB_RADIUS: float = 16.0
+## DIVERGENCE(ICONS R2): the orb sprite's half-size over its disc radius (WeaponIcons.orb_svg:
+## a 64-unit square whose lit disc has radius 28.5).
+const ORB_SPRITE_HALF: float = 32.0 / 28.5
 ## PORT: web/src/tilt-to-live/GauntletMaze.ts:315
 const MAZE_BODY: Color = Color("#140c04")
 ## PORT: web/src/tilt-to-live/GauntletMaze.ts:324
@@ -495,92 +496,16 @@ func _draw_weapons() -> void:
 		var glow_col: Color = Color(orb_col.r, orb_col.g, orb_col.b, 0.2)
 		CircleSprites.draw_disc(self, orb_pos, (orb.radius + 8.0) * pulse, glow_col)
 
-		# Translucent bubble fill (PORT: WeaponSystem.ts:809-817)
-		var bubble_col: Color = Color(orb_col.r, orb_col.g, orb_col.b, 0.65)
-		CircleSprites.draw_disc(self, orb_pos, orb.radius, bubble_col)
-
-		# Sharp neon perimeter (PORT: WeaponSystem.ts:820-822)
-		_ring(orb_pos, orb.radius, 1.8, Color.WHITE)
-
-		# Glyph symbols (PORT: WeaponSystem.ts:833-923)
-		# DIVERGENCE(mobile-scale): the TS draws the glyph at fixed pixels
-		# inside a bubble that scales with the arena (WeaponSystem.ts:593 sets
-		# radius = 16 * scale), so on a phone the symbol shrinks to a speck.
-		# The glyph is scaled to its bubble here; at desktop scale (~1.05)
-		# this is visually the TS.
-		draw_set_transform(
-			_arena_origin + Vector2(orb.x, orb.y),
-			0.0,
-			Vector2.ONE * _model_scale * (orb.radius / BASE_ORB_RADIUS)
-		)
-		_draw_orb_glyph(orb_pos, orb.type)
+		# DIVERGENCE(ICONS R2): the bubble, rim and glyph are one baked sprite (WeaponIcons:
+		# dark core lit in the weapon colour, colour and white rims, a white silhouette
+		# glyph) — user 2026-09-28: the power-up icons "look really bad". The TS drew a
+		# gradient bubble, a 1.8 px white ring and a 1.6 px line glyph (WeaponSystem.ts:
+		# 809-822, :833-923); its disc edge sits on orb.radius as before.
+		var half: float = orb.radius * ORB_SPRITE_HALF
+		var px: int = ceili(half * 2.0 * _model_scale)
+		var sprite: Texture2D = WeaponIcons.orb_texture(orb.type, px)
+		draw_texture_rect(sprite, Rect2(-half, -half, half * 2.0, half * 2.0), false)
 		_end_entity()
-
-
-## PORT: web/src/tilt-to-live/WeaponSystem.ts:833-923
-# DIVERGENCE(M11c P14): full circles and outlines draw from CircleSprites (see _ring).
-func _draw_orb_glyph(pos: Vector2, type: Types.WeaponType) -> void:
-	var width: float = 1.6  # PORT: web/src/tilt-to-live/WeaponSystem.ts:836
-	match type:
-		Types.WeaponType.NUKE:
-			# Radioactive trefoil. PORT: web/src/tilt-to-live/WeaponSystem.ts:841-849
-			CircleSprites.draw_disc(self, pos, 2.5, Color.WHITE)
-			for i: int in range(3):
-				var a: float = (float(i) * PI * 2.0) / 3.0
-				draw_arc(pos, 8.0, a - 0.45, a + 0.45, 16, Color.WHITE, width)
-		Types.WeaponType.MISSILES:
-			# Rocket. PORT: web/src/tilt-to-live/WeaponSystem.ts:854-860
-			var rocket: PackedVector2Array = PackedVector2Array(
-				[
-					pos + Vector2(0.0, -7.0),
-					pos + Vector2(4.0, 5.0),
-					pos + Vector2(0.0, 2.0),
-					pos + Vector2(-4.0, 5.0)
-				]
-			)
-			draw_colored_polygon(rocket, Color.WHITE)
-		Types.WeaponType.LIGHTNING:
-			# Bolt. PORT: web/src/tilt-to-live/WeaponSystem.ts:865-873
-			# PORT-NOTE: the TS outline (2,-7)(-4,0)(0,0)(-2,7)(4,0)(0,0) touches itself
-			# at (0,0); Godot's triangulator draws nothing for a non-simple polygon, so the
-			# outline is filled as the two triangles the canvas nonzero rule produces.
-			var upper: PackedVector2Array = PackedVector2Array(
-				[pos + Vector2(2.0, -7.0), pos + Vector2(-4.0, 0.0), pos + Vector2(0.0, 0.0)]
-			)
-			var lower: PackedVector2Array = PackedVector2Array(
-				[pos + Vector2(0.0, 0.0), pos + Vector2(-2.0, 7.0), pos + Vector2(4.0, 0.0)]
-			)
-			draw_colored_polygon(upper, Color.WHITE)
-			draw_colored_polygon(lower, Color.WHITE)
-		Types.WeaponType.LASER:
-			# Crossed beams. PORT: web/src/tilt-to-live/WeaponSystem.ts:878-881
-			draw_line(pos + Vector2(-6.0, -6.0), pos + Vector2(6.0, 6.0), Color.WHITE, width)
-			draw_line(pos + Vector2(6.0, -6.0), pos + Vector2(-6.0, 6.0), Color.WHITE, width)
-		Types.WeaponType.VORTEX:
-			# Spiral. PORT: web/src/tilt-to-live/WeaponSystem.ts:886-894
-			var spiral: PackedVector2Array = PackedVector2Array()
-			for r: int in range(2, 8):
-				var a: float = float(r) * 0.9
-				spiral.append(pos + Vector2(cos(a) * float(r), sin(a) * float(r)))
-			draw_polyline(spiral, Color.WHITE, width)
-		Types.WeaponType.FREEZE:
-			# Snowflake. PORT: web/src/tilt-to-live/WeaponSystem.ts:899-905
-			for i: int in range(6):
-				var a: float = (float(i) * PI) / 3.0
-				draw_line(pos, pos + Vector2(cos(a) * 7.0, sin(a) * 7.0), Color.WHITE, width)
-		Types.WeaponType.SHIELD:
-			# Shield outline. PORT: web/src/tilt-to-live/WeaponSystem.ts:910-918
-			var shield: PackedVector2Array = PackedVector2Array(
-				[
-					pos + Vector2(0.0, -6.0),
-					pos + Vector2(5.0, -3.0),
-					pos + Vector2(4.0, 3.0),
-					pos + Vector2(0.0, 7.0),
-					pos + Vector2(-4.0, 3.0),
-					pos + Vector2(-5.0, -3.0),
-				]
-			)
-			draw_polyline(_closed(shield), Color.WHITE, width)
 
 
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:1191-1648 (render)

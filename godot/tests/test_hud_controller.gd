@@ -365,3 +365,37 @@ func test_a_mass_kill_builds_one_pulse_per_frame_unless_the_tier_changes() -> vo
 	var before: Tween = hud._score_pulse_tween
 	GameEvents.enemy_killed.emit(PerilEnemy.new(), Types.WeaponType.NUKE)
 	assert_ne(hud._score_pulse_tween, before, "the next frame pulses again")
+
+
+func test_weapon_timer_shows_the_weapon_icon_in_its_colour() -> void:
+	# DIVERGENCE(ICONS R1/R3): main.tscn's WeaponTimer > WeaponTimerRow > icon + label.
+	var hud: HudController = HudController.new()
+	var timer: VBoxContainer = VBoxContainer.new()
+	timer.name = "WeaponTimer"
+	hud.add_child(timer)
+	var row: HBoxContainer = HBoxContainer.new()
+	row.name = "WeaponTimerRow"
+	timer.add_child(row)
+	var icon: TextureRect = TextureRect.new()
+	icon.name = "WeaponTimerIcon"
+	row.add_child(icon)
+	var label: Label = Label.new()
+	label.name = "WeaponTimerLabel"
+	row.add_child(label)
+	var meter: ProgressBar = ProgressBar.new()
+	meter.name = "WeaponTimerMeter"
+	timer.add_child(meter)
+	add_child_autofree(hud)
+	var reading: HudController.WeaponTimer = HudController.WeaponTimer.new()
+	reading.is_shown = true
+	reading.weapon_type = Types.WeaponType.VORTEX
+	reading.remaining = 2.0
+	reading.fraction = 0.5
+	hud._show_weapon_timer(reading)
+	assert_eq(label.text, "VORTEX 2.0s")
+	assert_not_null(icon.texture, "the black hole glyph")
+	var px: int = UiTheme.px(HudController.TIMER_ICON, hud._ui_scale)
+	assert_same(icon.texture, WeaponIcons.texture("blackhole", px))
+	var tint: Color = WeaponIcons.ui_color_of(Types.WeaponType.VORTEX)
+	assert_eq(icon.self_modulate, tint)
+	assert_eq(label.get_theme_color("font_color"), tint, "label and icon share the colour")

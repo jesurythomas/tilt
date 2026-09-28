@@ -122,7 +122,20 @@ grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2
 
-[node name="WeaponTimerLabel" type="Label" parent="CanvasLayer/Hud/Frame/WeaponTimer"]
+[node name="WeaponTimerRow" type="HBoxContainer" parent="CanvasLayer/Hud/Frame/WeaponTimer"]
+layout_mode = 2
+size_flags_horizontal = 4
+mouse_filter = 2
+alignment = 1
+
+[node name="WeaponTimerIcon" type="TextureRect" parent="CanvasLayer/Hud/Frame/WeaponTimer/WeaponTimerRow"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="WeaponTimerLabel" type="Label" parent="CanvasLayer/Hud/Frame/WeaponTimer/WeaponTimerRow"]
 layout_mode = 2
 theme_type_variation = &"CapsText"
 horizontal_alignment = 1

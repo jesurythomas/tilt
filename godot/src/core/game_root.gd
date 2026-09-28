@@ -378,10 +378,9 @@ func _report_perf() -> void:
 	PerfProbe.frame(
 		func() -> String:
 			return (
-				"gpu=%.2f rcpu=%.2f pmax=%.1f phmax=%.1f en=%d pa=%d draws=%d"
+				"gpu=%.2f pmax=%.1f phmax=%.1f en=%d pa=%d draws=%d"
 				% [
 					RenderingServer.viewport_get_measured_render_time_gpu(vp),
-					RenderingServer.viewport_get_measured_render_time_cpu(vp),
 					Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0,
 					Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0,
 					_run_controller.swarm.enemies.size(),

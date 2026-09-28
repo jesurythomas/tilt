@@ -533,6 +533,9 @@ User ruling: C++ GDExtension for the hot path, not C# (Android C# is experimenta
   Separate moves off the main thread. Keep Separate. 0 errors in 11 runs.
   **Next:** particles in C++, then the kill path (both show in m_phys/m_proc, which are
   the game's share); judge each by its section times on the emulator and by fps on the A55.
+  (Later, 2026-09-28: `rcpu` was dropped from the PERF line — each
+  `viewport_get_measured_render_time_cpu` call forces a RenderingServer sync and the engine
+  logs a warning; its finding is recorded above.)
 - [x] **N7 — particles in C++** (done 2026-09-28; the Power-up FPS item's step 4).
   Rulings (Claude, "always proceed"), the N3/N4 pattern:
   - **N7a** — `ParticleEngine.Particle` becomes the C++ class `PerilParticle`
