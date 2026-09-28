@@ -375,15 +375,17 @@ func _report_perf() -> void:
 		get_tree().process_frame.connect(func() -> void: PerfProbe.mark_process(PerfProbe.now()))
 	# pmax/phmax: the engine's slowest process step (incl. RenderingServer sync + draw)
 	# and physics step of the last second, in ms — maxima, updated once per second.
+	# men: the menu backdrop's swarm (UI R10).
 	PerfProbe.frame(
 		func() -> String:
 			return (
-				"gpu=%.2f pmax=%.1f phmax=%.1f en=%d pa=%d draws=%d"
+				"gpu=%.2f pmax=%.1f phmax=%.1f en=%d men=%d pa=%d draws=%d"
 				% [
 					RenderingServer.viewport_get_measured_render_time_gpu(vp),
 					Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0,
 					Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0,
 					_run_controller.swarm.enemies.size(),
+					_backdrop.menu_swarm.enemies.size(),
 					_particles.particles.size(),
 					Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),
 				]

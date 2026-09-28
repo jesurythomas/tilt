@@ -1723,6 +1723,12 @@ Salvo triple the missiles); P35 (native missile snapshot) cut their weapon cost 
 The menu fits itself to each device's height (UI R7) and `tests/test_device_matrix.gd`
 checks 8 real resolutions. Suite 757.
 
+An idle menu no longer fills with enemies (UI R10): the backdrop's swarm spawns on its
+own only below 24 (`EnemySwarm.spawn_cap`) and never picks the 72-dot wall
+(`EnemySwarm.formation_pool`); runs are unchanged. 10 min desktop idle peaks at 32
+enemies (was 147). PERF's `men=` is the menu swarm; `tools/emulator/menu_idle.sh <tag>…`
+idles `build/peril-point-<tag>.apk` on the menu and logs PERF. Suite 762.
+
 **Next, literally:** when the A55 is on `adb`, run VERIFY-ME §Armory / economy / icons
 rework with the user (economy knobs are listed there), then continue with the list
 below (kill path in C++, weapons section, release libs). The A55 pass on `b4901c1`

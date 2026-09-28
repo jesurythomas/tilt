@@ -671,6 +671,9 @@ refunded once on the first launch.
       and scrolls.
 - [ ] 9. **Menu.** Your points show under the left column from the first launch; the
       title and NEXT text read clearly over the attract-mode swarm.
+- [ ] 10. **Idle menu (UI R10).** Leave the menu open 10+ minutes. The swarm behind it
+      stays a light scatter (it used to fill the map, 140+ dots); fps holds. No wall
+      formations sweep the menu any more (runs still have them).
 
 ## M11c part 1 — Performance (plan `2026-09-26-m11c-performance.md`)
 

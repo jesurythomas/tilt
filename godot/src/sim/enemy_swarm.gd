@@ -51,6 +51,13 @@ var scale: float = 1.0
 ## Progression-driven uniform movement slow. PORT: web/src/tilt-to-live/EnemySwarm.ts:30
 var speed_scale: float = 1.0
 
+## DIVERGENCE(UI R10): when >= 0, update()'s own seeker timer and formation waves act only
+## while fewer enemies than this are alive (the menu backdrop's cap). -1: no cap (a run).
+var spawn_cap: int = -1
+## DIVERGENCE(UI R10): the formations trigger_random_formation picks from. A run keeps
+## the TS's five (EnemySwarm.ts:806); the menu backdrop drops the wall (72 dots at once).
+var formation_pool: Array[String] = ["arrow", "circle", "wall", "turret", "snake"]
+
 var _next_enemy_id: int = 1
 var _spawn_timer: float = 0.5  # PORT: web/src/tilt-to-live/EnemySwarm.ts:39
 var _wave_timer: float = 4.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:40
@@ -404,10 +411,9 @@ func spawn_mode_armada(mode: Types.GameMode, bounds: Vector2, player_pos: Vector
 ## Picks one of the five classic formations at random and spawns it.
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:801-826
 func trigger_random_formation(player_pos: Vector2, bounds: Vector2, current_score: int = 0) -> void:
-	# PORT: web/src/tilt-to-live/EnemySwarm.ts:806
-	var choices: Array[String] = ["arrow", "circle", "wall", "turret", "snake"]
+	# PORT: web/src/tilt-to-live/EnemySwarm.ts:806 (formation_pool, UI R10)
 	# PORT: web/src/tilt-to-live/EnemySwarm.ts:807
-	var choice: String = choices[randi() % choices.size()]
+	var choice: String = formation_pool[randi() % formation_pool.size()]
 
 	match choice:
 		"arrow":
@@ -808,10 +814,12 @@ func update(
 	_wave_timer -= dt
 
 	var is_code_red: bool = game_mode == Types.GameMode.CODE_RED
+	# DIVERGENCE(UI R10): at the cap the timers stay due, so they fire once it drops.
+	var may_spawn: bool = spawn_cap < 0 or enemies.size() < spawn_cap
 
 	# 1. Continuous Seeker Spawning with Mode Escalation.
 	# PORT: web/src/tilt-to-live/EnemySwarm.ts:59-104
-	if _spawn_timer <= 0.0:
+	if _spawn_timer <= 0.0 and may_spawn:
 		var time_reduction: float = _elapsed * 0.005  # PORT: web/src/tilt-to-live/EnemySwarm.ts:61
 		# PORT: web/src/tilt-to-live/EnemySwarm.ts:62
 		var score_reduction: float = minf(0.35, (float(current_score) / 30000.0) * 0.35)
@@ -856,7 +864,7 @@ func update(
 
 	# 2. Coordinated Formation Waves with Mode Specialization.
 	# PORT: web/src/tilt-to-live/EnemySwarm.ts:106-132
-	if _wave_timer <= 0.0:
+	if _wave_timer <= 0.0 and may_spawn:
 		if is_code_red:
 			var roll: float = randf()  # PORT: web/src/tilt-to-live/EnemySwarm.ts:110
 			if roll < 0.35:  # PORT: web/src/tilt-to-live/EnemySwarm.ts:111

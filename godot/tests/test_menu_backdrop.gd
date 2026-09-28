@@ -26,7 +26,7 @@ func test_it_is_a_separate_sim_instance() -> void:
 	assert_ne(a.menu_weapons, b.menu_weapons)
 
 
-func test_the_swarm_fills_to_the_ts_cap_and_no_further() -> void:
+func test_the_swarm_keeps_populating() -> void:
 	seed(11)
 	var b: MenuBackdrop = MenuBackdrop.new()
 	var grid: VectorGrid = VectorGrid.new(int(BOUNDS.x), int(BOUNDS.y))
@@ -34,9 +34,43 @@ func test_the_swarm_fills_to_the_ts_cap_and_no_further() -> void:
 	b.update(1.0 / 120.0, BOUNDS, grid, particles)
 	assert_gt(b.menu_swarm.enemies.size(), 0, "timer starts at 0 (:75): a seeker at once (:1674)")
 	_step(b, 12.0, grid, particles)
-	# :1673 gates only the menu's own spawn at < 14; EnemySwarm.update's own timer can
-	# add more (TS behaviour), so no hard cap is asserted — only that it keeps populating.
 	assert_gt(b.menu_swarm.enemies.size(), 1, "seekers keep spawning (:1672-1676)")
+
+
+func test_an_idle_menu_stays_bounded() -> void:
+	# UI R10 (user: an idle menu "fills the map with enemies"): five minutes on a phone-
+	# sized arena never pass the swarm cap plus one formation (the TS reached 140+).
+	seed(7)
+	var phone: Vector2 = Vector2(2424.0, 1080.0)
+	var b: MenuBackdrop = MenuBackdrop.new()
+	var grid: VectorGrid = VectorGrid.new(int(phone.x), int(phone.y))
+	var particles: ParticleEngine = ParticleEngine.new()
+	var peak: int = 0
+	for i: int in range(5 * 60 * 60):
+		b.update(1.0 / 60.0, phone, grid, particles)
+		peak = maxi(peak, b.menu_swarm.enemies.size())
+	assert_lte(peak, MenuBackdrop.SWARM_SPAWN_CAP + 14, "cap + the largest menu formation")
+	assert_gt(peak, 12, "still a live swarm")
+
+
+func test_the_menu_swarm_is_capped_and_a_run_swarm_is_not() -> void:
+	var menu: EnemySwarm = MenuBackdrop.new().menu_swarm
+	assert_eq(menu.spawn_cap, MenuBackdrop.SWARM_SPAWN_CAP, "UI R10")
+	assert_does_not_have(menu.formation_pool, "wall", "UI R10: no 72-dot wall in the menu")
+	var run: EnemySwarm = EnemySwarm.new()
+	assert_eq(run.spawn_cap, -1, "a run spawns as the TS does")
+	assert_eq(run.formation_pool, ["arrow", "circle", "wall", "turret", "snake"], "TS :806")
+
+
+func test_the_swarm_spawner_waits_at_the_cap() -> void:
+	var swarm: EnemySwarm = EnemySwarm.new()
+	swarm.spawn_cap = 3
+	for i: int in range(3):
+		swarm.spawn_seeker(BOUNDS)
+	var particles: ParticleEngine = ParticleEngine.new()
+	for i: int in range(600):
+		swarm.update(1.0 / 60.0, Vector2(-9999.0, -9999.0), BOUNDS, particles)
+	assert_eq(swarm.enemies.size(), 3, "no seeker or wave while at the cap")
 
 
 func test_orbs_spawn_in_the_mirrored_band() -> void:

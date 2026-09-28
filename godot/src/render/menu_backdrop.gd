@@ -24,11 +24,19 @@ const BASE_TYPES: Array[Types.WeaponType] = [
 const THRUSTER_COLOR: Color = Color("#00ddff")
 ## PORT: web/src/tilt-to-live/TiltGame.ts:1779
 const SHIELD_BURST_COLOR: Color = Color("#5B8CFF")
+## DIVERGENCE(UI R10, user 2026-09-28: "if left on the menu screen - it actually fills the
+## map with enemies causing it to lose fps"): the TS runs EnemySwarm.update's own seeker
+## timer and formation waves here uncapped (:1763-1770), and its ramp shortens both, so
+## an idle menu climbed past 140 dots. They now act only below this count, and the
+## menu's formations leave out the wall (72 dots at once on a phone), so one arrow,
+## circle, turret or snake landing on the cap is the most there can be.
+const SWARM_SPAWN_CAP: int = 24
+const SWARM_FORMATIONS: Array[String] = ["arrow", "circle", "turret", "snake"]
 
 ## The autopiloted ship. PORT: web/src/tilt-to-live/TiltGame.ts:71
 var menu_player: PlayerShip = PlayerShip.new(600.0, 350.0)
 ## PORT: web/src/tilt-to-live/TiltGame.ts:72
-var menu_swarm: EnemySwarm = EnemySwarm.new()
+var menu_swarm: EnemySwarm = _capped_swarm()
 ## PORT: web/src/tilt-to-live/TiltGame.ts:73
 var menu_weapons: WeaponSystem = WeaponSystem.new()
 ## Seconds this backdrop has run (M11a R14).
@@ -40,6 +48,13 @@ var _menu_spawn_timer: float = 0.0  # PORT: web/src/tilt-to-live/TiltGame.ts:75
 # attach()ed has no playback, so every play_* returns at audio_bank.gd:305.
 var _silent_audio: AudioBank = AudioBank.new()
 var _particles: ParticleEngine = null
+
+
+static func _capped_swarm() -> EnemySwarm:
+	var swarm: EnemySwarm = EnemySwarm.new()
+	swarm.spawn_cap = SWARM_SPAWN_CAP
+	swarm.formation_pool = SWARM_FORMATIONS.duplicate()
+	return swarm
 
 
 ## One step of the menu sim. PORT: web/src/tilt-to-live/TiltGame.ts:1650-1820

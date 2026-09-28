@@ -131,3 +131,14 @@ redesign if needed to make ui/ux feel better as a player". Rulings are Claude's 
 - **UI R9** — "code red should actually be red": Code Red's colour, accent and glow
   #FF4D5E / #FF8A95 (TS violet #A78BFA), and its run-start banner in the same red.
   Suite 759.
+- [x] **UI R10** — "if left on the menu screen - it actually fills the map with enemies
+  causing it to lose fps": the backdrop gated only its own seeker spawn (< 14,
+  TiltGame.ts:1673); `EnemySwarm.update`'s seeker timer and formation waves ran uncapped
+  (the TS does the same) and ramp with time, and one wall is 72 dots on a phone. Ruling:
+  `EnemySwarm.spawn_cap` (-1 in runs) — the menu swarm's own spawners act only below 24 —
+  and `EnemySwarm.formation_pool` (the TS five in runs) — the menu drops the wall. Desktop
+  10 min idle on 2424×1080 (`bench/bench_menu.gd`): peak 147 → 32 enemies, 78–118 →
+  57–70 µs/tick. `test_an_idle_menu_stays_bounded` (5 min, peak ≤ 38) fails with the cap
+  removed (45). PERF gains `men=` (menu swarm size); `tools/emulator/menu_idle.sh`
+  idles APKs on the menu and logs PERF. Emulator A/B (`menu_idle.sh menu-before menu-after`, 8 min each) pending — the first try
+  hit an adb restart mid-install. Suite 762.
