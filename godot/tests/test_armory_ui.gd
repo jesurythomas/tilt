@@ -845,3 +845,30 @@ func test_upgrade_value_labels_have_width_on_screen() -> void:
 	assert_not_null(value)
 	for label: Node in value.get_children():
 		assert_gt((label as Control).size.x, 4.0, "'%s' is drawn" % (label as Label).text)
+
+
+func test_boosts_are_one_column_with_icons_and_now_next_values() -> void:
+	# ARMORY R3.
+	_armory.open("boosts")
+	await get_tree().process_frame
+	var list: VBoxContainer = _armory.find_child("BoostList", true, false) as VBoxContainer
+	assert_not_null(list)
+	assert_eq(list.get_child_count(), 5, "one row per boost, stacked")
+	assert_eq(_value_text("BoostValue_extraLives"), "lives 1 → 2")
+	assert_eq(_value_text("BoostValue_hullCompact"), "hitbox 100% → 94%")
+	assert_eq(_value_text("BoostValue_enemySlow"), "enemy speed 100% → 96%")
+	assert_eq(_value_text("BoostValue_pointsMultiplier"), "points ×1.0 → ×1.1")
+	var icon: TextureRect = (
+		(
+			(_armory.find_child("BoostCard_hullCompact", true, false) as Node)
+			. find_children("*", "TextureRect", true, false)[0]
+		)
+		as TextureRect
+	)
+	assert_eq(icon.texture, WeaponIcons.texture("hullCompact", icon.texture.get_width()))
+
+
+func test_maxed_boost_shows_only_its_value() -> void:
+	_progression.data.hull_compact = 3
+	_armory.open("boosts")
+	assert_eq(_value_text("BoostValue_hullCompact"), "hitbox 82%", "no arrow when maxed")

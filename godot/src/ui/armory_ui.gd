@@ -188,19 +188,16 @@ const ENEMY_DOT_SMALL: int = 9
 const ENEMY_DOT_GAP: int = 12
 
 ## Boosts layout. DIVERGENCE(UI-SYSTEM): ArmoryBoosts.dc.html — body padding
-## BODY_PAD_* (Task 6), gap 10; 2-col grid gap 8; card 76 tall, padding 0/13/0/16, gap
-## 14; text stack gap 7, name/effect gap 10; pips at most 180 wide; cost 92×48.
+## BODY_PAD_* (Task 6), gap 10. DIVERGENCE(ARMORY R3): the rows are _upgrade_card's.
 const BOOSTS_GAP: int = 10
-const BOOST_COLUMNS: int = 2
-const BOOST_GRID_GAP: int = 8
-const BOOST_CARD_HEIGHT: int = 76
-const BOOST_PAD_RIGHT: int = 13
-const BOOST_PAD_LEFT: int = 16
-const BOOST_CARD_GAP: int = 14
-const BOOST_STACK_GAP: int = 7
-const BOOST_NAME_GAP: int = 10
-const BOOST_PIPS_WIDTH: int = 180
-const BOOST_COST_WIDTH: int = 92
+## DIVERGENCE(ARMORY R3): what each boost's value line measures.
+const BOOST_NOUNS: Dictionary[String, String] = {
+	"extraLives": "lives",
+	"hullCompact": "hitbox",
+	"enemySlow": "enemy speed",
+	"scoreMultiplier": "score",
+	"pointsMultiplier": "points",
+}
 ## Handling layout. DIVERGENCE(UI-SYSTEM): ArmoryHandling.dc.html — body padding
 ## BODY_PAD_* (Task 6), columns gap 28; left stack gap 10, field gap 2, slider 40 tall,
 ## value Mono 14 ion; bottom row gap 8; preview stack gap 8, box r 8; legend at
@@ -1361,10 +1358,11 @@ func _render_boosts_tab() -> Control:
 	# PORT: :928-931 (copy: interface spec, ruling M14)
 	column.add_child(_caption_row("BoostsPill", "Boosts", "Permanent. They stack into every run."))
 
-	var grid: GridContainer = GridContainer.new()  # PORT: :932-934
-	grid.columns = BOOST_COLUMNS
-	grid.add_theme_constant_override("h_separation", _px(BOOST_GRID_GAP))
-	grid.add_theme_constant_override("v_separation", _px(BOOST_GRID_GAP))
+	# DIVERGENCE(ARMORY R3): one column of upgrade rows, each with its icon and the value
+	# now → next; the board's 2-column grid trimmed the effect text ("+10% in-run score …").
+	var list: VBoxContainer = VBoxContainer.new()  # PORT: :932-934
+	list.name = "BoostList"
+	list.add_theme_constant_override("separation", _px(TRACKS_GAP))
 	for boost: BoostConfig in boosts_catalog:
 		# PORT-NOTE: Callable.call() always returns Variant in GDScript 4.7.2,
 		# even though get_rank/get_cost are typed `func() -> int` closures —
@@ -1378,58 +1376,41 @@ func _render_boosts_tab() -> Control:
 		var cost: int = 0
 		if cost_value is int:
 			cost = cost_value
-		var is_maxed: bool = cost == Types.ABSENT  # PORT: :896 (cost === null)
-		var can_afford: bool = not is_maxed and points >= cost
-
-		var card: PanelContainer = PanelContainer.new()  # PORT: :906-921
-		card.name = "BoostCard_" + boost.id
-		card.theme_type_variation = "Card"
-		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		card.custom_minimum_size.y = _px(BOOST_CARD_HEIGHT)
-		var inner: MarginContainer = _pad(0, BOOST_PAD_RIGHT, 0, BOOST_PAD_LEFT)
-		var row: HBoxContainer = HBoxContainer.new()
-		row.add_theme_constant_override("separation", _px(BOOST_CARD_GAP))
-		var text_stack: VBoxContainer = VBoxContainer.new()
-		text_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		text_stack.alignment = BoxContainer.ALIGNMENT_CENTER
-		text_stack.add_theme_constant_override("separation", _px(BOOST_STACK_GAP))
-		var names: HBoxContainer = HBoxContainer.new()
-		names.add_theme_constant_override("separation", _px(BOOST_NAME_GAP))
-		var name_label: Label = _one_line(boost.name, "StrongText")
-		name_label.name = "BoostName_" + boost.id
-		# M11c review (emulator): clip_text zeroes a label's minimum width, so the
-		# expanding effect label squeezed every boost's name out of sight. The name
-		# keeps its width; the effect trims instead.
-		name_label.clip_text = false
-		name_label.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
-		names.add_child(name_label)
-		var effect: Label = _one_line(boost.effect, "MonoText")
-		effect.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		names.add_child(effect)
-		text_stack.add_child(names)
-		var pips: HBoxContainer = UiTheme.pips(current_rank, boost.max_rank, _ui_scale)  # PORT: :899-903
-		pips.name = "BoostPips_" + boost.id
-		pips.custom_minimum_size.x = _px(BOOST_PIPS_WIDTH)
-		pips.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-		text_stack.add_child(pips)
-		row.add_child(text_stack)
-		var buy: Button = Button.new()  # PORT: :913-920
-		buy.name = "Boost_" + boost.id
-		buy.theme_type_variation = "CostButton"
-		buy.custom_minimum_size = Vector2(_px(BOOST_COST_WIDTH), _px(UiTheme.TOUCH_TARGET))
-		buy.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		buy.disabled = is_maxed or not can_afford
-		buy.text = "Max" if is_maxed else UiTheme.group_digits(cost)  # Ruling K
-		buy.pressed.connect(_on_boost_pressed.bind(boost.id))
-		row.add_child(buy)
-		inner.add_child(row)
-		card.add_child(inner)
-		grid.add_child(card)
-	column.add_child(grid)
+		var row: UpgradeRow = UpgradeRow.new()  # PORT: :906-921
+		row.prefix = "Boost"
+		row.id = boost.id
+		row.icon_key = boost.id
+		row.accent = UiTheme.ION_TEXT
+		row.name = boost.name
+		row.rank = current_rank
+		row.max_rank = boost.max_rank
+		row.cost = cost  # Types.ABSENT when maxed (PORT: :896, cost === null)
+		row.now_text = "%s %s" % [BOOST_NOUNS[boost.id], boost_value(boost.id, current_rank)]
+		if cost != Types.ABSENT:
+			row.next_text = boost_value(boost.id, current_rank + 1)
+		row.on_buy = _on_boost_pressed.bind(boost.id)
+		list.add_child(_upgrade_card(row, points))
+	column.add_child(list)
 
 	var margin: MarginContainer = _pad(BODY_PAD_TOP, BODY_PAD_RIGHT, BODY_PAD_BOTTOM, BODY_PAD_LEFT)
 	margin.add_child(column)
 	return _scroll_body(margin)
+
+
+## DIVERGENCE(ARMORY R3): a boost's effect at `rank`, from ProgressionManager's formulas:
+## starting lives 1 + rank (ProgressionManager.ts:692, before a ship's bonus), hitbox
+## 1 − 0.06r (:696), enemy speed 1 − 0.04r (:700), score and points 1 + 0.10r (:704, :708).
+static func boost_value(id: String, rank: int) -> String:
+	match id:
+		"extraLives":
+			return str(1 + rank)
+		"hullCompact":
+			return "%d%%" % roundi(100.0 * (1.0 - 0.06 * rank))  # PORT: ProgressionManager.ts:696
+		"enemySlow":
+			return "%d%%" % roundi(100.0 * (1.0 - 0.04 * rank))  # PORT: ProgressionManager.ts:700
+		"scoreMultiplier", "pointsMultiplier":
+			return "×%.1f" % (1.0 + 0.10 * rank)  # PORT: ProgressionManager.ts:704, :708
+	return ""
 
 
 ## PORT: web/src/tilt-to-live/ArmoryUI.ts:943-1106 — the body is HandlingPreview.start().

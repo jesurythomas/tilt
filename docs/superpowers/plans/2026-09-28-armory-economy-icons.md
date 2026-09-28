@@ -137,7 +137,7 @@ silhouette/greyscale readable at 24 px.
   column (no keystone column), card states (cost / need N / Max), "9/15" rank text,
   affordable dot, only Supernova/Cross Beam keystones, the innate line; fit tests at
   844×390 and 2340×1080 stay green.
-- [ ] **T7 — Boosts tab** (ARMORY R3). Tests: single column, current → next strings,
+- [x] **T7 — Boosts tab** (done: `BoostList` of `_upgrade_card` rows with the boost's icon, `boost_value`/`BOOST_NOUNS` for "hitbox 100% → 94%"; emulator screenshot checked; suite 730) (ARMORY R3). Tests: single column, current → next strings,
   fit.
 - [ ] **T8 — Run over** (RUNOVER R1). Tests: strings, no balance/coin rows, Destroyed
   label, upgrades-ready hint, count-up skip, fit.
