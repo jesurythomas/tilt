@@ -635,7 +635,7 @@ func test_banner_copy_per_mode() -> void:
 	var gauntlet: PackedStringArray = EffectLayer.banner_copy(Types.GameMode.GAUNTLET)
 	assert_eq(gauntlet[0], "THE GAUNTLET", ":537")
 	assert_eq(gauntlet[1], "1.25X MULTIPLIER // DESCENDING WALL MAZE", ":538")
-	assert_eq(EffectLayer.banner_colors(Types.GameMode.CODE_RED)[0], Color("#A78BFA"), ":534")
+	assert_eq(EffectLayer.banner_colors(Types.GameMode.CODE_RED)[0], Color("#FF4D5E"), "UI R9")
 	assert_eq(EffectLayer.banner_colors(Types.GameMode.GAUNTLET)[0], Color("#FFB14D"), ":539")
 	assert_eq(EffectLayer.banner_colors(Types.GameMode.CLASSIC)[0], Color("#5B8CFF"), ":528")
 

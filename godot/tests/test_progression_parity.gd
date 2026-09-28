@@ -373,9 +373,11 @@ func test_mode_configs_match_the_typescript() -> void:
 		assert_eq(mode.badge, SaveStore.read_string(want, "badge", ""), tag)
 		assert_eq(mode.tagline, SaveStore.read_string(want, "tagline", ""), tag)
 		assert_eq(mode.description, SaveStore.read_string(want, "description", ""), tag)
-		_assert_color(mode.color, SaveStore.read_string(want, "color", ""), tag + " color")
-		_assert_color(mode.accent, SaveStore.read_string(want, "accent", ""), tag + " accent")
-		_assert_color(mode.glow, SaveStore.read_string(want, "glow", ""), tag + " glow")
+		# DIVERGENCE(UI R9): Code Red is red (user 2026-09-28); the other modes keep the TS's.
+		if mode.id != Types.GameMode.CODE_RED:
+			_assert_color(mode.color, SaveStore.read_string(want, "color", ""), tag + " color")
+			_assert_color(mode.accent, SaveStore.read_string(want, "accent", ""), tag + " accent")
+			_assert_color(mode.glow, SaveStore.read_string(want, "glow", ""), tag + " glow")
 		assert_almost_eq(
 			mode.score_multiplier, SaveStore.read_float(want, "scoreMultiplier", -1.0), 0.0001, tag
 		)

@@ -12,8 +12,10 @@ extends Node2D
 const BANNER_CLASSIC: Color = Color("#5B8CFF")
 const BANNER_CLASSIC_BG: Color = Color(20.0 / 255.0, 24.0 / 255.0, 33.0 / 255.0, 0.92)
 ## PORT: web/src/tilt-to-live/TiltRenderer.ts:534-535 (code red)
-const BANNER_CODE_RED: Color = Color("#A78BFA")
-const BANNER_CODE_RED_BG: Color = Color(26.0 / 255.0, 18.0 / 255.0, 38.0 / 255.0, 0.92)
+## DIVERGENCE(UI R9, user 2026-09-28: "code red should actually be red"): the TS's
+## violet banner (#A78BFA on a violet-black box).
+const BANNER_CODE_RED: Color = Color("#FF4D5E")
+const BANNER_CODE_RED_BG: Color = Color(38.0 / 255.0, 14.0 / 255.0, 18.0 / 255.0, 0.92)
 ## PORT: web/src/tilt-to-live/TiltRenderer.ts:539-540 (gauntlet)
 const BANNER_GAUNTLET: Color = Color("#FFB14D")
 const BANNER_GAUNTLET_BG: Color = Color(38.0 / 255.0, 28.0 / 255.0, 16.0 / 255.0, 0.92)

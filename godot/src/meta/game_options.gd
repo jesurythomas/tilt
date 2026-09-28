@@ -168,9 +168,11 @@ func _build_modes() -> Array[ModeConfig]:
 	code_red.badge = "1.5×"
 	code_red.tagline = "Double density from the first second."
 	code_red.description = "Double density from the first second."
-	code_red.color = Color("#A78BFA")
-	code_red.accent = Color("#C4B5FD")
-	code_red.glow = Color(167.0 / 255.0, 139.0 / 255.0, 250.0 / 255.0, 0.35)
+	# DIVERGENCE(UI R9, user 2026-09-28: "code red should actually be red"): the TS's
+	# violet (#A78BFA, #C4B5FD).
+	code_red.color = Color("#FF4D5E")
+	code_red.accent = Color("#FF8A95")
+	code_red.glow = Color(1.0, 77.0 / 255.0, 94.0 / 255.0, 0.35)
 	code_red.score_multiplier = 1.5
 	out.append(code_red)
 

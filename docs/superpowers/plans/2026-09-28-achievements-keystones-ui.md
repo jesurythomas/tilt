@@ -121,3 +121,13 @@ redesign if needed to make ui/ux feel better as a player". Rulings are Claude's 
   overlapping blocks, touch targets ≥ 48 × scale. Mutation: without the fit and with
   the old card padding the menu check fails at every 1080-tall phone (−11 px) and 720p
   (−20 px) — the overlap the emulator showed. Suite 757.
+- **UI R7 fix** — "clickjing tile and touch changes the scaling": a re-render measured the
+  fitted menu again and the factor bounced (0.987 ↔ 0.994). Now only set_ui_scale (a new
+  screen) resets it; a render may shrink it further, never grow it (1% margin).
+  `test_steer_taps_keep_the_menu_scale` fails on the old code, passes now; emulator: the
+  Play button's edge stays on the same pixel row across Touch/Tilt taps.
+- **UI R8** — "remove 1.5x 1.0x and 1.25x from the game mode": the mode cards show no
+  multiplier (the run-start banner and the Run over subtitle still name it — not asked).
+- **UI R9** — "code red should actually be red": Code Red's colour, accent and glow
+  #FF4D5E / #FF8A95 (TS violet #A78BFA), and its run-start banner in the same red.
+  Suite 759.

@@ -78,7 +78,7 @@ func test_mode_cards_show_ts_names_taglines_and_multipliers() -> void:
 		texts.append((label as Label).text)
 	assert_has(texts, "Code Red", "GameOptions.ts:62")
 	assert_has(texts, "Double density from the first second.", "GameOptions.ts:64")
-	assert_has(texts, "1.5×", "UI R3: no trailing zero (the TS read 1.50×, TiltMenu.ts:144)")
+	assert_does_not_have(texts, "1.5×", "UI R8: no multiplier on the cards (TiltMenu.ts:151)")
 
 
 func test_picking_a_card_saves_the_mode_and_rerenders() -> void:
@@ -277,3 +277,24 @@ func test_next_card_clears_the_tagline_on_phone_screens() -> void:
 		var card: Control = menu.find_child("NextTeaserCard", true, false) as Control
 		var gap: float = card.get_global_rect().position.y - tagline.get_global_rect().end.y
 		assert_gt(gap, 4.0 * size.y / 390.0, "%s: %.0f px between tagline and card" % [size, gap])
+
+
+func test_steer_taps_keep_the_menu_scale() -> void:
+	# UI R7: a re-render (a Touch/Tilt tap) must not change the fitted scale.
+	var menu: TiltMenu = TiltMenu.new()
+	menu.size = Vector2(2424.0, 1080.0)
+	add_child_autofree(menu)
+	menu.bind(_options, _progression, _goals, _scores, _settings)
+	menu.set_ui_scale(1080.0 / 390.0, Vector2(8.0, 12.0))
+	menu.show_menu()
+	var fitted: float = menu.fit_factor()
+	for i: int in range(6):
+		menu.render()
+		assert_eq(menu.fit_factor(), fitted, "render %d keeps the scale" % i)
+
+
+func test_code_red_is_red() -> void:
+	# UI R9 (user: "code red should actually be red").
+	var red: Color = _options.get_mode_config(Types.GameMode.CODE_RED).color
+	assert_gt(red.r, 0.9)
+	assert_lt(red.b, 0.5, "red, not the TS's violet")

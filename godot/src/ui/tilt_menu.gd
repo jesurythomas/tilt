@@ -100,7 +100,6 @@ const BAR_WIDTH: int = 3
 const BAR_HEIGHT: int = 30
 const BAR_RADIUS: int = 2
 const NAME_GAP: int = 2
-const MULT_SIZE: int = 13
 ## DIVERGENCE(UI-SYSTEM): Main.dc.html — Play 18 px with a 10 px icon gap;
 ## nav row gap 8, margin-top 2.
 const PLAY_FONT: int = 18
@@ -307,6 +306,9 @@ func render() -> void:
 ## DIVERGENCE(UI R7): if the title block and the left column (plus their margins and the
 ## device insets) are taller than this screen, shrinks the menu's scale just enough — at
 ## most to FIT_MIN_FACTOR — and renders once more. Taller screens keep the device scale.
+## Only set_ui_scale (a new screen size) resets the factor: a re-render (a tap on Touch or
+## Tilt) never grows it back, so the scale stays put (user 2026-09-28: tapping them
+## "changes the scaling" — the factor bounced between two values).
 func _fit_height(title_block: Control, left: Control) -> void:
 	if _is_fitting or size.y <= 0.0:
 		return
@@ -315,12 +317,11 @@ func _fit_height(title_block: Control, left: Control) -> void:
 		title_block.get_combined_minimum_size().y + left.get_combined_minimum_size().y + margins
 	)
 	var room: float = size.y - _inset.y * 2.0
-	var wanted: float = 1.0
-	if content > room:
-		wanted = clampf(_fit * room / content, FIT_MIN_FACTOR, 1.0)
-	elif _fit < 1.0:
-		wanted = minf(1.0, _fit * room / content)
-	if is_equal_approx(wanted, _fit):
+	if content <= room:
+		return
+	# A 1% margin, so pixel rounding at the new scale cannot overflow again.
+	var wanted: float = clampf(_fit * room / content * 0.99, FIT_MIN_FACTOR, 1.0)
+	if wanted >= _fit:
 		return
 	_fit = wanted
 	_ui_scale = _base_scale * _fit
@@ -696,12 +697,8 @@ func _mode_card(config: GameOptionsManager.ModeConfig, is_selected: bool) -> But
 	tagline.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	info.add_child(tagline)
 	row.add_child(info)
-	var mult: Label = UiTheme.text(_format_multiplier(config.score_multiplier), "MonoText")
-	mult.add_theme_font_override("font", UiTheme.mono(UiTheme.Weight.MEDIUM))
-	mult.add_theme_font_size_override("font_size", _px(MULT_SIZE))
-	mult.add_theme_color_override("font_color", config.color)
-	mult.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(mult)
+	# DIVERGENCE(UI R8, user 2026-09-28: "remove 1.5x 1.0x and 1.25x from the game mode"):
+	# the card shows no score multiplier (the TS's multiplier label, TiltMenu.ts:151).
 	var hex: String = config.color.to_html(false)
 	var ring: TextureRect = TextureRect.new()
 	ring.texture = UiTheme.svg_texture(
@@ -722,13 +719,6 @@ func _mode_card(config: GameOptionsManager.ModeConfig, is_selected: bool) -> But
 	for node: Node in face.find_children("*", "Control", true, false):
 		(node as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return card
-
-
-# PORT: web/src/tilt-to-live/TiltMenu.ts:144 — toFixed(m % 1 === 0 ? 1 : 2) + "×" (:151)
-# DIVERGENCE(UI R3): no trailing zero — "1.5×" beside "1.25×" (the TS read "1.50×").
-func _format_multiplier(multiplier: float) -> String:
-	var tenths: bool = is_equal_approx(fmod(multiplier * 10.0, 1.0), 0.0)
-	return ("%.1f×" if tenths else "%.2f×") % multiplier
 
 
 ## DIVERGENCE(UI R2): the void, fading out left to right behind the title and left
