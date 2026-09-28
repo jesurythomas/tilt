@@ -29,6 +29,7 @@ func _result() -> RunOverSheet.RunResult:
 	result.best_diff = 4110
 	result.earned = 3331
 	result.balance = 7331
+	result.upgrades_ready = 3
 	return result
 
 
@@ -41,7 +42,7 @@ func _label(sheet: Node, name: String) -> Label:
 func _assert_fits(size: Vector2, scale: float) -> void:
 	var sheet: RunOverSheet = _sheet(size, scale)
 	sheet.show_result(_result())
-	sheet.set_coins(3, 120)  # M11a final review: fit-test the visible CoinsRow too
+	sheet.finish_count_up()
 	await get_tree().process_frame
 	await get_tree().process_frame
 	var outside: Array[String] = UiChecks.outside(sheet, sheet.get_global_rect())
@@ -71,15 +72,18 @@ func test_sheet_carries_the_board_controls() -> void:
 		"FinalChainLabel",
 		"FinalTimeLabel",
 		"PointsEarnedLabel",
-		"PointsBalanceLabel",
+		"UpgradesReadyHint",
 		"MilestonesList",
 		"MilestonesClip",
 		"ControlPicker",
 		"RestartButton",
 		"GameOverArmoryButton",
-		"SpendValueLabel",
 	]:
 		assert_not_null(sheet.find_child(name, true, false), name)
+	# RUNOVER R1 (user: no previous balance, no coin count).
+	for gone: String in ["PointsBalanceLabel", "SpendValueLabel", "CoinsRow", "PointsEarnedHint"]:
+		assert_null(sheet.find_child(gone, true, false), gone)
+	assert_eq((sheet.find_child("GameOverArmoryButton", true, false) as Button).text, "Armory")
 	assert_null(sheet.find_child("MenuButton", true, false), "Menu is M11's (spec §5)")
 	assert_null(sheet.find_child("FinalCoinsLabel", true, false), "coins cell dropped (spec §6.3)")
 	assert_false(
@@ -99,6 +103,7 @@ func test_layout_fits_the_a55() -> void:
 func test_show_result_fills_every_figure() -> void:
 	var sheet: RunOverSheet = _sheet(Vector2(844, 390), 1.0)
 	sheet.show_result(_result())
+	sheet.finish_count_up()
 	assert_eq(_label(sheet, "FinalScoreLabel").text, "32,420")
 	assert_eq(_label(sheet, "FinalSubtitleLabel").text, "Swarmed at 1:42 — Standard, 1.0×")
 	assert_true((sheet.find_child("NewBestBanner", true, false) as Control).visible)
@@ -107,8 +112,46 @@ func test_show_result_fills_every_figure() -> void:
 	assert_eq(_label(sheet, "FinalChainLabel").text, "12×")
 	assert_eq(_label(sheet, "FinalTimeLabel").text, "1:42")
 	assert_eq(_label(sheet, "PointsEarnedLabel").text, "+3,331")
-	assert_eq(_label(sheet, "PointsBalanceLabel").text, "7,331")
-	assert_eq(_label(sheet, "SpendValueLabel").text, "7,331")
+	assert_eq(_label(sheet, "UpgradesReadyHint").text, "3 upgrades ready in the Armory")
+	assert_true(_label(sheet, "UpgradesReadyHint").visible)
+
+
+func test_earned_counts_up_from_zero_and_a_tap_skips() -> void:
+	# RUNOVER R1.
+	var sheet: RunOverSheet = _sheet(Vector2(844, 390), 1.0)
+	sheet.show_result(_result())
+	assert_eq(_label(sheet, "PointsEarnedLabel").text, "+0", "starts at zero")
+	var tap: InputEventMouseButton = InputEventMouseButton.new()
+	tap.button_index = MOUSE_BUTTON_LEFT
+	tap.pressed = true
+	sheet._gui_input(tap)
+	assert_eq(_label(sheet, "PointsEarnedLabel").text, "+3,331", "a tap shows the total")
+
+
+func test_earned_count_up_lands_on_the_total() -> void:
+	var sheet: RunOverSheet = _sheet(Vector2(844, 390), 1.0)
+	sheet.show_result(_result())
+	await get_tree().create_timer(RunOverSheet.COUNT_UP_SECONDS + 0.2).timeout
+	assert_eq(_label(sheet, "PointsEarnedLabel").text, "+3,331")
+
+
+func test_upgrades_ready_hint() -> void:
+	assert_eq(RunOverSheet.upgrades_ready_text(1), "1 upgrade ready in the Armory")
+	var sheet: RunOverSheet = _sheet(Vector2(844, 390), 1.0)
+	var result: RunOverSheet.RunResult = _result()
+	result.upgrades_ready = 0
+	sheet.show_result(result)
+	assert_false(_label(sheet, "UpgradesReadyHint").visible, "nothing to buy: no nudge")
+
+
+func test_the_kills_cell_reads_destroyed() -> void:
+	var sheet: RunOverSheet = _sheet(Vector2(844, 390), 1.0)
+	var captions: Array[String] = []
+	for label: Node in sheet.find_child("StatGrid", true, false).find_children(
+		"*", "Label", true, false
+	):
+		captions.append((label as Label).text)
+	assert_true(captions.has("DESTROYED") or captions.has("Destroyed"), str(captions))
 
 
 func test_banner_hides_without_a_new_best() -> void:
@@ -227,15 +270,3 @@ func test_run_over_has_a_menu_button() -> void:
 	var menu: Button = sheet.find_child("GameOverMenuButton", true, false) as Button
 	assert_not_null(menu, "TiltGame.ts:1226")
 	assert_eq(menu.text, "Menu")
-
-
-func test_coins_row_shows_only_after_a_pickup() -> void:
-	var sheet: RunOverSheet = _sheet(Vector2(844, 390), 1.0)
-	sheet.set_coins(0, 0)
-	var row: Control = sheet.find_child("CoinsRow", true, false) as Control
-	assert_false(row.visible, "TiltGame.ts:2130")
-	sheet.set_coins(3, 1)
-	assert_true(row.visible, "TiltGame.ts:2128")
-	assert_true(sheet.coins_detail_text().ends_with("+1 pt"), "singular (:2127)")
-	sheet.set_coins(3, 120)
-	assert_eq(sheet.coins_detail_text(), "3 · +120 pts", ":2127")

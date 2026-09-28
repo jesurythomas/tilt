@@ -139,7 +139,7 @@ silhouette/greyscale readable at 24 px.
   844×390 and 2340×1080 stay green.
 - [x] **T7 — Boosts tab** (done: `BoostList` of `_upgrade_card` rows with the boost's icon, `boost_value`/`BOOST_NOUNS` for "hitbox 100% → 94%"; emulator screenshot checked; suite 730) (ARMORY R3). Tests: single column, current → next strings,
   fit.
-- [ ] **T8 — Run over** (RUNOVER R1). Tests: strings, no balance/coin rows, Destroyed
+- [x] **T8 — Run over** (done: hero "+N" count-up (`finish_count_up`, tap skips), `UpgradesReadyHint` from `ProgressionManager.count_affordable_upgrades` (+ `LIVE_KEYSTONES`), "Destroyed", "Armory" button; balance/coins/hint nodes removed; emulator screenshot checked; suite 734) (RUNOVER R1). Tests: strings, no balance/coin rows, Destroyed
   label, upgrades-ready hint, count-up skip, fit.
 - [ ] **T9 — Verify**: suite, gdformat/gdlint, headless boot, emulator screenshots of
   every Armory tab, the run over and orbs mid-run (Read them); FPS check (PERF line) —

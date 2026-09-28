@@ -362,25 +362,20 @@ func test_pause_stats_show_score_time_and_mode() -> void:
 	assert_true(stats.text.ends_with(" · " + mode), stats.text)
 
 
-func test_run_over_shows_points_and_spend() -> void:
+func test_run_over_shows_points_and_the_armory_button() -> void:
 	# PORT: web/src/tilt-to-live/TiltGame.ts:2118-2122
 	var root: GameRoot = await _boot_into_run()
-	var balance: int = root.progression.data.points
 	GameEvents.run_ended.emit(0, Types.GameStats.new())
 	# PORT: web/src/tilt-to-live/TiltGame.ts:2089-2151 — the sheet fills 450 ms
 	# after the death tick (I-1).
 	await get_tree().create_timer(0.5).timeout
-	var panel: Control = root.find_child("GameOverPanel", true, false) as Control
+	var panel: RunOverSheet = root.find_child("GameOverPanel", true, false) as RunOverSheet
 	assert_true(panel.visible)
-	assert_eq(
-		(panel.find_child("PointsBalanceLabel", true, false) as Label).text,
-		UiTheme.group_digits(balance)
-	)
-	assert_eq(
-		(panel.find_child("SpendValueLabel", true, false) as Label).text,
-		UiTheme.group_digits(balance),
-		"Spend N reads the balance (:2122)"
-	)
+	panel.finish_count_up()
+	# RUNOVER R1: what the run earned, no balance; the button reads "Armory".
+	assert_eq((panel.find_child("PointsEarnedLabel", true, false) as Label).text, "+0")
+	assert_null(panel.find_child("PointsBalanceLabel", true, false))
+	assert_eq((panel.find_child("GameOverArmoryButton", true, false) as Button).text, "Armory")
 	assert_false(
 		(panel.find_child("NewBestBanner", true, false) as Control).visible,
 		"a zero-score run is not a new best (:2097)"
@@ -451,10 +446,10 @@ func test_run_over_lists_the_runs_milestones_and_opens_the_screen() -> void:
 	assert_eq(list.get_child_count(), 1)
 	var text: Label = list.get_child(0).find_child("MilestoneText", true, false) as Label
 	assert_eq(text.text, "Rookie Dodger — Reach 1,000 score in a run", ":2136")
+	(root.find_child("GameOverPanel", true, false) as RunOverSheet).finish_count_up()
 	var earned: Label = root.find_child("PointsEarnedLabel", true, false) as Label
 	assert_eq(earned.text, "+110", "payout 60 + score_1k 50 (ECON R1)")
-	var balance: Label = root.find_child("PointsBalanceLabel", true, false) as Label
-	assert_eq(balance.text, "610", "500 + 110 (:2119)")
+	assert_eq(root.progression.data.points, 610, "500 + 110 banked (:2119)")
 	var click: InputEventMouseButton = InputEventMouseButton.new()
 	click.button_index = MOUSE_BUTTON_LEFT
 	click.pressed = true
@@ -473,8 +468,9 @@ func test_run_over_hides_an_empty_milestones_list() -> void:
 	# after the death tick (I-1).
 	await get_tree().create_timer(0.5).timeout
 	assert_false((root.find_child("MilestonesList", true, false) as Control).visible, ":2141-2143")
+	(root.find_child("GameOverPanel", true, false) as RunOverSheet).finish_count_up()
 	assert_eq((root.find_child("PointsEarnedLabel", true, false) as Label).text, "+60")
-	assert_eq((root.find_child("PointsBalanceLabel", true, false) as Label).text, "560")
+	assert_eq(root.progression.data.points, 560, "the payout floor banked")
 
 
 ## I-1 regression: the death tick's step 8 (run_controller.gd:227) runs
@@ -499,19 +495,14 @@ func test_run_over_includes_a_total_goal_completed_on_the_death_tick() -> void:
 	rc.goals.evaluate_live_total_goals(rc.run_tracker)
 	assert_true(rc.goals.is_completed("total_points_10"), "death-tick live check")
 	await get_tree().create_timer(0.5).timeout
+	(root.find_child("GameOverPanel", true, false) as RunOverSheet).finish_count_up()
 	var earned: Label = root.find_child("PointsEarnedLabel", true, false) as Label
 	# ECON R1: the payout (60 base, 0 s, 0 kills) + score_1k 50 + total_points_10 100.
 	assert_eq(earned.text, "+210", "payout + both milestones, step 8 included")
-	var balance: Label = root.find_child("PointsBalanceLabel", true, false) as Label
 	assert_eq(
-		balance.text,
-		UiTheme.group_digits(balance_before + 210),
-		"the death-tick completion must reach the balance (:2119)",
-	)
-	assert_eq(
-		(balance.text as String).replace(",", "").to_int(),
 		rc.progression.data.points,
-		"Run over must not under-report the real balance",
+		balance_before + 210,
+		"the death-tick completion must reach the balance (:2119)",
 	)
 
 

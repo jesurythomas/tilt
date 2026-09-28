@@ -415,6 +415,7 @@ static func run_result_for(
 		result.earned = run.points_credited_this_run
 		result.milestones = run.run_completed_goals.duplicate()  # PORT: :2132
 		result.balance = run.progression.data.points  # PORT: :2119
+		result.upgrades_ready = run.progression.count_affordable_upgrades()  # RUNOVER R1
 	return result
 
 
@@ -564,9 +565,6 @@ func _on_run_over_timer_timeout() -> void:
 	# player changes it. Re-syncing whenever this surface opens covers it.
 	_sync_pickers()
 	_run_over.show_result(run_result_for(_pending_final_score, _pending_stats, _run))
-	if _run != null:
-		# PORT: web/src/tilt-to-live/TiltGame.ts:2124-2130 (M11a R17)
-		_run_over.set_coins(_run.coins.coins_collected, _run.coins.points_from_coins)
 	_game_over_panel.visible = true
 
 

@@ -17,8 +17,7 @@ const CONTROL_PICKER: PackedScene = preload("res://scenes/control_picker.tscn")
 ## DIVERGENCE(UI-SYSTEM): RunOver.dc.html — scrim rgba(8,9,14,0.86), sheet
 ## 700×346, column gap 28, left stack gap 16, score block gap 6, banner flare 8%
 ## fill / 30% border r4 pad 8 gap 8 text 13, stat cells pad 12/6 gap 4, right
-## stack gap 10, steer label width 44, steer row gap 10, bottom row gap 8, the
-## space in "Spend 7,331" at 14 px.
+## stack gap 10, steer label width 44, steer row gap 10, bottom row gap 8.
 const SCRIM_ALPHA: float = 0.86
 const SHEET_WIDTH: int = 700
 const SHEET_HEIGHT: int = 346
@@ -38,21 +37,22 @@ const RIGHT_GAP: int = 10
 const STEER_LABEL_WIDTH: int = 44
 const STEER_GAP: int = 10
 const BOTTOM_GAP: int = 8
-const SPEND_GAP: int = 4
 
 ## Earned-milestone rows. DIVERGENCE(UI-SYSTEM): RunOver.dc.html — list gap 6,
 ## row gap 9, the HUD toast's 14 px check, text 13 #C7CDDB, points Mono 12 flare.
 const LIST_GAP: int = 6
 const ROW_GAP: int = 9
 const ROW_POINTS_SIZE: int = 12
-## DIVERGENCE(M11c review): shown under "Points earned" when a run earned none.
-const EARNED_HINT: String = "Points come from milestones and coin pickups."
+## DIVERGENCE(RUNOVER R1): the earned figure is the hero (score size, flare) and counts
+## up from 0 over this long; a tap on the sheet skips to the total.
+const COUNT_UP_SECONDS: float = 0.6
 
 var _ui_scale: float = 1.0
 var _points_row: HBoxContainer = null
-var _coins_row: HBoxContainer = null
-var _coins_detail: Label = null
-var _earned_hint: Label = null
+## DIVERGENCE(RUNOVER R1): "N upgrades ready in the Armory".
+var _next_hint: Label = null
+var _earned_target: int = 0
+var _count_tween: Tween = null
 var _milestones: VBoxContainer = null
 var _shown_milestones: Array[GoalManager.Goal] = []
 var _sheet: PanelContainer = null
@@ -72,7 +72,6 @@ var _kills: Label = null
 var _chain: Label = null
 var _time: Label = null
 var _earned: Label = null
-var _balance: Label = null
 var _steer_row: HBoxContainer = null
 var _steer_caption: Label = null
 var _picker: ControlPicker = null
@@ -80,8 +79,6 @@ var _retry: Button = null
 var _bottom: HBoxContainer = null
 var _menu: Button = null
 var _spend: Button = null
-var _spend_row: HBoxContainer = null
-var _spend_value: Label = null
 
 
 func _ready() -> void:
@@ -131,7 +128,7 @@ func set_ui_scale(scale: float) -> void:
 	_bottom.add_theme_constant_override("separation", UiTheme.px(BOTTOM_GAP, scale))
 	for button: Button in [_menu, _spend]:
 		button.custom_minimum_size.y = UiTheme.TOUCH_TARGET * scale
-	_spend_row.add_theme_constant_override("separation", UiTheme.px(SPEND_GAP, scale))
+	_earned.add_theme_font_size_override("font_size", UiTheme.px(UiTheme.SCORE_SIZE, scale))
 	_picker.set_ui_scale(scale)
 	_milestones.add_theme_constant_override("separation", UiTheme.px(LIST_GAP, scale))
 	_fill_milestones(_shown_milestones)
@@ -146,23 +143,57 @@ func show_result(result: RunResult) -> void:
 	_kills.text = str(result.kills)  # PORT: :2104
 	_chain.text = "%d×" % result.best_chain  # PORT: :2105
 	_time.text = result.time_text  # PORT: :2107
-	_earned.text = "+%s" % UiTheme.group_digits(result.earned)  # PORT: :2121
-	_earned_hint.visible = result.earned == 0
-	_balance.text = UiTheme.group_digits(result.balance)  # PORT: :2121
-	_spend_value.text = UiTheme.group_digits(result.balance)  # PORT: :2122
+	# DIVERGENCE(RUNOVER R1): only what the run earned (user 2026-09-28: "i dont think users
+	# need to know what the previous money was ... just showing how much they earned is
+	# ok"), counting up; the TS showed "+earned → balance" (:2121).
+	_start_count_up(result.earned)
+	_next_hint.visible = result.upgrades_ready > 0
+	_next_hint.text = upgrades_ready_text(result.upgrades_ready)
 	_fill_milestones(result.milestones)  # PORT: :2132-2144
 
 
-## The coins row, shown only after a pickup. PORT: web/src/tilt-to-live/TiltGame.ts:2124-2130
-func set_coins(collected: int, points: int) -> void:
-	_coins_row.visible = collected > 0  # PORT: :2124, :2127, :2129
-	var unit: String = "pt" if points == 1 else "pts"  # PORT: :2126
-	_coins_detail.text = "%d · +%s %s" % [collected, UiTheme.group_digits(points), unit]
+## "+1,274" — the earned figure as shown.
+static func earned_text(points: int) -> String:
+	return "+%s" % UiTheme.group_digits(points)
 
 
-## The coins row's figures, e.g. "3 · +120 pts" (TiltGame.ts:2126).
-func coins_detail_text() -> String:
-	return _coins_detail.text
+## "3 upgrades ready in the Armory" / "1 upgrade ready in the Armory".
+static func upgrades_ready_text(count: int) -> String:
+	return "%d upgrade%s ready in the Armory" % [count, "" if count == 1 else "s"]
+
+
+## Jumps the count-up to the run's total (a tap on the sheet, or a test).
+func finish_count_up() -> void:
+	if _count_tween != null:
+		_count_tween.kill()
+		_count_tween = null
+	_earned.text = earned_text(_earned_target)
+
+
+func _start_count_up(target: int) -> void:
+	_earned_target = target
+	if _count_tween != null:
+		_count_tween.kill()
+	_earned.text = earned_text(0)
+	_count_tween = create_tween()
+	(
+		_count_tween
+		. tween_method(
+			func(v: float) -> void: _earned.text = earned_text(roundi(v)),
+			0.0,
+			float(target),
+			COUNT_UP_SECONDS
+		)
+		. set_ease(Tween.EASE_OUT)
+		. set_trans(Tween.TRANS_CUBIC)
+	)
+	_count_tween.tween_callback(finish_count_up)
+
+
+func _gui_input(event: InputEvent) -> void:
+	var click: InputEventMouseButton = event as InputEventMouseButton
+	if click != null and click.pressed and _count_tween != null:
+		finish_count_up()
 
 
 ## "Swarmed at 1:42 — Standard, 1.0×". PORT: web/src/tilt-to-live/TiltGame.ts:2095
@@ -214,7 +245,8 @@ func _build_left() -> VBoxContainer:
 	)
 	var grid: HBoxContainer = HBoxContainer.new()
 	grid.add_theme_constant_override("separation", 1)
-	_kills = _stat_cell(grid, "FinalKillsLabel", "Kills")
+	# DIVERGENCE(RUNOVER R1): "enemies destroyed" (user 2026-09-28); the board said Kills.
+	_kills = _stat_cell(grid, "FinalKillsLabel", "Destroyed")
 	_chain = _stat_cell(grid, "FinalChainLabel", "Best chain")
 	_time = _stat_cell(grid, "FinalTimeLabel", "Alive")
 	grid_frame.add_child(grid)
@@ -231,38 +263,19 @@ func _build_right() -> VBoxContainer:
 	_points_row.add_child(caption)
 	_earned = UiTheme.text("", "PointsText")
 	_earned.name = "PointsEarnedLabel"
+	_earned.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_points_row.add_child(_earned)
-	var arrow: Label = UiTheme.text("→", "PointsText")
-	arrow.add_theme_color_override("font_color", UiTheme.TEXT_FAINT)
-	_points_row.add_child(arrow)
-	_balance = UiTheme.text("", "PointsText")
-	_balance.name = "PointsBalanceLabel"
-	_points_row.add_child(_balance)
 	# PORT: web/src/tilt-to-live/GoalsHUD.ts:133-134 (.gameover-points-box opens the screen)
 	_points_row.mouse_filter = Control.MOUSE_FILTER_STOP
 	_points_row.gui_input.connect(_on_rows_gui_input)
 	_right.add_child(_points_row)
-	# DIVERGENCE(M11c review, emulator play 2026-09-27): "+0 → 5,531" after a 590-score
-	# run read as broken. Points come only from milestones and coins (the TS sums
-	# those, TiltGame.ts:2118), so a zero run says where points come from.
-	_earned_hint = UiTheme.text(EARNED_HINT, "HintText")
-	_earned_hint.name = "PointsEarnedHint"
-	_earned_hint.visible = false
-	_right.add_child(_earned_hint)
-
-	# M11a R17: the TS coins row (TiltGame.ts:1217-1220) under the points row.
-	# DIVERGENCE(UI-SYSTEM): RunOver.dc.html — Rule N: the board has no coins row; it
-	# takes the Points earned row's styles.
-	_coins_row = HBoxContainer.new()
-	_coins_row.name = "CoinsRow"
-	_coins_row.visible = false
-	var coins_caption: Label = UiTheme.text("Coin pickups", "BodyText")  # PORT: :1218
-	coins_caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_coins_row.add_child(coins_caption)
-	_coins_detail = UiTheme.text("", "PointsText")
-	_coins_detail.name = "CoinsDetailLabel"
-	_coins_row.add_child(_coins_detail)
-	_right.add_child(_coins_row)
+	# DIVERGENCE(RUNOVER R1): the TS coins row (TiltGame.ts:1217-1220) and the "+0" hint
+	# went (user: "no need to know how many coins"); a nudge toward the Armory instead.
+	_next_hint = UiTheme.text("", "HintText")
+	_next_hint.name = "UpgradesReadyHint"
+	_next_hint.add_theme_color_override("font_color", UiTheme.COLOR_LOCKED_IN)
+	_next_hint.visible = false
+	_right.add_child(_next_hint)
 
 	# M9 plan R9: the list sits in the board's flex gap (RunOver.dc.html's
 	# flex-grow spacer) and clips there, so a long list never grows the sheet.
@@ -307,21 +320,9 @@ func _build_right() -> VBoxContainer:
 	_spend.name = "GameOverArmoryButton"
 	_spend.theme_type_variation = "SecondaryButton"
 	_spend.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	# "Spend <points>": two colours, so two Labels over an empty-text Button.
-	var center: CenterContainer = CenterContainer.new()
-	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_spend_row = HBoxContainer.new()
-	_spend_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var word: Label = UiTheme.text("Spend", "LabelText")  # PORT: web/src/tilt-to-live/TiltGame.ts:2122
-	word.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_spend_row.add_child(word)
-	_spend_value = UiTheme.text("", "PointsText")
-	_spend_value.name = "SpendValueLabel"
-	_spend_value.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_spend_row.add_child(_spend_value)
-	center.add_child(_spend_row)
-	_spend.add_child(center)
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	# DIVERGENCE(RUNOVER R1): "Armory" — the TS's "Spend <balance>" (:2122) showed the
+	# balance again.
+	_spend.text = "Armory"
 	_bottom.add_child(_spend)
 	_right.add_child(_bottom)
 	return _right
@@ -413,5 +414,7 @@ class RunResult:
 	var best_diff: int = 0
 	var earned: int = 0
 	var balance: int = 0
+	## DIVERGENCE(RUNOVER R1): next purchases the new balance covers (0 hides the nudge).
+	var upgrades_ready: int = 0
 	## The goals evaluateRun completed. PORT: web/src/tilt-to-live/TiltGame.ts:2086
 	var milestones: Array[GoalManager.Goal] = []

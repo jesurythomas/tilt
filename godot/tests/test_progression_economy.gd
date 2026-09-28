@@ -242,3 +242,19 @@ func test_run_payout_formula() -> void:
 		ProgressionManager.run_payout(150.0, 500, 1.0),
 		"a better run pays more"
 	)
+
+
+func test_count_affordable_upgrades() -> void:
+	# RUNOVER R1: next track ranks, live keystones and boost ranks the balance covers.
+	_pm.data.points = 0
+	assert_eq(_pm.count_affordable_upgrades(), 0)
+	_pm.data.points = 250
+	# Rank-0 tracks cost 250: nuke.speed, shield ×2, missiles ×2, laser.duration,
+	# lightning ×2, freeze.duration = 9. Boosts start at 500; keystones at 3500.
+	assert_eq(_pm.count_affordable_upgrades(), 9)
+	_pm.data.points = 500
+	assert_eq(_pm.count_affordable_upgrades(), 9 + 1 + 1, "+ nuke.radius rank 1 (400), score ×")
+	_pm.data.points = 100000
+	_pm.data.perks.nuke.fallout_zone = false
+	var all_open: int = _pm.count_affordable_upgrades()
+	assert_eq(all_open, 14 + 2 + 5, "every unmaxed track, the 2 live keystones, 5 boosts")
