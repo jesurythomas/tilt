@@ -244,17 +244,18 @@ func update(
 					else Tuning.get_tuned_value("blackhole", "radius", 0) * scale
 				)
 				var pull_radius2: float = pull_radius * pull_radius
-				var invulnerable_inside: bool = data.get("invulnerableInside", false)
 				var gravity_rank: int = data.get("gravity", 0)
 
-				# Event Horizon Cloak keystone. PORT: web/src/tilt-to-live/WeaponSystem.ts:187-196
-				if invulnerable_inside:
-					var ship_dist: float = Vector2(player.x - w.x, player.y - w.y).length()
-					if ship_dist <= pull_radius:
-						player.activate_shield(0.3)  # PORT: web/src/tilt-to-live/WeaponSystem.ts:191
-						if randf() < 0.25:  # PORT: web/src/tilt-to-live/WeaponSystem.ts:192
-							# PORT: web/src/tilt-to-live/WeaponSystem.ts:193
-							particles.emit_sparks(player.x, player.y, 1, Color("#b84dff"), 40.0)
+				# Event Horizon Cloak. PORT: web/src/tilt-to-live/WeaponSystem.ts:187-196
+				# DIVERGENCE(ECON R5): innate (user 2026-09-28: "for blackhole make being
+				# invulerable a already innate upgrade") — the TS gated it on the
+				# invulnerableInside keystone (:187), which left the Armory.
+				var ship_dist: float = Vector2(player.x - w.x, player.y - w.y).length()
+				if ship_dist <= pull_radius:
+					player.activate_shield(0.3)  # PORT: web/src/tilt-to-live/WeaponSystem.ts:191
+					if randf() < 0.25:  # PORT: web/src/tilt-to-live/WeaponSystem.ts:192
+						# PORT: web/src/tilt-to-live/WeaponSystem.ts:193
+						particles.emit_sparks(player.x, player.y, 1, Color("#b84dff"), 40.0)
 
 				# PORT: web/src/tilt-to-live/WeaponSystem.ts:198
 				var gravity_multiplier: float = 1.0 + float(gravity_rank) * 0.2

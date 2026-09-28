@@ -126,7 +126,7 @@ silhouette/greyscale readable at 24 px.
   value 10; milestone rewards ×50 at catalog build; `points_credited_this_run` counts
   every credited point (coins, milestones, payout) for the sheet. Tests: formula values,
   banking once, points multiplier applied, coin value, goal rewards ×50 vs fixture.
-- [ ] **T3 — Aegis innate** (ECON R5): `WeaponSystem` shields inside the radius
+- [x] **T3 — Aegis innate** (done: weapon_system.gd shields unconditionally inside the pull radius; +1 outside-radius test; suite 718) (ECON R5): `WeaponSystem` shields inside the radius
   unconditionally; test (no keystone → shielded inside, not outside).
 - [ ] **T4 — Icon set** (ICONS R1): `weapon_icons.gd`, glyph SVGs, colour table, cached
   textures; a render sheet (`bench/icon_sheet.gd`, windowed) for review at 24/48 px and

@@ -137,10 +137,11 @@ func test_vortex_supernova_keystone_widens_the_collapse() -> void:
 	assert_eq(_killed.size(), 2, "287 px is inside the 320 px supernova")
 
 
-func test_vortex_cloak_keystone_shields_the_player_inside() -> void:
+func test_vortex_cloak_is_innate_and_shields_the_player_inside() -> void:
+	# DIVERGENCE(ECON R5): no keystone needed (invulnerable_inside stays false).
 	_player = PlayerShip.new(520.0, 300.0)
 	var perks: ProgressionManager.WeaponPerks = ProgressionManager.WeaponPerks.new()
-	perks.blackhole.invulnerable_inside = true
+	assert_false(perks.blackhole.invulnerable_inside)
 	_activate(Types.WeaponType.VORTEX, 500.0, 300.0, [], perks)
 	assert_false(_player.has_shield())
 	_update([], 0.1, perks)
@@ -231,3 +232,11 @@ func test_vortex_matches_the_pre_p33_field_access() -> void:
 		"the field locals change nothing"
 	)
 	assert_gte(_last_vortex_kills, 15, "the run kills enough to exercise the kill branch")
+
+
+func test_vortex_cloak_does_not_shield_outside_the_pull_radius() -> void:
+	_player = PlayerShip.new(1400.0, 300.0)
+	var perks: ProgressionManager.WeaponPerks = ProgressionManager.WeaponPerks.new()
+	_activate(Types.WeaponType.VORTEX, 500.0, 300.0, [], perks)
+	_update([], 0.1, perks)
+	assert_false(_player.has_shield(), "900 px away is outside the pull radius")
