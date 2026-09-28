@@ -5,7 +5,7 @@ Rewritten at every module stop. Written for a session with zero context.
 ## State
 
 **Current (2026-09-28): M11c review fixes + FPS work in progress, on the C++ path;
-N3 (native swarm loop) and N4 (native enemy draw loop) landed.** Active plan
+N3–N5 (native swarm loop, enemy draw loop, dot atlas) and N6 (frame split) landed.** Active plan
 `docs/superpowers/plans/2026-09-27-m11c-review-fixes.md`; the head of `## Next`
 below says exactly where it stands and what to do first. Everything is committed;
 the tree is clean. **The native extension is now required**: enemies are the C++
@@ -1698,7 +1698,23 @@ block and output: "## How to verify right now" above. Full report:
 
 ## Next
 
-**Where it stands (2026-09-28, later).** N4 landed (plan, "Native swarm tick" → N4):
+**Where it stands (2026-09-28, latest).** N6 (plan → N6): the PERF line now splits the
+main-thread frame into `m_phys` / `m_proc` / `m_tail` (plus `rcpu`, `pmax`, `phmax`);
+`tools/emulator/perf_buckets.sh` prints the split. On the emulator `m_tail` (RenderingServer
+sync/draw and presentation, after the `_draw` flush) is **~26–31 ms at every enemy count**,
+even under 50, and vsync off does not change it: a fixed emulator/engine cost. The game's
+own share at 250+ is ~24 ms (m_phys 12.4 + m_proc 11.5) of a ~50 ms frame, so script wins
+barely move emulator fps. Separate render thread re-confirmed (250+: ~22.5 vs ~14.5 fps
+for Safe). `Performance.TIME_PROCESS` is a per-second max, not a per-frame cost.
+
+**Next, literally:**
+1. Particles in C++ (plan's Power-up FPS step 4; `s_particles` 1–2.5 ms/frame and part of
+   `d_effect` ~2 ms at 250+), output-identical with an oracle or pixel check, as N3–N5.
+   Judge by section times on the emulator (`perf_buckets.sh`), not its fps.
+2. Then the kill path (`on_enemy_killed`, `register_kill`; slower on native fields).
+3. Items 2–3 of the list below (A55 pass — fps is judged there now; release libs).
+
+**Earlier (2026-09-28, later).** N4 landed (plan, "Native swarm tick" → N4):
 EntityLayer's enemy loop runs in C++ (`PerilEnemyDrawer`, `native/src/peril_draw.*`):
 default and frozen dots draw natively, every other type calls its GDScript `_draw_*`
 in place (same order). Pixel-identical (`bench/pixel_native_draw.gd`, windowed: 0 of

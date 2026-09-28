@@ -495,6 +495,44 @@ User ruling: C++ GDExtension for the hot path, not C# (Android C# is experimenta
   next to PERF, and A/B a `rendering/driver/threads/thread_model` Safe build against
   Separate (P24) at 250+; the A55 (native arm64, real GPU) remains the real judge.
   Particles in C++ and the kill path after that.
+- [x] **N6 — where the emulator frame goes** (done 2026-09-28). The PERF line gained
+  main-thread frame marks (`PerfProbe.mark_physics/mark_process/mark_drawn`, fed by
+  `SceneTree.physics_frame`/`process_frame` and a deferred call queued after GameRoot's
+  `queue_redraw()`s): `m_phys` (the frame's physics steps), `m_proc` (process callbacks +
+  the `_draw` flush), `m_tail` (from there to the next frame: RenderingServer sync and
+  draw, the Android loop); plus `rcpu` (render thread CPU) and `pmax`/`phmax`.
+  Finding on the way: `Performance.TIME_PROCESS`/`TIME_PHYSICS_PROCESS` are the engine's
+  **per-second maxima**, not per-frame costs (a first cut summed them and read more than
+  the frame time); they are now logged once per line as `pmax`/`phmax`, ms.
+  `perf_buckets.sh` prints a second line per bucket with the split. Desktop check: m_phys
+  0.27 + m_proc 0.5 + m_tail 15.6 = one 60 Hz frame (vsync wait). Tests: 4 new in
+  `test_perf_probe.gd`. Debug-only; the marks build's fps matched the unmarked one.
+  Emulator (power-up test mode, maxed upgrades, Separate), ms/frame by enemy count,
+  3 runs:
+
+  | en | fps | frame | m_phys | m_proc | m_tail | rcpu | gpu |
+  |---|---|---|---|---|---|---|---|
+  | <50 | 27.5 | 42.6 | 6.8 | 7.7 | 27.0 | 1.3 | 0.1 |
+  | 100–149 | 19.7 | 54.7 | 13.3 | 11.8 | 28.4 | 2.7 | 0.2 |
+  | 150–249 | 20.6 | 51.7 | 12.2 | 11.2 | 27.3 | 2.5 | 0.2 |
+  | 250+ | 22.3 | 50.7 | 12.4 | 11.5 | 25.9 | 4.0 | 0.2 |
+
+  **m_tail is ~26–31 ms at every load**, even under 50 enemies, while the render
+  thread's own CPU (≤ 4 ms) and GPU (0.2 ms) are small. A vsync-off build
+  (`window/vsync/vsync_mode=0`, 2 runs) did not change it (tail 27–30, fps 19–22), so it
+  is not vsync waiting: it is a fixed per-frame engine/presentation cost of the emulator
+  (the arm64 engine runs translated; presentation goes through the host GPU pipe). The
+  game's own main-thread work at 250+ is ~24 ms (m_phys + m_proc). This is why N4/N5 did
+  not move emulator fps: −2 ms of a ~50 ms frame is ~4%, inside the run-to-run noise.
+  **Ruling (Claude, "always proceed"):** the emulator stays useful for the script
+  sections (they are comparable A/B) but not for fps at this point; fps goes to the A55,
+  whose tail was far smaller (it held ≥ 55 fps at 100+ enemies on 2026-09-26).
+  **P24 re-confirmed** at 250+ (3 pairs, same test mode): Separate 23.0/23.0/21.4 fps vs
+  Safe 13.5/15.3/14.6 (150–249: 23.9/21.1/19.6 vs 16.5/13.4/14.3). In Safe, d_entity
+  rises 4–5× (4.8–5.4 → 16.9–22.2 ms/frame): the canvas command submission is what
+  Separate moves off the main thread. Keep Separate. 0 errors in 11 runs.
+  **Next:** particles in C++, then the kill path (both show in m_phys/m_proc, which are
+  the game's share); judge each by its section times on the emulator and by fps on the A55.
 
 ### User rulings (2026-09-27, evening)
 - [x] **P29 — wall formations spaced out** ("space them out a bit more", then "go a

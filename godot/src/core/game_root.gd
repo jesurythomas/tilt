@@ -358,6 +358,9 @@ func _process(_delta: float) -> void:
 	_entity_layer.queue_redraw()
 	_effect_layer.queue_redraw()
 	_joystick_layer.queue_redraw()
+	if PerfProbe.enabled:
+		# Queued after the queue_redraw() calls above, so it runs after their _draw.
+		(func() -> void: PerfProbe.mark_drawn(PerfProbe.now())).call_deferred()
 
 
 ## DIVERGENCE(M11c P1): feeds the debug perf probe once per rendered frame.
@@ -368,12 +371,19 @@ func _report_perf() -> void:
 	if not _perf_measuring:
 		RenderingServer.viewport_set_measure_render_time(vp, true)
 		_perf_measuring = true
+		get_tree().physics_frame.connect(func() -> void: PerfProbe.mark_physics(PerfProbe.now()))
+		get_tree().process_frame.connect(func() -> void: PerfProbe.mark_process(PerfProbe.now()))
+	# pmax/phmax: the engine's slowest process step (incl. RenderingServer sync + draw)
+	# and physics step of the last second, in ms — maxima, updated once per second.
 	PerfProbe.frame(
 		func() -> String:
 			return (
-				"gpu=%.2f en=%d pa=%d draws=%d"
+				"gpu=%.2f rcpu=%.2f pmax=%.1f phmax=%.1f en=%d pa=%d draws=%d"
 				% [
 					RenderingServer.viewport_get_measured_render_time_gpu(vp),
+					RenderingServer.viewport_get_measured_render_time_cpu(vp),
+					Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0,
+					Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0,
 					_run_controller.swarm.enemies.size(),
 					_particles.particles.size(),
 					Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),

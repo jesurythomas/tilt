@@ -27,3 +27,46 @@ func test_enabled_probe_accumulates_elapsed_time() -> void:
 	PerfProbe.reset()
 	PerfProbe.add("x", PerfProbe.now() - 1000)
 	assert_gte(PerfProbe.accumulated("x"), 1000)
+
+
+func test_add_usec_accumulates_and_keeps_the_peak() -> void:
+	PerfProbe.enabled = true
+	PerfProbe.reset()
+	PerfProbe.add_usec("e", 300)
+	PerfProbe.add_usec("e", 200)
+	assert_eq(PerfProbe.accumulated("e"), 500)
+	var line: String = PerfProbe.format_line(1, 1, 1, {"e": 500}, {"e": 300}, "")
+	assert_string_contains(line, "e=0.50/0.3")
+
+
+func test_disabled_probe_ignores_add_usec() -> void:
+	PerfProbe.enabled = false
+	PerfProbe.reset()
+	PerfProbe.add_usec("e", 300)
+	assert_eq(PerfProbe.accumulated("e"), 0)
+
+
+func test_frame_marks_split_a_frame_into_phys_proc_and_tail() -> void:
+	PerfProbe.enabled = true
+	PerfProbe.reset()
+	PerfProbe.mark_physics(1000)
+	PerfProbe.mark_physics(1400)  # a second step in the same frame keeps the first mark
+	PerfProbe.mark_process(2000)
+	PerfProbe.mark_drawn(2500)
+	PerfProbe.mark_process(3100)  # a frame with no physics step
+	assert_eq(PerfProbe.accumulated("m_phys"), 1000)
+	assert_eq(PerfProbe.accumulated("m_proc"), 500)
+	assert_eq(PerfProbe.accumulated("m_tail"), 600)
+	PerfProbe.mark_drawn(3300)
+	PerfProbe.mark_physics(4000)
+	assert_eq(PerfProbe.accumulated("m_proc"), 700)
+	assert_eq(PerfProbe.accumulated("m_tail"), 1300)
+
+
+func test_mark_drawn_without_a_process_mark_records_nothing() -> void:
+	PerfProbe.enabled = true
+	PerfProbe.reset()
+	PerfProbe.mark_drawn(2500)
+	PerfProbe.mark_physics(3000)
+	assert_eq(PerfProbe.accumulated("m_proc"), 0)
+	assert_eq(PerfProbe.accumulated("m_tail"), 0)
