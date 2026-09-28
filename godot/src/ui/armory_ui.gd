@@ -144,48 +144,39 @@ const BODY_PAD_TOP: int = 14
 const BODY_PAD_RIGHT: int = 28
 const BODY_PAD_BOTTOM: int = 16
 const BODY_PAD_LEFT: int = 24
-## Ships layout. DIVERGENCE(UI-SYSTEM): ArmoryShips.dc.html — gap 12; caption gap 12; card
-## 172 wide, r 8, gap 12; preview 82 tall with a 44 px hull; body padding
-## 11/12/12, gap 8; meter label 42 wide, meter 4 tall, gap 8; unowned hull at 45%.
+## Ships layout. DIVERGENCE(UI-SYSTEM): ArmoryShips.dc.html — gap 12; card r 8; body
+## padding 11/12/12, gap 8; meter label 42 wide, meter 4 tall, gap 8 (ARMORY R7: the
+## card's width and hull preview gave way to the carousel and the arena preview).
 const SHIPS_GAP: int = 12
-const SHIP_CARD_WIDTH: int = 172
 const SHIP_CARD_RADIUS: int = 8
-const SHIP_PREVIEW_HEIGHT: int = 82
-const SHIP_HULL_SIZE: int = 44
 const SHIP_BODY_PAD_TOP: int = 11
 const SHIP_BODY_PAD: int = 12
 const SHIP_BODY_GAP: int = 8
 const SHIP_METER_LABEL: int = 42
 const SHIP_METER_HEIGHT: int = 4
-const LOCKED_PREVIEW_ALPHA: float = 0.45
 const LOADOUT_ICON: int = 16  # PORT: web/src/styles/game.css:2385-2386 (no board slot; Ruling N)
 ## "Hull · N of 6". PORT: web/src/tilt-to-live/ArmoryUI.ts:646
 # PORT-NOTE: the TS hard-codes 6 while the catalog has 7 ships (the fixture
 # lists classic..revenant); preserved deliberately. Open question 4.
 const SHIP_COUNT_LABEL: int = 6
 
-## Arena layout. DIVERGENCE(UI-SYSTEM): ArmoryArena.dc.html — body padding
-## 12/0/14/24, gap 10 (+4 above ENEMIES); card 146 wide, r 6, gap 10; preview
-## 56 tall, grid 12 px, edge inset 8/7; body padding 8/10/9, gap 3; name 13;
-## enemy dots 12/9/12, gap 12.
-const ARENA_PAD_TOP: int = 12
-const ARENA_PAD_BOTTOM: int = 14
-const ARENA_GAP: int = 10
-const ENEMIES_TOP: int = 4
-const ARENA_CARD_WIDTH: int = 146
-const ARENA_PREVIEW_HEIGHT: int = 56
-const ARENA_GRID_STEP: int = 12
-const ARENA_EDGE_X: int = 8
-const ARENA_EDGE_Y: int = 7
-const ARENA_BODY_PAD_TOP: int = 8
-const ARENA_BODY_PAD_X: int = 10
-const ARENA_BODY_PAD_BOTTOM: int = 9
-const ARENA_BODY_GAP: int = 3
-const ARENA_NAME_FONT: int = 13
-## DIVERGENCE(SKIN R1): 22/16/8 (the board's 12/9/12) so each skin's pattern reads.
-const ENEMY_DOT_LARGE: int = 22
-const ENEMY_DOT_SMALL: int = 16
-const ENEMY_DOT_GAP: int = 8
+## Arena layout. DIVERGENCE(ARMORY R6, R7): the cards are ship cards (SHIP_*); the
+## description's line budget, and the room above the enemy section.
+const ARENA_DESC_LINES: int = 1
+const ARENA_BODY_GAP: int = 6
+const ARENA_SECTION_GAP: int = 2
+## DIVERGENCE(ARMORY R7): the showcase tabs (Ships, Arena) — item column width and
+## gaps, carousel arrow gap, and the arena preview's floor size, grid, dots and ship.
+const SHOWCASE_LEFT_WIDTH: int = 372
+const SHOWCASE_GAP: int = 8
+const SHOWCASE_COLUMN_GAP: int = 20
+const CAROUSEL_GAP: int = 8
+const PREVIEW_MIN_WIDTH: int = 220
+const PREVIEW_MIN_HEIGHT: int = 200
+const PREVIEW_GRID_STEP: int = 24
+const PREVIEW_DOT_LARGE: int = 20
+const PREVIEW_DOT_SMALL: int = 15
+const PREVIEW_SHIP_SIZE: int = 40
 
 ## Boosts layout. DIVERGENCE(UI-SYSTEM): ArmoryBoosts.dc.html — body padding
 ## BODY_PAD_* (Task 6), gap 10. DIVERGENCE(ARMORY R3): the rows are _upgrade_card's.
@@ -255,11 +246,11 @@ var _balance_tween: Tween = null
 var _rendered_tab: int = -1
 ## DIVERGENCE(ARMORY R2): the pips bar whose newest pip pops after the next render.
 var _pop_pips: String = ""
-## DIVERGENCE(ARMORY R5, user 2026-09-28: "arena -- when you click on something it
-## automatically purchases it. it should also show the button when puchasing"): the
-## Arena card picked for buying, "<kind>:<id>" ("" = none). A tap on a card the player
-## does not own picks it; only its Buy button spends points.
-var _arena_pick: String = ""
+## DIVERGENCE(ARMORY R7): the ship, arena theme and enemy skin each carousel shows
+## (-1: the equipped one, set on open).
+var _ship_index: int = -1
+var _theme_index: int = -1
+var _skin_index: int = -1
 
 @onready var _overlay: ColorRect = %Overlay
 @onready var _panel_margin: MarginContainer = %PanelMargin
@@ -321,7 +312,9 @@ func get_starting_weapon_config(weapon_type: Types.WeaponType) -> WeaponConfig:
 
 ## PORT: web/src/tilt-to-live/ArmoryUI.ts:294-315
 func open(tab: String = "") -> void:
-	_arena_pick = ""
+	_ship_index = -1
+	_theme_index = -1
+	_skin_index = -1
 	if not tab.is_empty():
 		active_tab = (TAB_ALIASES[tab] as Tab) if TAB_ALIASES.has(tab) else Tab.WEAPONS  # PORT: :308
 	visible = true
@@ -742,6 +735,7 @@ func _upgrade_card(row: UpgradeRow, points: int) -> PanelContainer:
 		buy.theme_type_variation = "CostButton"
 		buy.text = UiTheme.group_digits(row.cost)  # Ruling K
 		buy.disabled = points < row.cost
+		_lock_if_unaffordable(buy)  # DIVERGENCE(ARMORY R6)
 	buy.pressed.connect(row.on_buy)
 	line.add_child(buy)
 	inner.add_child(line)
@@ -823,48 +817,51 @@ func _keystone_card(
 
 
 ## PORT: web/src/tilt-to-live/ArmoryUI.ts:575-656
-## DIVERGENCE(UI-SYSTEM): laid out to ArmoryShips.dc.html (interface spec §6.4).
+## DIVERGENCE(ARMORY R7, user 2026-09-28: "show only 1 with arrow icons on the left and
+## right which cycles (left hand side) on the right hand side - show what it looks like
+## in the arena"; "make it also the same for ships"): one ship at a time on the left, the
+## arrows cycling through the catalog, and on the right the arena with that ship in the
+## equipped theme and enemy skin. Supersedes ArmoryShips.dc.html's card row.
 func _render_ships_tab() -> Control:
-	var equipped_id: String = progression.data.equipped_cursor_id
-	var unlocked_ids: Array[String] = progression.data.unlocked_cursors
 	var ships: Array[ProgressionManager.ShipSkinConfig] = progression.ship_catalog
-
+	var unlocked_ids: Array[String] = progression.data.unlocked_cursors
 	var unlocked_count: int = 0
 	var hitboxes: Array[float] = []
 	var turns: Array[float] = []
+	var ids: Array[String] = []
 	for s: ProgressionManager.ShipSkinConfig in ships:
 		if unlocked_ids.has(s.id):
 			unlocked_count += 1
 		hitboxes.append(s.hitbox_scale)
 		turns.append(s.turn_rate)
+		ids.append(s.id)
+	_ship_index = _browsed(_ship_index, ids, progression.data.equipped_cursor_id)
+	var ship: ProgressionManager.ShipSkinConfig = ships[_ship_index]
 
-	var column: VBoxContainer = VBoxContainer.new()
-	column.name = "ShipsTab"
-	column.add_theme_constant_override("separation", _px(SHIPS_GAP))
+	var left: VBoxContainer = _showcase_column()
 	# Subheader (Board 10). PORT: :645-648
-	column.add_child(
-		_caption_row(
+	left.add_child(
+		_section_head(
 			"ShipsPill",
 			"Hull · %d of %d unlocked" % [unlocked_count, SHIP_COUNT_LABEL],
 			"Changes hitbox and turn rate. Nothing else."
 		)
 	)
-	var row: HBoxContainer = HBoxContainer.new()  # PORT: :651-653
-	row.add_theme_constant_override("separation", _px(SHIPS_GAP))
-	for ship: ProgressionManager.ShipSkinConfig in ships:
-		row.add_child(
+	left.add_child(
+		_carousel(
+			"Ship",
+			_ship_index,
+			ships.size(),
 			_ship_card(
 				ship,
 				unlocked_ids.has(ship.id),
-				equipped_id == ship.id,
+				progression.data.equipped_cursor_id == ship.id,
 				ship_meter_fraction(ship.hitbox_scale, hitboxes),
 				ship_meter_fraction(ship.turn_rate, turns)
 			)
 		)
-	column.add_child(_scroll_row("ShipsRow", row))
-	var margin: MarginContainer = _pad(BODY_PAD_TOP, 0, BODY_PAD_BOTTOM, BODY_PAD_LEFT)
-	margin.add_child(column)
-	return _scroll_body(margin)
+	)
+	return _showcase("ShipsTab", left, _arena_preview(null, null, ship))
 
 
 ## A ship's stat against the catalog's largest value of that stat, for the
@@ -889,7 +886,6 @@ func _ship_card(
 	var can_afford: bool = points >= ship.price
 	var card: PanelContainer = PanelContainer.new()  # PORT: :623
 	card.name = "Ship_" + ship.id
-	card.custom_minimum_size.x = _px(SHIP_CARD_WIDTH)
 	var border: Color = UiTheme.COLOR_LOCKED_IN if is_equipped else UiTheme.COLOR_LINE
 	var fill: Color = UiTheme.COLOR_PANEL
 	if not is_unlocked:
@@ -899,27 +895,7 @@ func _ship_card(
 	var stack: VBoxContainer = VBoxContainer.new()
 	stack.add_theme_constant_override("separation", 0)
 
-	# Preview. PORT: :624-626
-	var preview: PanelContainer = PanelContainer.new()
-	preview.custom_minimum_size.y = _px(SHIP_PREVIEW_HEIGHT)
-	var preview_box: StyleBoxFlat = UiTheme.flat(UiTheme.COLOR_ARENA, UiTheme.COLOR_RAISED, 0)
-	preview_box.set_border_width_all(0)
-	preview_box.border_width_bottom = 1
-	preview.add_theme_stylebox_override("panel", preview_box)
-	var hull: TextureRect = TextureRect.new()
-	hull.texture = UiTheme.svg_texture(
-		progression.get_ship_svg_preview(ship.id), SVG_OVERSAMPLE * _ui_scale
-	)
-	hull.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	hull.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	hull.custom_minimum_size = Vector2.ONE * _px(SHIP_HULL_SIZE)
-	if not is_unlocked:
-		hull.modulate.a = LOCKED_PREVIEW_ALPHA
-	var preview_center: CenterContainer = CenterContainer.new()
-	preview_center.add_child(hull)
-	preview.add_child(preview_center)
-	stack.add_child(preview)
-
+	# DIVERGENCE(ARMORY R7): the hull preview moved to the arena preview on the right.
 	# Body. PORT: :627-636
 	var body: MarginContainer = _pad(SHIP_BODY_PAD_TOP, SHIP_BODY_PAD, SHIP_BODY_PAD, SHIP_BODY_PAD)
 	var body_stack: VBoxContainer = VBoxContainer.new()
@@ -957,7 +933,7 @@ func _ship_card(
 		action.disabled = true
 	elif is_unlocked:
 		action.name = "EquipShip_" + ship.id
-		action.theme_type_variation = "SecondaryButton"
+		action.theme_type_variation = "EquipButton"  # DIVERGENCE(ARMORY R6)
 		action.text = "Equip"
 		action.pressed.connect(_on_equip_ship_pressed.bind(ship.id))
 	else:
@@ -965,6 +941,7 @@ func _ship_card(
 		action.theme_type_variation = "CostButton"
 		action.text = format_points(ship.price)  # ArmoryShips.dc.html keeps the unit (Ruling K)
 		action.disabled = not can_afford
+		_lock_if_unaffordable(action)  # DIVERGENCE(ARMORY R6)
 		action.pressed.connect(_on_buy_ship_pressed.bind(ship.id))
 	body_stack.add_child(action)
 	body.add_child(body_stack)
@@ -1006,247 +983,329 @@ func _caption_row(pill_name: String, pill: String, explain: String) -> HBoxConta
 	return row
 
 
-## A horizontally scrolling row (the boards' overflow rows).
-func _scroll_row(row_name: String, content: Control) -> ScrollContainer:
-	var scroll: ScrollContainer = ScrollContainer.new()
-	scroll.name = row_name
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.add_child(content)
-	return scroll
-
-
 ## PORT: web/src/tilt-to-live/ArmoryUI.ts:662-799
-## DIVERGENCE(UI-SYSTEM): laid out to ArmoryArena.dc.html (interface spec §6.4).
+## DIVERGENCE(ARMORY R7): one arena theme and one enemy variation at a time on the left,
+## each with arrows that cycle its catalog; the arena on the right shows both, with the
+## equipped ship. (R6's all-cards rows and switch are gone.)
 func _render_arena_tab() -> Control:
 	var points: int = progression.data.points
-	var column: VBoxContainer = VBoxContainer.new()
-	column.name = "ArenaTab"
-	column.add_theme_constant_override("separation", _px(ARENA_GAP))
-
-	# 1. Arena themes. PORT: :666-717, :777-785
-	var equipped_theme_id: String = progression.data.equipped_arena_theme_id
-	var unlocked_themes: Array[String] = progression.data.unlocked_arena_themes
 	var themes: Array[ProgressionManager.ArenaThemeConfig] = progression.arena_theme_catalog
-	var unlocked_theme_count: int = 0
+	var unlocked_themes: Array[String] = progression.data.unlocked_arena_themes
+	var skins: Array[ProgressionManager.EnemySkinConfig] = progression.enemy_skin_catalog
+	var unlocked_skins: Array[String] = progression.data.unlocked_enemy_skins
+	var theme_ids: Array[String] = []
+	var theme_count: int = 0
 	for t: ProgressionManager.ArenaThemeConfig in themes:
+		theme_ids.append(t.id)
 		if unlocked_themes.has(t.id):
-			unlocked_theme_count += 1
-	column.add_child(
-		_caption_row(
-			"ThemesPill",
-			"Arena themes · %d of %d unlocked" % [unlocked_theme_count, themes.size()],
-			""
+			theme_count += 1
+	var skin_ids: Array[String] = []
+	var skin_count: int = 0
+	for sk: ProgressionManager.EnemySkinConfig in skins:
+		skin_ids.append(sk.id)
+		if unlocked_skins.has(sk.id):
+			skin_count += 1
+	var equipped_theme: String = progression.data.equipped_arena_theme_id
+	var equipped_skin: String = progression.data.equipped_enemy_skin_id
+	_theme_index = _browsed(_theme_index, theme_ids, equipped_theme)
+	_skin_index = _browsed(_skin_index, skin_ids, equipped_skin)
+	var theme_config: ProgressionManager.ArenaThemeConfig = themes[_theme_index]
+	var skin: ProgressionManager.EnemySkinConfig = skins[_skin_index]
+
+	var left: VBoxContainer = _showcase_column()
+	# 1. Arena themes. PORT: :666-717, :777-785
+	left.add_child(
+		_section_head(
+			"ThemesPill", "Arena themes · %d of %d unlocked" % [theme_count, themes.size()], ""
 		)
 	)
-	var themes_row: HBoxContainer = HBoxContainer.new()
-	themes_row.add_theme_constant_override("separation", _px(ARENA_GAP))
-	for theme_config: ProgressionManager.ArenaThemeConfig in themes:
-		var preview: Control = _grid_lines(theme_config.grid_color)
-		var edge: Panel = Panel.new()
-		edge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		edge.add_theme_stylebox_override(
-			"panel", UiTheme.flat(Color.TRANSPARENT, theme_config.boundary_color, 2)
-		)  # DIVERGENCE(UI-SYSTEM): ArmoryArena.dc.html — edge r 2
-		preview.add_child(edge)
-		edge.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		edge.offset_left = _px(ARENA_EDGE_X)
-		edge.offset_right = -_px(ARENA_EDGE_X)
-		edge.offset_top = _px(ARENA_EDGE_Y)
-		edge.offset_bottom = -_px(ARENA_EDGE_Y)
-		themes_row.add_child(
-			_arena_card_button(
+	left.add_child(
+		_carousel(
+			"Theme",
+			_theme_index,
+			themes.size(),
+			_arena_card(
 				"Arena",
 				theme_config.id,
 				theme_config.name,
+				theme_config.description,
 				theme_config.price,
 				unlocked_themes.has(theme_config.id),
-				equipped_theme_id == theme_config.id,
+				equipped_theme == theme_config.id,
 				points,
-				preview
-			)
+				_pager("Theme", _theme_index, themes.size())
+			),
+			false
 		)
-	column.add_child(_scroll_row("ThemesRow", themes_row))
-
-	# 2. Enemy variations. PORT: :720-772, :788-796
-	var equipped_enemy_id: String = progression.data.equipped_enemy_skin_id
-	var unlocked_enemies: Array[String] = progression.data.unlocked_enemy_skins
-	var enemies: Array[ProgressionManager.EnemySkinConfig] = progression.enemy_skin_catalog
-	var unlocked_enemy_count: int = 0
-	for s: ProgressionManager.EnemySkinConfig in enemies:
-		if unlocked_enemies.has(s.id):
-			unlocked_enemy_count += 1
-	var enemies_caption: HBoxContainer = _caption_row(
-		"EnemiesPill",
-		"Enemy variations · %d of %d unlocked" % [unlocked_enemy_count, enemies.size()],
-		""
 	)
-	var caption_pad: MarginContainer = _pad(ENEMIES_TOP, 0, 0, 0)
-	caption_pad.add_child(enemies_caption)
-	column.add_child(caption_pad)
-	var enemies_row: HBoxContainer = HBoxContainer.new()
-	enemies_row.add_theme_constant_override("separation", _px(ARENA_GAP))
-	for skin: ProgressionManager.EnemySkinConfig in enemies:
-		# Three dots in the skin's body and rim; glow dropped (rule 02, interface spec §6.4).
-		# DIVERGENCE(SKIN R1): each dot is the in-game dot — inner disc, the skin's pattern,
-		# border and pupil (EnemyTextures.dot_image), not a flat body with a rim.
-		var dots: HBoxContainer = HBoxContainer.new()
-		dots.alignment = BoxContainer.ALIGNMENT_CENTER
-		dots.add_theme_constant_override("separation", _px(ENEMY_DOT_GAP))
-		dots.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		for dot_size: int in [ENEMY_DOT_LARGE, ENEMY_DOT_SMALL, ENEMY_DOT_LARGE]:
-			var dot: TextureRect = TextureRect.new()
-			dot.texture = _skin_dot(skin, _px(dot_size))
-			dot.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
-			dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-			dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			dots.add_child(dot)
-		var preview: Control = Control.new()
-		preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		preview.add_child(dots)
-		dots.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		enemies_row.add_child(
-			_arena_card_button(
+	# 2. Enemy variations. PORT: :720-772, :788-796
+	var enemies_head: Control = _section_head(
+		"EnemiesPill", "Enemy variations · %d of %d unlocked" % [skin_count, skins.size()], ""
+	)
+	var head_pad: MarginContainer = _pad(ARENA_SECTION_GAP, 0, 0, 0)
+	head_pad.add_child(enemies_head)
+	left.add_child(head_pad)
+	left.add_child(
+		_carousel(
+			"Enemy",
+			_skin_index,
+			skins.size(),
+			_arena_card(
 				"Enemy",
 				skin.id,
 				skin.name,
+				skin.description,
 				skin.price,
-				unlocked_enemies.has(skin.id),
-				equipped_enemy_id == skin.id,
+				unlocked_skins.has(skin.id),
+				equipped_skin == skin.id,
 				points,
-				preview
-			)
+				_pager("Enemy", _skin_index, skins.size())
+			),
+			false
 		)
-	column.add_child(_scroll_row("EnemiesRow", enemies_row))
+	)
+	return _showcase("ArenaTab", left, _arena_preview(theme_config, skin, null))
 
-	var margin: MarginContainer = _pad(ARENA_PAD_TOP, 0, ARENA_PAD_BOTTOM, BODY_PAD_LEFT)
-	margin.add_child(column)
+
+## DIVERGENCE(ARMORY R7): the browsed index — `current`, or the equipped item's the first
+## time (the Armory resets it on open).
+static func _browsed(current: int, ids: Array[String], equipped: String) -> int:
+	if current >= 0 and current < ids.size():
+		return current
+	return maxi(0, ids.find(equipped))
+
+
+## DIVERGENCE(ARMORY R7): the left column of a showcase tab.
+func _showcase_column() -> VBoxContainer:
+	var left: VBoxContainer = VBoxContainer.new()
+	left.name = "ShowcaseLeft"
+	left.custom_minimum_size.x = _px(SHOWCASE_LEFT_WIDTH)
+	left.add_theme_constant_override("separation", _px(SHOWCASE_GAP))
+	return left
+
+
+## DIVERGENCE(ARMORY R7): a showcase tab — the item column on the left, the arena preview
+## filling the right.
+func _showcase(tab_name: String, left: Control, preview: Control) -> Control:
+	var layout: HBoxContainer = HBoxContainer.new()
+	layout.name = tab_name
+	layout.add_theme_constant_override("separation", _px(SHOWCASE_COLUMN_GAP))
+	layout.add_child(left)
+	preview.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	layout.add_child(preview)
+	var margin: MarginContainer = _pad(BODY_PAD_TOP, BODY_PAD_RIGHT, BODY_PAD_BOTTOM, BODY_PAD_LEFT)
+	margin.add_child(layout)
 	return _scroll_body(margin)
+
+
+## A caps caption over its one-line explanation (the explanation is left out when empty).
+func _section_head(pill_name: String, pill: String, explain: String) -> VBoxContainer:
+	var head: VBoxContainer = VBoxContainer.new()
+	head.add_theme_constant_override("separation", _px(TITLE_GROUP_GAP))
+	var pill_label: Label = UiTheme.caps(pill)
+	pill_label.name = pill_name
+	head.add_child(pill_label)
+	if not explain.is_empty():
+		var line: Label = UiTheme.text(explain, "HintText")
+		line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		head.add_child(line)
+	return head
+
+
+## DIVERGENCE(ARMORY R7): ◀ card ▶, with "n / count" under it unless the card shows it
+## (the Arena cards carry it in their header, so both sections fit without scrolling).
+## The arrows wrap around.
+func _carousel(
+	kind: String, index: int, count: int, card: Control, pager_below: bool = true
+) -> VBoxContainer:
+	var box: VBoxContainer = VBoxContainer.new()
+	box.name = kind + "Carousel"
+	box.add_theme_constant_override("separation", _px(TITLE_GROUP_GAP))
+	var row: HBoxContainer = HBoxContainer.new()
+	row.add_theme_constant_override("separation", _px(CAROUSEL_GAP))
+	row.add_child(_carousel_arrow(kind + "Prev", UiTheme.ICON_BACK, kind, -1, count))
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(card)
+	row.add_child(_carousel_arrow(kind + "Next", UiTheme.ICON_FORWARD, kind, 1, count))
+	box.add_child(row)
+	if pager_below:
+		var pager: Label = _pager(kind, index, count)
+		pager.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		box.add_child(pager)
+	return box
+
+
+## "n / count" for `kind`'s carousel.
+func _pager(kind: String, index: int, count: int) -> Label:
+	var pager: Label = UiTheme.text("%d / %d" % [index + 1, count], "MonoFaintText")
+	pager.name = kind + "Pager"
+	return pager
+
+
+func _carousel_arrow(
+	button_name: String, glyph: String, kind: String, step: int, count: int
+) -> Button:
+	var arrow: Button = Button.new()
+	arrow.name = button_name
+	arrow.theme_type_variation = "IconButton"
+	arrow.icon = UiTheme.svg_texture(glyph, _ui_scale)
+	arrow.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	arrow.custom_minimum_size = Vector2.ONE * _px(UiTheme.TOUCH_TARGET)
+	arrow.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	arrow.disabled = count < 2
+	arrow.pressed.connect(_on_carousel_step.bind(kind, step, count))
+	return arrow
+
+
+## DIVERGENCE(ARMORY R7): steps a carousel, wrapping at both ends.
+func _on_carousel_step(kind: String, step: int, count: int) -> void:
+	match kind:
+		"Ship":
+			_ship_index = posmod(_ship_index + step, count)
+		"Theme":
+			_theme_index = posmod(_theme_index + step, count)
+		"Enemy":
+			_skin_index = posmod(_skin_index + step, count)
+	render()
+
+
+## DIVERGENCE(ARMORY R7): the arena as a run would look — `theme_config`, `skin` and
+## `ship`, each null for the equipped one.
+func _arena_preview(
+	theme_config: ProgressionManager.ArenaThemeConfig,
+	skin: ProgressionManager.EnemySkinConfig,
+	ship: ProgressionManager.ShipSkinConfig
+) -> Control:
+	if theme_config == null:
+		theme_config = progression.get_equipped_arena_theme()
+	if skin == null:
+		skin = progression.get_equipped_enemy_skin()
+	if ship == null:
+		ship = progression.get_equipped_ship()
+	var frame: PanelContainer = PanelContainer.new()
+	frame.name = "ArenaPreviewFrame"
+	var box: StyleBoxFlat = UiTheme.flat(Color.TRANSPARENT, UiTheme.COLOR_LINE, 0)
+	box.set_content_margin_all(1)
+	frame.add_theme_stylebox_override("panel", box)
+	var preview: ArenaPreview = ArenaPreview.new()
+	preview.name = "ArenaPreview"
+	preview.custom_minimum_size = Vector2(_px(PREVIEW_MIN_WIDTH), _px(PREVIEW_MIN_HEIGHT))
+	preview.set_background(theme_config.bg_gradient)
+	preview.grid_color = theme_config.grid_color
+	preview.boundary_color = theme_config.boundary_color
+	preview.grid_step = _px(PREVIEW_GRID_STEP)
+	preview.edge_scale = _ui_scale
+	preview.dot_large = _skin_dot(skin, _px(PREVIEW_DOT_LARGE))
+	preview.dot_small = _skin_dot(skin, _px(PREVIEW_DOT_SMALL))
+	preview.ship_size = _px(PREVIEW_SHIP_SIZE)
+	preview.ship = UiTheme.svg_texture(
+		progression.get_ship_svg_preview(ship.id), SVG_OVERSAMPLE * _ui_scale
+	)
+	frame.add_child(preview)
+	return frame
 
 
 ## DIVERGENCE(SKIN R1): one preview dot of `skin`, `px` across.
 func _skin_dot(skin: ProgressionManager.EnemySkinConfig, px: int) -> ImageTexture:
 	var r: float = px * 0.5
-	var size: int = px + 4
+	var ring: float = maxf(1.0, r * 0.13)
+	# Room for the ring's outer half and its anti-aliased edge on both sides.
+	var size: int = ceili(px + ring + 4.0)
 	var img: Image = EnemyTextures.dot_image(
 		size,
 		r,
 		PackedColorArray(
 			[skin.body_gradient[1], skin.body_gradient[0], skin.border_color, skin.pupil_color]
 		),
-		maxf(1.0, r * 0.13),
+		ring,
 		skin.id
 	)
 	return ImageTexture.create_from_image(img)
 
 
-## One tappable arena/enemy card: a Card with a transparent CardButton laid over
-## it. Tapping equips an owned card, as the TS's buttons do (:677-693, :731-747).
-## DIVERGENCE(ARMORY R5): tapping one not owned picks it (ion edge) and swaps its price
-## line for a Buy button with the price; the TS bought on the first tap.
-## DIVERGENCE(UI-SYSTEM): ArmoryArena.dc.html
-# The tap target is a Button over a PanelContainer rather than a Button holding
-# the content: a Button is not a Container and would not size to its children,
-# while a PanelContainer fits every child — the Button included — to its rect.
-func _arena_card_button(
+## One Arena card, laid out as a ship card (_ship_card): name, description and the
+## action button (ARMORY R7: the preview is the arena on the right).
+## PORT: web/src/tilt-to-live/ArmoryUI.ts:677-693, :731-747
+func _arena_card(
 	kind: String,
 	id: String,
 	title: String,
+	description: String,
 	price: int,
 	is_unlocked: bool,
 	is_equipped: bool,
 	points: int,
-	preview: Control
+	pager: Label
 ) -> PanelContainer:
-	var is_picked: bool = not is_unlocked and _arena_pick == "%s:%s" % [kind, id]
 	var card: PanelContainer = PanelContainer.new()
 	card.name = "%sCard_%s" % [kind, id]
-	card.custom_minimum_size.x = _px(ARENA_CARD_WIDTH)
-	var edge: Color = UiTheme.COLOR_LINE
-	if is_equipped:
-		edge = UiTheme.COLOR_LOCKED_IN
-	elif is_picked:
-		edge = UiTheme.COLOR_ION
-	var card_box: StyleBoxFlat = UiTheme.flat(UiTheme.COLOR_PANEL, edge, _px(UiTheme.CARD_RADIUS))
-	if is_picked:
-		card_box.set_border_width_all(2)
-	card.add_theme_stylebox_override("panel", card_box)
-	var tap: Button = Button.new()
-	tap.theme_type_variation = "CardButton"
-	var state_text: String = format_points(price)
-	var state_color: Color = UiTheme.COLOR_FLARE
-	if is_equipped:
-		tap.name = "Equipped%s_%s" % [kind, id]
-		tap.disabled = true
-		state_text = "✓ Equipped"
-		state_color = UiTheme.COLOR_LOCKED_IN
-	elif is_unlocked:
-		tap.name = "Equip%s_%s" % [kind, id]
-		state_text = "Owned"
-		state_color = UiTheme.COLOR_TEXT_MUTED
-		if kind == "Arena":
-			tap.pressed.connect(_on_equip_arena_pressed.bind(id))
-		else:
-			tap.pressed.connect(_on_equip_enemy_pressed.bind(id))
-	else:
-		tap.name = "Pick%s_%s" % [kind, id]
-		tap.pressed.connect(_on_arena_pick.bind(kind, id))
-
-	var stack: VBoxContainer = VBoxContainer.new()
-	stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	stack.add_theme_constant_override("separation", 0)
-	# Preview fill + bottom hairline. DIVERGENCE(UI-SYSTEM): ArmoryArena.dc.html:30,:40
-	var preview_panel: PanelContainer = PanelContainer.new()
-	preview_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	preview_panel.custom_minimum_size.y = _px(ARENA_PREVIEW_HEIGHT)
-	var preview_box: StyleBoxFlat = UiTheme.flat(UiTheme.COLOR_ARENA, UiTheme.COLOR_RAISED, 0)
-	preview_box.set_border_width_all(0)
-	preview_box.border_width_bottom = 1
-	var card_radius: int = _px(UiTheme.CARD_RADIUS)
-	preview_box.corner_radius_top_left = card_radius
-	preview_box.corner_radius_top_right = card_radius
-	preview_panel.add_theme_stylebox_override("panel", preview_box)
-	preview_panel.add_child(preview)
-	stack.add_child(preview_panel)
-	var body: MarginContainer = _pad(
-		ARENA_BODY_PAD_TOP, ARENA_BODY_PAD_X, ARENA_BODY_PAD_BOTTOM, ARENA_BODY_PAD_X
-	)
-	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var lines: VBoxContainer = VBoxContainer.new()
-	lines.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	lines.add_theme_constant_override("separation", _px(ARENA_BODY_GAP))
-	var name_label: Label = _one_line(title, "StrongText")
-	name_label.add_theme_font_size_override("font_size", _px(ARENA_NAME_FONT))
+	var border: Color = UiTheme.COLOR_LOCKED_IN if is_equipped else UiTheme.COLOR_LINE
+	var fill: Color = UiTheme.COLOR_PANEL
 	if not is_unlocked:
-		name_label.add_theme_color_override("font_color", UiTheme.TEXT_SECONDARY)
-	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	lines.add_child(name_label)
-	var state: Label = UiTheme.text(state_text, "MonoText")
-	state.name = "%sState_%s" % [kind, id]
-	state.add_theme_color_override("font_color", state_color)
-	state.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	lines.add_child(state)
-	if is_picked:
-		# DIVERGENCE(ARMORY R5): the Buy button replaces the price line.
-		state.visible = false
-		var buy: Button = Button.new()
-		buy.name = "Buy%s_%s" % [kind, id]
-		buy.theme_type_variation = "CostButton"
-		buy.text = "Buy %s" % UiTheme.group_digits(price)
-		buy.custom_minimum_size.y = _px(UiTheme.TOUCH_TARGET)
-		buy.disabled = points < price
+		fill = UiTheme.LOCKED_CARD
+		border = UiTheme.COLOR_RAISED
+	card.add_theme_stylebox_override("panel", UiTheme.flat(fill, border, _px(SHIP_CARD_RADIUS)))
+	var stack: VBoxContainer = VBoxContainer.new()
+	stack.add_theme_constant_override("separation", 0)
+
+	var body: MarginContainer = _pad(SHIP_BODY_PAD_TOP, SHIP_BODY_PAD, SHIP_BODY_PAD, SHIP_BODY_PAD)
+	var body_stack: VBoxContainer = VBoxContainer.new()
+	body_stack.add_theme_constant_override("separation", _px(ARENA_BODY_GAP))
+	var header: HBoxContainer = HBoxContainer.new()
+	var name_label: Label = _one_line(title, "FieldText")
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if not is_unlocked:
+		name_label.add_theme_color_override("font_color", UiTheme.COLOR_TEXT_MUTED)
+	header.add_child(name_label)
+	header.add_child(pager)
+	body_stack.add_child(header)
+	var desc: Label = UiTheme.text(description, "HintText")
+	desc.name = "%sDesc_%s" % [kind, id]
+	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	desc.max_lines_visible = ARENA_DESC_LINES
+	desc.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	desc.custom_minimum_size.y = desc.get_line_height() * ARENA_DESC_LINES
+	desc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	body_stack.add_child(desc)
+
+	var action: Button = Button.new()
+	action.custom_minimum_size.y = _px(UiTheme.TOUCH_TARGET)
+	if is_equipped:
+		action.name = "Equipped%s_%s" % [kind, id]
+		action.theme_type_variation = "EquippedButton"
+		action.text = "Equipped"
+		action.disabled = true
+	elif is_unlocked:
+		action.name = "Equip%s_%s" % [kind, id]
+		action.theme_type_variation = "EquipButton"
+		action.text = "Equip"
 		if kind == "Arena":
-			buy.pressed.connect(_on_buy_arena_pressed.bind(id))
+			action.pressed.connect(_on_equip_arena_pressed.bind(id))
 		else:
-			buy.pressed.connect(_on_buy_enemy_pressed.bind(id))
-		lines.add_child(buy)
-	body.add_child(lines)
+			action.pressed.connect(_on_equip_enemy_pressed.bind(id))
+	else:
+		action.name = "Buy%s_%s" % [kind, id]
+		action.theme_type_variation = "CostButton"
+		action.text = format_points(price)  # as the ship cards (Ruling K)
+		action.disabled = points < price
+		_lock_if_unaffordable(action)
+		if kind == "Arena":
+			action.pressed.connect(_on_buy_arena_pressed.bind(id))
+		else:
+			action.pressed.connect(_on_buy_enemy_pressed.bind(id))
+	body_stack.add_child(action)
+	body.add_child(body_stack)
 	stack.add_child(body)
 	card.add_child(stack)
-	if not is_picked:
-		card.add_child(tap)  # last: drawn and hit-tested above the content
 	return card
+
+
+## DIVERGENCE(ARMORY R6, user 2026-09-28: "for things that are inactive or cant be
+## clicked. make it more obvious"): a price the player cannot pay carries the lock glyph
+## (as a locked keystone does), on top of the dimmed disabled style.
+func _lock_if_unaffordable(button: Button) -> void:
+	if button.disabled:
+		button.icon = UiTheme.svg_texture(UiTheme.ICON_LOCK, _ui_scale)
 
 
 ## PORT: web/src/tilt-to-live/ArmoryUI.ts:805-880
@@ -1304,8 +1363,8 @@ func _render_handling_tab() -> Control:
 	reset.name = "ResetButton"
 	reset.theme_type_variation = "SecondaryButton"
 	reset.text = "Reset"
-	# DIVERGENCE(UI-SYSTEM): ArmoryHandling.dc.html — muted Reset label.
-	reset.add_theme_color_override("font_color", UiTheme.COLOR_TEXT_MUTED)
+	# DIVERGENCE(ARMORY R6): the board's muted Reset label read as disabled; it keeps the
+	# SecondaryButton's bright text.
 	reset.custom_minimum_size.y = _px(UiTheme.TOUCH_TARGET)
 	reset.pressed.connect(_on_handling_reset_pressed)
 	actions.add_child(reset)
@@ -1434,7 +1493,6 @@ func _stop_handling_preview() -> void:
 func _on_tab_pressed(tab: Tab) -> void:
 	if tab != active_tab:
 		active_tab = tab
-		_arena_pick = ""
 	render()
 
 
@@ -1493,15 +1551,8 @@ func _on_equip_ship_pressed(id: String) -> void:
 		render()
 
 
-## DIVERGENCE(ARMORY R5): picks an Arena card to buy (see _arena_pick).
-func _on_arena_pick(kind: String, id: String) -> void:
-	_arena_pick = "%s:%s" % [kind, id]
-	render()
-
-
 ## PORT: web/src/tilt-to-live/ArmoryUI.ts:1220-1228
 func _on_buy_arena_pressed(id: String) -> void:
-	_arena_pick = ""
 	if progression.buy_arena_theme(id):
 		state_changed.emit()
 		render()
@@ -1517,7 +1568,6 @@ func _on_equip_arena_pressed(id: String) -> void:
 
 ## PORT: web/src/tilt-to-live/ArmoryUI.ts:1241-1249
 func _on_buy_enemy_pressed(id: String) -> void:
-	_arena_pick = ""
 	if progression.buy_enemy_skin(id):
 		state_changed.emit()
 		render()
@@ -1699,18 +1749,6 @@ func _legend_item(color: Color, text: String) -> HBoxContainer:
 	item.add_child(glyph)
 	item.add_child(UiTheme.text(text, "MonoFaintText"))
 	return item
-
-
-## The preview's 12 px grid. DIVERGENCE(UI-SYSTEM): ArmoryArena.dc.html
-# PORT-NOTE: a repeating linear-gradient background; drawn as lines by a
-# small _draw() Control built inline, sampled at ARENA_GRID_STEP.
-func _grid_lines(color: Color) -> Control:
-	var lines: ArenaGridLines = ArenaGridLines.new()
-	lines.color = color
-	lines.step = ARENA_GRID_STEP * _ui_scale
-	lines.set_anchors_preset(Control.PRESET_FULL_RECT)
-	lines.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return lines
 
 
 ## A 1 px vertical rule in raised (the list's border-right).
@@ -2093,20 +2131,3 @@ class UpgradeRow:
 	## Types.ABSENT when maxed.
 	var cost: int = 0
 	var on_buy: Callable = Callable()
-
-
-## The .arena-grid-lines overlay. PORT: web/src/styles/game.css:2501-2508
-class ArenaGridLines:
-	extends Control
-	var color: Color = Color.WHITE
-	var step: float = 18.0
-
-	func _draw() -> void:
-		var x: float = 0.0
-		while x < size.x:
-			draw_line(Vector2(x, 0.0), Vector2(x, size.y), color, 1.0)
-			x += step
-		var y: float = 0.0
-		while y < size.y:
-			draw_line(Vector2(0.0, y), Vector2(size.x, y), color, 1.0)
-			y += step

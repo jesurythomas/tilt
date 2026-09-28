@@ -1736,7 +1736,13 @@ with ion chevrons / a flare trophy, and Settings is a real cog.
 No multiplier text remains in the Run over subtitle or the run-start banner (UI R12);
 UI labels are sentence case, names Title Case. Unlockable enemy skins paint a pattern on
 every default dot (SKIN R1, `render/enemy_textures.gd`, baked into the dot sprites). The
-Arena tab buys only from an explicit Buy button on the picked card (ARMORY R5). Suite 766.
+Arena tab buys only from an explicit button (ARMORY R5, superseded by R6/R7).
+
+The Ships and Arena tabs are showcases (ARMORY R7): one item per carousel on the left (◀
+▶ cycle, wrap), the arena preview on the right (`ui/arena_preview.gd`, the run's
+background shader plus grid, edge, skin dots and ship). Disabled buttons are dim with a
+lock on unaffordable prices; SecondaryButton is raised and bright; Equip is the ion
+`EquipButton` (ARMORY R6). Suite 767.
 
 **Next, literally:** when the A55 is on `adb`, run VERIFY-ME §Armory / economy / icons
 rework with the user (economy knobs are listed there), then continue with the list

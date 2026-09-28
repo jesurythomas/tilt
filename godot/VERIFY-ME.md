@@ -683,8 +683,11 @@ refunded once on the first launch.
 - [ ] 13. **Enemy textures (SKIN R1).** Buy and equip a skin: every dot shows its pattern
       (Toxic bubbles, Glitch bands, Magma cracks, Void swirl, Gold gleam) and still reads
       as a threat at arm's length. No hitch when the first dots appear.
-- [ ] 14. **Arena buying (ARMORY R5).** Tapping a card you don't own spends nothing; it
-      gets a blue edge and a "Buy N" button; that button buys and equips it.
+- [ ] 14. **Ships and Arena showcases (ARMORY R7).** One ship (Ships) and one theme plus
+      one enemy skin (Arena) at a time; ◀ ▶ cycle and wrap; the arena on the right shows
+      what you are browsing. Only the card's button buys or equips. Nothing scrolls.
+- [ ] 15. **Clickable vs not (ARMORY R6).** Prices you can't afford are dim with a lock;
+      Equip is blue; Reset, Menu and Armory look pressable. Anything still ambiguous?
 
 ## M11c part 1 — Performance (plan `2026-09-26-m11c-performance.md`)
 

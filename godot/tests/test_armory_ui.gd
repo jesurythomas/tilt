@@ -344,20 +344,36 @@ func test_ships_tab_lists_every_ship_with_the_right_action() -> void:
 	_armory.open("ships")
 	await get_tree().process_frame
 	assert_eq(_label("ShipsPill").text, "Hull · 3 of 6 unlocked")
+	_browse("Ship", "classic")
 	assert_true(_button("EquippedShip_classic").disabled)
+	_browse("Ship", "classic")
 	assert_eq(_button("EquippedShip_classic").text, "Equipped")
+	_browse("Ship", "tactical")
 	assert_eq(_button("EquipShip_tactical").text, "Equip")
+	_browse("Ship", "solar")
 	assert_eq(_button("BuyShip_solar").text, "600 pts")
+	_browse("Ship", "solar")
 	assert_false(_button("BuyShip_solar").disabled)
+	_browse("Ship", "revenant")
 	assert_eq(_button("BuyShip_revenant").text, "2,500 pts")
-	for id: String in [
+	# ARMORY R7: one ship at a time; Next walks the whole catalog and wraps.
+	var seen: Array[String] = []
+	for i: int in range(7):
+		for card: Node in _armory.find_children("Ship_*", "PanelContainer", true, false):
+			seen.append(str(card.name).trim_prefix("Ship_"))
+		_button("ShipNext").pressed.emit()
+	var catalog: Array[String] = [
 		"classic", "tactical", "singularity", "solar", "cyber", "shuriken", "revenant"
-	]:
-		assert_not_null(_armory.find_child("Ship_" + id, true, false), id)
+	]
+	var start: int = catalog.find(seen[0])
+	for i: int in range(7):
+		assert_eq(seen[i], catalog[(start + i) % 7], "catalog order")
+	assert_not_null(_armory.find_child("Ship_" + seen[0], true, false), "wrapped round")
 
 
 func test_ship_card_shows_its_starting_weapon_by_catalog_name() -> void:
 	_armory.open("ships")
+	_browse("Ship", "revenant")
 	var card: Control = _armory.find_child("Ship_revenant", true, false) as Control
 	var loadout: Label = card.find_child("LoadoutName", true, false) as Label
 	assert_eq(loadout.text, "Blackhole", "vortex is presented as Blackhole (:205-211)")
@@ -366,21 +382,25 @@ func test_ship_card_shows_its_starting_weapon_by_catalog_name() -> void:
 func test_equip_ship_saves_and_emits() -> void:
 	_armory.open("ships")
 	watch_signals(_armory)
+	_browse("Ship", "tactical")
 	_button("EquipShip_tactical").pressed.emit()
 	assert_eq(_progression.data.equipped_cursor_id, "tactical")
 	assert_signal_emitted(_armory, "state_changed")
+	_browse("Ship", "tactical")
 	assert_true(_button("EquippedShip_tactical").disabled, "re-rendered as equipped")
 	assert_eq(ProgressionManager.new().data.equipped_cursor_id, "tactical", "persisted")
 
 
 func test_buy_ship_charges_and_unlocks() -> void:
 	_armory.open("ships")
+	_browse("Ship", "solar")
 	_button("BuyShip_solar").pressed.emit()
 	assert_true(_progression.data.unlocked_cursors.has("solar"))
 	assert_eq(_progression.data.points, 7331 - 600)
 	assert_eq(
 		_button("EquippedShip_solar").text, "Equipped", "buying equips (ProgressionManager.ts:720)"
 	)
+	_browse("Ship", "solar")
 	assert_true(_button("EquippedShip_solar").disabled)
 	assert_eq(_label("ShipsPill").text, "Hull · 4 of 6 unlocked")
 	var reloaded: ProgressionManager = ProgressionManager.new()
@@ -391,6 +411,7 @@ func test_buy_ship_charges_and_unlocks() -> void:
 func test_unaffordable_ship_is_disabled() -> void:
 	_progression.data.points = 100
 	_armory.open("ships")
+	_browse("Ship", "solar")
 	assert_true(_button("BuyShip_solar").disabled)
 
 
@@ -399,28 +420,34 @@ func test_arena_tab_shows_both_catalogs_with_counts() -> void:
 	await get_tree().process_frame
 	# PORT: web/src/tilt-to-live/ArmoryUI.ts:779, :790 — counts use catalog length
 	assert_eq(_label("ThemesPill").text, "Arena themes · 1 of 6 unlocked")
-	assert_eq(_label("EnemiesPill").text, "Enemy variations · 1 of 6 unlocked")
+	_browse("Theme", "void")
 	assert_true(_button("EquippedArena_void").disabled)
-	assert_eq(_label("ArenaState_void").text, "✓ Equipped")
-	assert_eq(_label("ArenaState_synthwave").text, "400 pts")
-	assert_false(_button("PickArena_synthwave").disabled)
+	_browse("Theme", "void")
+	assert_eq(_button("EquippedArena_void").text, "Equipped")
+	_browse("Theme", "synthwave")
+	assert_eq(_button("BuyArena_synthwave").text, "400 pts")
+	_browse("Theme", "synthwave")
+	assert_false(_button("BuyArena_synthwave").disabled)
+	assert_eq(_label("EnemiesPill").text, "Enemy variations · 1 of 6 unlocked")
+	_browse("Enemy", "classic")
 	assert_true(_button("EquippedEnemy_classic").disabled)
-	assert_eq(_label("EnemyState_gold").text, "1,500 pts")
+	_browse("Enemy", "gold")
+	assert_eq(_button("BuyEnemy_gold").text, "1,500 pts")
 
 
 func test_buy_then_equip_arena_theme() -> void:
 	_armory.open("arena")
-	_pick_and_buy("Arena", "synthwave")
+	_browse("Theme", "synthwave")
+	_button("BuyArena_synthwave").pressed.emit()
 	assert_true(_progression.data.unlocked_arena_themes.has("synthwave"))
 	assert_eq(_progression.data.points, 7331 - 400)
-	assert_eq(
-		_label("ArenaState_synthwave").text,
-		"✓ Equipped",
-		"buying equips (ProgressionManager.ts:768-777)"
+	assert_true(
+		_button("EquippedArena_synthwave").disabled, "buying equips (ProgressionManager.ts:768-777)"
 	)
-	assert_true(_button("EquippedArena_synthwave").disabled)
-	_pick_and_buy("Arena", "nebula")
+	_browse("Theme", "nebula")
+	_button("BuyArena_nebula").pressed.emit()
 	watch_signals(_armory)
+	_browse("Theme", "synthwave")
 	_button("EquipArena_synthwave").pressed.emit()
 	assert_eq(_progression.data.equipped_arena_theme_id, "synthwave")
 	assert_signal_emit_count(_armory, "state_changed", 1)
@@ -430,14 +457,17 @@ func test_buy_then_equip_arena_theme() -> void:
 func test_buy_then_equip_enemy_skin() -> void:
 	_armory.open("arena")
 	watch_signals(_armory)
-	_pick_and_buy("Enemy", "toxic")
+	_browse("Enemy", "toxic")
+	_button("BuyEnemy_toxic").pressed.emit()
 	assert_true(_progression.data.unlocked_enemy_skins.has("toxic"))
 	assert_eq(
 		_progression.data.equipped_enemy_skin_id,
 		"toxic",
 		"buying equips (ProgressionManager.ts:744-753)"
 	)
-	_pick_and_buy("Enemy", "glitch")
+	_browse("Enemy", "glitch")
+	_button("BuyEnemy_glitch").pressed.emit()
+	_browse("Enemy", "toxic")
 	_button("EquipEnemy_toxic").pressed.emit()
 	assert_eq(_progression.data.equipped_enemy_skin_id, "toxic")
 	assert_eq(_label("EnemiesPill").text, "Enemy variations · 3 of 6 unlocked")
@@ -447,38 +477,38 @@ func test_buy_then_equip_enemy_skin() -> void:
 	assert_eq(reloaded.data.equipped_enemy_skin_id, "toxic", "equip_enemy_skin saved")
 
 
-func test_unaffordable_theme_is_disabled() -> void:
+func test_unaffordable_theme_is_disabled_and_locked() -> void:
+	# ARMORY R6: a price the player cannot pay is disabled and carries the lock glyph.
 	_progression.data.points = 0
 	_armory.open("arena")
-	_button("PickArena_blueprint").pressed.emit()
+	_browse("Theme", "blueprint")
 	assert_true(_button("BuyArena_blueprint").disabled)
-	_button("PickEnemy_void").pressed.emit()
+	_browse("Theme", "blueprint")
+	assert_not_null(_button("BuyArena_blueprint").icon, "lock glyph")
+	_browse("Enemy", "void")
 	assert_true(_button("BuyEnemy_void").disabled)
+	_armory.open("ships")
+	_browse("Ship", "solar")
+	assert_true(_button("BuyShip_solar").disabled)
+	_browse("Ship", "solar")
+	assert_not_null(_button("BuyShip_solar").icon, "ships lock too")
 
 
-## ARMORY R5 (user: "when you click on something it automatically purchases it"): a tap
-## picks the card and shows its Buy button; only that button spends.
-func test_tapping_an_arena_card_does_not_buy_it() -> void:
+## ARMORY R6 (user: "let the enemy ship and background be similar to ships"; ARMORY R5's
+## "when you click on something it automatically purchases it"): the cards are ship cards
+## whose only tap target is the action button, both sections on one page (no sub-tab).
+func test_arena_cards_are_ship_cards_that_buy_only_from_the_button() -> void:
 	_armory.open("arena")
-	var before: int = _progression.data.points
-	assert_null(_armory.find_child("BuyArena_synthwave", true, false), "no Buy until picked")
-	_button("PickArena_synthwave").pressed.emit()
-	assert_eq(_progression.data.points, before, "a tap spends nothing")
-	assert_false(_progression.data.unlocked_arena_themes.has("synthwave"))
-	var buy: Button = _button("BuyArena_synthwave")
-	assert_eq(buy.text, "Buy 400")
-	assert_false(_label("ArenaState_synthwave").visible, "the Buy button replaces the price")
-	_button("PickEnemy_toxic").pressed.emit()
-	assert_null(_armory.find_child("BuyArena_synthwave", true, false), "one pick at a time")
-	assert_not_null(_armory.find_child("BuyEnemy_toxic", true, false))
-	_button("BuyEnemy_toxic").pressed.emit()
-	assert_eq(_progression.data.points, before - 400)
-	assert_eq(_progression.data.equipped_enemy_skin_id, "toxic")
-
-
-func _pick_and_buy(kind: String, id: String) -> void:
-	_button("Pick%s_%s" % [kind, id]).pressed.emit()
-	_button("Buy%s_%s" % [kind, id]).pressed.emit()
+	_browse("Theme", "synthwave")
+	var card: Control = _armory.find_child("ArenaCard_synthwave", true, false) as Control
+	var buttons: Array[Node] = card.find_children("*", "Button", true, false)
+	assert_eq(buttons.size(), 1, "just the action button")
+	assert_eq(buttons[0].name, "BuyArena_synthwave")
+	assert_not_null(_armory.find_child("ArenaDesc_synthwave", true, false), "a description")
+	assert_not_null(_armory.find_child("ArenaPreview", true, false), "R7: the arena preview")
+	_browse("Enemy", "classic")
+	assert_eq(_button("EquippedEnemy_classic").theme_type_variation, "EquippedButton")
+	assert_null(_armory.find_child("ArenaSwitch", true, false), "no Themes | Enemies switch")
 
 
 func test_boosts_catalog_matches_the_ts() -> void:
@@ -791,21 +821,55 @@ func test_ship_cards_carry_normalised_meters() -> void:
 	assert_not_null(_armory.find_child("TurnMeter_classic", true, false))
 
 
-func test_ship_and_arena_rows_scroll_sideways() -> void:
+## ARMORY R7 (user: "show only 1 with arrow icons on the left and right which cycles ...
+## on the right hand side - show what it looks like in the arena"; "make it also the same
+## for ships"): the carousels show one item, wrap both ways, and redraw the preview.
+func test_carousels_cycle_one_item_and_preview_it() -> void:
+	_armory.open("arena")
+	assert_eq(_armory.find_children("ArenaCard_*", "PanelContainer", true, false).size(), 1)
+	assert_eq(_label("ThemePager").text, "1 / 6")
+	_button("ThemePrev").pressed.emit()
+	assert_eq(_label("ThemePager").text, "6 / 6", "Prev wraps to the last")
+	_button("ThemeNext").pressed.emit()
+	assert_not_null(_armory.find_child("ArenaCard_void", true, false))
+	var preview: ArenaPreview = _armory.find_child("ArenaPreview", true, false) as ArenaPreview
+	var void_grid: Color = preview.grid_color
+	_button("ThemeNext").pressed.emit()
+	preview = _armory.find_child("ArenaPreview", true, false) as ArenaPreview
+	assert_ne(preview.grid_color, void_grid, "the preview shows the browsed theme")
+	assert_eq(_progression.data.equipped_arena_theme_id, "void", "browsing equips nothing")
+	_button("EnemyNext").pressed.emit()
+	assert_not_null(_armory.find_child("EnemyCard_toxic", true, false))
 	_armory.open("ships")
-	var ships: ScrollContainer = _armory.find_child("ShipsRow", true, false) as ScrollContainer
-	assert_eq(ships.vertical_scroll_mode, ScrollContainer.SCROLL_MODE_DISABLED)
+	assert_eq(_armory.find_children("Ship_*", "PanelContainer", true, false).size(), 1)
+	assert_not_null(_armory.find_child("ArenaPreview", true, false), "ships preview too")
 	_armory.open("arena")
-	for row: String in ["ThemesRow", "EnemiesRow"]:
-		var scroll: ScrollContainer = _armory.find_child(row, true, false) as ScrollContainer
-		assert_eq(scroll.vertical_scroll_mode, ScrollContainer.SCROLL_MODE_DISABLED, row)
+	assert_not_null(_armory.find_child("ArenaCard_void", true, false), "open resets to equipped")
 
 
-func test_owned_theme_reads_owned() -> void:
+## Steps `kind`'s carousel (Ship, Theme, Enemy) until `id` is the card shown.
+func _browse(kind: String, id: String) -> void:
+	var prefixes: Dictionary[String, String] = {
+		"Ship": "Ship_", "Theme": "ArenaCard_", "Enemy": "EnemyCard_"
+	}
+	for i: int in range(12):
+		if _armory.find_child(prefixes[kind] + id, true, false) != null:
+			return
+		_button(kind + "Next").pressed.emit()
+	fail_test("no %s card %s" % [kind, id])
+
+
+func test_owned_theme_offers_equip() -> void:
 	_armory.open("arena")
-	_pick_and_buy("Arena", "synthwave")
-	_pick_and_buy("Arena", "nebula")
-	assert_eq(_label("ArenaState_synthwave").text, "Owned")
+	_browse("Theme", "synthwave")
+	_button("BuyArena_synthwave").pressed.emit()
+	_browse("Theme", "nebula")
+	_button("BuyArena_nebula").pressed.emit()
+	_browse("Theme", "synthwave")
+	assert_eq(_button("EquipArena_synthwave").text, "Equip")
+	_browse("Theme", "synthwave")
+	assert_eq(_button("EquipArena_synthwave").theme_type_variation, "EquipButton")
+	_browse("Theme", "synthwave")
 	assert_false(_button("EquipArena_synthwave").disabled)
 
 
@@ -898,3 +962,19 @@ func test_maxed_boost_shows_only_its_value() -> void:
 	_progression.data.hull_compact = 3
 	_armory.open("boosts")
 	assert_eq(_value_text("BoostValue_hullCompact"), "hitbox 82%", "no arrow when maxed")
+
+
+## ARMORY R7: both Arena carousels and the Ships carousel fit a phone without scrolling.
+func test_showcase_tabs_fit_without_scrolling() -> void:
+	for size: Vector2 in [Vector2(2340.0, 1080.0), Vector2(1600.0, 720.0)]:
+		var scale: float = HudController.ui_scale_for(size)
+		for tab: String in ["arena", "ships"]:
+			var armory: ArmoryUI = _hosted(size, scale)
+			armory.open(tab)
+			await get_tree().process_frame
+			await get_tree().process_frame
+			var body: ScrollContainer = (
+				armory.find_child("ScrollBody", true, false) as ScrollContainer
+			)
+			var need: float = (body.get_child(0) as Control).get_combined_minimum_size().y
+			assert_lte(need, body.size.y, "%s %s: %.0f of %.0f px" % [tab, size, need, body.size.y])

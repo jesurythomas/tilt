@@ -175,4 +175,25 @@ redesign if needed to make ui/ux feel better as a player". Rulings are Claude's 
   it. it should also show the button when puchasing": a tap on an unowned Arena card picks
   it (ion 2 px edge) and swaps its price line for a "Buy 400" CostButton (dimmed when
   unaffordable); only that button buys. Owned cards still equip on tap (free). One pick
-  at a time; opening the Armory or switching tabs clears it. Suite 766.
+  at a time; opening the Armory or switching tabs clears it. Suite 766. *Superseded by
+  R6/R7 the same day: only an explicit action button buys.*
+- [x] **ARMORY R6** — "for things that are inactive or cant be clicked. make it more
+  obvious like buttons where you dont have enought points or reset as well as equip":
+  disabled buttons are flat with a barely-there edge (#1E232D) and dim text (#4A5162,
+  was TEXT_FAINT, which read as merely secondary); an unaffordable price carries the lock
+  glyph (weapons, ships, arena — keystones already did). Clickable ones read as such:
+  SecondaryButton is raised with bright text (Reset, Menu, Armory, Pause), Equip is the
+  new ion `EquipButton`. The Arena's small tap-anywhere cards became ship-style cards
+  whose action button alone buys or equips. User: "dont add another tab for enemies and
+  theme" — the brief Themes | Enemies switch was removed.
+- [x] **ARMORY R7** — "instead of showing all of the themes and enemies, show only 1 with
+  arrow icons on the left and right which cycles (left hand side) on the right hand side
+  - show what it looks like in the arena"; "make it also the same for ships": Ships and
+  Arena are showcase tabs — on the left, ◀ one card ▶ per catalog (Ships: the ship card;
+  Arena: a theme carousel and an enemy carousel), arrows wrapping, "n / count" shown; on
+  the right `ui/arena_preview.gd`, a still of the arena with the browsed theme (the run's
+  background shader, grid, edge), nine dots in the browsed skin, and the browsed ship
+  (the equipped ones for what the tab does not browse). Browsing equips nothing; opening
+  the Armory resets each carousel to the equipped item. Both tabs fit a 1080- and a
+  720-tall phone without scrolling (`test_showcase_tabs_fit_without_scrolling`). The
+  preview draws once per change (no per-frame cost; the Armory is off the run). Suite 767.

@@ -37,6 +37,13 @@ const POINTS_UNIT: Color = Color("#A08A5C")  # DIVERGENCE(UI-SYSTEM): ArmoryWeap
 const ION_TEXT: Color = Color("#8FB0FF")  # DIVERGENCE(UI-SYSTEM): System.dc.html — CostButton
 const PLASMA_TEXT: Color = Color("#C4B0FD")  # DIVERGENCE(UI-SYSTEM): ArmoryWeapons.dc.html
 const LOCKED_CARD: Color = Color("#10141B")  # DIVERGENCE(UI-SYSTEM): ArmoryWeapons.dc.html
+## DIVERGENCE(ARMORY R6, user 2026-09-28: "for things that are inactive or cant be
+## clicked. make it more obvious like buttons where you dont have enought points or
+## reset as well as equip"): a disabled button's
+## label (TEXT_FAINT read as merely secondary), its edge, and its glyph's tint.
+const TEXT_DISABLED: Color = Color("#4A5162")
+const LINE_DISABLED: Color = Color("#1E232D")
+const ICON_DISABLED: Color = Color(1.0, 1.0, 1.0, 0.7)
 const STAT_CELL: Color = Color("#161B25")  # DIVERGENCE(UI-SYSTEM): RunOver.dc.html
 const DONE_CARD: Color = Color("#0F131B")  # DIVERGENCE(UI-SYSTEM): System.dc.html
 ## DIVERGENCE(M11c review): outline thickness (px at 1x) that keeps text readable over
@@ -46,6 +53,8 @@ const OVER_PLAY_OUTLINE: int = 6
 ## 12%, Chip border 45%, IconButton rgba(20,24,33,0.85); ArmoryShips.dc.html —
 ## Equipped fill 10%; Pause.dc.html — sheet shadow 0.6
 const FILL_ALPHA: float = 0.12
+## DIVERGENCE(ARMORY R6): EquipButton's pressed wash.
+const EQUIP_PRESSED_ALPHA: float = 0.24
 const CHIP_BORDER_ALPHA: float = 0.45
 const ICON_BUTTON_ALPHA: float = 0.85
 const EQUIPPED_FILL_ALPHA: float = 0.10
@@ -130,6 +139,12 @@ const ICON_PAUSE: String = (
 const ICON_BACK: String = (
 	'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">'
 	+ '<path d="M10 3 L5 8 L10 13" stroke="#C7CDDB" stroke-width="1.5" '
+	+ 'stroke-linecap="round" stroke-linejoin="round"/></svg>'
+)
+## DIVERGENCE(ARMORY R7): the back chevron mirrored, for the carousels' next arrow.
+const ICON_FORWARD: String = (
+	'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">'
+	+ '<path d="M6 3 L11 8 L6 13" stroke="#C7CDDB" stroke-width="1.5" '
 	+ 'stroke-linecap="round" stroke-linejoin="round"/></svg>'
 )
 ## DIVERGENCE(UI-SYSTEM): Pause.dc.html — calibrate tilt
@@ -452,7 +467,8 @@ static func _build_buttons(theme: Theme, scale: float) -> void:
 	var none: Color = Color.TRANSPARENT
 	var label_size: int = px(LABEL_SIZE, scale)
 	var cost_font: FontVariation = mono(Weight.MEDIUM)
-	var cost_off: StyleBoxFlat = padded(flat(none, COLOR_LINE, cr), pad, 0.0)
+	# DIVERGENCE(ARMORY R6): an unaffordable price is flat on a barely-there edge.
+	var cost_off: StyleBoxFlat = padded(flat(none, LINE_DISABLED, cr), pad, 0.0)
 	# DIVERGENCE(UI-SYSTEM): System.dc.html — PrimaryButton (ion fill, void text, r 6)
 	_button(
 		theme,
@@ -465,15 +481,29 @@ static func _build_buttons(theme: Theme, scale: float) -> void:
 		padded(flat(COLOR_RAISED, none, r), pad, 0.0)
 	)
 	# DIVERGENCE(UI-SYSTEM): System.dc.html — SecondaryButton (line_strong 1px, r 6)
+	# DIVERGENCE(ARMORY R6): raised with bright text (the board's transparent, secondary-
+	# text face read as disabled — Reset, Menu, Armory); disabled is flat and dim.
 	_button(
 		theme,
 		"SecondaryButton",
 		sans(Weight.MEDIUM),
 		label_size,
-		TEXT_SECONDARY,
-		padded(flat(none, COLOR_LINE_STRONG, r), pad, 0.0),
+		COLOR_TEXT,
 		padded(flat(COLOR_RAISED, COLOR_LINE_STRONG, r), pad, 0.0),
-		padded(flat(none, COLOR_LINE, r), pad, 0.0)
+		padded(flat(tint(COLOR_ION, FILL_ALPHA), COLOR_ION, r), pad, 0.0),
+		padded(flat(none, LINE_DISABLED, r), pad, 0.0)
+	)
+	# DIVERGENCE(ARMORY R6): Equip — ion edge and label on an ion wash, so an owned item's
+	# action reads as one (the board's SecondaryButton Equip looked inactive).
+	_button(
+		theme,
+		"EquipButton",
+		sans(Weight.SEMIBOLD),
+		label_size,
+		ION_TEXT,
+		padded(flat(tint(COLOR_ION, FILL_ALPHA), COLOR_ION, r), pad, 0.0),
+		padded(flat(tint(COLOR_ION, EQUIP_PRESSED_ALPHA), ION_TEXT, r), pad, 0.0),
+		padded(flat(none, LINE_DISABLED, r), pad, 0.0)
 	)
 	# DIVERGENCE(UI-SYSTEM): System.dc.html — IconButton (panel 85%, line 1px, r 6);
 	# ArmoryWeapons.dc.html Back = transparent + line; Pause.dc.html Calibrate =
@@ -678,7 +708,8 @@ static func _button(
 	var active: Color = COLOR_VOID if name == "PrimaryButton" else COLOR_TEXT
 	theme.set_color("font_pressed_color", name, active)
 	theme.set_color("font_hover_pressed_color", name, active)
-	theme.set_color("font_disabled_color", name, TEXT_FAINT)
+	theme.set_color("font_disabled_color", name, TEXT_DISABLED)  # ARMORY R6
+	theme.set_color("icon_disabled_color", name, ICON_DISABLED)
 	theme.set_color("icon_normal_color", name, Color.WHITE)
 	theme.set_stylebox("normal", name, normal)
 	theme.set_stylebox("hover", name, normal)
