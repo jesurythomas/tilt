@@ -799,7 +799,7 @@ func spawn_orb(
 
 ## Returns signature neon color for a weapon type.
 ## PORT: web/src/tilt-to-live/WeaponSystem.ts:600-610
-func get_weapon_color(type: Types.WeaponType) -> Color:
+static func get_weapon_color(type: Types.WeaponType) -> Color:
 	var c: Color = Color.WHITE
 	match type:
 		Types.WeaponType.NUKE:

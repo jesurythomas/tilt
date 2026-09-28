@@ -487,7 +487,7 @@ func _draw_weapons() -> void:
 			continue
 
 		var pulse: float = 0.88 + 0.12 * sin(_elapsed * 6.0 + orb.pulse_offset)
-		var orb_col: Color = _weapons.get_weapon_color(orb.type)
+		var orb_col: Color = WeaponSystem.get_weapon_color(orb.type)
 		_begin_entity(Vector2(orb.x, orb.y))
 		var orb_pos: Vector2 = Vector2.ZERO
 

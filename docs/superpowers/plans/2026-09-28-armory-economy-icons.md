@@ -128,7 +128,7 @@ silhouette/greyscale readable at 24 px.
   banking once, points multiplier applied, coin value, goal rewards ×50 vs fixture.
 - [x] **T3 — Aegis innate** (done: weapon_system.gd shields unconditionally inside the pull radius; +1 outside-radius test; suite 718) (ECON R5): `WeaponSystem` shields inside the radius
   unconditionally; test (no keystone → shielded inside, not outside).
-- [ ] **T4 — Icon set** (ICONS R1): `weapon_icons.gd`, glyph SVGs, colour table, cached
+- [x] **T4 — Icon set** (done: `render/weapon_icons.gd` (`WeaponIcons`: 12 glyphs, orb sprite, colours; `WeaponSystem.get_weapon_color` made static); `bench/icon_sheet.gd` renders `godot/build/icon_sheet.png` — reviewed; the laser needed three redesigns ("O=", then a wand, then a compass) and is now a hub with two beams and motion arcs; `tests/test_weapon_icons.gd` 4 tests) (ICONS R1): `weapon_icons.gd`, glyph SVGs, colour table, cached
   textures; a render sheet (`bench/icon_sheet.gd`, windowed) for review at 24/48 px and
   greyscale; tests (every weapon/boost has a glyph, SVG parses, texture size).
 - [ ] **T5 — Orbs and HUD** (ICONS R2, R3): baked orb sprite in EntityLayer, HUD timer
