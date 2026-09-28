@@ -133,7 +133,7 @@ silhouette/greyscale readable at 24 px.
   greyscale; tests (every weapon/boost has a glyph, SVG parses, texture size).
 - [x] **T5 — Orbs and HUD** (done: EntityLayer draws `WeaponIcons.orb_texture` (one draw per orb; `_draw_orb_glyph` removed), main.tscn WeaponTimerRow > WeaponTimerIcon + label, tint = `WeaponIcons.ui_color_of`; emulator screenshot checked (restarted the emulator first: 13 h up, 164% irq, fps 1); the PERF line lost `rcpu` (it forced a sync and logged an engine warning)) (ICONS R2, R3): baked orb sprite in EntityLayer, HUD timer
   icon. Tests: sprite cache keys, HUD icon visible with the timer; screenshot check.
-- [ ] **T6 — Weapons tab** (ARMORY R1, R2, ECON R4/R5 UI). Tests updated/added: single
+- [x] **T6 — Weapons tab** (done: `_upgrade_card` + `UpgradeRow` shared row, `weapon_ranks`, CanBuy dots, `_innate_note`, pip pop; catalog keystones = Supernova + Cross Beam; ARMORY R4 ruling on the way: the freeze weapon is "Freeze" (TS Armory: "Shockwave") to match the HUD and its icon. Emulator screenshot caught value labels collapsing to 0 px (clipping labels in an HBox) — fixed + a width test that fails on the old code. `tools/emulator/deploy.sh [--fresh]` added (waits out adb restarts). Suite 728) (ARMORY R1, R2, ECON R4/R5 UI). Tests updated/added: single
   column (no keystone column), card states (cost / need N / Max), "9/15" rank text,
   affordable dot, only Supernova/Cross Beam keystones, the innate line; fit tests at
   844×390 and 2340×1080 stay green.

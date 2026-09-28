@@ -59,9 +59,19 @@ func _filled_pips(name: String) -> int:
 	assert_not_null(bar, "%s must exist" % name)
 	var filled: int = 0
 	for pip: Node in bar.get_children():
-		if (pip as ColorRect).color == UiTheme.COLOR_ION:
+		if (pip as ColorRect).color != UiTheme.COLOR_LINE:  # ARMORY R2: filled in the accent
 			filled += 1
 	return filled
+
+
+## ARMORY R2: an upgrade row's value line ("<now> → <next>") as one string.
+func _value_text(name: String) -> String:
+	var row: Node = _armory.find_child(name, true, false)
+	assert_not_null(row, "%s must exist" % name)
+	var text: String = ""
+	for label: Node in row.get_children():
+		text += (label as Label).text
+	return text
 
 
 func test_starts_hidden_and_opens_on_weapons() -> void:
@@ -213,14 +223,27 @@ func test_weapons_catalog_matches_the_ts() -> void:
 	assert_eq(ids, ["blackhole", "missiles", "laser", "nuke", "freeze", "shield", "lightning"])
 	var blackhole: ArmoryUI.WeaponConfig = _armory.weapons_catalog[0]
 	assert_eq(blackhole.name, "Blackhole")
-	assert_eq(blackhole.dot, Color("#A78BFA"))
+	# ICONS R1: one colour per weapon, the orb colour lifted for the UI.
+	assert_eq(blackhole.dot, WeaponIcons.ui_color_of(Types.WeaponType.VORTEX))
 	assert_eq(blackhole.tracks.size(), 3)
 	assert_eq(blackhole.tracks[2].key, "gravity")
 	assert_eq(blackhole.tracks[2].effect, "+20% / rank")
-	assert_eq(blackhole.keystones[1].key, "supernovaCollapse")
+	# ECON R4/R5: Supernova is the black hole's only keystone; the shield inside is innate.
+	assert_eq(blackhole.keystones.size(), 1)
+	assert_eq(blackhole.keystones[0].key, "supernovaCollapse")
+	assert_eq(blackhole.innate, "Safe inside the well")
 	var freeze: ArmoryUI.WeaponConfig = _armory.weapons_catalog[4]
-	assert_eq(freeze.name, "Shockwave", "the freeze weapon is presented as Shockwave (:161)")
+	assert_eq(freeze.name, "Freeze", "ARMORY R4 (the TS said Shockwave, :161)")
 	assert_eq(freeze.tracks.size(), 1)
+	var keystone_keys: Array[String] = []
+	for w: ArmoryUI.WeaponConfig in _armory.weapons_catalog:
+		for k: ArmoryUI.WeaponKeystone in w.keystones:
+			keystone_keys.append(k.key)
+	assert_eq(
+		keystone_keys,
+		["supernovaCollapse", "crossBeam"] as Array[String],
+		"ECON R4: only keystones with a coded effect"
+	)
 	for w: ArmoryUI.WeaponConfig in _armory.weapons_catalog:
 		for t: ArmoryUI.WeaponTrack in w.tracks:
 			assert_true(
@@ -229,26 +252,17 @@ func test_weapons_catalog_matches_the_ts() -> void:
 			)
 			assert_eq(t.max_rank, 5)
 		for k: ArmoryUI.WeaponKeystone in w.keystones:
-			# PORT-NOTE: blackhole's invulnerableInside is absent from KEYSTONE_COSTS
-			# (WeaponTuning.ts:73-87) and priced by the fallback at ProgressionManager.ts:556.
-			if k.key == "invulnerableInside":
-				assert_eq(
-					_progression.get_perk_cost(0, true, k.key),
-					2500,
-					"invulnerableInside uses the 2500 fallback (ProgressionManager.ts:556)"
-				)  # PORT: web/src/tilt-to-live/ProgressionManager.ts:556
-			else:
-				assert_true(Tuning.KEYSTONE_COSTS.has(k.key), "%s is a KEYSTONE_COSTS key" % k.key)
+			assert_true(Tuning.KEYSTONE_COSTS.has(k.key), "%s is a KEYSTONE_COSTS key" % k.key)
 
 
-func test_weapons_tab_lists_seven_weapons_with_primary_rank() -> void:
+func test_weapons_tab_lists_seven_weapons_with_ranks_bought() -> void:
 	_open_weapons()
 	await get_tree().process_frame
-	# PORT: web/src/tilt-to-live/ArmoryUI.ts:429-431 — duration, else count, else radius, else 0
-	assert_eq(_label("WeaponRank_blackhole").text, "3/5", "blackhole.duration = 3 at defaults")
-	assert_eq(_label("WeaponRank_missiles").text, "5/5", "missiles.count = 5")
-	assert_eq(_label("WeaponRank_nuke").text, "1/5", "nuke has no duration/count → radius = 1")
-	assert_eq(_label("WeaponRank_lightning").text, "0/5", "lightning has none of the three → 0")
+	# ARMORY R1: ranks bought / ranks available over the weapon's tracks.
+	assert_eq(_label("WeaponRank_blackhole").text, "9/15", "3 + 2 + 4 of 3 × 5")
+	assert_eq(_label("WeaponRank_missiles").text, "5/15", "count 5, the others 0")
+	assert_eq(_label("WeaponRank_nuke").text, "1/10", "radius 1 of 2 tracks")
+	assert_eq(_label("WeaponRank_lightning").text, "0/10")
 	assert_true(_button("Weapon_blackhole").button_pressed, "selected item is active")
 
 
@@ -264,7 +278,7 @@ func test_selecting_a_weapon_rerenders_its_detail() -> void:
 func test_track_readout_shows_current_and_next_value() -> void:
 	_open_weapons("blackhole")
 	# PORT: web/src/tilt-to-live/ArmoryUI.ts:459-472 — duration rank 3: 4.8 + 0.5*3 → 6.3s → 6.8s
-	assert_eq(_label("TrackValue_duration").text, "6.3s → 6.8s")
+	assert_eq(_value_text("TrackValue_duration"), "6.3s → 6.8s")
 	assert_eq(_button("Track_duration").text, "1,000", "rank 3 costs PERK_COSTS[3] (ECON R2)")
 	assert_false(_button("Track_duration").disabled)
 
@@ -289,13 +303,14 @@ func test_maxed_track_is_disabled_and_labelled() -> void:
 	var btn: Button = _button("Track_count")
 	assert_true(btn.disabled)
 	assert_eq(btn.text, "Max")
-	assert_eq(_label("TrackValue_count").text, "13", "no arrow when maxed (:470-471)")
+	assert_eq(_value_text("TrackValue_count"), "13", "no arrow when maxed (:470-471)")
 
 
 func test_unaffordable_track_is_disabled() -> void:
 	_progression.data.points = 10
 	_open_weapons("blackhole")
 	assert_true(_button("Track_radius").disabled)
+	assert_eq(_button("Track_radius").text, "Need 640", "ARMORY R2: rank 2 costs 650")
 	watch_signals(_armory)
 	_button("Track_radius").pressed.emit()
 	assert_signal_not_emitted(_armory, "state_changed", "upgrade_perk refused (:1162)")
@@ -322,7 +337,7 @@ func test_starting_weapon_config_resolves_aliases() -> void:
 	# PORT: web/src/tilt-to-live/ArmoryUI.ts:209-220
 	assert_eq(_armory.get_starting_weapon_config(Types.WeaponType.VORTEX).id, "blackhole")
 	assert_eq(_armory.get_starting_weapon_config(Types.WeaponType.SHIELD).id, "shield")
-	assert_eq(_armory.get_starting_weapon_config(Types.WeaponType.FREEZE).name, "Shockwave")
+	assert_eq(_armory.get_starting_weapon_config(Types.WeaponType.FREEZE).name, "Freeze")
 
 
 func test_ships_tab_lists_every_ship_with_the_right_action() -> void:
@@ -516,11 +531,53 @@ func test_locked_keystone_is_dimmed_with_a_lock() -> void:
 func test_track_row_carries_pips_for_its_rank() -> void:
 	_open_weapons("blackhole")
 	var card: Control = _armory.find_child("TrackCard_duration", true, false) as Control
-	var filled: int = 0
-	for node: Node in card.find_children("*", "ColorRect", true, false):
-		if (node as ColorRect).color == UiTheme.COLOR_ION:
-			filled += 1
-	assert_eq(filled, 3, "duration rank 3 of 5 (ArmoryUI.ts:453-457)")
+	assert_not_null(card)
+	assert_eq(_filled_pips("TrackPips_duration"), 3, "duration rank 3 of 5 (ArmoryUI.ts:453-457)")
+	var pips: Node = _armory.find_child("TrackPips_duration", true, false)
+	assert_eq(
+		(pips.get_child(0) as ColorRect).color,
+		WeaponIcons.ui_color_of(Types.WeaponType.VORTEX),
+		"ARMORY R2: filled in the weapon colour"
+	)
+
+
+func test_weapon_detail_is_one_column_with_keystone_and_innate() -> void:
+	# ARMORY R1 (user: "a single column for weapon upgrade is fine").
+	_open_weapons("blackhole")
+	var column: VBoxContainer = _armory.find_child("UpgradeColumn", true, false) as VBoxContainer
+	assert_not_null(column)
+	var names: Array[String] = []
+	for child: Node in column.get_children():
+		names.append(str(child.name))
+	assert_eq(names.slice(0, 3), ["TrackCard_duration", "TrackCard_radius", "TrackCard_gravity"])
+	assert_true(names.has("KeystoneCard_supernovaCollapse"), "the keystone in the same column")
+	assert_eq(names[-1], "InnateNote", "ECON R5: the innate shield last")
+	assert_eq(_label("InnateText").text, "Safe inside the well")
+	assert_null(_armory.find_child("Keystone_invulnerableInside", true, false), "no Aegis to buy")
+
+
+func test_weapons_without_a_live_keystone_show_none() -> void:
+	_open_weapons("nuke")
+	assert_eq(_armory.find_children("KeystoneCard_*", "", true, false).size(), 0)
+	assert_null(_armory.find_child("InnateNote", true, false))
+
+
+func test_can_buy_dot_marks_weapons_with_an_affordable_upgrade() -> void:
+	_progression.data.points = 300
+	_open_weapons()
+	assert_true((_armory.find_child("CanBuy_lightning", true, false) as Control).visible, "250")
+	_progression.data.points = 100
+	_armory.render()
+	assert_false((_armory.find_child("CanBuy_lightning", true, false) as Control).visible)
+
+
+func test_buying_a_rank_pops_its_new_pip() -> void:
+	_open_weapons("blackhole")
+	_button("Track_duration").pressed.emit()
+	var pips: Node = _armory.find_child("TrackPips_duration", true, false)
+	var newest: ColorRect = pips.get_child(3) as ColorRect
+	assert_true(newest.has_meta("pop"), "ARMORY R2: rank 4's pip pops")
+	assert_gt(newest.scale.y, 1.0, "starts tall, settles to 1")
 
 
 func _hosted(size: Vector2, scale: float) -> ArmoryUI:
@@ -776,3 +833,15 @@ func test_sliders_still_take_their_own_drags() -> void:
 	assert_gt(sliders.size(), 0)
 	for s: Node in sliders:
 		assert_eq((s as Control).mouse_filter, Control.MOUSE_FILTER_STOP, s.name)
+
+
+func test_upgrade_value_labels_have_width_on_screen() -> void:
+	# A clipping label inside the value HBox collapsed to 0 px on device (T6 screenshot).
+	var armory: ArmoryUI = _hosted(Vector2(844.0, 390.0), 1.0)
+	armory.open("weapons")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var value: Control = armory.find_child("TrackValue_duration", true, false) as Control
+	assert_not_null(value)
+	for label: Node in value.get_children():
+		assert_gt((label as Control).size.x, 4.0, "'%s' is drawn" % (label as Label).text)

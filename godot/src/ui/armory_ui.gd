@@ -76,7 +76,6 @@ const STARTING_WEAPON_IDS: Dictionary[int, String] = {
 	Types.WeaponType.SHIELD: "shield",
 }
 const TRACK_PIPS: int = 5  # PORT: web/src/tilt-to-live/ArmoryUI.ts:454
-const RANK_DENOMINATOR: int = 5  # PORT: web/src/tilt-to-live/ArmoryUI.ts:431, :485
 const DEFAULT_KEYSTONE_COST: int = 2500  # PORT: web/src/tilt-to-live/ArmoryUI.ts:507
 ## Shell header. DIVERGENCE(UI-SYSTEM): ArmoryWeapons.dc.html — 64 px tall
 ## (padding 8/28/8/24 around 48 px targets), gap 12, tabs gap 2, Play 92×48,
@@ -100,7 +99,6 @@ const LIST_PAD_RIGHT: int = 10
 const LIST_PAD_LEFT: int = 24
 const LIST_GAP: int = 2
 const LIST_ROW_GAP: int = 10
-const DOT_SIZE: int = 8
 const FADE_HEIGHT: int = 36
 const DETAIL_PAD_TOP: int = 16
 const DETAIL_PAD_RIGHT: int = 28
@@ -109,18 +107,16 @@ const DETAIL_PAD_LEFT: int = 20
 const DETAIL_GAP: int = 14
 const DETAIL_HEADER_GAP: int = 14
 const ICON_BOX: int = 44
-const ICON_SIZE: int = 22
+## DIVERGENCE(ICONS R1): the WeaponIcons glyph fills more of its box than the TS outline did.
+const ICON_SIZE: int = 26
 const ICON_BOX_FILL_ALPHA: float = 0.1
 const ICON_BOX_BORDER_ALPHA: float = 0.35
 const TITLE_GROUP_GAP: int = 2
-const TRACKS_RATIO: float = 1.65
-const DETAIL_GRID_GAP: int = 12
 const TRACKS_GAP: int = 8
 const TRACK_ROW_HEIGHT: int = 62
 const TRACK_PAD_RIGHT: int = 7
 const TRACK_PAD_LEFT: int = 14
 const TRACK_GAP: int = 12
-const TRACK_INFO_WIDTH: int = 104
 const TRACK_INFO_GAP: int = 2
 const COST_WIDTH: int = 88
 const KEYSTONE_PAD_Y: int = 8
@@ -129,6 +125,19 @@ const KEYSTONE_PAD_LEFT: int = 13
 const KEYSTONE_GAP: int = 10
 const KEYSTONE_FILL_ALPHA: float = 0.07
 const KEYSTONE_BORDER_ALPHA: float = 0.3
+## DIVERGENCE(ARMORY R1, R2): the single-column upgrade list (user 2026-09-28: "a single
+## column for weapon upgrade is fine") and its row — list icon 18, can-buy dot 6, value
+## font 14, pips 132 wide, action 104 wide, row icon 26 (boosts), innate icon 16.
+const LIST_ICON: int = 18
+const CAN_BUY_DOT: int = 6
+const VALUE_FONT: int = 14
+const UPGRADE_PIPS_WIDTH: int = 132
+const ACTION_WIDTH: int = 104
+const ROW_ICON: int = 26
+const INNATE_ICON: int = 16
+## DIVERGENCE(ARMORY R2): the newly bought pip pops (y-scale) and settles.
+const PIP_POP_SCALE: float = 2.4
+const PIP_POP_SECONDS: float = 0.35
 
 ## Tab body padding shared by ArmoryShips/Handling/Boosts.dc.html: 14 top, 16
 ## bottom, 24 left; 28 right except Ships, whose row bleeds off the right edge.
@@ -247,6 +256,8 @@ var _preview: HandlingPreview = null
 var _balance_tween: Tween = null
 ## The tab render() last built, so scroll offsets carry over only within one tab.
 var _rendered_tab: int = -1
+## DIVERGENCE(ARMORY R2): the pips bar whose newest pip pops after the next render.
+var _pop_pips: String = ""
 
 @onready var _overlay: ColorRect = %Overlay
 @onready var _panel_margin: MarginContainer = %PanelMargin
@@ -373,6 +384,7 @@ func render() -> void:
 			sc.set_deferred("scroll_vertical", prev.y)  # PORT: :391-394
 		if prev.x > 0:
 			sc.set_deferred("scroll_horizontal", prev.x)
+	_pop_new_pip()  # DIVERGENCE(ARMORY R2)
 
 
 ## DIVERGENCE(M11c, A55 report 2026-09-26 "I cannot drag or move the armory"): the
@@ -457,6 +469,8 @@ func _render_tab_content() -> Control:
 
 ## PORT: web/src/tilt-to-live/ArmoryUI.ts:416-569
 ## DIVERGENCE(UI-SYSTEM): laid out to ArmoryWeapons.dc.html (interface spec §6.4).
+## DIVERGENCE(ARMORY R1): one column — tracks, then the keystone (if any), then the innate
+## note — where the board split tracks | keystones 1.65fr | 1fr.
 func _render_weapons_tab() -> Control:
 	var perks: Dictionary = progression.data.perks.to_dict()  # PORT: :417, :429
 	var points: int = progression.data.points
@@ -470,32 +484,26 @@ func _render_weapons_tab() -> Control:
 	var layout: HBoxContainer = HBoxContainer.new()
 	layout.name = "WeaponsTab"
 	layout.add_theme_constant_override("separation", 0)
-	layout.add_child(_weapon_list(perks, selected))  # PORT: :427-442, :533-535
+	layout.add_child(_weapon_list(perks, points, selected))  # PORT: :427-442, :533-535
 	layout.add_child(_vrule())
 
 	# Right panel: detail, upgrades, keystones. PORT: :538-566
 	var detail: VBoxContainer = VBoxContainer.new()
 	detail.add_theme_constant_override("separation", _px(DETAIL_GAP))
 	detail.add_child(_weapon_header(selected, invested_points))
-	var grid: HBoxContainer = HBoxContainer.new()
-	grid.add_theme_constant_override("separation", _px(DETAIL_GRID_GAP))
+	var column: VBoxContainer = VBoxContainer.new()
+	column.name = "UpgradeColumn"
+	column.add_theme_constant_override("separation", _px(TRACKS_GAP))
 	var weapon_data: Dictionary = SaveStore.read_dict(perks, selected.id)
-	# Upgrade tracks with five discrete pips. PORT: :445-498
-	var tracks: VBoxContainer = VBoxContainer.new()
-	tracks.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	tracks.size_flags_stretch_ratio = TRACKS_RATIO
-	tracks.add_theme_constant_override("separation", _px(TRACKS_GAP))
-	for track: WeaponTrack in selected.tracks:
-		tracks.add_child(_track_card(selected, track, weapon_data, points))
-	grid.add_child(tracks)
-	# One-off unlocks (Aegis, Supernova, ...). PORT: :501-528, :560-565
-	var keystones: VBoxContainer = VBoxContainer.new()
-	keystones.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	keystones.add_theme_constant_override("separation", _px(TRACKS_GAP))
-	for k: WeaponKeystone in selected.keystones:
-		keystones.add_child(_keystone_card(selected, k, weapon_data, points))
-	grid.add_child(keystones)
-	detail.add_child(grid)
+	for track: WeaponTrack in selected.tracks:  # PORT: :445-498
+		column.add_child(_track_card(selected, track, weapon_data, points))
+	if not selected.keystones.is_empty():  # PORT: :501-528, :560-565
+		column.add_child(UiTheme.caps("Keystone"))
+		for k: WeaponKeystone in selected.keystones:
+			column.add_child(_keystone_card(selected, k, weapon_data, points))
+	if selected.innate != "":
+		column.add_child(_innate_note(selected))
+	detail.add_child(column)
 
 	var detail_margin: MarginContainer = _pad(
 		DETAIL_PAD_TOP, DETAIL_PAD_RIGHT, DETAIL_PAD_BOTTOM, DETAIL_PAD_LEFT
@@ -507,8 +515,34 @@ func _render_weapons_tab() -> Control:
 	return layout
 
 
+## DIVERGENCE(ARMORY R1): ranks bought and ranks available over a weapon's tracks (the TS
+## showed one track's rank out of 5, ArmoryUI.ts:430-431).
+static func weapon_ranks(w: WeaponConfig, weapon_data: Dictionary) -> Vector2i:
+	var bought: int = 0
+	var total: int = 0
+	for track: WeaponTrack in w.tracks:
+		bought += mini(SaveStore.read_int(weapon_data, track.key, 0), track.max_rank)
+		total += track.max_rank
+	return Vector2i(bought, total)
+
+
+## DIVERGENCE(ARMORY R1): true when the balance buys a next rank or a keystone of `w`.
+func _weapon_has_affordable(w: WeaponConfig, weapon_data: Dictionary, points: int) -> bool:
+	for track: WeaponTrack in w.tracks:
+		var rank: int = SaveStore.read_int(weapon_data, track.key, 0)
+		if rank < track.max_rank and points >= progression.get_perk_cost(rank, false):
+			return true
+	for k: WeaponKeystone in w.keystones:
+		var cost: int = Tuning.KEYSTONE_COSTS.get(k.key, DEFAULT_KEYSTONE_COST)
+		if not SaveStore.read_bool(weapon_data, k.key, false) and points >= cost:
+			return true
+	return false
+
+
 ## The weapon list (Board 09). PORT: web/src/tilt-to-live/ArmoryUI.ts:427-442
-func _weapon_list(perks: Dictionary, selected: WeaponConfig) -> Control:
+## DIVERGENCE(ARMORY R1, ICONS R1): each row shows the weapon's icon, a flare dot when
+## something is affordable, and ranks bought / available.
+func _weapon_list(perks: Dictionary, points: int, selected: WeaponConfig) -> Control:
 	var box: Control = Control.new()
 	box.name = "WeaponList"
 	box.custom_minimum_size.x = _px(LIST_WIDTH)
@@ -524,14 +558,6 @@ func _weapon_list(perks: Dictionary, selected: WeaponConfig) -> Control:
 	rows.add_theme_constant_override("separation", _px(LIST_GAP))
 	for w: WeaponConfig in weapons_catalog:
 		var p: Dictionary = SaveStore.read_dict(perks, w.id)
-		# PORT: :430 — duration, else count, else radius, else 0
-		var primary_val: int = 0
-		if p.get("duration") is int:
-			primary_val = p["duration"]
-		elif p.get("count") is int:
-			primary_val = p["count"]
-		elif p.get("radius") is int:
-			primary_val = p["radius"]
 		var is_selected: bool = w.id == selected.id
 		var item: Button = Button.new()
 		item.name = "Weapon_" + w.id
@@ -543,12 +569,7 @@ func _weapon_list(perks: Dictionary, selected: WeaponConfig) -> Control:
 		var row: HBoxContainer = HBoxContainer.new()
 		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_theme_constant_override("separation", _px(LIST_ROW_GAP))
-		var dot: ColorRect = ColorRect.new()  # PORT: :436
-		dot.color = w.dot
-		dot.custom_minimum_size = Vector2.ONE * _px(DOT_SIZE)
-		dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		row.add_child(dot)
+		row.add_child(_weapon_icon(w, LIST_ICON))  # PORT: :436 (the dot)
 		var name_label: Label = _one_line(w.name, "LabelText")  # PORT: :437
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		name_label.add_theme_font_override("font", UiTheme.sans(UiTheme.Weight.MEDIUM))
@@ -557,8 +578,16 @@ func _weapon_list(perks: Dictionary, selected: WeaponConfig) -> Control:
 		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(name_label)
-		# PORT: :431, :438
-		var rank: Label = UiTheme.text("%d/%d" % [primary_val, RANK_DENOMINATOR], "MonoFaintText")
+		var can_buy: ColorRect = ColorRect.new()
+		can_buy.name = "CanBuy_" + w.id
+		can_buy.color = UiTheme.COLOR_FLARE
+		can_buy.custom_minimum_size = Vector2.ONE * _px(CAN_BUY_DOT)
+		can_buy.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		can_buy.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		can_buy.visible = _weapon_has_affordable(w, p, points)
+		row.add_child(can_buy)
+		var ranks: Vector2i = weapon_ranks(w, p)
+		var rank: Label = UiTheme.text("%d/%d" % [ranks.x, ranks.y], "MonoFaintText")
 		rank.name = "WeaponRank_" + w.id
 		rank.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		rank.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -588,6 +617,24 @@ func _weapon_list(perks: Dictionary, selected: WeaponConfig) -> Control:
 	return box
 
 
+## DIVERGENCE(ICONS R1): a weapon's WeaponIcons glyph at `base` px, in its colour.
+func _weapon_icon(w: WeaponConfig, base: int) -> TextureRect:
+	return _glyph(w.id, w.dot, base)
+
+
+## A WeaponIcons glyph at `base` px (× ui_scale), tinted.
+func _glyph(key: String, tint: Color, base: int) -> TextureRect:
+	var icon: TextureRect = TextureRect.new()
+	icon.texture = WeaponIcons.texture(key, _px(base))
+	icon.self_modulate = tint
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.custom_minimum_size = Vector2.ONE * _px(base)
+	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return icon
+
+
 ## Icon, title, description and invested points. PORT: web/src/tilt-to-live/ArmoryUI.ts:540-552
 func _weapon_header(selected: WeaponConfig, invested_points: int) -> HBoxContainer:
 	var header: HBoxContainer = HBoxContainer.new()
@@ -615,62 +662,101 @@ func _weapon_header(selected: WeaponConfig, invested_points: int) -> HBoxContain
 
 
 ## One upgrade-track row. PORT: web/src/tilt-to-live/ArmoryUI.ts:447-495
+## DIVERGENCE(ARMORY R2): the shared upgrade row; the "+0.5s / rank" line went (now → next
+## says it) and an unaffordable rank shows its shortfall.
 func _track_card(
 	selected: WeaponConfig, track: WeaponTrack, weapon_data: Dictionary, points: int
 ) -> PanelContainer:
 	var current_rank: int = SaveStore.read_int(weapon_data, track.key, 0)  # PORT: :448
 	var is_maxed: bool = current_rank >= track.max_rank
-	var cost: int = progression.get_perk_cost(current_rank, false)  # PORT: :450
-	var can_afford: bool = points >= cost and not is_maxed
-
-	var card: PanelContainer = PanelContainer.new()
-	card.name = "TrackCard_" + track.key
-	card.theme_type_variation = "Card"
-	card.custom_minimum_size.y = _px(TRACK_ROW_HEIGHT)
-	var inner: MarginContainer = _pad(0, TRACK_PAD_RIGHT, 0, TRACK_PAD_LEFT)
-	var row: HBoxContainer = HBoxContainer.new()
-	row.add_theme_constant_override("separation", _px(TRACK_GAP))
-	var info: VBoxContainer = VBoxContainer.new()
-	info.custom_minimum_size.x = _px(TRACK_INFO_WIDTH)
-	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	info.alignment = BoxContainer.ALIGNMENT_CENTER
-	info.add_theme_constant_override("separation", _px(TRACK_INFO_GAP))
-	info.add_child(_one_line(track.name, "StrongText"))
-	info.add_child(_one_line(track.effect, "MonoText"))
+	var row: UpgradeRow = UpgradeRow.new()
+	row.prefix = "Track"
+	row.id = track.key
+	row.accent = selected.dot
+	row.name = track.name
+	row.rank = current_rank
+	row.max_rank = track.max_rank
+	row.cost = Types.ABSENT if is_maxed else progression.get_perk_cost(current_rank, false)
+	row.on_buy = _on_track_pressed.bind(selected.id, track.key)
 	# Current (and, unless maxed, next-rank) value straight from WEAPON_TUNING (:459-473).
-	# Ruling N: kept as the row's second Mono line.
 	var tuning_tracks: Dictionary = Tuning.weapon_tuning.get(selected.id, {})
 	if tuning_tracks.has(track.key):
 		var entry: Tuning.TuningEntry = tuning_tracks[track.key]
-		var current_text: String = format_tuning_value(
+		row.now_text = format_tuning_value(
 			Tuning.get_tuned_value(selected.id, track.key, current_rank), entry.unit
 		)
-		var value_text: String = current_text
 		if not is_maxed:
-			var next_text: String = format_tuning_value(
+			row.next_text = format_tuning_value(
 				Tuning.get_tuned_value(selected.id, track.key, current_rank + 1), entry.unit
 			)
-			value_text = "%s → %s" % [current_text, next_text]  # PORT: :469 (&rarr;)
-		var value_label: Label = _one_line(value_text, "MonoFaintText")
-		value_label.name = "TrackValue_" + track.key
-		info.add_child(value_label)
-	row.add_child(info)
-	var pips: HBoxContainer = UiTheme.pips(current_rank, TRACK_PIPS, _ui_scale)  # PORT: :453-457
-	pips.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	return _upgrade_card(row, points)
+
+
+## DIVERGENCE(ARMORY R2): one upgrade row for weapon tracks and boosts — optional icon,
+## name, value now → next (next in the accent colour), pips in the accent, and one action:
+## the cost (affordable), "Need N" (short, disabled) or a Max badge.
+func _upgrade_card(row: UpgradeRow, points: int) -> PanelContainer:
+	var is_maxed: bool = row.cost == Types.ABSENT
+	var card: PanelContainer = PanelContainer.new()
+	card.name = "%sCard_%s" % [row.prefix, row.id]
+	card.theme_type_variation = "Card"
+	card.custom_minimum_size.y = _px(TRACK_ROW_HEIGHT)
+	var inner: MarginContainer = _pad(0, TRACK_PAD_RIGHT, 0, TRACK_PAD_LEFT)
+	var line: HBoxContainer = HBoxContainer.new()
+	line.add_theme_constant_override("separation", _px(TRACK_GAP))
+	if row.icon_key != "":
+		line.add_child(_glyph(row.icon_key, row.accent, ROW_ICON))
+	var info: VBoxContainer = VBoxContainer.new()
+	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info.alignment = BoxContainer.ALIGNMENT_CENTER
+	info.add_theme_constant_override("separation", _px(TRACK_INFO_GAP))
+	info.add_child(_one_line(row.name, "StrongText"))
+	if row.now_text != "":
+		var value: HBoxContainer = HBoxContainer.new()
+		value.name = "%sValue_%s" % [row.prefix, row.id]
+		value.add_theme_constant_override("separation", 0)
+		value.add_child(_value_label(row.now_text, UiTheme.TEXT_SECONDARY))
+		if row.next_text != "":
+			value.add_child(_value_label(" → ", UiTheme.TEXT_FAINT))
+			value.add_child(_value_label(row.next_text, row.accent))
+		info.add_child(value)
+	line.add_child(info)
+	var pips: HBoxContainer = UiTheme.pips(row.rank, row.max_rank, _ui_scale)
+	pips.name = "%sPips_%s" % [row.prefix, row.id]
+	for i: int in range(mini(row.rank, pips.get_child_count())):
+		(pips.get_child(i) as ColorRect).color = row.accent
+	pips.custom_minimum_size.x = _px(UPGRADE_PIPS_WIDTH)
 	pips.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(pips)
-	var buy: Button = Button.new()  # PORT: :486-494
-	buy.name = "Track_" + track.key
-	buy.theme_type_variation = "CostButton"
-	buy.custom_minimum_size = Vector2(_px(COST_WIDTH), _px(UiTheme.TOUCH_TARGET))
+	line.add_child(pips)
+	var buy: Button = Button.new()
+	buy.name = "%s_%s" % [row.prefix, row.id]
+	buy.custom_minimum_size = Vector2(_px(ACTION_WIDTH), _px(UiTheme.TOUCH_TARGET))
 	buy.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	buy.disabled = is_maxed or not can_afford
-	buy.text = "Max" if is_maxed else UiTheme.group_digits(cost)  # Ruling K
-	buy.pressed.connect(_on_track_pressed.bind(selected.id, track.key))
-	row.add_child(buy)
-	inner.add_child(row)
+	if is_maxed:
+		buy.theme_type_variation = "EquippedButton"
+		buy.text = "Max"
+		buy.disabled = true
+	else:
+		buy.theme_type_variation = "CostButton"
+		if points >= row.cost:
+			buy.text = UiTheme.group_digits(row.cost)  # Ruling K
+		else:
+			buy.text = "Need %s" % UiTheme.group_digits(row.cost - points)
+			buy.disabled = true
+	buy.pressed.connect(row.on_buy)
+	line.add_child(buy)
+	inner.add_child(line)
 	card.add_child(inner)
 	return card
+
+
+## A value figure in the upgrade row (Mono, VALUE_FONT px). Not clipped: a clipping
+## label has no minimum width and collapses to nothing inside the HBox.
+func _value_label(text: String, color: Color) -> Label:
+	var label: Label = UiTheme.text(text, "MonoText")
+	label.add_theme_font_size_override("font_size", _px(VALUE_FONT))
+	label.add_theme_color_override("font_color", color)
+	return label
 
 
 ## One keystone card. PORT: web/src/tilt-to-live/ArmoryUI.ts:502-526
@@ -685,7 +771,6 @@ func _keystone_card(
 
 	var card: PanelContainer = PanelContainer.new()
 	card.name = "KeystoneCard_" + k.key
-	card.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	if is_locked:
 		card.theme_type_variation = "LockedCard"
 	elif is_unlocked:
@@ -719,7 +804,7 @@ func _keystone_card(
 	row.add_child(info)
 	var buy: Button = Button.new()  # PORT: :516-524
 	buy.name = "Keystone_" + k.key
-	buy.custom_minimum_size.y = _px(UiTheme.TOUCH_TARGET)
+	buy.custom_minimum_size = Vector2(_px(ACTION_WIDTH), _px(UiTheme.TOUCH_TARGET))
 	buy.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	if is_unlocked:
 		buy.theme_type_variation = "EquippedButton"
@@ -733,6 +818,36 @@ func _keystone_card(
 			buy.icon = UiTheme.svg_texture(UiTheme.ICON_LOCK, _ui_scale)
 	buy.pressed.connect(_on_keystone_pressed.bind(selected.id, k.key))
 	row.add_child(buy)
+	inner.add_child(row)
+	card.add_child(inner)
+	return card
+
+
+## DIVERGENCE(ECON R5): a weapon's innate perk, owned from the start (the black hole's
+## shield inside its pull — user 2026-09-28: "make being invulerable a already innate
+## upgrade (no need to purchase it)").
+func _innate_note(selected: WeaponConfig) -> PanelContainer:
+	var card: PanelContainer = PanelContainer.new()
+	card.name = "InnateNote"
+	card.theme_type_variation = "Card"
+	var inner: MarginContainer = _pad(
+		KEYSTONE_PAD_Y, KEYSTONE_PAD_RIGHT, KEYSTONE_PAD_Y, TRACK_PAD_LEFT
+	)
+	var row: HBoxContainer = HBoxContainer.new()
+	row.add_theme_constant_override("separation", _px(KEYSTONE_GAP))
+	var check: TextureRect = TextureRect.new()
+	check.texture = UiTheme.svg_texture(UiTheme.ICON_CHECK, _ui_scale)
+	check.self_modulate = UiTheme.COLOR_LOCKED_IN
+	check.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	check.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	check.custom_minimum_size = Vector2.ONE * _px(INNATE_ICON)
+	check.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(check)
+	row.add_child(UiTheme.caps("Innate"))
+	var text: Label = _one_line(selected.innate, "BodyText")
+	text.name = "InnateText"
+	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(text)
 	inner.add_child(row)
 	card.add_child(inner)
 	return card
@@ -857,12 +972,7 @@ func _ship_card(
 		var starts_with: Label = UiTheme.text("Starts with", "MonoFaintText")
 		starts_with.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		loadout.add_child(starts_with)
-		var icon: TextureRect = TextureRect.new()
-		icon.texture = UiTheme.svg_texture(starting.icon_svg, SVG_OVERSAMPLE * _ui_scale)
-		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		icon.custom_minimum_size = Vector2.ONE * _px(LOADOUT_ICON)
-		loadout.add_child(icon)
+		loadout.add_child(_weapon_icon(starting, LOADOUT_ICON))  # DIVERGENCE(ICONS R1)
 		var loadout_name: Label = UiTheme.text(starting.name, "MonoText")
 		loadout_name.name = "LoadoutName"
 		loadout.add_child(loadout_name)
@@ -1360,6 +1470,7 @@ func _on_weapon_item_pressed(id: String) -> void:
 func _on_track_pressed(weapon: String, track: String) -> void:
 	if progression.upgrade_perk(weapon, track):
 		state_changed.emit()
+		_pop_pips = "TrackPips_" + track
 		render()
 		_flash_balance()
 
@@ -1378,6 +1489,7 @@ func _on_boost_pressed(boost_id: String) -> void:
 		if boost.id == boost_id:
 			if boost.buy.call():
 				state_changed.emit()
+				_pop_pips = "BoostPips_" + boost_id
 				render()
 				_flash_balance()
 			return
@@ -1426,6 +1538,27 @@ func _on_equip_enemy_pressed(id: String) -> void:
 	if progression.equip_enemy_skin(id):
 		state_changed.emit()
 		render()
+
+
+## DIVERGENCE(ARMORY R2): the rank just bought pops its pip (y-scale) and settles.
+func _pop_new_pip() -> void:
+	if _pop_pips == "":
+		return
+	var bar: HBoxContainer = find_child(_pop_pips, true, false) as HBoxContainer
+	_pop_pips = ""
+	if bar == null:
+		return
+	var newest: ColorRect = null
+	for pip: Node in bar.get_children():
+		if (pip as ColorRect).color != UiTheme.COLOR_LINE:
+			newest = pip as ColorRect
+	if newest == null:
+		return
+	newest.scale = Vector2(1.0, PIP_POP_SCALE)
+	newest.set_meta("pop", true)
+	var pop: Tween = create_tween()
+	pop.tween_callback(func() -> void: newest.pivot_offset = newest.size / 2.0)
+	pop.tween_property(newest, "scale", Vector2.ONE, PIP_POP_SECONDS)
 
 
 ## DIVERGENCE(M11c review, emulator play 2026-09-27): a purchase gave no feedback
@@ -1625,12 +1758,7 @@ func _icon_box(config: WeaponConfig) -> PanelContainer:
 	)
 	box.custom_minimum_size = Vector2.ONE * _px(ICON_BOX)
 	box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	var icon: TextureRect = TextureRect.new()
-	icon.texture = UiTheme.svg_texture(config.icon_svg, SVG_OVERSAMPLE * _ui_scale)
-	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon.custom_minimum_size = Vector2.ONE * _px(ICON_SIZE)
-	box.add_child(icon)
+	box.add_child(_weapon_icon(config, ICON_SIZE))  # DIVERGENCE(ICONS R1)
 	return box
 
 
@@ -1639,6 +1767,10 @@ func _icon_box(config: WeaponConfig) -> PanelContainer:
 ## has no host document, so `xmlns="http://www.w3.org/2000/svg"` is added and
 ## `aria-hidden` (meaningless off the DOM) is dropped from every icon below.
 ## PORT: web/src/tilt-to-live/ArmoryUI.ts:96-203
+## DIVERGENCE(ECON R4): only keystones with a coded effect are listed (Supernova, Cross
+## Beam); the TS listed 14, 8 of them unbuyable and 3 more without an effect.
+## DIVERGENCE(ICONS R1): colours and icons come from WeaponIcons (the TS dot colours and
+## outline SVGs, :97-202, went).
 func _build_weapons_catalog() -> Array[WeaponConfig]:
 	var out: Array[WeaponConfig] = []
 	# PORT: :97-112
@@ -1648,25 +1780,18 @@ func _build_weapons_catalog() -> Array[WeaponConfig]:
 			_weapon(
 				"blackhole",
 				"Blackhole",
-				Color("#A78BFA"),
 				"Drags dots in, then collapses.",
-				(
-					'<svg width="30" height="30" viewBox="0 0 30 30" fill="none" '
-					+ 'xmlns="http://www.w3.org/2000/svg">'
-					+ '<circle cx="15" cy="15" r="11" stroke="#A78BFA" stroke-width="1.4"></circle>'
-					+ '<circle cx="15" cy="15" r="5" fill="#A78BFA"></circle></svg>'
-				),
 				[
 					_track("duration", "Duration", "+0.5s / rank"),
 					_track("radius", "Radius", "+18 range / rank"),
 					_track("gravity", "Pull", "+20% / rank"),
 				],
 				[
-					_keystone("invulnerableInside", "Aegis", "You are safe inside the well."),
 					_keystone(
 						"supernovaCollapse", "Supernova", "Collapse fires a 320 range shockwave."
 					),
-				]
+				],
+				"Safe inside the well"  # DIVERGENCE(ECON R5): was the Aegis keystone
 			)
 		)
 	)
@@ -1677,30 +1802,13 @@ func _build_weapons_catalog() -> Array[WeaponConfig]:
 			_weapon(
 				"missiles",
 				"Missiles",
-				Color("#5B8CFF"),
 				"Swarm homing warheads track and annihilate dots.",
-				(
-					'<svg width="30" height="30" viewBox="0 0 30 30" fill="none" '
-					+ 'xmlns="http://www.w3.org/2000/svg">'
-					+ '<path d="M15 4 L20 12 L19 22 L15 20 L11 22 L10 12 Z" stroke="#5B8CFF" '
-					+ 'stroke-width="1.4" fill="rgba(91,140,255,0.2)"></path>'
-					+ '<circle cx="15" cy="11" r="2.5" fill="#5B8CFF"></circle></svg>'
-				),
 				[
 					_track("count", "Salvo Count", "+1 missile / rank"),
 					_track("blastRadius", "Detonation Radius", "+6 range / rank"),
 					_track("flightSpeed", "Propulsion", "+20% / rank"),
 				],
-				[
-					_keystone(
-						"clusterSplit", "Cluster Split", "Warheads divide into twins on intercept."
-					),
-					_keystone(
-						"hyperThrusters",
-						"Hyper Thrusters",
-						"Instant target lock and hypersonic velocity."
-					),
-				]
+				[]
 			)
 		)
 	)
@@ -1711,16 +1819,7 @@ func _build_weapons_catalog() -> Array[WeaponConfig]:
 			_weapon(
 				"laser",
 				"Laser",
-				Color("#5B8CFF"),
 				"Continuous piercing beam sweeps through swarms.",
-				(
-					'<svg width="30" height="30" viewBox="0 0 30 30" fill="none" '
-					+ 'xmlns="http://www.w3.org/2000/svg">'
-					+ '<line x1="4" y1="15" x2="26" y2="15" stroke="#5B8CFF" stroke-width="2.5" '
-					+ 'stroke-linecap="round"></line>'
-					+ '<line x1="8" y1="9" x2="22" y2="21" stroke="#5B8CFF" stroke-width="1.2" '
-					+ 'stroke-dasharray="2,3"></line></svg>'
-				),
 				[
 					_track("length", "Beam Reach", "+20 range / rank"),
 					_track("duration", "Emission Time", "+0.4s / rank"),
@@ -1728,11 +1827,6 @@ func _build_weapons_catalog() -> Array[WeaponConfig]:
 				[
 					_keystone(
 						"crossBeam", "Cross Beam", "Splits beam into 4-way perpendicular cross."
-					),
-					_keystone(
-						"refractorLance",
-						"Refractor Lance",
-						"Beams bounce off arena perimeter walls."
 					),
 				]
 			)
@@ -1745,64 +1839,23 @@ func _build_weapons_catalog() -> Array[WeaponConfig]:
 			_weapon(
 				"nuke",
 				"Nuke",
-				Color("#FFB14D"),
 				"Instantaneous arena-clearing shockwave explosion.",
-				(
-					'<svg width="30" height="30" viewBox="0 0 30 30" fill="none" '
-					+ 'xmlns="http://www.w3.org/2000/svg">'
-					+ '<circle cx="15" cy="15" r="11" stroke="#FFB14D" stroke-width="1.4"></circle>'
-					+ '<path d="M15 7 L15 11 M9 20 L12 17 M21 20 L18 17" stroke="#FFB14D" '
-					+ 'stroke-width="2" stroke-linecap="round"></path>'
-					+ '<circle cx="15" cy="15" r="3" fill="#FFB14D"></circle></svg>'
-				),
 				[
 					_track("radius", "Blast Radius", "+22 range / rank"),
 					_track("speed", "Shockwave Velocity", "+25% / rank"),
 				],
-				[
-					_keystone(
-						"falloutZone",
-						"Fallout Zone",
-						"Detonation leaves a 3.0s radioactive burn zone."
-					),
-					_keystone(
-						"chainReaction",
-						"Chain Reaction",
-						"Vaporized dots trigger miniature secondary bombs."
-					),
-				]
+				[]
 			)
 		)
 	)
 	# PORT: :159-172
-	(
-		out
-		. append(
-			_weapon(
-				"freeze",
-				"Shockwave",
-				Color("#8FB0FF"),
-				"Flash-freezes all dots into shatterable crystals.",
-				(
-					'<svg width="30" height="30" viewBox="0 0 30 30" fill="none" '
-					+ 'xmlns="http://www.w3.org/2000/svg">'
-					+ '<circle cx="15" cy="15" r="11" stroke="#8FB0FF" stroke-width="1.4" '
-					+ 'stroke-dasharray="4,3"></circle>'
-					+ '<path d="M15 5 L15 25 M5 15 L25 15 M8 8 L22 22 M8 22 L22 8" stroke="#8FB0FF" '
-					+ 'stroke-width="1.3"></path></svg>'
-				),
-				[_track("duration", "Freeze Duration", "+0.7s / rank")],
-				[
-					_keystone(
-						"shatterCascade",
-						"Shatter Cascade",
-						"Shattering one enemy destroys nearby frozen dots."
-					),
-					_keystone(
-						"cryoNova", "Cryo Nova", "Emits an expansive 360° cryogenic pulse ring."
-					),
-				]
-			)
+	out.append(
+		_weapon(
+			"freeze",
+			"Freeze",  # DIVERGENCE(ARMORY R4): the TS Armory said "Shockwave" (:161)
+			"Flash-freezes all dots into shatterable crystals.",
+			[_track("duration", "Freeze Duration", "+0.7s / rank")],
+			[]
 		)
 	)
 	# PORT: :173-187
@@ -1812,30 +1865,12 @@ func _build_weapons_catalog() -> Array[WeaponConfig]:
 			_weapon(
 				"shield",
 				"Shield",
-				Color("#3DDC97"),
 				"Kinetic barrier allowing safe ramming through enemies.",
-				(
-					'<svg width="30" height="30" viewBox="0 0 30 30" fill="none" '
-					+ 'xmlns="http://www.w3.org/2000/svg">'
-					+ '<path d="M15 5 L23 8 V15 C23 20 15 25 15 25 C15 25 7 20 7 15 V8 Z" '
-					+ 'stroke="#3DDC97" stroke-width="1.4" fill="rgba(61,220,151,0.15)"></path></svg>'
-				),
 				[
 					_track("duration", "Shield Duration", "+1.0s / rank"),
 					_track("radius", "Bubble Radius", "+2 range / rank"),
 				],
-				[
-					_keystone(
-						"batteringRam",
-						"Battering Ram",
-						"Ramming enemies triggers kinetic shockwaves."
-					),
-					_keystone(
-						"overchargePulse",
-						"Overcharge",
-						"Releases a blast pulse when barrier expires."
-					),
-				]
+				[]
 			)
 		)
 	)
@@ -1846,28 +1881,12 @@ func _build_weapons_catalog() -> Array[WeaponConfig]:
 			_weapon(
 				"lightning",
 				"Lightning",
-				Color("#FFB14D"),
 				"Arcs jump between dots in high-voltage cascade.",
-				(
-					'<svg width="30" height="30" viewBox="0 0 30 30" fill="none" '
-					+ 'xmlns="http://www.w3.org/2000/svg">'
-					+ '<path d="M17 4 L9 16 H16 L13 26 L23 13 H15 Z" stroke="#FFB14D" '
-					+ 'stroke-width="1.4" fill="rgba(255,177,77,0.2)"></path></svg>'
-				),
 				[
 					_track("maxTargets", "Arc Targets", "+3 targets / rank"),
 					_track("chainRange", "Chain Distance", "+22 range / rank"),
 				],
-				[
-					_keystone(
-						"plasmaArc", "Arc Detonation", "Chained enemies explode upon electrocution."
-					),
-					_keystone(
-						"superconductor",
-						"Superconductor",
-						"Electric arcs bridge across screen instantly."
-					),
-				]
+				[]
 			)
 		)
 	)
@@ -1981,20 +2000,19 @@ func _keystone(key: String, name: String, description: String) -> WeaponKeystone
 func _weapon(
 	id: String,
 	name: String,
-	dot: Color,
 	description: String,
-	icon_svg: String,
 	tracks: Array[WeaponTrack],
-	keystones: Array[WeaponKeystone]
+	keystones: Array[WeaponKeystone],
+	innate: String = ""
 ) -> WeaponConfig:
 	var w: WeaponConfig = WeaponConfig.new()
 	w.id = id
 	w.name = name
-	w.dot = dot
+	w.dot = WeaponIcons.ui_color_of(WeaponIcons.weapon_type(id) as Types.WeaponType)
 	w.description = description
-	w.icon_svg = icon_svg
 	w.tracks = tracks
 	w.keystones = keystones
+	w.innate = innate
 	return w
 
 
@@ -2036,12 +2054,33 @@ class WeaponConfig:
 	## A WeaponPerks key: blackhole, missiles, laser, nuke, freeze, shield, lightning.
 	var id: String = ""
 	var name: String = ""
+	## DIVERGENCE(ICONS R1): the weapon's colour (WeaponIcons.ui_color_of).
 	var dot: Color = Color.WHITE
 	var description: String = ""
-	## The TS <svg> markup verbatim, rasterised by svg_texture().
-	var icon_svg: String = ""
 	var tracks: Array[WeaponTrack] = []
 	var keystones: Array[WeaponKeystone] = []
+	## DIVERGENCE(ECON R5): an owned-from-the-start perk shown under the upgrades.
+	var innate: String = ""
+
+
+## DIVERGENCE(ARMORY R2): what _upgrade_card draws; node names are "<prefix>Card_<id>",
+## "<prefix>Value_<id>", "<prefix>Pips_<id>" and "<prefix>_<id>" (the action button).
+class UpgradeRow:
+	extends RefCounted
+	var prefix: String = ""
+	var id: String = ""
+	## A WeaponIcons key; "" draws no icon.
+	var icon_key: String = ""
+	var accent: Color = Color.WHITE
+	var name: String = ""
+	var now_text: String = ""
+	## "" when maxed.
+	var next_text: String = ""
+	var rank: int = 0
+	var max_rank: int = 0
+	## Types.ABSENT when maxed.
+	var cost: int = 0
+	var on_buy: Callable = Callable()
 
 
 ## The .arena-grid-lines overlay. PORT: web/src/styles/game.css:2501-2508
