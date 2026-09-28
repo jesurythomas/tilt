@@ -442,6 +442,39 @@ User ruling: C++ GDExtension for the hot path, not C# (Android C# is experimenta
   left: entity draw (6.8–7.1 ms/frame at 250+), then weapons 2.4–3.5 and the swarm 4.0.
   **Next:** entity draw fields gathered in C++; then particles in packed arrays / C++;
   then the kill path (HANDOFF Next).
+- [x] **N4 — native enemy draw loop** (done 2026-09-28). Ruling (Claude, "always
+  proceed"): not packed draw fields handed back to GDScript (the per-dot GDScript
+  work — field reads, the sprite-cache lookup, two `draw_texture_rect` calls with
+  Rect2 math — would stay), but the whole `_draw_enemies` loop in C++:
+  `PerilEnemyDrawer` (`native/src/peril_draw.{h,cpp}`, one per EntityLayer) builds the
+  P17 satellite map, dispatches in the same order, draws default dots (incl. the turret
+  indicator) and frozen dots with the same CanvasItem calls and float32 Vector2 math,
+  and calls the layer's own `_draw_charger/_artillery/_bullet/_carrier/_satellite/
+  _pulsar/_specter` in place for every other type, so the draw order is unchanged.
+  Its sprite caches are filled from the layer's (`_dot_sprites`, new `_frozen_sprite`)
+  on a miss, so they hold the same textures; `set_model_scale` clears both.
+  `EntityLayer.use_native_draw` (default true) keeps the GDScript loop as the
+  reference. The enemy-type enum moved to `native/src/peril_types.h`.
+  Checks: `bench/pixel_native_draw.gd` (windowed; 1280×720, every draw branch, model
+  scale 1.5, arena origin (7, 5); no skin + halo on, and an alt skin + halo off): **0 of
+  921,600 px differ** in both; C++ mutants (pulse 0.15 → 0.16, no turret line, frozen half
+  +1) differ by 28,292 / 184 / 6,670 px. `tests/test_native_draw.gd` (4 tests, headless):
+  same per-type drawer calls in the same order, same satellite map, same sprite-cache
+  keys, caches cleared on a model-scale change; mutants (no satellite map, a frozen
+  charger drawn as a charger) fail it. Suite 704. Desktop `bench_draw` (µs/frame, 3
+  runs): 115 seekers 430–434 → 172–177; late mix (145) 674–690 → 411–461.
+  Emulator A/B (3 pairs, power-up test mode, maxed upgrades; identical builds but
+  `use_native_draw`, GDScript → native), ms/frame: 250+ (~320 enemies) d_entity 7.0 →
+  4.8, 150–249 4.1 → 2.7; **fps unchanged within noise** (250+ 23.7 → 23.2; 150–249
+  24.5 → 23.1). 0 errors in 6 runs. Finding: at 250+ the probed sections (phys 10.4 +
+  d_entity 4.8 + d_effect 1.6 + grid) sum to ~17 ms of a ~43 ms frame; the other ~26 ms
+  is engine time outside the probes. `draws` (RENDER_TOTAL_DRAW_CALLS_IN_FRAME) is ~2 per
+  enemy (669 at 327): each dot draws its outer then its inner texture, so no two
+  consecutive rects share a texture and the canvas renderer cannot batch them.
+  **Next (N5):** one atlas texture per dot look (outer + inner regions, transparent
+  padding), drawn with `draw_texture_rect_region`, so consecutive dots batch; gate: the
+  pixel check at 0 px (or a ruling if linear filtering at region edges differs), then
+  `draws` and fps in the emulator A/B. Particles in C++ and the kill path after.
 
 ### User rulings (2026-09-27, evening)
 - [x] **P29 — wall formations spaced out** ("space them out a bit more", then "go a

@@ -5,7 +5,7 @@ Rewritten at every module stop. Written for a session with zero context.
 ## State
 
 **Current (2026-09-28): M11c review fixes + FPS work in progress, on the C++ path;
-N3 (native swarm loop) landed.** Active plan
+N3 (native swarm loop) and N4 (native enemy draw loop) landed.** Active plan
 `docs/superpowers/plans/2026-09-27-m11c-review-fixes.md`; the head of `## Next`
 below says exactly where it stands and what to do first. Everything is committed;
 the tree is clean. **The native extension is now required**: enemies are the C++
@@ -370,7 +370,7 @@ report: `.superpowers/sdd/2026-09-20-m11b-entrance-cinematic/task-3-report.md`.
 | gdtoolkit | 4.5.0 on PATH |
 | Device | **SM_A556E** (Galaxy A55), serial `RRCXB04L8EJ`; always pass `-s` |
 | ADB | `C:\Users\Jesury\AppData\Local\Android\Sdk\platform-tools\adb.exe` |
-| Native (C++) | GDExtension `PerilNative` + `PerilEnemy` (the enemy record; required since N3 — the game does not parse without the library) in `native/` (godot-cpp 10.0.0 submodule, `api_version=4.7`); outputs `godot/bin/libperil.*` (committed), registered by `godot/peril_native.gdextension`. SCons 4.11 via `python -m SCons` (pip --user). NDK r29 at `Sdk/ndk/29.0.14206865`. Build from `native/`: `python -m SCons platform=windows target=template_debug` and `ANDROID_HOME=C:/Users/Jesury/AppData/Local/Android/Sdk python -m SCons platform=android arch=arm64 target=template_debug ndk_version=29.0.14206865` (`template_release` for release exports). Flags: `-ffp-contract=off` on clang (bit-exact with GDScript). Close the editor before rebuilding the DLL (it locks it). After a fresh clone: `git submodule update --init`. |
+| Native (C++) | GDExtension `PerilNative` + `PerilEnemyDrawer` (N4) + `PerilEnemy` (the enemy record; required since N3 — the game does not parse without the library) in `native/` (godot-cpp 10.0.0 submodule, `api_version=4.7`); outputs `godot/bin/libperil.*` (committed), registered by `godot/peril_native.gdextension`. SCons 4.11 via `python -m SCons` (pip --user). NDK r29 at `Sdk/ndk/29.0.14206865`. Build from `native/`: `python -m SCons platform=windows target=template_debug` and `ANDROID_HOME=C:/Users/Jesury/AppData/Local/Android/Sdk python -m SCons platform=android arch=arm64 target=template_debug ndk_version=29.0.14206865` (`template_release` for release exports). Flags: `-ffp-contract=off` on clang (bit-exact with GDScript). Close the editor before rebuilding the DLL (it locks it). After a fresh clone: `git submodule update --init`. |
 
 The source web game keeps the name *Tilt to Live* in `web/src/tilt-to-live/`
 and in every `# PORT:` citation. Never rename those — Law 1 depends on them.
@@ -1698,7 +1698,29 @@ block and output: "## How to verify right now" above. Full report:
 
 ## Next
 
-**Where it stands (2026-09-28).** N3 landed (plan, "Native swarm tick" → N3):
+**Where it stands (2026-09-28, later).** N4 landed (plan, "Native swarm tick" → N4):
+EntityLayer's enemy loop runs in C++ (`PerilEnemyDrawer`, `native/src/peril_draw.*`):
+default and frozen dots draw natively, every other type calls its GDScript `_draw_*`
+in place (same order). Pixel-identical (`bench/pixel_native_draw.gd`, windowed: 0 of
+921,600 px, mutants caught); `tests/test_native_draw.gd` pins call order, satellite
+map and caches; `EntityLayer.use_native_draw = false` is the reference. Suite 704.
+Desktop entity draw 430 → 172 µs/frame (115 seekers). Emulator d_entity at 250+ 7.0
+→ 4.8 ms/frame, **but fps did not move** (23.7 → 23.2, noise): the probed script
+sections are ~17 ms of a ~43 ms frame, and the draw-call count is ~2 per enemy (669
+at 327) because each dot alternates two textures, so nothing batches.
+
+**Next, literally:**
+1. N5 (plan, end of N4): put each dot look's outer and inner sprites in one atlas
+   texture (transparent padding) and draw regions, so consecutive dots batch.
+   Gate: `bench/pixel_native_draw.gd` at 0 px (run windowed, see its header), then
+   the emulator A/B — watch `draws=` and fps, not only d_entity. A/B recipe: build the
+   native lib (HANDOFF toolchain row), `tools/emulator/perf_patch.sh apply`, export
+   `build/peril-point-god-<tag>.apk` for each variant, `perf_patch.sh revert`, then
+   `LOGS=<dir> tools/emulator/ab.sh <a> <b>` ×3 and `tools/emulator/perf_buckets.sh`.
+2. Then particles in C++ and the kill path (items (b), (c) below).
+3. Items 2–3 of the list below (A55 pass; release libs) are unchanged.
+
+**Earlier (2026-09-28).** N3 landed (plan, "Native swarm tick" → N3):
 `Types.Enemy` became the C++ class `PerilEnemy` (`native/src/peril_enemy.h`, same
 fields and defaults; renamed everywhere); the per-enemy loop
 (`PerilNative.swarm_step`), separation over the enemies (`separate_enemies`) and the

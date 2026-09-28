@@ -5,6 +5,7 @@
 
 #include "peril_enemy.h"
 #include "peril_sweep.h"
+#include "peril_types.h"
 
 #include <algorithm>
 #include <cmath>
@@ -14,23 +15,6 @@
 using namespace godot;
 
 namespace {
-
-// Types.EnemyType ordinals (types.gd); test_native_swarm pins them.
-enum EnemyType : int64_t {
-	SEEKER,
-	ARROW_DRONE,
-	WALL_DOT,
-	CIRCLE_DOT,
-	TURRET_DOT,
-	SPIKE_MINE,
-	SNAKE_SEGMENT,
-	CHARGER,
-	ARTILLERY,
-	CARRIER,
-	BULLET,
-	PULSAR,
-	SPECTER,
-};
 
 constexpr double GD_PI = 3.1415926535897932384626433833; // GDScript PI (Math_PI)
 

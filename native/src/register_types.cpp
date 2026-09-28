@@ -5,6 +5,7 @@
 #include <godot_cpp/core/defs.hpp>
 #include <godot_cpp/godot.hpp>
 
+#include "peril_draw.h"
 #include "peril_enemy.h"
 #include "peril_native.h"
 
@@ -16,6 +17,7 @@ void initialize_peril_module(ModuleInitializationLevel p_level) {
 	}
 	GDREGISTER_CLASS(PerilEnemy);
 	GDREGISTER_CLASS(PerilNative);
+	GDREGISTER_CLASS(PerilEnemyDrawer);
 }
 
 void uninitialize_peril_module(ModuleInitializationLevel p_level) {}

@@ -66,6 +66,10 @@ const TRI_STAR: PackedInt32Array = [
 ## DIVERGENCE(M11c P17): the empty satellite list.
 const _NO_SATS: Array[PerilEnemy] = []
 
+## DIVERGENCE(M11c N4): true draws the enemies through PerilEnemyDrawer (C++, same
+## draw calls in the same order); false forces the GDScript reference loop.
+static var use_native_draw: bool = true
+
 
 ## DIVERGENCE(M11c P13): the two baked textures of one default-dot look. Each is
 ## drawn at exactly its texel size (half-extents in screen px); outer scales with
@@ -129,6 +133,8 @@ var _artillery_cache: Dictionary[int, ImageTexture] = {}
 ## skin id seen (see _update_look_slot).
 var _look_slot: int = 1  # no skin (slot 0), halo on
 var _skin_slots: Dictionary[String, int] = {"": 0}
+## DIVERGENCE(M11c N4): the native enemy loop and its copy of the dot sprite caches.
+var _native_drawer: PerilEnemyDrawer = PerilEnemyDrawer.new()
 
 
 func _draw() -> void:
@@ -316,6 +322,7 @@ func set_model_scale(model_scale: float) -> void:
 		_pulsar_cache.clear()
 		_charger_cache.clear()
 		_artillery_cache.clear()
+		_native_drawer.clear()
 	_model_scale = model_scale
 
 
@@ -589,6 +596,11 @@ func _draw_orb_glyph(pos: Vector2, type: Types.WeaponType) -> void:
 func _draw_enemies() -> void:
 	if _swarm == null:
 		return
+	if use_native_draw:
+		_native_drawer.draw(
+			self, _swarm.enemies, _frame_sats, _elapsed, _look_slot, _arena_origin, _model_scale
+		)
+		return
 
 	_frame_sats.clear()
 	for e: PerilEnemy in _swarm.enemies:
@@ -629,25 +641,31 @@ func _draw_enemies() -> void:
 ## PORT: web/src/tilt-to-live/EnemySwarm.ts:1204-1222
 # DIVERGENCE(M11c P13): the three layers are baked into one cached texture.
 func _draw_frozen_dot(e: PerilEnemy) -> void:
-	var key: int = roundi(e.radius * DOT_KEY_STEPS)
-	var s: float = _model_scale
-	var size: int = ceili(((e.radius + 3.0) * s + BAKE_MARGIN) * 2.0)
+	var tex: ImageTexture = _frozen_sprite(e.radius)
+	# The texture's own size (review fix): a radius sharing its key may differ slightly.
+	var half: float = tex.get_width() * 0.5
+	draw_texture_rect(
+		tex, Rect2(Vector2(e.x, e.y) - Vector2(half, half), Vector2(half, half) * 2.0), false
+	)
+
+
+## The baked frozen-dot texture for `radius`, cached per 1/8 px (P13).
+func _frozen_sprite(radius: float) -> ImageTexture:
+	var key: int = roundi(radius * DOT_KEY_STEPS)
 	var tex: ImageTexture = _frozen_cache.get(key)
 	if tex == null:
+		var s: float = _model_scale
+		var size: int = ceili(((radius + 3.0) * s + BAKE_MARGIN) * 2.0)
 		tex = CircleSprites.bake_layers(
 			size,
-			PackedFloat32Array([(e.radius + 3.0) * s, (e.radius + 1.0) * s, (e.radius - 1.0) * s]),
+			PackedFloat32Array([(radius + 3.0) * s, (radius + 1.0) * s, (radius - 1.0) * s]),
 			PackedFloat32Array([0.0, 1.5 * s, 0.0]),
 			PackedColorArray(
 				[Color(136.0 / 255.0, 238.0 / 255.0, 1.0, 0.45), Color.WHITE, Color("#4488aa")]
 			)
 		)
 		_frozen_cache[key] = tex
-	# The texture's own size (review fix): a radius sharing its key may differ slightly.
-	var half: float = tex.get_width() * 0.5
-	draw_texture_rect(
-		tex, Rect2(Vector2(e.x, e.y) - Vector2(half, half), Vector2(half, half) * 2.0), false
-	)
+	return tex
 
 
 ## `skin && skin.id !== 'classic'`. PORT: web/src/tilt-to-live/EnemySwarm.ts:1260
