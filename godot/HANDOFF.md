@@ -16,6 +16,12 @@ The head of `## Next` below says what to do first; `README.md` says what the pro
   throwaway dev key, `~/.android/peril-dev-release.keystore`; its alias and password
   are in `~/.android/peril-dev-release.env`, outside git. Replace it before a store
   release.
+- **The A55 build.** The user's A55 runs a release build signed with Godot's debug
+  key, so it installs over the old debug install and keeps the save:
+  `PERIL_KEYS=~/.android/peril-a55.env PERIL_OUT=peril-point-0.1.0-a55.apk tools/release.sh`,
+  then `adb -s RRCXB04L8EJ install -r`. A backup of the save from 2026-09-28 is in
+  `~/Documents/PerilPoint-A55-save-backup-2026-09-28/`. That install is no longer
+  debuggable, so `run-as` save reads stop working until a debug build goes back on.
 - **Native extension required.** Enemies are the C++ class `PerilEnemy`, so the game
   does not parse without `godot/bin/libperil.*`.
 

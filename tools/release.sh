@@ -11,6 +11,8 @@
 #         is a throwaway dev key for sharing test builds — swap it for the real one
 #         before a store release, and keep both out of git.
 # Before each build you hand out, raise version/code in godot/export_presets.cfg.
+# PERIL_OUT=<name>.apk writes godot/build/<name>.apk instead (e.g. a build signed with
+# another key, so it does not overwrite the shared APK).
 
 set -euo pipefail
 
@@ -37,7 +39,7 @@ fi
 
 VERSION="$(sed -n 's/^version\/name="\(.*\)"$/\1/p' "$REPO/godot/export_presets.cfg")"
 CODE="$(sed -n 's/^version\/code=\(.*\)$/\1/p' "$REPO/godot/export_presets.cfg")"
-OUT="build/peril-point-${VERSION:-release}.apk"
+OUT="build/${PERIL_OUT:-peril-point-${VERSION:-release}.apk}"
 
 "$GODOT" --headless --path "$REPO/godot" --export-release "Android" "$OUT"
 # A headless run strips one default-valued line from project.godot; put it back.
