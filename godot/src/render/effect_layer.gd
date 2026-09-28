@@ -141,7 +141,13 @@ func _draw_weapon_fx() -> void:
 	# 1. Active weapons. PORT: web/src/tilt-to-live/WeaponSystem.ts:616-745
 	for w: Types.ActiveWeapon in _weapons.active_weapons:
 		var pos: Vector2 = Vector2(w.x, w.y)
-		if w.type == Types.WeaponType.NUKE:
+		var zone_data: Dictionary = w.data if w.data is Dictionary else {}
+		if w.type == Types.WeaponType.NUKE and zone_data.get("fallout", false):
+			# DIVERGENCE(KEY R1) Fallout Zone: a toxic disc that fades over its last second.
+			var fade: float = clampf(w.duration, 0.0, 1.0)
+			CircleSprites.draw_disc(self, pos, w.radius, Color(0.6, 1.0, 0.3, 0.16 * fade))
+			draw_arc(pos, w.radius, 0.0, TAU, 48, Color(0.6, 1.0, 0.3, 0.7 * fade), 2.0)
+		elif w.type == Types.WeaponType.NUKE:
 			# Moved verbatim from entity_layer.gd:84-113 (M2). PORT: WeaponSystem.ts:617-638
 			var progress: float = 1.0 - w.duration / w.max_duration
 			var alpha: float = maxf(0.0, 1.0 - progress)

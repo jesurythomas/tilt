@@ -127,14 +127,13 @@ const KEYSTONE_FILL_ALPHA: float = 0.07
 const KEYSTONE_BORDER_ALPHA: float = 0.3
 ## DIVERGENCE(ARMORY R1, R2): the single-column upgrade list (user 2026-09-28: "a single
 ## column for weapon upgrade is fine") and its row — list icon 18, can-buy dot 6, value
-## font 14, pips 132 wide, action 104 wide, row icon 26 (boosts), innate icon 16.
+## font 14, pips 132 wide, action 104 wide, row icon 26 (boosts).
 const LIST_ICON: int = 18
 const CAN_BUY_DOT: int = 6
 const VALUE_FONT: int = 14
 const UPGRADE_PIPS_WIDTH: int = 132
 const ACTION_WIDTH: int = 104
 const ROW_ICON: int = 26
-const INNATE_ICON: int = 16
 ## DIVERGENCE(ARMORY R2): the newly bought pip pops (y-scale) and settles.
 const PIP_POP_SCALE: float = 2.4
 const PIP_POP_SECONDS: float = 0.35
@@ -466,8 +465,8 @@ func _render_tab_content() -> Control:
 
 ## PORT: web/src/tilt-to-live/ArmoryUI.ts:416-569
 ## DIVERGENCE(UI-SYSTEM): laid out to ArmoryWeapons.dc.html (interface spec §6.4).
-## DIVERGENCE(ARMORY R1): one column — tracks, then the keystone (if any), then the innate
-## note — where the board split tracks | keystones 1.65fr | 1fr.
+## DIVERGENCE(ARMORY R1): one column — tracks, then the keystones — where the board split
+## tracks | keystones 1.65fr | 1fr.
 func _render_weapons_tab() -> Control:
 	var perks: Dictionary = progression.data.perks.to_dict()  # PORT: :417, :429
 	var points: int = progression.data.points
@@ -495,11 +494,9 @@ func _render_weapons_tab() -> Control:
 	for track: WeaponTrack in selected.tracks:  # PORT: :445-498
 		column.add_child(_track_card(selected, track, weapon_data, points))
 	if not selected.keystones.is_empty():  # PORT: :501-528, :560-565
-		column.add_child(UiTheme.caps("Keystone"))
+		column.add_child(UiTheme.caps("Keystones"))
 		for k: WeaponKeystone in selected.keystones:
 			column.add_child(_keystone_card(selected, k, weapon_data, points))
-	if selected.innate != "":
-		column.add_child(_innate_note(selected))
 	detail.add_child(column)
 
 	var detail_margin: MarginContainer = _pad(
@@ -813,36 +810,6 @@ func _keystone_card(
 			buy.icon = UiTheme.svg_texture(UiTheme.ICON_LOCK, _ui_scale)
 	buy.pressed.connect(_on_keystone_pressed.bind(selected.id, k.key))
 	row.add_child(buy)
-	inner.add_child(row)
-	card.add_child(inner)
-	return card
-
-
-## DIVERGENCE(ECON R5): a weapon's innate perk, owned from the start (the black hole's
-## shield inside its pull — user 2026-09-28: "make being invulerable a already innate
-## upgrade (no need to purchase it)").
-func _innate_note(selected: WeaponConfig) -> PanelContainer:
-	var card: PanelContainer = PanelContainer.new()
-	card.name = "InnateNote"
-	card.theme_type_variation = "Card"
-	var inner: MarginContainer = _pad(
-		KEYSTONE_PAD_Y, KEYSTONE_PAD_RIGHT, KEYSTONE_PAD_Y, TRACK_PAD_LEFT
-	)
-	var row: HBoxContainer = HBoxContainer.new()
-	row.add_theme_constant_override("separation", _px(KEYSTONE_GAP))
-	var check: TextureRect = TextureRect.new()
-	check.texture = UiTheme.svg_texture(UiTheme.ICON_CHECK, _ui_scale)
-	check.self_modulate = UiTheme.COLOR_LOCKED_IN
-	check.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	check.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	check.custom_minimum_size = Vector2.ONE * _px(INNATE_ICON)
-	check.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(check)
-	row.add_child(UiTheme.caps("Innate"))
-	var text: Label = _one_line(selected.innate, "BodyText")
-	text.name = "InnateText"
-	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(text)
 	inner.add_child(row)
 	card.add_child(inner)
 	return card
@@ -1752,121 +1719,143 @@ func _icon_box(config: WeaponConfig) -> PanelContainer:
 ## outline SVGs, :97-202, went).
 func _build_weapons_catalog() -> Array[WeaponConfig]:
 	var out: Array[WeaponConfig] = []
-	# PORT: :97-112
-	(
-		out
-		. append(
-			_weapon(
-				"blackhole",
-				"Blackhole",
-				"Drags dots in, then collapses.",
-				[
-					_track("duration", "Duration", "+0.5s / rank"),
-					_track("radius", "Radius", "+18 range / rank"),
-					_track("gravity", "Pull", "+20% / rank"),
-				],
-				[
-					_keystone(
-						"supernovaCollapse", "Supernova", "Collapse fires a 320 range shockwave."
-					),
-				],
-				"Safe inside the well"  # DIVERGENCE(ECON R5): was the Aegis keystone
-			)
+	# PORT: :97-112. DIVERGENCE(ECON R5, KEY R2): the inside-shield is innate and said in
+	# the description, not sold or listed as a keystone.
+	var blackhole_tracks: Array[WeaponTrack] = [
+		_track("duration", "Duration", "+0.5s / rank"),
+		_track("radius", "Radius", "+18 range / rank"),
+		_track("gravity", "Pull", "+20% / rank"),
+	]
+	var blackhole_keys: Array[WeaponKeystone] = [
+		_keystone("supernovaCollapse", "Supernova", "Collapse fires a 320 range shockwave."),
+		_keystone("eventHorizon", "Event Horizon", "Dots are torn apart further from the core."),
+		_keystone("darkHarvest", "Dark Harvest", "Each dot swallowed feeds the well: +0.05s."),
+	]
+	out.append(
+		_weapon(
+			"blackhole",
+			"Blackhole",
+			"Drags dots in, then collapses. You are safe inside the well.",
+			blackhole_tracks,
+			blackhole_keys
 		)
 	)
 	# PORT: :113-128
-	(
-		out
-		. append(
-			_weapon(
-				"missiles",
-				"Missiles",
-				"Swarm homing warheads track and annihilate dots.",
-				[
-					_track("count", "Salvo Count", "+1 missile / rank"),
-					_track("blastRadius", "Detonation Radius", "+6 range / rank"),
-					_track("flightSpeed", "Propulsion", "+20% / rank"),
-				],
-				[]
-			)
+	var missile_tracks: Array[WeaponTrack] = [
+		_track("count", "Salvo Count", "+1 missile / rank"),
+		_track("blastRadius", "Detonation Radius", "+6 range / rank"),
+		_track("flightSpeed", "Propulsion", "+20% / rank"),
+	]
+	var missile_keys: Array[WeaponKeystone] = [
+		_keystone("clusterSplit", "Cluster Split", "Warheads divide into twins on intercept."),
+		_keystone(
+			"hyperThrusters", "Hyper Thrusters", "Instant target lock and hypersonic velocity."
+		),
+		_keystone("secondSalvo", "Second Salvo", "A second full salvo launches from your ship."),
+	]
+	out.append(
+		_weapon(
+			"missiles",
+			"Missiles",
+			"Swarm homing warheads track and annihilate dots.",
+			missile_tracks,
+			missile_keys
 		)
 	)
 	# PORT: :129-143
-	(
-		out
-		. append(
-			_weapon(
-				"laser",
-				"Laser",
-				"Continuous piercing beam sweeps through swarms.",
-				[
-					_track("length", "Beam Reach", "+20 range / rank"),
-					_track("duration", "Emission Time", "+0.4s / rank"),
-				],
-				[
-					_keystone(
-						"crossBeam", "Cross Beam", "Splits beam into 4-way perpendicular cross."
-					),
-				]
-			)
+	var laser_tracks: Array[WeaponTrack] = [
+		_track("length", "Beam Reach", "+20 range / rank"),
+		_track("duration", "Emission Time", "+0.4s / rank"),
+	]
+	var laser_keys: Array[WeaponKeystone] = [
+		_keystone("crossBeam", "Cross Beam", "Splits beam into 4-way perpendicular cross."),
+		_keystone("heavyBeam", "Heavy Beam", "The beam cuts a path twice as wide."),
+		_keystone("rapidSweep", "Rapid Sweep", "The beam sweeps 50% faster."),
+	]
+	out.append(
+		_weapon(
+			"laser",
+			"Laser",
+			"Continuous piercing beam sweeps through swarms.",
+			laser_tracks,
+			laser_keys
 		)
 	)
 	# PORT: :144-158
-	(
-		out
-		. append(
-			_weapon(
-				"nuke",
-				"Nuke",
-				"Instantaneous arena-clearing shockwave explosion.",
-				[
-					_track("radius", "Blast Radius", "+22 range / rank"),
-					_track("speed", "Shockwave Velocity", "+25% / rank"),
-				],
-				[]
-			)
+	var nuke_tracks: Array[WeaponTrack] = [
+		_track("radius", "Blast Radius", "+22 range / rank"),
+		_track("speed", "Shockwave Velocity", "+25% / rank"),
+	]
+	var nuke_keys: Array[WeaponKeystone] = [
+		_keystone("falloutZone", "Fallout Zone", "Detonation leaves a 3.0s radioactive burn zone."),
+		_keystone(
+			"chainReaction", "Chain Reaction", "Vaporized dots trigger miniature secondary bombs."
+		),
+		_keystone("stunWave", "Stun Wave", "Dots just outside the blast freeze for 2s."),
+	]
+	out.append(
+		_weapon(
+			"nuke",
+			"Nuke",
+			"Instantaneous arena-clearing shockwave explosion.",
+			nuke_tracks,
+			nuke_keys
 		)
 	)
 	# PORT: :159-172
+	var freeze_tracks: Array[WeaponTrack] = [_track("duration", "Freeze Duration", "+0.7s / rank")]
+	var freeze_keys: Array[WeaponKeystone] = [
+		_keystone(
+			"shatterCascade", "Shatter Cascade", "Shattering one enemy destroys nearby frozen dots."
+		),
+		_keystone("cryoNova", "Cryo Nova", "The pickup blasts every dot near it to ice dust."),
+		_keystone("iceArmor", "Ice Armor", "Freezing grants you a 2s shield."),
+	]
 	out.append(
 		_weapon(
 			"freeze",
 			"Freeze",  # DIVERGENCE(ARMORY R4): the TS Armory said "Shockwave" (:161)
 			"Flash-freezes all dots into shatterable crystals.",
-			[_track("duration", "Freeze Duration", "+0.7s / rank")],
-			[]
+			freeze_tracks,
+			freeze_keys
 		)
 	)
 	# PORT: :173-187
-	(
-		out
-		. append(
-			_weapon(
-				"shield",
-				"Shield",
-				"Kinetic barrier allowing safe ramming through enemies.",
-				[
-					_track("duration", "Shield Duration", "+1.0s / rank"),
-					_track("radius", "Bubble Radius", "+2 range / rank"),
-				],
-				[]
-			)
+	var shield_tracks: Array[WeaponTrack] = [
+		_track("duration", "Shield Duration", "+1.0s / rank"),
+		_track("radius", "Bubble Radius", "+2 range / rank"),
+	]
+	var shield_keys: Array[WeaponKeystone] = [
+		_keystone("batteringRam", "Battering Ram", "Ramming enemies triggers kinetic shockwaves."),
+		_keystone("overchargePulse", "Overcharge", "Releases a blast pulse when barrier expires."),
+		_keystone("coinVacuum", "Coin Vacuum", "While shielded, every coin flies to you."),
+	]
+	out.append(
+		_weapon(
+			"shield",
+			"Shield",
+			"Kinetic barrier allowing safe ramming through enemies.",
+			shield_tracks,
+			shield_keys
 		)
 	)
 	# PORT: :188-202
-	(
-		out
-		. append(
-			_weapon(
-				"lightning",
-				"Lightning",
-				"Arcs jump between dots in high-voltage cascade.",
-				[
-					_track("maxTargets", "Arc Targets", "+3 targets / rank"),
-					_track("chainRange", "Chain Distance", "+22 range / rank"),
-				],
-				[]
-			)
+	var lightning_tracks: Array[WeaponTrack] = [
+		_track("maxTargets", "Arc Targets", "+3 targets / rank"),
+		_track("chainRange", "Chain Distance", "+22 range / rank"),
+	]
+	var lightning_keys: Array[WeaponKeystone] = [
+		_keystone("plasmaArc", "Arc Detonation", "Chained enemies explode upon electrocution."),
+		_keystone("superconductor", "Superconductor", "Arcs jump twice as far."),
+		_keystone("forkedLightning", "Forked Lightning", "A second chain strikes out at once."),
+	]
+	out.append(
+		_weapon(
+			"lightning",
+			"Lightning",
+			"Arcs jump between dots in high-voltage cascade.",
+			lightning_tracks,
+			lightning_keys
 		)
 	)
 	return out
@@ -1981,8 +1970,7 @@ func _weapon(
 	name: String,
 	description: String,
 	tracks: Array[WeaponTrack],
-	keystones: Array[WeaponKeystone],
-	innate: String = ""
+	keystones: Array[WeaponKeystone]
 ) -> WeaponConfig:
 	var w: WeaponConfig = WeaponConfig.new()
 	w.id = id
@@ -1991,7 +1979,6 @@ func _weapon(
 	w.description = description
 	w.tracks = tracks
 	w.keystones = keystones
-	w.innate = innate
 	return w
 
 
@@ -2038,8 +2025,6 @@ class WeaponConfig:
 	var description: String = ""
 	var tracks: Array[WeaponTrack] = []
 	var keystones: Array[WeaponKeystone] = []
-	## DIVERGENCE(ECON R5): an owned-from-the-start perk shown under the upgrades.
-	var innate: String = ""
 
 
 ## DIVERGENCE(ARMORY R2): what _upgrade_card draws; node names are "<prefix>Card_<id>",

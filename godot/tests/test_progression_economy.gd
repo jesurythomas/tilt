@@ -213,14 +213,14 @@ func test_dead_keystones_are_refunded_once_and_cleared() -> void:
 	_pm.data.perks.laser.cross_beam = true
 	_pm.save()
 	var loaded: ProgressionManager = ProgressionManager.new()
-	assert_eq(loaded.data.points, 1000 + 2500 + 3000 + 3000 + 2500)
+	assert_eq(loaded.data.points, 1000 + 2500, "KEY R1: only Aegis (now innate) is refunded")
 	assert_false(loaded.data.perks.blackhole.invulnerable_inside)
-	assert_false(loaded.data.perks.nuke.fallout_zone)
-	assert_false(loaded.data.perks.shield.battering_ram)
-	assert_false(loaded.data.perks.freeze.shatter_cascade)
+	assert_true(loaded.data.perks.nuke.fallout_zone, "coded now: kept")
+	assert_true(loaded.data.perks.shield.battering_ram)
+	assert_true(loaded.data.perks.freeze.shatter_cascade)
 	assert_true(loaded.data.perks.laser.cross_beam, "a live keystone is kept")
 	loaded.save()
-	assert_eq(ProgressionManager.new().data.points, 12000, "a second load refunds nothing")
+	assert_eq(ProgressionManager.new().data.points, 3500, "a second load refunds nothing")
 
 
 func test_a_save_keeps_a_low_balance() -> void:

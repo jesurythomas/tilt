@@ -142,6 +142,21 @@ func test_default_data_matches_the_typescript() -> void:
 	# DIVERGENCE(ECON R3): the start balance is 500 (TS 7331); the rest is the TS's.
 	expected["points"] = float(ProgressionManager.STARTING_POINTS)  # JSON numbers are floats
 	expected["lifetimePoints"] = float(ProgressionManager.STARTING_POINTS)
+	# DIVERGENCE(KEY R1): the added keystones, all unbought in a fresh save.
+	var ts_perks: Dictionary = expected["perks"]
+	var added: Dictionary = {
+		"blackhole": ["eventHorizon", "darkHarvest"],
+		"nuke": ["chainReaction", "stunWave"],
+		"shield": ["overchargePulse", "coinVacuum"],
+		"missiles": ["clusterSplit", "hyperThrusters", "secondSalvo"],
+		"laser": ["heavyBeam", "rapidSweep"],
+		"lightning": ["plasmaArc", "superconductor", "forkedLightning"],
+		"freeze": ["cryoNova", "iceArmor"],
+	}
+	for weapon: String in added:
+		var record: Dictionary = ts_perks[weapon]
+		for key: String in added[weapon]:
+			record[key] = false
 	_assert_dict_numbers_equal(_pm.data.to_dict(), expected, "default_data")
 
 

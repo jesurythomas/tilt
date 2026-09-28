@@ -91,7 +91,8 @@ func test_scalar_constants_match() -> void:
 	var shockwave: float = float(_fixture["supernova_shockwave"])
 	assert_almost_eq(Tuning.SUPERNOVA_SHOCKWAVE, shockwave, 0.0001, "shockwave")
 	var costs: Dictionary = _fixture["keystone_costs"]
-	assert_eq(Tuning.KEYSTONE_COSTS.size(), costs.size(), "keystone count")
+	# DIVERGENCE(KEY R1): nine keystones added past the TS's 13; every TS price is kept.
+	assert_eq(Tuning.KEYSTONE_COSTS.size(), costs.size() + 9, "keystone count")
 	for key: String in costs.keys():
 		@warning_ignore("unsafe_call_argument")
 		var cost: int = int(costs[key])

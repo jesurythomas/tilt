@@ -60,14 +60,12 @@ const RUN_PAYOUT_KILL_SCALE: float = 4.0
 const RUN_PAYOUT_KILL_EXPONENT: float = 0.7
 ## DIVERGENCE(ECON R3): a fresh save's balance (TS 7331, :423-424).
 const STARTING_POINTS: int = 500
-## DIVERGENCE(ECON R4): keystones with no effect (or, for Aegis, now innate — ECON R5)
-## left the Armory; a save that bought one gets this refund once on load, and the flag
-## clears. Keys are "<weapon>.<perk>" in the save's spelling; values are the TS prices.
+## DIVERGENCE(ECON R4, KEY R1): Aegis left the Armory (its shield is innate, ECON R5); a
+## save that bought it gets this refund once on load, and the flag clears. Keys are
+## "<weapon>.<perk>" in the save's spelling; values are the TS prices. (Fallout Zone,
+## Battering Ram and Shatter Cascade are coded now, KEY R1, so owners keep them.)
 const DEAD_KEYSTONE_REFUNDS: Dictionary[String, int] = {
 	"blackhole.invulnerableInside": 2500,
-	"nuke.falloutZone": 3000,
-	"shield.batteringRam": 3000,
-	"freeze.shatterCascade": 2500,
 }
 
 ## The player's progression. PORT: web/src/tilt-to-live/ProgressionManager.ts:122
@@ -1053,6 +1051,9 @@ class BlackholePerks:
 	var gravity: int = 0
 	var invulnerable_inside: bool = false
 	var supernova_collapse: bool = false
+	## DIVERGENCE(KEY R1): a keystone the TS never coded (plan 2026-09-28).
+	var event_horizon: bool = false
+	var dark_harvest: bool = false
 
 	func to_dict() -> Dictionary:
 		return {
@@ -1061,6 +1062,8 @@ class BlackholePerks:
 			"gravity": gravity,
 			"invulnerableInside": invulnerable_inside,
 			"supernovaCollapse": supernova_collapse,
+			"eventHorizon": event_horizon,
+			"darkHarvest": dark_harvest,
 		}
 
 	func from_dict(d: Dictionary) -> void:
@@ -1069,6 +1072,8 @@ class BlackholePerks:
 		gravity = SaveStore.read_int(d, "gravity", gravity)
 		invulnerable_inside = SaveStore.read_bool(d, "invulnerableInside", invulnerable_inside)
 		supernova_collapse = SaveStore.read_bool(d, "supernovaCollapse", supernova_collapse)
+		event_horizon = SaveStore.read_bool(d, "eventHorizon", event_horizon)
+		dark_harvest = SaveStore.read_bool(d, "darkHarvest", dark_harvest)
 
 
 ## PORT: web/src/tilt-to-live/ProgressionManager.ts:16-20
@@ -1077,14 +1082,25 @@ class NukePerks:
 	var radius: int = 0
 	var speed: int = 0
 	var fallout_zone: bool = false
+	## DIVERGENCE(KEY R1): a keystone the TS never coded (plan 2026-09-28).
+	var chain_reaction: bool = false
+	var stun_wave: bool = false
 
 	func to_dict() -> Dictionary:
-		return {"radius": radius, "speed": speed, "falloutZone": fallout_zone}
+		return {
+			"radius": radius,
+			"speed": speed,
+			"falloutZone": fallout_zone,
+			"chainReaction": chain_reaction,
+			"stunWave": stun_wave,
+		}
 
 	func from_dict(d: Dictionary) -> void:
 		radius = SaveStore.read_int(d, "radius", radius)
 		speed = SaveStore.read_int(d, "speed", speed)
 		fallout_zone = SaveStore.read_bool(d, "falloutZone", fallout_zone)
+		chain_reaction = SaveStore.read_bool(d, "chainReaction", chain_reaction)
+		stun_wave = SaveStore.read_bool(d, "stunWave", stun_wave)
 
 
 ## PORT: web/src/tilt-to-live/ProgressionManager.ts:21-25
@@ -1093,14 +1109,25 @@ class ShieldPerks:
 	var duration: int = 0
 	var radius: int = 0
 	var battering_ram: bool = false
+	## DIVERGENCE(KEY R1): a keystone the TS never coded (plan 2026-09-28).
+	var overcharge_pulse: bool = false
+	var coin_vacuum: bool = false
 
 	func to_dict() -> Dictionary:
-		return {"duration": duration, "radius": radius, "batteringRam": battering_ram}
+		return {
+			"duration": duration,
+			"radius": radius,
+			"batteringRam": battering_ram,
+			"overchargePulse": overcharge_pulse,
+			"coinVacuum": coin_vacuum,
+		}
 
 	func from_dict(d: Dictionary) -> void:
 		duration = SaveStore.read_int(d, "duration", duration)
 		radius = SaveStore.read_int(d, "radius", radius)
 		battering_ram = SaveStore.read_bool(d, "batteringRam", battering_ram)
+		overcharge_pulse = SaveStore.read_bool(d, "overchargePulse", overcharge_pulse)
+		coin_vacuum = SaveStore.read_bool(d, "coinVacuum", coin_vacuum)
 
 
 ## PORT: web/src/tilt-to-live/ProgressionManager.ts:26-30
@@ -1109,14 +1136,28 @@ class MissilesPerks:
 	var count: int = 0
 	var blast_radius: int = 0
 	var flight_speed: int = 0
+	## DIVERGENCE(KEY R1): a keystone the TS never coded (plan 2026-09-28).
+	var cluster_split: bool = false
+	var hyper_thrusters: bool = false
+	var second_salvo: bool = false
 
 	func to_dict() -> Dictionary:
-		return {"count": count, "blastRadius": blast_radius, "flightSpeed": flight_speed}
+		return {
+			"count": count,
+			"blastRadius": blast_radius,
+			"flightSpeed": flight_speed,
+			"clusterSplit": cluster_split,
+			"hyperThrusters": hyper_thrusters,
+			"secondSalvo": second_salvo,
+		}
 
 	func from_dict(d: Dictionary) -> void:
 		count = SaveStore.read_int(d, "count", count)
 		blast_radius = SaveStore.read_int(d, "blastRadius", blast_radius)
 		flight_speed = SaveStore.read_int(d, "flightSpeed", flight_speed)
+		cluster_split = SaveStore.read_bool(d, "clusterSplit", cluster_split)
+		hyper_thrusters = SaveStore.read_bool(d, "hyperThrusters", hyper_thrusters)
+		second_salvo = SaveStore.read_bool(d, "secondSalvo", second_salvo)
 
 
 ## PORT: web/src/tilt-to-live/ProgressionManager.ts:31-35
@@ -1125,14 +1166,25 @@ class LaserPerks:
 	var length: int = 0
 	var duration: int = 0
 	var cross_beam: bool = false
+	## DIVERGENCE(KEY R1): a keystone the TS never coded (plan 2026-09-28).
+	var heavy_beam: bool = false
+	var rapid_sweep: bool = false
 
 	func to_dict() -> Dictionary:
-		return {"length": length, "duration": duration, "crossBeam": cross_beam}
+		return {
+			"length": length,
+			"duration": duration,
+			"crossBeam": cross_beam,
+			"heavyBeam": heavy_beam,
+			"rapidSweep": rapid_sweep,
+		}
 
 	func from_dict(d: Dictionary) -> void:
 		length = SaveStore.read_int(d, "length", length)
 		duration = SaveStore.read_int(d, "duration", duration)
 		cross_beam = SaveStore.read_bool(d, "crossBeam", cross_beam)
+		heavy_beam = SaveStore.read_bool(d, "heavyBeam", heavy_beam)
+		rapid_sweep = SaveStore.read_bool(d, "rapidSweep", rapid_sweep)
 
 
 ## PORT: web/src/tilt-to-live/ProgressionManager.ts:36-39
@@ -1140,13 +1192,26 @@ class LightningPerks:
 	extends RefCounted
 	var max_targets: int = 0
 	var chain_range: int = 0
+	## DIVERGENCE(KEY R1): a keystone the TS never coded (plan 2026-09-28).
+	var plasma_arc: bool = false
+	var superconductor: bool = false
+	var forked_lightning: bool = false
 
 	func to_dict() -> Dictionary:
-		return {"maxTargets": max_targets, "chainRange": chain_range}
+		return {
+			"maxTargets": max_targets,
+			"chainRange": chain_range,
+			"plasmaArc": plasma_arc,
+			"superconductor": superconductor,
+			"forkedLightning": forked_lightning,
+		}
 
 	func from_dict(d: Dictionary) -> void:
 		max_targets = SaveStore.read_int(d, "maxTargets", max_targets)
 		chain_range = SaveStore.read_int(d, "chainRange", chain_range)
+		plasma_arc = SaveStore.read_bool(d, "plasmaArc", plasma_arc)
+		superconductor = SaveStore.read_bool(d, "superconductor", superconductor)
+		forked_lightning = SaveStore.read_bool(d, "forkedLightning", forked_lightning)
 
 
 ## PORT: web/src/tilt-to-live/ProgressionManager.ts:40-43
@@ -1154,13 +1219,23 @@ class FreezePerks:
 	extends RefCounted
 	var duration: int = 0
 	var shatter_cascade: bool = false
+	## DIVERGENCE(KEY R1): a keystone the TS never coded (plan 2026-09-28).
+	var cryo_nova: bool = false
+	var ice_armor: bool = false
 
 	func to_dict() -> Dictionary:
-		return {"duration": duration, "shatterCascade": shatter_cascade}
+		return {
+			"duration": duration,
+			"shatterCascade": shatter_cascade,
+			"cryoNova": cryo_nova,
+			"iceArmor": ice_armor,
+		}
 
 	func from_dict(d: Dictionary) -> void:
 		duration = SaveStore.read_int(d, "duration", duration)
 		shatter_cascade = SaveStore.read_bool(d, "shatterCascade", shatter_cascade)
+		cryo_nova = SaveStore.read_bool(d, "cryoNova", cryo_nova)
+		ice_armor = SaveStore.read_bool(d, "iceArmor", ice_armor)
 
 
 ## Per-weapon perk ranks and keystones. PORT: web/src/tilt-to-live/ProgressionManager.ts:8-44

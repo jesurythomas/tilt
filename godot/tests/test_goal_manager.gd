@@ -342,13 +342,16 @@ func test_weapon_fully_upgraded_needs_every_rank_and_keystone() -> void:
 	pm.data.perks.missiles.count = 5
 	pm.data.perks.missiles.blast_radius = 5
 	pm.data.perks.missiles.flight_speed = 5
-	assert_eq(
-		_ids(_gm.evaluate_unlock_goals()),
-		["weapon_maxed_missiles"] as Array[String],
-		"missiles has no keystones in WeaponPerks (:919-926 reads what exists)"
-	)
+	# KEY R1: missiles gained keystones; :919-926 reads what exists, so they count too.
+	assert_eq(_gm.evaluate_unlock_goals(), [] as Array[GoalManager.Goal], "keystones unbought")
+	pm.data.perks.missiles.cluster_split = true
+	pm.data.perks.missiles.hyper_thrusters = true
+	pm.data.perks.missiles.second_salvo = true
+	assert_eq(_ids(_gm.evaluate_unlock_goals()), ["weapon_maxed_missiles"] as Array[String])
 	pm.data.perks.nuke.radius = 5
 	pm.data.perks.nuke.speed = 5
+	pm.data.perks.nuke.chain_reaction = true
+	pm.data.perks.nuke.stun_wave = true
 	assert_eq(_gm.evaluate_unlock_goals(), [] as Array[GoalManager.Goal], "falloutZone still false")
 	pm.data.perks.nuke.fallout_zone = true
 	assert_eq(_ids(_gm.evaluate_unlock_goals()), ["weapon_maxed_nuke"] as Array[String])

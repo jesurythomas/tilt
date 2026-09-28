@@ -1,5 +1,8 @@
+# gdlint:disable=max-file-lines
 ## weapon_system.gd
 ## PORTS: web/src/tilt-to-live/WeaponSystem.ts (923 lines, source commit 7be9614)
+## max-file-lines is suppressed (as enemy_swarm.gd's): KEY R1's keystone effects
+## pushed the one-file port past 1,000 lines (LAW 3 keeps it one file).
 class_name WeaponSystem
 extends RefCounted
 ## Weapon orb spawning and the seven superweapons.
@@ -18,6 +21,29 @@ extends RefCounted
 const SNAP_QUANT: float = 16.0
 const SNAP_OFFSET: float = 65536.0
 const SNAP_INDEX_BITS: int = 20
+
+## DIVERGENCE(KEY R1): the added keystones' numbers (plan 2026-09-28-achievements-keystones-ui.md).
+## Ranges in px at arena scale 1 (multiplied by `scale` like the TS's tuned ranges).
+const EVENT_HORIZON_CORE: float = 54.0
+const DARK_HARVEST_STEP: float = 0.05
+const DARK_HARVEST_MAX: float = 2.0
+const CLUSTER_CHILD_LIFETIME: float = 1.2
+const CLUSTER_CHILD_SPEED: float = 300.0
+const HYPER_CRUISE: float = 620.0
+const HYPER_AGILITY: float = 16.0
+const SECOND_SALVO_DELAY: float = 0.6
+const HEAVY_BEAM_WIDTH: float = 28.0
+const RAPID_SWEEP_FACTOR: float = 1.5
+const FALLOUT_RADIUS_FRACTION: float = 0.4
+const FALLOUT_SECONDS: float = 3.0
+const CHAIN_REACTION_CHANCE: float = 0.125
+const CHAIN_REACTION_RADIUS: float = 60.0
+const STUN_WAVE_REACH: float = 1.5
+const STUN_WAVE_SECONDS: float = 2.0
+const CRYO_NOVA_RADIUS: float = 200.0
+const ICE_ARMOR_SECONDS: float = 2.0
+const OVERCHARGE_RADIUS: float = 180.0
+const PLASMA_ARC_RADIUS: float = 45.0
 
 ## Live weapon orbs in the arena. PORT: web/src/tilt-to-live/WeaponSystem.ts:14
 var orbs: Array[Types.WeaponOrb] = []
@@ -64,6 +90,12 @@ var _snap_max_r: float = 0.0
 var _snap_order: PackedInt32Array = PackedInt32Array()
 var _snap_sorted_q: PackedFloat64Array = PackedFloat64Array()
 
+## DIVERGENCE(KEY R1): Second Salvo's pending launches (seconds left, missile count), and whether an
+## Overcharge pulse waits for the power-up shield to end.
+var _salvo_timers: Array[float] = []
+var _salvo_counts: Array[int] = []
+var _overcharge_armed: bool = false
+
 
 func _init() -> void:
 	reset()
@@ -84,6 +116,9 @@ func reset() -> void:
 	_next_weapon_id = 1
 	_next_missile_id = 1
 	_orb_spawn_timer = 1.5  # PORT: web/src/tilt-to-live/WeaponSystem.ts:49
+	_salvo_timers = []  # DIVERGENCE(KEY R1)
+	_salvo_counts = []
+	_overcharge_armed = false
 
 
 ## Updates orb spawning, collection collisions, and active weapon expansion.
@@ -157,6 +192,16 @@ func update(
 		var data: Dictionary = w.data if w.data != null else {}
 
 		match w.type:
+			Types.WeaponType.NUKE when data.get("fallout", false):
+				# DIVERGENCE(KEY R1) Fallout Zone: a fixed burn zone that kills what enters it.
+				for e_idx: int in range(enemies.size() - 1, -1, -1):
+					var e: PerilEnemy = enemies[e_idx]
+					var fdx: float = e.x - w.x
+					var fdy: float = e.y - w.y
+					if fdx * fdx + fdy * fdy <= (w.radius + e.radius) * (w.radius + e.radius):
+						on_enemy_killed.call(e, Types.WeaponType.NUKE)
+						particles.emit_sparks(e.x, e.y, 6, Color("#9dff4d"), 140.0)
+						enemies.remove_at(e_idx)
 			Types.WeaponType.NUKE:
 				# Expanding blast ring. PORT: web/src/tilt-to-live/WeaponSystem.ts:108-111
 				var progress: float = 1.0 - w.duration / w.max_duration
@@ -171,6 +216,8 @@ func update(
 
 				# Vaporize enemies inside blast radius.
 				# PORT: web/src/tilt-to-live/WeaponSystem.ts:113-124
+				var bursts: Array[Vector2] = []  # DIVERGENCE(KEY R1) Chain Reaction
+				var chain_reaction: bool = data.get("chainReaction", false)
 				for e_idx: int in range(enemies.size() - 1, -1, -1):
 					var e: PerilEnemy = enemies[e_idx]
 					var edx: float = e.x - w.x
@@ -184,7 +231,20 @@ func update(
 						# clearing dozens of dots simultaneously. Emitting 6 sparks preserves
 						# vibrant feedback without starving the mobile GPU.
 						particles.emit_sparks(e.x, e.y, 6, Color("#ff3366"), 160.0)
+						if chain_reaction and randf() < CHAIN_REACTION_CHANCE:
+							bursts.append(Vector2(e.x, e.y))
 						enemies.remove_at(e_idx)
+				for burst: Vector2 in bursts:
+					_burst(
+						burst,
+						CHAIN_REACTION_RADIUS * scale,
+						Types.WeaponType.NUKE,
+						enemies,
+						particles,
+						grid,
+						on_enemy_killed,
+						Color("#ffb14d")
+					)
 
 				# Distort grid outward. PORT: web/src/tilt-to-live/WeaponSystem.ts:127
 				grid.apply_explosion(w.x, w.y, 16.0, w.radius + 30.0)
@@ -194,7 +254,11 @@ func update(
 				w.y = player.y
 				# PORT-NOTE: `(w.angle || 0)` treats an angle of exactly 0 as unset; 0 + x == x,
 				# so the NAN test is the only observable difference — preserved.
-				w.angle = (w.angle if not is_nan(w.angle) else 0.0) + dt * PI * 3.5
+				# DIVERGENCE(KEY R1) Rapid Sweep: 1.5× the TS's 3.5π rad/s.
+				var sweep: float = RAPID_SWEEP_FACTOR if data.get("rapidSweep", false) else 1.0
+				w.angle = (w.angle if not is_nan(w.angle) else 0.0) + dt * PI * 3.5 * sweep
+				# DIVERGENCE(KEY R1) Heavy Beam: the TS's 14 px hit margin doubled.
+				var beam_margin: float = HEAVY_BEAM_WIDTH if data.get("heavyBeam", false) else 14.0
 				var beam_length: float = (
 					w.radius
 					if w.radius != 0.0
@@ -211,7 +275,7 @@ func update(
 					var proj: float = rel_x * cos_a + rel_y * sin_a
 					if absf(proj) <= beam_length:
 						var perp_dist: float = absf(-rel_x * sin_a + rel_y * cos_a)
-						if perp_dist <= e.radius + 14.0:  # PORT: web/src/tilt-to-live/WeaponSystem.ts:151
+						if perp_dist <= e.radius + beam_margin:  # PORT: web/src/tilt-to-live/WeaponSystem.ts:151
 							on_enemy_killed.call(e, Types.WeaponType.LASER)
 							# PORT: web/src/tilt-to-live/WeaponSystem.ts:153
 							particles.emit_sparks(e.x, e.y, 14, Color("#cc22ff"), 200.0)
@@ -231,7 +295,7 @@ func update(
 						var proj: float = rel_x * cos_b + rel_y * sin_b
 						if absf(proj) <= beam_length:
 							var perp_dist: float = absf(-rel_x * sin_b + rel_y * cos_b)
-							if perp_dist <= e.radius + 14.0:  # PORT: web/src/tilt-to-live/WeaponSystem.ts:172
+							if perp_dist <= e.radius + beam_margin:  # PORT: web/src/tilt-to-live/WeaponSystem.ts:172
 								on_enemy_killed.call(e, Types.WeaponType.LASER)
 								# PORT: web/src/tilt-to-live/WeaponSystem.ts:174
 								particles.emit_sparks(e.x, e.y, 14, Color("#cc22ff"), 200.0)
@@ -245,6 +309,9 @@ func update(
 				)
 				var pull_radius2: float = pull_radius * pull_radius
 				var gravity_rank: int = data.get("gravity", 0)
+				# DIVERGENCE(KEY R1) Event Horizon widens the TS's 30 px kill core; Dark Harvest feeds it.
+				var core: float = EVENT_HORIZON_CORE if data.get("eventHorizon", false) else 30.0
+				var dark_harvest: bool = data.get("darkHarvest", false)
 
 				# Event Horizon Cloak. PORT: web/src/tilt-to-live/WeaponSystem.ts:187-196
 				# DIVERGENCE(ECON R5): innate (user 2026-09-28: "for blackhole make being
@@ -275,12 +342,16 @@ func update(
 
 					if dist2 < pull_radius2 and dist2 > 0.1:  # PORT: web/src/tilt-to-live/WeaponSystem.ts:206
 						var dist: float = sqrt(dist2)
-						if dist <= 30.0:  # PORT: web/src/tilt-to-live/WeaponSystem.ts:208
+						if dist <= core:  # PORT: web/src/tilt-to-live/WeaponSystem.ts:208 (30)
 							on_enemy_killed.call(e, Types.WeaponType.VORTEX)
 							audio.play_dot_pop(randi() % 5)  # PORT: web/src/tilt-to-live/WeaponSystem.ts:211
 							# PORT: web/src/tilt-to-live/WeaponSystem.ts:212
 							particles.emit_sparks(e.x, e.y, 14, Color("#bb66ff"), 180.0)
 							enemies.remove_at(e_idx)
+							var harvested: float = data.get("harvested", 0.0)
+							if dark_harvest and harvested < DARK_HARVEST_MAX:
+								w.duration += DARK_HARVEST_STEP
+								data["harvested"] = harvested + DARK_HARVEST_STEP
 						else:
 							var norm_dist: float = dist / pull_radius
 							var t: float = maxf(0.0, 1.0 - norm_dist)
@@ -322,6 +393,8 @@ func update(
 					)
 
 		if w.duration <= 0.0:
+			if w.type == Types.WeaponType.NUKE and not data.get("fallout", false):
+				_nuke_ended(w, data, enemies)
 			if w.type == Types.WeaponType.VORTEX:
 				# Collapse shockwave. PORT: web/src/tilt-to-live/WeaponSystem.ts:258-277
 				var supernova_collapse: bool = data.get("supernovaCollapse", false)
@@ -402,10 +475,12 @@ func update(
 			var dy: float = target.y - m.y
 			var dist: float = sqrt(dx * dx + dy * dy)
 			if dist > 1.0:
-				var target_vx: float = (dx / dist) * 440.0  # PORT: web/src/tilt-to-live/WeaponSystem.ts:314
-				var target_vy: float = (dy / dist) * 440.0  # PORT: web/src/tilt-to-live/WeaponSystem.ts:315
-				m.vx += (target_vx - m.vx) * dt * 9.0  # PORT: web/src/tilt-to-live/WeaponSystem.ts:316
-				m.vy += (target_vy - m.vy) * dt * 9.0  # PORT: web/src/tilt-to-live/WeaponSystem.ts:317
+				# PORT: web/src/tilt-to-live/WeaponSystem.ts:314-317 (440, 9 — m.cruise and
+				# m.agility, KEY R1's Hyper Thrusters raises them)
+				var target_vx: float = (dx / dist) * m.cruise
+				var target_vy: float = (dy / dist) * m.cruise
+				m.vx += (target_vx - m.vx) * dt * m.agility
+				m.vy += (target_vy - m.vy) * dt * m.agility
 
 		m.x += m.vx * dt
 		m.y += m.vy * dt
@@ -461,7 +536,42 @@ func update(
 					enemies.remove_at(e_idx)
 					snap_dirty = true
 
+			# DIVERGENCE(KEY R1) Cluster Split: a first-generation blast splits into two short-lived
+			# missiles (appended past i, so they fly from the next tick).
+			if p.missiles.cluster_split and m.generation == 0:
+				for k: int in range(2):
+					var a: float = randf() * TAU
+					var child: Types.HomingMissile = _new_missile(
+						m.x, m.y, a, CLUSTER_CHILD_SPEED * maxf(0.72, scale)
+					)
+					child.generation = 1
+					child.lifetime = CLUSTER_CHILD_LIFETIME
+					missiles.append(child)
+
 			missiles.remove_at(i)
+
+	# DIVERGENCE(KEY R1) Second Salvo: launches that were queued behind a missiles pickup.
+	for k: int in range(_salvo_timers.size() - 1, -1, -1):
+		_salvo_timers[k] -= dt
+		if _salvo_timers[k] <= 0.0:
+			audio.play_missile_launch()
+			_launch_missiles(player.x, player.y, _salvo_counts[k], enemies, perks)
+			_salvo_timers.remove_at(k)
+			_salvo_counts.remove_at(k)
+	# DIVERGENCE(KEY R1) Overcharge: the power-up shield has ended — one pulse around the ship.
+	if _overcharge_armed and not player.has_shield():
+		_overcharge_armed = false
+		audio.play_missile_explode()
+		_burst(
+			Vector2(player.x, player.y),
+			OVERCHARGE_RADIUS * scale,
+			Types.WeaponType.SHIELD,
+			enemies,
+			particles,
+			grid,
+			on_enemy_killed,
+			Color("#3ddc97")
+		)
 
 	# 5. Fade out Lightning Arcs. PORT: web/src/tilt-to-live/WeaponSystem.ts:360-366
 	for i: int in range(lightning_arcs.size() - 1, -1, -1):
@@ -562,6 +672,12 @@ func activate_weapon(
 			w.max_duration = duration
 			w.radius = 10.0 * scale  # PORT: web/src/tilt-to-live/WeaponSystem.ts:410
 			w.max_radius = max_radius
+			# DIVERGENCE(KEY R1) the nuke's keystones ride on the weapon, as the laser's and vortex's do.
+			w.data = {
+				"falloutZone": p.nuke.fallout_zone,
+				"chainReaction": p.nuke.chain_reaction,
+				"stunWave": p.nuke.stun_wave,
+			}
 			active_weapons.append(w)
 		Types.WeaponType.MISSILES:
 			audio.play_missile_launch()  # PORT: web/src/tilt-to-live/WeaponSystem.ts:417
@@ -569,24 +685,10 @@ func activate_weapon(
 			# PORT-NOTE: written `8 + rank` inline in the TS; WeaponTuning.ts:43 is the
 			# same row (base 8, perRank 1) and WeaponTuning.ts:5-9 mandates this read.
 			var count: int = int(Tuning.get_tuned_value("missiles", "count", p.missiles.count))
-			# PORT: web/src/tilt-to-live/WeaponSystem.ts:419
-			var speed_mult: float = 1.0 + float(p.missiles.flight_speed) * 0.2
-			for i: int in range(count):
-				# PORT: web/src/tilt-to-live/WeaponSystem.ts:421
-				var angle: float = (float(i) * PI * 2.0) / float(count) + (randf() * 0.4 - 0.2)
-				# PORT: web/src/tilt-to-live/WeaponSystem.ts:422
-				var speed: float = (260.0 + randf() * 80.0) * speed_mult * maxf(0.72, scale)
-				var m: Types.HomingMissile = Types.HomingMissile.new()
-				m.id = _next_missile_id
-				_next_missile_id += 1
-				m.x = x
-				m.y = y
-				m.vx = cos(angle) * speed
-				m.vy = sin(angle) * speed
-				m.target_id = Types.ABSENT  # PORT: web/src/tilt-to-live/WeaponSystem.ts:429 (null)
-				m.lifetime = 3.5  # PORT: web/src/tilt-to-live/WeaponSystem.ts:430
-				m.smoke_timer = 0.0
-				missiles.append(m)
+			_launch_missiles(x, y, count, enemies, p)
+			if p.missiles.second_salvo:  # DIVERGENCE(KEY R1)
+				_salvo_timers.append(SECOND_SALVO_DELAY)
+				_salvo_counts.append(count)
 		Types.WeaponType.LIGHTNING:
 			audio.play_lightning()  # PORT: web/src/tilt-to-live/WeaponSystem.ts:438
 			var current_origin: Vector2 = Vector2(x, y)
@@ -602,63 +704,36 @@ func activate_weapon(
 			var jump_range: float = (
 				Tuning.get_tuned_value("lightning", "chainRange", p.lightning.chain_range) * scale
 			)
+			if p.lightning.superconductor:  # DIVERGENCE(KEY R1): jump range ×2
+				jump_range *= 2.0
 
-			for chain: int in range(max_chains):
-				var nearest_enemy: PerilEnemy = null
-				var nearest_dist: float = jump_range
-
-				for e: PerilEnemy in enemies:
-					if visited_ids.has(e.id):
-						continue
-					var dx: float = e.x - current_origin.x
-					var dy: float = e.y - current_origin.y
-					var dist: float = sqrt(dx * dx + dy * dy)
-					if dist < nearest_dist:
-						nearest_dist = dist
-						nearest_enemy = e
-
-				if nearest_enemy != null:
-					visited_ids.append(nearest_enemy.id)
-
-					# Arc visual. PORT: web/src/tilt-to-live/WeaponSystem.ts:462-470
-					var branches: Array[Vector2] = []
-					var segments: int = 4  # PORT: web/src/tilt-to-live/WeaponSystem.ts:464
-					for s: int in range(1, segments):
-						var t: float = float(s) / float(segments)
-						# PORT: web/src/tilt-to-live/WeaponSystem.ts:467-468
-						var bx: float = (
-							current_origin.x
-							+ (nearest_enemy.x - current_origin.x) * t
-							+ (randf() - 0.5) * 24.0 * scale
-						)
-						var by: float = (
-							current_origin.y
-							+ (nearest_enemy.y - current_origin.y) * t
-							+ (randf() - 0.5) * 24.0 * scale
-						)
-						branches.append(Vector2(bx, by))
-
-					var arc: Types.LightningArc = Types.LightningArc.new()
-					arc.x1 = current_origin.x
-					arc.y1 = current_origin.y
-					arc.x2 = nearest_enemy.x
-					arc.y2 = nearest_enemy.y
-					arc.intensity = 1.0
-					arc.branches = branches
-					lightning_arcs.append(arc)
-
-					current_origin = Vector2(nearest_enemy.x, nearest_enemy.y)
-				else:
-					break
+			# DIVERGENCE(KEY R1) Forked Lightning: a second chain from the pickup, sharing the struck set.
+			for fork: int in range(2 if p.lightning.forked_lightning else 1):
+				current_origin = Vector2(x, y)
+				_chain_lightning(current_origin, max_chains, jump_range, enemies, visited_ids)
 
 			# Kill every electrocuted dot. PORT: web/src/tilt-to-live/WeaponSystem.ts:487-495
+			var struck: Array[Vector2] = []
 			for e_idx: int in range(enemies.size() - 1, -1, -1):
 				var e: PerilEnemy = enemies[e_idx]
 				if visited_ids.has(e.id):
 					on_enemy_killed.call(e, Types.WeaponType.LIGHTNING)
 					# PORT: web/src/tilt-to-live/WeaponSystem.ts:492
 					particles.emit_sparks(e.x, e.y, 12, Color("#ffee33"), 220.0)
+					struck.append(Vector2(e.x, e.y))
 					enemies.remove_at(e_idx)
+			if p.lightning.plasma_arc:  # DIVERGENCE(KEY R1) Arc Detonation
+				for at: Vector2 in struck:
+					_burst(
+						at,
+						PLASMA_ARC_RADIUS * scale,
+						Types.WeaponType.LIGHTNING,
+						enemies,
+						particles,
+						grid,
+						on_enemy_killed,
+						Color("#ffee33")
+					)
 		Types.WeaponType.LASER:
 			audio.play_laser_beam()  # PORT: web/src/tilt-to-live/WeaponSystem.ts:500
 			# PORT: web/src/tilt-to-live/WeaponSystem.ts:501
@@ -680,7 +755,11 @@ func activate_weapon(
 			w.radius = beam_length
 			w.angle = player.angle  # PORT: web/src/tilt-to-live/WeaponSystem.ts:511
 			# PORT: web/src/tilt-to-live/WeaponSystem.ts:512 — key spelled as the TS does
-			w.data = {"crossBeam": p.laser.cross_beam}
+			w.data = {
+				"crossBeam": p.laser.cross_beam,
+				"heavyBeam": p.laser.heavy_beam,  # DIVERGENCE(KEY R1)
+				"rapidSweep": p.laser.rapid_sweep,
+			}
 			active_weapons.append(w)
 		Types.WeaponType.VORTEX:
 			audio.play_vortex()  # PORT: web/src/tilt-to-live/WeaponSystem.ts:518
@@ -708,6 +787,8 @@ func activate_weapon(
 				"invulnerableInside": p.blackhole.invulnerable_inside,
 				"gravity": p.blackhole.gravity,
 				"supernovaCollapse": p.blackhole.supernova_collapse,
+				"eventHorizon": p.blackhole.event_horizon,  # DIVERGENCE(KEY R1)
+				"darkHarvest": p.blackhole.dark_harvest,
 			}
 			active_weapons.append(w)
 		Types.WeaponType.FREEZE:
@@ -726,6 +807,19 @@ func activate_weapon(
 				e.freeze_timer = freeze_duration
 			particles.emit_ice_shatter(x, y, 40)  # PORT: web/src/tilt-to-live/WeaponSystem.ts:545
 			grid.apply_explosion(x, y, 10.0, 360.0 * scale)  # PORT: web/src/tilt-to-live/WeaponSystem.ts:546
+			if p.freeze.cryo_nova:  # DIVERGENCE(KEY R1) Cryo Nova: the pickup kills what is near it
+				_burst(
+					Vector2(x, y),
+					CRYO_NOVA_RADIUS * scale,
+					Types.WeaponType.FREEZE,
+					enemies,
+					particles,
+					grid,
+					on_enemy_killed,
+					Color("#88eeff")
+				)
+			if p.freeze.ice_armor:  # DIVERGENCE(KEY R1) Ice Armor
+				player.activate_shield(ICE_ARMOR_SECONDS)
 		Types.WeaponType.SHIELD:
 			# PORT-NOTE: the TS plays no shield sound here (WeaponSystem.ts:550-554) —
 			# only the orb-pickup sound (:95/:117 above) covers it. Preserved deliberately.
@@ -736,8 +830,168 @@ func activate_weapon(
 				"shield", "duration", p.shield.duration
 			)
 			player.activate_shield(shield_duration)  # PORT: web/src/tilt-to-live/WeaponSystem.ts:552
+			_overcharge_armed = p.shield.overcharge_pulse  # DIVERGENCE(KEY R1) Overcharge waits for the end
 			# PORT: web/src/tilt-to-live/WeaponSystem.ts:553
 			particles.emit_sparks(player.x, player.y, 25, Color("#3ddc97"), 160.0)
+
+
+## The TS's chain loop (WeaponSystem.ts:444-485), from `origin`: each jump strikes the
+## nearest unstruck dot within `jump_range`, adding its id to `visited_ids` and an arc.
+## DIVERGENCE(KEY R1): a function so Forked Lightning can run it twice.
+func _chain_lightning(
+	origin: Vector2,
+	max_chains: int,
+	jump_range: float,
+	enemies: Array[PerilEnemy],
+	visited_ids: Array[int]
+) -> void:
+	var current_origin: Vector2 = origin
+	for chain: int in range(max_chains):
+		var nearest_enemy: PerilEnemy = null
+		var nearest_dist: float = jump_range
+
+		for e: PerilEnemy in enemies:
+			if visited_ids.has(e.id):
+				continue
+			var dx: float = e.x - current_origin.x
+			var dy: float = e.y - current_origin.y
+			var dist: float = sqrt(dx * dx + dy * dy)
+			if dist < nearest_dist:
+				nearest_dist = dist
+				nearest_enemy = e
+
+		if nearest_enemy != null:
+			visited_ids.append(nearest_enemy.id)
+
+			# Arc visual. PORT: web/src/tilt-to-live/WeaponSystem.ts:462-470
+			var branches: Array[Vector2] = []
+			var segments: int = 4  # PORT: web/src/tilt-to-live/WeaponSystem.ts:464
+			for s: int in range(1, segments):
+				var t: float = float(s) / float(segments)
+				# PORT: web/src/tilt-to-live/WeaponSystem.ts:467-468
+				var bx: float = (
+					current_origin.x
+					+ (nearest_enemy.x - current_origin.x) * t
+					+ (randf() - 0.5) * 24.0 * scale
+				)
+				var by: float = (
+					current_origin.y
+					+ (nearest_enemy.y - current_origin.y) * t
+					+ (randf() - 0.5) * 24.0 * scale
+				)
+				branches.append(Vector2(bx, by))
+
+			var arc: Types.LightningArc = Types.LightningArc.new()
+			arc.x1 = current_origin.x
+			arc.y1 = current_origin.y
+			arc.x2 = nearest_enemy.x
+			arc.y2 = nearest_enemy.y
+			arc.intensity = 1.0
+			arc.branches = branches
+			lightning_arcs.append(arc)
+
+			current_origin = Vector2(nearest_enemy.x, nearest_enemy.y)
+		else:
+			break
+
+
+## DIVERGENCE(KEY R1): kills every enemy within `radius` of `at` (a keystone's burst).
+func _burst(
+	at: Vector2,
+	radius: float,
+	type: Types.WeaponType,
+	enemies: Array[PerilEnemy],
+	particles: ParticleEngine,
+	grid: VectorGrid,
+	on_enemy_killed: Callable,
+	color: Color
+) -> void:
+	particles.emit_explosion(at.x, at.y, color, 10)
+	grid.apply_explosion(at.x, at.y, 8.0, radius)
+	var r2: float = radius * radius
+	for e_idx: int in range(enemies.size() - 1, -1, -1):
+		var e: PerilEnemy = enemies[e_idx]
+		if (e.x - at.x) * (e.x - at.x) + (e.y - at.y) * (e.y - at.y) <= r2:
+			on_enemy_killed.call(e, type)
+			particles.emit_sparks(e.x, e.y, 6, color, 160.0)
+			enemies.remove_at(e_idx)
+
+
+## DIVERGENCE(KEY R1): a nuke's blast has finished — Stun Wave freezes the survivors near it and
+## Fallout Zone leaves its burn zone.
+func _nuke_ended(w: Types.ActiveWeapon, data: Dictionary, enemies: Array[PerilEnemy]) -> void:
+	var blast: float = w.max_radius if not is_nan(w.max_radius) else w.radius
+	if data.get("stunWave", false):
+		var reach2: float = (blast * STUN_WAVE_REACH) * (blast * STUN_WAVE_REACH)
+		for e: PerilEnemy in enemies:
+			if (e.x - w.x) * (e.x - w.x) + (e.y - w.y) * (e.y - w.y) <= reach2:
+				e.frozen = true
+				e.freeze_timer = maxf(e.freeze_timer, STUN_WAVE_SECONDS)
+	if data.get("falloutZone", false):
+		var zone: Types.ActiveWeapon = Types.ActiveWeapon.new()
+		zone.id = _next_weapon_id
+		_next_weapon_id += 1
+		zone.type = Types.WeaponType.NUKE
+		zone.x = w.x
+		zone.y = w.y
+		zone.duration = FALLOUT_SECONDS
+		zone.max_duration = FALLOUT_SECONDS
+		zone.radius = blast * FALLOUT_RADIUS_FRACTION
+		zone.max_radius = zone.radius
+		zone.data = {"fallout": true}
+		active_weapons.append(zone)
+
+
+## One salvo of `count` homing missiles from (x, y).
+## PORT: web/src/tilt-to-live/WeaponSystem.ts:419-432
+## DIVERGENCE(KEY R1): a function so Second Salvo can fire again; Hyper Thrusters
+## locks each missile on one of the nearest enemies and raises its speed and turn gain.
+func _launch_missiles(
+	x: float,
+	y: float,
+	count: int,
+	enemies: Array[PerilEnemy],
+	perks: ProgressionManager.WeaponPerks
+) -> void:
+	var p: ProgressionManager.WeaponPerks = (
+		perks if perks != null else ProgressionManager.WeaponPerks.new()
+	)
+	# PORT: web/src/tilt-to-live/WeaponSystem.ts:419
+	var speed_mult: float = 1.0 + float(p.missiles.flight_speed) * 0.2
+	var locks: Array[PerilEnemy] = []
+	if p.missiles.hyper_thrusters:
+		locks = enemies.duplicate()
+		locks.sort_custom(
+			func(a: PerilEnemy, b: PerilEnemy) -> bool:
+				return (a.x - x) ** 2 + (a.y - y) ** 2 < (b.x - x) ** 2 + (b.y - y) ** 2
+		)
+	for i: int in range(count):
+		# PORT: web/src/tilt-to-live/WeaponSystem.ts:421
+		var angle: float = (float(i) * PI * 2.0) / float(count) + (randf() * 0.4 - 0.2)
+		# PORT: web/src/tilt-to-live/WeaponSystem.ts:422
+		var speed: float = (260.0 + randf() * 80.0) * speed_mult * maxf(0.72, scale)
+		var m: Types.HomingMissile = _new_missile(x, y, angle, speed)
+		if p.missiles.hyper_thrusters:
+			m.cruise = HYPER_CRUISE
+			m.agility = HYPER_AGILITY
+			if not locks.is_empty():
+				m.target_id = locks[posmod(i, locks.size())].id
+		missiles.append(m)
+
+
+## A missile at (x, y) flying at `angle`. PORT: web/src/tilt-to-live/WeaponSystem.ts:423-432
+func _new_missile(x: float, y: float, angle: float, speed: float) -> Types.HomingMissile:
+	var m: Types.HomingMissile = Types.HomingMissile.new()
+	m.id = _next_missile_id
+	_next_missile_id += 1
+	m.x = x
+	m.y = y
+	m.vx = cos(angle) * speed
+	m.vy = sin(angle) * speed
+	m.target_id = Types.ABSENT  # PORT: web/src/tilt-to-live/WeaponSystem.ts:429 (null)
+	m.lifetime = 3.5  # PORT: web/src/tilt-to-live/WeaponSystem.ts:430
+	m.smoke_timer = 0.0
+	return m
 
 
 ## Returns a weapon type drawn from the weighted drop table.

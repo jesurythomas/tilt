@@ -228,22 +228,21 @@ func test_weapons_catalog_matches_the_ts() -> void:
 	assert_eq(blackhole.tracks.size(), 3)
 	assert_eq(blackhole.tracks[2].key, "gravity")
 	assert_eq(blackhole.tracks[2].effect, "+20% / rank")
-	# ECON R4/R5: Supernova is the black hole's only keystone; the shield inside is innate.
-	assert_eq(blackhole.keystones.size(), 1)
+	# KEY R1/R2: three keystones; the inside-shield is innate, said in the description.
+	assert_eq(blackhole.keystones.size(), 3)
 	assert_eq(blackhole.keystones[0].key, "supernovaCollapse")
-	assert_eq(blackhole.innate, "Safe inside the well")
+	assert_true(blackhole.description.contains("safe inside"))
 	var freeze: ArmoryUI.WeaponConfig = _armory.weapons_catalog[4]
 	assert_eq(freeze.name, "Freeze", "ARMORY R4 (the TS said Shockwave, :161)")
 	assert_eq(freeze.tracks.size(), 1)
-	var keystone_keys: Array[String] = []
+	# KEY R1 (user: "make sure abilities have atleast 3 keystones each"), each one a
+	# field of the weapon's perk record (so upgrade_perk can buy it).
+	var perks: Dictionary = _progression.data.perks.to_dict()
 	for w: ArmoryUI.WeaponConfig in _armory.weapons_catalog:
+		assert_gte(w.keystones.size(), 3, "%s has 3 keystones" % w.id)
+		var record: Dictionary = perks[w.id]
 		for k: ArmoryUI.WeaponKeystone in w.keystones:
-			keystone_keys.append(k.key)
-	assert_eq(
-		keystone_keys,
-		["supernovaCollapse", "crossBeam"] as Array[String],
-		"ECON R4: only keystones with a coded effect"
-	)
+			assert_true(record.get(k.key) is bool, "%s.%s is a save field" % [w.id, k.key])
 	for w: ArmoryUI.WeaponConfig in _armory.weapons_catalog:
 		for t: ArmoryUI.WeaponTrack in w.tracks:
 			assert_true(
@@ -541,7 +540,7 @@ func test_track_row_carries_pips_for_its_rank() -> void:
 	)
 
 
-func test_weapon_detail_is_one_column_with_keystone_and_innate() -> void:
+func test_weapon_detail_is_one_column_with_its_keystones() -> void:
 	# ARMORY R1 (user: "a single column for weapon upgrade is fine").
 	_open_weapons("blackhole")
 	var column: VBoxContainer = _armory.find_child("UpgradeColumn", true, false) as VBoxContainer
@@ -550,16 +549,16 @@ func test_weapon_detail_is_one_column_with_keystone_and_innate() -> void:
 	for child: Node in column.get_children():
 		names.append(str(child.name))
 	assert_eq(names.slice(0, 3), ["TrackCard_duration", "TrackCard_radius", "TrackCard_gravity"])
-	assert_true(names.has("KeystoneCard_supernovaCollapse"), "the keystone in the same column")
-	assert_eq(names[-1], "InnateNote", "ECON R5: the innate shield last")
-	assert_eq(_label("InnateText").text, "Safe inside the well")
+	for key: String in ["supernovaCollapse", "eventHorizon", "darkHarvest"]:
+		assert_true(names.has("KeystoneCard_" + key), "%s in the same column" % key)
+	assert_null(_armory.find_child("InnateNote", true, false), "KEY R2: no innate row")
 	assert_null(_armory.find_child("Keystone_invulnerableInside", true, false), "no Aegis to buy")
 
 
-func test_weapons_without_a_live_keystone_show_none() -> void:
-	_open_weapons("nuke")
-	assert_eq(_armory.find_children("KeystoneCard_*", "", true, false).size(), 0)
-	assert_null(_armory.find_child("InnateNote", true, false))
+func test_every_weapon_lists_three_keystone_cards() -> void:
+	for w: ArmoryUI.WeaponConfig in _armory.weapons_catalog:
+		_open_weapons(w.id)
+		assert_eq(_armory.find_children("KeystoneCard_*", "", true, false).size(), 3, w.id)
 
 
 func test_can_buy_dot_marks_weapons_with_an_affordable_upgrade() -> void:

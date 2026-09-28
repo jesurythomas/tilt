@@ -11,6 +11,11 @@ const NO_HUD_VALUES: Vector3i = Vector3i(-1, -1, -1)
 const COLLIDE_NONE: int = 0
 const COLLIDE_REMOVED: int = 1
 const COLLIDE_CRASH: int = 2
+## DIVERGENCE(KEY R1): Battering Ram and Shatter Cascade reach — px at arena scale 1.
+const BATTERING_RAM_RADIUS: float = 60.0
+const SHATTER_CASCADE_RADIUS: float = 70.0
+## DIVERGENCE(KEY R1): Coin Vacuum's magnet radius — the whole arena.
+const COIN_VACUUM_RADIUS: float = 100000.0
 
 var player: PlayerShip = null
 var swarm: EnemySwarm = null
@@ -254,6 +259,9 @@ func update(
 	# in HudController (M11a R17).
 	var mode_config: GameOptionsManager.ModeConfig = options.get_mode_config(mode)
 	var pt_coins: int = PerfProbe.now()
+	# DIVERGENCE(KEY R1) Coin Vacuum: while shielded, every coin flies to the ship.
+	var vacuum: bool = progression.data.perks.shield.coin_vacuum and player.has_shield()
+	coins.magnet_radius = COIN_VACUUM_RADIUS if vacuum else CoinSystem.MAGNET_RADIUS
 	# DIVERGENCE(ECON R1): coins bank through credit_run_points (the run's total).
 	coins.update(
 		dt, player, bounds, particles, audio, mode_config.score_multiplier, credit_run_points
@@ -361,6 +369,8 @@ func _collide(i: int, plx: float, ply: float, plr: float) -> int:
 			handle_enemy_killed(e, Types.WeaponType.SHIELD)
 			particles.emit_explosion(e.x, e.y, Color("#3ddc97"), 20)
 			swarm.enemies.remove_at(i)
+			if progression.data.perks.shield.battering_ram:  # DIVERGENCE(KEY R1) Battering Ram
+				_ram_burst(e.x, e.y)
 			return COLLIDE_REMOVED
 		if e.frozen:
 			# Ramming frozen dot shatters it
@@ -368,6 +378,8 @@ func _collide(i: int, plx: float, ply: float, plr: float) -> int:
 			scores.register_kill(e.x, e.y, Types.WeaponType.FREEZE, audio)
 			particles.emit_ice_shatter(e.x, e.y, 16)
 			swarm.enemies.remove_at(i)
+			if progression.data.perks.freeze.shatter_cascade:  # DIVERGENCE(KEY R1) Shatter Cascade
+				_shatter_cascade(e.x, e.y)
 			return COLLIDE_REMOVED
 		# Crash costs a life
 		lose_life()
@@ -378,6 +390,31 @@ func _collide(i: int, plx: float, ply: float, plr: float) -> int:
 		player.close_call_timer = 0.75
 		scores.register_close_call(player.x, player.y, audio)
 	return COLLIDE_NONE
+
+
+## DIVERGENCE(KEY R1) Battering Ram: a ram also kills every dot near the rammed one. Removals only
+## below or at the collision index are safe: check_collisions re-queries from i − 1
+## after each kill (N3d).
+func _ram_burst(x: float, y: float) -> void:
+	var r: float = BATTERING_RAM_RADIUS * weapons.scale
+	grid.apply_explosion(x, y, 10.0, r * 2.0)
+	for j: int in range(swarm.enemies.size() - 1, -1, -1):
+		var o: PerilEnemy = swarm.enemies[j]
+		if (o.x - x) * (o.x - x) + (o.y - y) * (o.y - y) <= r * r:
+			handle_enemy_killed(o, Types.WeaponType.SHIELD)
+			particles.emit_sparks(o.x, o.y, 8, Color("#3ddc97"), 160.0)
+			swarm.enemies.remove_at(j)
+
+
+## DIVERGENCE(KEY R1) Shatter Cascade: a shatter also shatters the frozen dots near it.
+func _shatter_cascade(x: float, y: float) -> void:
+	var r: float = SHATTER_CASCADE_RADIUS * weapons.scale
+	for j: int in range(swarm.enemies.size() - 1, -1, -1):
+		var o: PerilEnemy = swarm.enemies[j]
+		if o.frozen and (o.x - x) * (o.x - x) + (o.y - y) * (o.y - y) <= r * r:
+			scores.register_kill(o.x, o.y, Types.WeaponType.FREEZE, audio)
+			particles.emit_ice_shatter(o.x, o.y, 8)
+			swarm.enemies.remove_at(j)
 
 
 ## Handles enemy destruction by weapons or shield.

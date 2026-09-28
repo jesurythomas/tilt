@@ -33,6 +33,16 @@ const KEYSTONE_COSTS: Dictionary[String, int] = {
 	"hyperThrusters": 4000,
 	"supernovaCollapse": 5000,
 	"chainReaction": 5000,
+	# DIVERGENCE(KEY R1): the keystones added so every power-up sells three.
+	"eventHorizon": 3000,
+	"darkHarvest": 4000,
+	"secondSalvo": 5000,
+	"heavyBeam": 3000,
+	"rapidSweep": 4000,
+	"stunWave": 3500,
+	"iceArmor": 3000,
+	"coinVacuum": 3000,
+	"forkedLightning": 5000,
 }
 
 # PORT-NOTE: WeaponTuning.ts:26 types the table `Record<string, Record<string,

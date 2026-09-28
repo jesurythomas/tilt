@@ -125,6 +125,12 @@ class HomingMissile:
 	var target_id: int = Types.ABSENT
 	var lifetime: float = 0.0
 	var smoke_timer: float = 0.0
+	## DIVERGENCE(KEY R1): 1 for a Cluster Split child (it does not split again).
+	var generation: int = 0
+	## DIVERGENCE(KEY R1): homing speed and turn gain — the TS's 440 and 9
+	## (WeaponSystem.ts:314-317) unless Hyper Thrusters raised them.
+	var cruise: float = 440.0
+	var agility: float = 9.0
 
 
 ## PORT: web/src/tilt-to-live/Types.ts:78-85
