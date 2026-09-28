@@ -142,3 +142,15 @@ redesign if needed to make ui/ux feel better as a player". Rulings are Claude's 
   removed (45). PERF gains `men=` (menu swarm size); `tools/emulator/menu_idle.sh`
   idles APKs on the menu and logs PERF. Emulator A/B (`menu_idle.sh menu-before menu-after`, 8 min each) pending — the first try
   hit an adb restart mid-install. Suite 762.
+- [x] **UI R11** — "make steer and touch as well as the armory and achievements more
+  noticeable as well aas change the settings option to the actual settings icon":
+  `SegmentButton` (every segmented control: Steer on menu/Pause/Run over, Settings'
+  shake) marks the selected segment ion — 22% fill, ion border, ion glyph, semibold —
+  and Touch/Tilt carry glyphs (`UiTheme.ICON_TOUCH`, `ICON_TILT`; picker 176 → 208).
+  The menu's Armory / Achievements are `NavButton`s (raised, bright semibold 15, line
+  strong) with a glyph beside the centred label (upgrade chevrons ion, trophy flare);
+  Settings is a filled eight-tooth cog (Main.dc.html's rayed circle read as a sun). The
+  nav width is measured from the font (the child row has no size before the tree) with
+  8 px sides; `test_device_matrix` checks each label fits its button on 8 devices, and an
+  over-wide Armory pushes the panel off screen there (mutation). Menu draws unchanged on
+  the emulator (217–300 vs 200–350). The Run over's Armory button keeps SecondaryButton.

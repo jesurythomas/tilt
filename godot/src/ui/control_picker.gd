@@ -72,6 +72,11 @@ func set_ui_scale(scale: float) -> void:
 	for button: Button in [_tilt_button, _touch_button, _keyboard_button]:
 		if button != null:
 			button.custom_minimum_size.y = UiTheme.TOUCH_TARGET * scale
+	# DIVERGENCE(UI R11): a glyph per scheme, tinted ion when selected.
+	if _touch_button != null:
+		_touch_button.icon = UiTheme.svg_texture(UiTheme.ICON_TOUCH, scale)
+	if _tilt_button != null:
+		_tilt_button.icon = UiTheme.svg_texture(UiTheme.ICON_TILT, scale)
 
 
 func _on_scheme_button_pressed(scheme: Types.ControlScheme) -> void:

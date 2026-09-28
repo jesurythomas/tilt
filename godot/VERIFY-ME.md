@@ -674,6 +674,9 @@ refunded once on the first launch.
 - [ ] 10. **Idle menu (UI R10).** Leave the menu open 10+ minutes. The swarm behind it
       stays a light scatter (it used to fill the map, 140+ dots); fps holds. No wall
       formations sweep the menu any more (runs still have them).
+- [ ] 11. **Menu controls (UI R11).** The selected Steer option (Touch or Tilt) is
+      clearly blue with its glyph; Armory (chevrons) and Achievements (trophy) stand
+      out; the Settings button is a cog. Same Steer look on Pause and Run over.
 
 ## M11c part 1 — Performance (plan `2026-09-26-m11c-performance.md`)
 

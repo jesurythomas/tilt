@@ -87,6 +87,7 @@ func test_build_carries_every_component_variation() -> void:
 		"EquippedButton",
 		"TabButton",
 		"SegmentButton",
+		"NavButton",
 		"ListItemButton",
 		"CardButton",
 	]:

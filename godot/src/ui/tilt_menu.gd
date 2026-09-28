@@ -60,7 +60,7 @@ const LEFT_WIDTH: int = 392
 const LEFT_GAP: int = 16
 const STEER_GAP: int = 12
 const STEER_LABEL_WIDTH: int = 48
-const PICKER_WIDTH: int = 176
+const PICKER_WIDTH: int = 208  # DIVERGENCE(UI R11): 176 before the segment glyphs
 ## DIVERGENCE(UI-SYSTEM): Main.dc.html — stats row padding-top 14, gap 28;
 ## stat column gap 3; value Mono 500 17.
 const STATS_PAD_TOP: int = 14
@@ -105,6 +105,11 @@ const NAME_GAP: int = 2
 const PLAY_FONT: int = 18
 const PLAY_ICON_GAP: int = 10
 const NAV_GAP: int = 8
+## DIVERGENCE(UI R11): glyph-to-label gap inside a nav button.
+const NAV_ICON_GAP: int = 8
+## DIVERGENCE(UI R11): the side room a nav button keeps around its glyph and label (the
+## row is centred, so it need not be the stylebox's 14 — which pushed the panel wide).
+const NAV_PAD_X: int = 8
 const NAV_TOP: int = 2
 
 ## DIVERGENCE(UI-SYSTEM): Settings.dc.html — header 64 tall, padding 8/28/8/24,
@@ -157,13 +162,35 @@ const ICON_PLAY: String = (
 	'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">'
 	+ '<path d="M4 2.5 L13 8 L4 13.5 Z" fill="#08090E"/></svg>'
 )
-## DIVERGENCE(UI-SYSTEM): Main.dc.html — Settings gear (verbatim but for the xmlns)
+## DIVERGENCE(UI R11, user 2026-09-28: "change the settings option to the actual settings
+## icon"): an eight-tooth cog; Main.dc.html's rayed circle read as a brightness sun.
 const ICON_GEAR: String = (
+	'<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 16 16" fill="none">'
+	+ '<path fill="#E6E9F0" fill-rule="evenodd" d="'
+	+ "M12.97 6.46 L15.06 6.57 L15.06 9.43 L12.97 9.54 L12.60 10.43 L14.00 "
+	+ "11.98 L11.98 14.00 L10.43 12.60 L9.54 12.97 L9.43 15.06 L6.57 15.06 "
+	+ "L6.46 12.97 L5.57 12.60 L4.02 14.00 L2.00 11.98 L3.40 10.43 L3.03 9.54 "
+	+ "L0.94 9.43 L0.94 6.57 L3.03 6.46 L3.40 5.57 L2.00 4.02 L4.02 2.00 "
+	+ "L5.57 3.40 L6.46 3.03 L6.57 0.94 L9.43 0.94 L9.54 3.03 L10.43 3.40 "
+	+ "L11.98 2.00 L14.00 4.02 L12.60 5.57 Z M10.40 8 A2.4 2.4 0 1 0 5.60 8 "
+	+ "A2.4 2.4 0 1 0 10.40 8 Z"
+	+ '"/></svg>'
+)
+## DIVERGENCE(UI R11, user 2026-09-28: "make steer and touch as well as the armory and
+## achievements more noticeable"): the nav
+## buttons' glyphs — upgrade chevrons (ion) and a trophy (flare).
+const ICON_ARMORY: String = (
 	'<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 16 16" fill="none">'
-	+ '<circle cx="8" cy="8" r="2.4" stroke="#C7CDDB" stroke-width="1.3"/>'
-	+ '<path d="M8 1.6 V3.4 M8 12.6 V14.4 M1.6 8 H3.4 M12.6 8 H14.4 M3.5 3.5 L4.7 4.7 '
-	+ 'M11.3 11.3 L12.5 12.5 M12.5 3.5 L11.3 4.7 M4.7 11.3 L3.5 12.5" stroke="#C7CDDB" '
-	+ 'stroke-width="1.3" stroke-linecap="round"/></svg>'
+	+ '<path d="M3.5 8.5 L8 4 L12.5 8.5 M3.5 13 L8 8.5 L12.5 13" stroke="#8FB0FF" '
+	+ 'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+)
+const ICON_ACHIEVEMENTS: String = (
+	'<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 16 16" fill="none">'
+	+ '<path d="M4.5 2 H11.5 V6.5 A3.5 3.5 0 0 1 4.5 6.5 Z" fill="#FFB14D"/>'
+	+ '<path d="M4.5 3.5 H2.5 V5 A2.5 2.5 0 0 0 5 7.5 M11.5 3.5 H13.5 V5 A2.5 2.5 0 0 1 11 7.5" '
+	+ 'stroke="#FFB14D" stroke-width="1.2" stroke-linecap="round"/>'
+	+ '<path d="M8 10 V12.5 M5 14 H11" stroke="#FFB14D" stroke-width="1.6" '
+	+ 'stroke-linecap="round"/></svg>'
 )
 ## The mode card's radio ring, %s = the ring colour.
 ## PORT: web/src/tilt-to-live/TiltMenu.ts:155, :158
@@ -625,13 +652,13 @@ func _mode_panel(current_mode: Types.GameMode) -> PanelContainer:
 	nav_pad.add_theme_constant_override("margin_top", _px(NAV_TOP))
 	var nav: HBoxContainer = HBoxContainer.new()
 	nav.add_theme_constant_override("separation", _px(NAV_GAP))
-	nav.add_child(_nav_button("MenuArmoryButton", "Armory"))  # PORT: :173
+	nav.add_child(_nav_button("MenuArmoryButton", "Armory", ICON_ARMORY))  # PORT: :173
 	# PORT: :174
 	# DIVERGENCE(ACH R1): "Achievements" — user 2026-09-28: "rename milestones to
 	# achievements"
-	nav.add_child(_nav_button("MenuMilestonesButton", "Achievements"))
+	nav.add_child(_nav_button("MenuMilestonesButton", "Achievements", ICON_ACHIEVEMENTS))
 	# PORT: web/src/tilt-to-live/TiltMenu.ts:175 — "Settings", drawn as the board's gear
-	var settings: Button = _button("MenuSettingsButton", "GhostIconButton", "")
+	var settings: Button = _button("MenuSettingsButton", "NavButton", "")
 	settings.tooltip_text = "Settings"
 	settings.custom_minimum_size = Vector2.ONE * _px(UiTheme.TOUCH_TARGET)
 	settings.icon = UiTheme.svg_texture(ICON_GEAR, _ui_scale)
@@ -643,10 +670,46 @@ func _mode_panel(current_mode: Types.GameMode) -> PanelContainer:
 	return panel
 
 
-func _nav_button(button_name: String, label: String) -> Button:
-	var button: Button = _button(button_name, "SecondaryButton", label)
+## DIVERGENCE(UI R11): a NavButton whose glyph sits beside its centred label (a Button's
+## own icon hugs the left edge); the row ignores the mouse so the button takes the tap.
+func _nav_button(button_name: String, label: String, glyph: String) -> Button:
+	var button: Button = _button(button_name, "NavButton", "")
+	button.tooltip_text = label
 	button.custom_minimum_size.y = _px(UiTheme.TOUCH_TARGET)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var row: HBoxContainer = HBoxContainer.new()
+	row.name = "NavContent"
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", _px(NAV_ICON_GAP))
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var icon: TextureRect = TextureRect.new()
+	icon.texture = UiTheme.svg_texture(glyph, _ui_scale)
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(icon)
+	var text: Label = UiTheme.text(label, "")
+	text.name = "NavLabel"
+	text.add_theme_font_override("font", UiTheme.sans(UiTheme.Weight.SEMIBOLD))
+	text.add_theme_font_size_override("font_size", _px(UiTheme.NAV_LABEL_SIZE))
+	text.add_theme_color_override("font_color", UiTheme.COLOR_TEXT)
+	text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	text.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(text)
+	button.add_child(row)
+	# The label is a child, so the button's own minimum width must hold it — measured from
+	# the font, as the row has no theme (so no size) until it enters the tree.
+	var font_px: int = _px(UiTheme.NAV_LABEL_SIZE)
+	var label_w: float = (
+		UiTheme
+		. sans(UiTheme.Weight.SEMIBOLD)
+		. get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, font_px)
+		. x
+	)
+	var pad: int = _px(NAV_PAD_X) * 2
+	button.custom_minimum_size.x = ceilf(
+		icon.texture.get_width() + _px(NAV_ICON_GAP) + label_w + pad
+	)
 	return button
 
 

@@ -86,6 +86,14 @@ const CARD_RADIUS: int = 6
 const SHEET_RADIUS: int = 10
 const SEGMENT_PAD: int = 3
 const SEGMENT_RADIUS: int = 4
+## DIVERGENCE(UI R11, user 2026-09-28: "make steer and touch as well as the armory and
+## achievements more noticeable"): segment
+## padding and glyph gap (the glyph shares the segment with the label), the selected
+## segment's ion fill, and the menu nav buttons' label size.
+const SEGMENT_BUTTON_PAD_X: int = 10
+const SEGMENT_ICON_GAP: int = 6
+const SEGMENT_ON_ALPHA: float = 0.22
+const NAV_LABEL_SIZE: int = 15
 const METER_HEIGHT: int = 3
 const METER_RADIUS: int = 2
 const PIP_HEIGHT: int = 5
@@ -162,6 +170,24 @@ const ICON_LOCK: String = (
 	'<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none">'
 	+ '<rect x="2" y="5.5" width="8" height="5.5" rx="1" stroke="#7A8397" stroke-width="1.2"/>'
 	+ '<path d="M4 5.5 V3.8 A2 2 0 0 1 8 3.8 V5.5" stroke="#7A8397" stroke-width="1.2"/></svg>'
+)
+## DIVERGENCE(UI R11, user 2026-09-28: "make steer and touch as well as the armory and
+## achievements more noticeable"): the
+## Steer segments' glyphs, drawn white and tinted by the segment's icon colours.
+const ICON_TOUCH: String = (
+	'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">'
+	+ '<path d="M6.5 8.5 V4.4 A1.2 1.2 0 0 1 8.9 4.4 V8 L12 8.6 A1.5 1.5 0 0 1 13.2 10.2 '
+	+ "L12.7 13.2 A1.8 1.8 0 0 1 10.9 14.7 H8.2 A1.8 1.8 0 0 1 6.8 14 L3.8 10.6 "
+	+ 'A1.1 1.1 0 0 1 5.4 9.2 Z" stroke="#FFFFFF" stroke-width="1.3" stroke-linejoin="round"/>'
+	+ '<path d="M4.9 4.2 A2.9 2.9 0 0 1 10.5 4.2" stroke="#FFFFFF" stroke-width="1.2" '
+	+ 'stroke-linecap="round"/></svg>'
+)
+const ICON_TILT: String = (
+	'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">'
+	+ '<rect x="5" y="2" width="6" height="12" rx="1.5" stroke="#FFFFFF" stroke-width="1.4" '
+	+ 'transform="rotate(24 8 8)"/>'
+	+ '<path d="M1.5 11 A7 7 0 0 1 2.4 4.6 M14.5 5 A7 7 0 0 1 13.6 11.4" stroke="#FFFFFF" '
+	+ 'stroke-width="1.2" stroke-linecap="round"/></svg>'
 )
 ## Switch track + knob, 48×28. DIVERGENCE(UI-SYSTEM): Pause.dc.html — p-sfx (on), p-mus (off)
 const SWITCH_ON: String = (
@@ -533,15 +559,35 @@ static func _build_buttons(theme: Theme, scale: float) -> void:
 		padded(flat(none, none, r), px(TAB_PAD_X, scale), 0.0)
 	)
 	# DIVERGENCE(UI-SYSTEM): System.dc.html — Segmented (selected raised + line_strong, r 4)
+	# DIVERGENCE(UI R11): the selected segment is ion (fill, border, glyph) and semibold,
+	# the others secondary text — raised-on-panel read as nearly unselected.
+	var seg_pad: float = px(SEGMENT_BUTTON_PAD_X, scale)
 	_button(
 		theme,
 		"SegmentButton",
-		sans(Weight.MEDIUM),
+		sans(Weight.SEMIBOLD),
 		label_size,
-		TEXT_FAINT,
-		padded(flat(none, none, sr), pad, 0.0),
-		padded(flat(COLOR_RAISED, COLOR_LINE_STRONG, sr), pad, 0.0),
-		padded(flat(none, none, sr), pad, 0.0)
+		TEXT_SECONDARY,
+		padded(flat(none, none, sr), seg_pad, 0.0),
+		padded(flat(tint(COLOR_ION, SEGMENT_ON_ALPHA), COLOR_ION, sr), seg_pad, 0.0),
+		padded(flat(none, none, sr), seg_pad, 0.0)
+	)
+	theme.set_constant("h_separation", "SegmentButton", px(SEGMENT_ICON_GAP, scale))
+	for state: String in ["icon_normal_color", "icon_hover_color", "icon_focus_color"]:
+		theme.set_color(state, "SegmentButton", TEXT_FAINT)
+	theme.set_color("icon_pressed_color", "SegmentButton", ION_TEXT)
+	theme.set_color("icon_hover_pressed_color", "SegmentButton", ION_TEXT)
+	# DIVERGENCE(UI R11): the menu's Armory, Achievements and Settings — raised, bright
+	# text, a coloured glyph beside the label (TiltMenu._nav_button), not a faint outline.
+	_button(
+		theme,
+		"NavButton",
+		sans(Weight.SEMIBOLD),
+		px(NAV_LABEL_SIZE, scale),
+		COLOR_TEXT,
+		padded(flat(COLOR_RAISED, COLOR_LINE_STRONG, r), pad, 0.0),
+		padded(flat(tint(COLOR_ION, FILL_ALPHA), COLOR_ION, r), pad, 0.0),
+		padded(flat(none, COLOR_LINE, r), pad, 0.0)
 	)
 	# DIVERGENCE(UI-SYSTEM): ArmoryWeapons.dc.html — weapon list row (selected raised + line_strong)
 	_button(

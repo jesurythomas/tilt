@@ -79,6 +79,12 @@ func test_menu_fits_every_device() -> void:
 			menu, UiTheme.TOUCH_TARGET * scale * menu.fit_factor() - 0.5
 		)
 		assert_true(short.is_empty(), "%s: touch targets %s" % [tag, short])
+		# UI R11: each nav button's glyph + label fits inside it.
+		for nav: String in ["MenuArmoryButton", "MenuMilestonesButton"]:
+			var button: Control = menu.find_child(nav, true, false) as Control
+			var content: Control = button.find_child("NavContent", false, false) as Control
+			var need: float = content.get_combined_minimum_size().x
+			assert_lte(need, button.size.x, "%s %s: label fits (%.0f px)" % [tag, nav, need])
 
 
 func test_armory_fits_every_device() -> void:
