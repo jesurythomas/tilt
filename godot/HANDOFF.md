@@ -4,14 +4,22 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**Current (2026-09-28): M11c review fixes + FPS work in progress, on the C++ path;
-N3–N5 (native swarm loop, enemy draw loop, dot atlas), N6 (frame split) and N7 (particles) landed.** Active plan
-`docs/superpowers/plans/2026-09-27-m11c-review-fixes.md`; the head of `## Next`
-below says exactly where it stands and what to do first. Everything is committed;
-the tree is clean. **The native extension is now required**: enemies are the C++
-class `PerilEnemy` (was `Types.Enemy`), so the game does not parse without
-`godot/bin/libperil.*`. The paragraphs after this one are older
-history, kept for their evidence.
+**Current (2026-09-28): the game is feature-complete and shareable.** Every module is
+done: M0–M11, the M11c performance work on the C++ path, and the user-requested
+reworks since (economy, Armory, icons, achievements, keystones, UI R1–R12, SKIN R1,
+ARMORY R5–R7). Active plan: `docs/superpowers/plans/2026-09-28-achievements-keystones-ui.md`.
+The head of `## Next` below says what to do first; `README.md` says what the project is.
+
+- **Release builds.** `tools/release.sh` exports a signed release APK
+  (`godot/build/peril-point-<version>.apk`). The release native library is
+  `godot/bin/libperil.android.template_release.arm64.so`. The signing key is a
+  throwaway dev key, `~/.android/peril-dev-release.keystore`; its alias and password
+  are in `~/.android/peril-dev-release.env`, outside git. Replace it before a store
+  release.
+- **Native extension required.** Enemies are the C++ class `PerilEnemy`, so the game
+  does not parse without `godot/bin/libperil.*`.
+
+The paragraphs after this one are older history, kept for their evidence.
 
 **M11c part 1 — Performance: code-complete, A55 measurement pending
 (2026-09-26).** Plan `docs/superpowers/plans/2026-09-26-m11c-performance.md`;

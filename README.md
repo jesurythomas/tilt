@@ -1,73 +1,138 @@
-# Elden Arcade
+# Peril Point
 
-A two-game, original horror arcade built with TypeScript, Canvas 2D, and Three.js.
+A landscape arcade survival game for Android. You steer a small ship through an
+arena that fills with a swarm of red dots. You never shoot: you fly into weapon orbs,
+and each one fires by itself. Survive as long as you can, chain kills for score, and
+spend the points each run pays on upgrades.
 
-## Games
+Android package `com.jtg.perilpoint`. iOS waits on a macOS host.
 
-### Dread Flight
+## The game
 
-An endless flyer about guiding a cursed raven through ruined gate towers. The flight model uses fixed-step simulation, pooled procedural gates, progressive but bounded difficulty, local high scores, and procedural Web Audio effects.
-
-- Click/tap the game, `Space`, or `Up` to flap.
-- `P` or `Escape` pauses.
-- `R` restarts.
-
-### Curse Runner
-
-A 3D endless escape through a cursed jungle temple. Choose lanes, jump, slide, make turns, collect coins, and stay ahead of the hunter.
-
-- `A`/`Left` and `D`/`Right`: change lanes or turn at a junction.
-- `W`/`Space`/`Up`: jump.
-- `S`/`Down`: slide.
-- `P` or `Escape`: pause.
-- `R`: restart.
-- Mobile controls use directional swipes.
-
-The games use original procedural models, textures, effects, names, and sound design. They are genre tributes, not reproductions of third-party assets or branding.
+- **Steer** by touch (drag anywhere) or by tilting the phone (gyroscope, with a
+  calibrate screen). Off mobile, the keyboard works too.
+- **Three modes.** *Standard* is the full arsenal against ramping swarms. *Gauntlet*
+  has walls that close in while you dodge. *Code Red* starts at double density from
+  the first second.
+- **Seven power-ups**, picked up as orbs: Blackhole, Missiles, Laser, Nuke, Freeze,
+  Shield and Lightning.
+- **Thirteen enemy behaviours**, from plain seekers to chargers, artillery, carriers,
+  pulsars, specters, snakes, turrets and wall, arrow and circle formations.
+- **The Armory**, where each run's points are spent:
+  - *Weapons*: upgrade tracks per power-up, plus three keystones each (21 in all).
+  - *Ships*: seven hulls, each with its own hitbox, turn rate and starting weapon.
+  - *Arena*: six themes and six enemy skins; the skins add patterns to the dots.
+  - *Handling*: turn rate and tilt sensitivity.
+  - *Boosts*: extra life, smaller hull, enemy slow, and score and points multipliers.
+  - The Ships and Arena tabs preview your choice in a live arena view.
+- **57 achievements**, each paying points. A run's completions queue as toasts and are
+  listed on the Run over screen.
+- **Audio:** sound effects and generative music, baked from the web prototype's Web
+  Audio synthesis.
 
 ## Repository layout
 
 | Path | Contents |
 |---|---|
-| `web/` | The TypeScript / Canvas 2D game. npm root. |
-| `godot/` | **Peril Point** — Godot 4.7.2 mobile port, in progress. Start with `godot/PREREQUISITES.md`. |
-| `tools/` | Scripts bridging the two (audio bake, constant parity). |
-| `archive/` | Frozen design boards, backups and screenshots. |
-| `docs/superpowers/specs/` | Design specs. |
+| `godot/` | **The game.** A Godot 4.7.2 project, in GDScript. |
+| `native/` | A C++ GDExtension (`libperil`) with the hot loops: swarm step, separation, enemy and particle drawing, and the missile snapshot. Built with SCons against the `godot-cpp` submodule. |
+| `web/` | The original TypeScript / Canvas 2D prototype (`web/src/tilt-to-live/`). It is the reference that the Godot code is ported from, line by line. |
+| `tools/` | The test runner, audio bake, constant-parity dumps, and emulator/perf scripts. |
+| `docs/superpowers/` | Design specs, module plans and reviews. |
+| `peril-point-mobile-redesign/` | The mobile interface design boards (`*.dc.html`). |
+| `archive/` | Frozen earlier designs, backups and screenshots. |
 
-The web game is the reference implementation for the Godot port and is not being
-retired — the audio bake step executes `web/src/tilt-to-live/TiltAudio.ts`.
+### How the port works
 
-### Peril Point
+The Godot code is a faithful translation of the web prototype, not a rewrite:
 
-The Godot mobile port ships as **Peril Point** (Android id `com.jtg.perilpoint`),
-landscape, Android first with iOS deferred until a macOS host is available.
+- **Numbers.** Every tuned number cites its source, e.g.
+  `# PORT: web/src/tilt-to-live/PlayerShip.ts:118`.
+- **Deliberate changes.** Every change the TypeScript didn't have is tagged with the
+  ruling that allowed it, e.g. `DIVERGENCE(ARMORY R7)`.
+- **Speed.** The native extension keeps the GDScript version of each routine it
+  replaces, and tests check the two match bit for bit.
 
-Its source is the web game under `web/src/tilt-to-live/`, which **keeps its own
-name** — the directory, the TypeScript filenames and every `# PORT:` citation in
-the GDScript are unchanged, because the port's traceability rule (Law 1) depends
-on those paths resolving.
+The rules are in `godot/CONVENTIONS.md`. The prototype keeps its working name
+(`tilt-to-live`) so that every citation still resolves.
 
-- Port design: `docs/superpowers/specs/2026-09-20-peril-point-godot-port-design.md`
-- Plan index: `docs/superpowers/plans/2026-09-20-peril-point-godot-port-index.md`
-- Current state: `godot/HANDOFF.md` · progress: `godot/PORT-PROGRESS.md`
+## Where to start
 
-## Run
+| Read | For |
+|---|---|
+| `godot/HANDOFF.md` | The current state and what to do next. |
+| `godot/PREREQUISITES.md` | Toolchain setup (Godot, Android SDK, JDK, gdtoolkit). |
+| `godot/CONVENTIONS.md` | The port laws, style and the module exit protocol. |
+| `godot/PORT-PROGRESS.md` | The module checklist (M0–M11). |
+| `godot/VERIFY-ME.md` | Checks that need a real phone and a person. |
+| `CLAUDE.md` | The working loop for AI-assisted sessions. |
+
+## Build and run
+
+Godot is not on `PATH` on the dev machine. Set it once:
+
+```bash
+GODOT="/c/Users/Jesury/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe"
+```
+
+**Play on desktop.** Open `godot/project.godot` in the Godot editor and press Play.
+
+**Run the tests.** The GUT suite (767 tests) runs headless:
+
+```bash
+tools/run_tests.sh
+```
+
+**Lint.** Warnings are errors, and gdtoolkit is pinned in CONVENTIONS:
+
+```bash
+gdformat --check godot/src godot/tests && gdlint godot/src godot/tests
+```
+
+**Build the native extension.** The built libraries in `godot/bin/` are committed, so
+this is only needed after editing `native/src/`:
+
+```bash
+git submodule update --init native/godot-cpp
+cd native
+python -m SCons platform=windows target=template_debug
+ANDROID_HOME=C:/Users/Jesury/AppData/Local/Android/Sdk \
+  python -m SCons platform=android arch=arm64 target=template_debug ndk_version=29.0.14206865
+```
+
+**Build a release APK to share:**
+
+```bash
+tools/release.sh
+```
+
+This writes `godot/build/peril-point-<version>.apk`, signed, for 64-bit ARM phones
+running Android 10+. Raise `version/code` in `godot/export_presets.cfg` before each
+build you hand out, so it installs over the last one.
+
+The signing key comes from an env file: by default `~/.android/peril-dev-release.env`,
+or wherever `PERIL_KEYS` points. It holds the `GODOT_ANDROID_KEYSTORE_RELEASE_PATH`,
+`_USER` and `_PASSWORD` variables. The default key is a throwaway dev key; make a real
+one before a store release (header of `tools/release.sh`). Keys never go in git.
+
+**Build a debug APK** (it includes the per-second PERF log):
+
+```bash
+"$GODOT" --headless --path godot --export-debug "Android" build/peril-point-debug.apk
+```
+
+**Try it on the emulator.** `tools/emulator/deploy.sh [--fresh]` exports the APK,
+installs it on `emulator-5554` and launches it. `--fresh` wipes the save. The other
+scripts in `tools/emulator/` script taps, screenshots and PERF captures.
+
+## The web prototype
 
 ```bash
 cd web
 npm install
-npm run dev
+npm run dev        # http://127.0.0.1:5173
+npm run build && npm run smoke
 ```
 
-Open `http://127.0.0.1:5173`.
-
-## Verify
-
-```bash
-cd web
-npm run build
-npm run smoke
-```
-
-`npm run smoke` expects the Vite development server to already be available at `http://127.0.0.1:5173`. Override this with `SMOKE_URL` when needed.
+The prototype stays in the repo for two reasons. It is the port's reference, and
+`tools/bake-audio/` runs its `TiltAudio.ts` to render the game's sound effects and music.

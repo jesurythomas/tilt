@@ -197,3 +197,13 @@ redesign if needed to make ui/ux feel better as a player". Rulings are Claude's 
   the Armory resets each carousel to the equipped item. Both tabs fit a 1080- and a
   720-tall phone without scrolling (`test_showcase_tabs_fit_without_scrolling`). The
   preview draws once per change (no per-frame cost; the Armory is off the run). Suite 767.
+- [x] **Release build + docs** — "cant we create a release build? do all the steps for me
+  for now. we will change the keys when we need to actually deploy it": built
+  `libperil.android.template_release.arm64.so`, made a throwaway dev key
+  (`~/.android/peril-dev-release.keystore`, alias `perildev`; its env file sits beside it,
+  outside git), set `version/name` 0.1.0, and added `tools/release.sh`, which exports and
+  verifies `godot/build/peril-point-0.1.0.apk` (79 MB, not debuggable). "update the
+  readme ... so that it reflects what this project really is about": README.md was
+  rewritten (it still described two web games that no longer exist), and `tools/README.md`,
+  `web/README.md` and the HANDOFF state were added or refreshed. Not boot-tested on a
+  device yet.
