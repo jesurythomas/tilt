@@ -16,6 +16,8 @@ const SECTIONS: Array[String] = [
 ]
 
 var _rc: RunController = null
+## Every perk rank 5 and every keystone on (the perf test mode's maxed upgrades).
+var _maxed: bool = false
 
 
 func _setup() -> void:
@@ -34,6 +36,13 @@ func _setup() -> void:
 		GameOptionsManager.new(),
 		CoinSystem.new()
 	)
+	if _maxed:
+		var all: Dictionary = progression.data.perks.to_dict()
+		for weapon: String in all:
+			var record: Dictionary = all[weapon]
+			for key: String in record:
+				record[key] = true if record[key] is bool else 5
+		progression.data.perks.from_dict(all)
 	_rc.goals = GoalManager.new(progression)
 	_rc.maze = GauntletMaze.new()
 	_rc.reset_run(BOUNDS)
@@ -107,3 +116,10 @@ func test_bench_powerups() -> void:
 		var label: String = Types.WeaponType.keys()[w]
 		_run(label, w)
 	pass_test("bench")
+
+
+func test_bench_powerups_maxed() -> void:
+	# Every rank 5 and every keystone on (KEY R1's 21 included).
+	_maxed = true
+	test_bench_powerups()
+	_maxed = false
