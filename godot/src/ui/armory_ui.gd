@@ -660,7 +660,7 @@ func _weapon_header(selected: WeaponConfig, invested_points: int) -> HBoxContain
 
 ## One upgrade-track row. PORT: web/src/tilt-to-live/ArmoryUI.ts:447-495
 ## DIVERGENCE(ARMORY R2): the shared upgrade row; the "+0.5s / rank" line went (now → next
-## says it) and an unaffordable rank shows its shortfall.
+## says it).
 func _track_card(
 	selected: WeaponConfig, track: WeaponTrack, weapon_data: Dictionary, points: int
 ) -> PanelContainer:
@@ -691,7 +691,8 @@ func _track_card(
 
 ## DIVERGENCE(ARMORY R2): one upgrade row for weapon tracks and boosts — optional icon,
 ## name, value now → next (next in the accent colour), pips in the accent, and one action:
-## the cost (affordable), "Need N" (short, disabled) or a Max badge.
+## the cost (disabled while unaffordable — user 2026-09-28: "dont use need x amount, just
+## the standard amount it needs to upgrade") or a Max badge.
 func _upgrade_card(row: UpgradeRow, points: int) -> PanelContainer:
 	var is_maxed: bool = row.cost == Types.ABSENT
 	var card: PanelContainer = PanelContainer.new()
@@ -735,11 +736,8 @@ func _upgrade_card(row: UpgradeRow, points: int) -> PanelContainer:
 		buy.disabled = true
 	else:
 		buy.theme_type_variation = "CostButton"
-		if points >= row.cost:
-			buy.text = UiTheme.group_digits(row.cost)  # Ruling K
-		else:
-			buy.text = "Need %s" % UiTheme.group_digits(row.cost - points)
-			buy.disabled = true
+		buy.text = UiTheme.group_digits(row.cost)  # Ruling K
+		buy.disabled = points < row.cost
 	buy.pressed.connect(row.on_buy)
 	line.add_child(buy)
 	inner.add_child(line)

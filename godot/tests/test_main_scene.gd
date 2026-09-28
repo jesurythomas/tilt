@@ -445,7 +445,7 @@ func test_run_over_lists_the_runs_milestones_and_opens_the_screen() -> void:
 	assert_true(list.visible, "TiltGame.ts:2140")
 	assert_eq(list.get_child_count(), 1)
 	var text: Label = list.get_child(0).find_child("MilestoneText", true, false) as Label
-	assert_eq(text.text, "Rookie Dodger — Reach 1,000 score in a run", ":2136")
+	assert_eq(text.text, "Rookie Dodger", ":2136 — ACH R3: the title alone")
 	(root.find_child("GameOverPanel", true, false) as RunOverSheet).finish_count_up()
 	var earned: Label = root.find_child("PointsEarnedLabel", true, false) as Label
 	assert_eq(earned.text, "+110", "payout 60 + score_1k 50 (ECON R1)")
@@ -454,6 +454,9 @@ func test_run_over_lists_the_runs_milestones_and_opens_the_screen() -> void:
 	click.button_index = MOUSE_BUTTON_LEFT
 	click.pressed = true
 	list.gui_input.emit(click)
+	var release: InputEventMouseButton = click.duplicate() as InputEventMouseButton
+	release.pressed = false
+	list.gui_input.emit(release)  # ACH R3: the list opens the screen on release
 	var screen: Control = root.find_child("MilestonesModal", true, false) as Control
 	assert_true(screen.visible, "GoalsHUD.ts:131-132")
 	(root.find_child("GoalsHud", true, false) as GoalsHUD).close_all_goals_modal()
@@ -969,3 +972,25 @@ func test_a_run_clips_the_play_layers_to_the_arena() -> void:
 	await get_tree().process_frame
 	assert_eq(root.arena_clip_rect.position, root.arena_origin, "clipped at the arena origin")
 	assert_eq(root.arena_clip_rect.size, root.get_viewport_rect().size - root.arena_origin * 2.0)
+
+
+func test_run_over_lists_every_achievement_of_the_run() -> void:
+	# ACH R2: a live achievement completed mid-run is listed with evaluate_run's at death.
+	var root: GameRoot = await _boot_into_run()
+	var rc: RunController = root._run_controller
+	rc.goals.cumulative.total_kills = 99
+	rc.run_tracker.kills = 1
+	rc.goals.evaluate_live_total_goals(rc.run_tracker)  # step 8 mid-run: total_kills_100
+	rc.run_tracker.score = 1000
+	rc.trigger_player_death()  # evaluate_run: score_1k
+	await get_tree().create_timer(0.5).timeout
+	var list: VBoxContainer = root.find_child("MilestonesList", true, false) as VBoxContainer
+	var ids: Array[String] = []
+	for row: Node in list.get_children():
+		ids.append(str(row.name).trim_prefix("MilestoneRow_"))
+	assert_true(ids.has("total_kills_100"), "the mid-run one: %s" % [ids])
+	assert_true(ids.has("score_1k"), "the death-tick one")
+	var header: Label = root.find_child("AchievementsHeader", true, false) as Label
+	assert_eq(header.text, "ACHIEVEMENTS · %d" % ids.size())
+	rc.reset_run(root._bounds)
+	assert_true(rc.run_achievements.is_empty(), "a new run starts a new list")

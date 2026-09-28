@@ -310,7 +310,7 @@ func test_unaffordable_track_is_disabled() -> void:
 	_progression.data.points = 10
 	_open_weapons("blackhole")
 	assert_true(_button("Track_radius").disabled)
-	assert_eq(_button("Track_radius").text, "Need 640", "ARMORY R2: rank 2 costs 650")
+	assert_eq(_button("Track_radius").text, "650", "the plain price, disabled (user 2026-09-28)")
 	watch_signals(_armory)
 	_button("Track_radius").pressed.emit()
 	assert_signal_not_emitted(_armory, "state_changed", "upgrade_perk refused (:1162)")

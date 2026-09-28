@@ -136,7 +136,8 @@ const RESET_FONT: int = 13
 const WRAP_MAX_LINES: int = 2
 ## PORT: web/src/tilt-to-live/TiltMenu.ts:508 (the window.confirm text)
 const RESET_CONFIRM_TEXT: String = (
-	"Are you sure you want to reset all progress? Your scores, points, milestones, "
+	# DIVERGENCE(ACH R1): "Achievements" (user 2026-09-28: "rename milestones to achievements")
+	"Are you sure you want to reset all progress? Your scores, points, achievements, "
 	+ "and armory unlocks will be permanently deleted."
 )
 
@@ -475,7 +476,10 @@ func _stats_row(best_score: int, points: int, completed: int, total: int) -> VBo
 	milestones.add_theme_constant_override("separation", 0)
 	milestones.add_child(_stat_value("StatDone", str(completed), UiTheme.COLOR_TEXT))  # PORT: :192
 	milestones.add_child(_stat_value("StatTotal", "/%d" % total, UiTheme.TEXT_FAINT))  # PORT: :192
-	columns.add_child(_stat_column("Milestones", milestones))  # PORT: :191
+	# PORT: :191
+	# DIVERGENCE(ACH R1): "Achievements" — user 2026-09-28: "rename milestones to
+	# achievements"
+	columns.add_child(_stat_column("Achievements", milestones))
 	pad.add_child(columns)
 	row.add_child(pad)
 	return row
@@ -535,7 +539,10 @@ func _mode_panel(current_mode: Types.GameMode) -> PanelContainer:
 	var nav: HBoxContainer = HBoxContainer.new()
 	nav.add_theme_constant_override("separation", _px(NAV_GAP))
 	nav.add_child(_nav_button("MenuArmoryButton", "Armory"))  # PORT: :173
-	nav.add_child(_nav_button("MenuMilestonesButton", "Milestones"))  # PORT: :174
+	# PORT: :174
+	# DIVERGENCE(ACH R1): "Achievements" — user 2026-09-28: "rename milestones to
+	# achievements"
+	nav.add_child(_nav_button("MenuMilestonesButton", "Achievements"))
 	# PORT: web/src/tilt-to-live/TiltMenu.ts:175 — "Settings", drawn as the board's gear
 	var settings: Button = _button("MenuSettingsButton", "GhostIconButton", "")
 	settings.tooltip_text = "Settings"

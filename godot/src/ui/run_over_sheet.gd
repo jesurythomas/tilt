@@ -49,11 +49,12 @@ const COUNT_UP_SECONDS: float = 0.6
 
 var _ui_scale: float = 1.0
 var _points_row: HBoxContainer = null
-## DIVERGENCE(RUNOVER R1): "N upgrades ready in the Armory".
-var _next_hint: Label = null
 var _earned_target: int = 0
 var _count_tween: Tween = null
 var _milestones: VBoxContainer = null
+## DIVERGENCE(ACH R3): "ACHIEVEMENTS · 3" over the list.
+var _achievements_header: Label = null
+var _press_at: Vector2 = Vector2.ZERO
 var _shown_milestones: Array[GoalManager.Goal] = []
 var _sheet: PanelContainer = null
 var _columns: HBoxContainer = null
@@ -147,19 +148,12 @@ func show_result(result: RunResult) -> void:
 	# need to know what the previous money was ... just showing how much they earned is
 	# ok"), counting up; the TS showed "+earned → balance" (:2121).
 	_start_count_up(result.earned)
-	_next_hint.visible = result.upgrades_ready > 0
-	_next_hint.text = upgrades_ready_text(result.upgrades_ready)
 	_fill_milestones(result.milestones)  # PORT: :2132-2144
 
 
 ## "+1,274" — the earned figure as shown.
 static func earned_text(points: int) -> String:
 	return "+%s" % UiTheme.group_digits(points)
-
-
-## "3 upgrades ready in the Armory" / "1 upgrade ready in the Armory".
-static func upgrades_ready_text(count: int) -> String:
-	return "%d upgrade%s ready in the Armory" % [count, "" if count == 1 else "s"]
 
 
 ## Jumps the count-up to the run's total (a tap on the sheet, or a test).
@@ -251,6 +245,31 @@ func _build_left() -> VBoxContainer:
 	_time = _stat_cell(grid, "FinalTimeLabel", "Alive")
 	grid_frame.add_child(grid)
 	_left.add_child(grid_frame)
+	# M9 plan R9: the list takes the column's free space, so a long list never grows the
+	# sheet. DIVERGENCE(ACH R3): in the left column, under the stats — the right one had
+	# room for one row beside Steer, Retry and the bottom row.
+	# DIVERGENCE(ACH R3, user 2026-09-28: "when there are multiple achivements completed
+	# on a run, the user cannot see all of those achievements"): it scrolls there, under
+	# a count, instead of clipping.
+	_achievements_header = UiTheme.caps("")
+	_achievements_header.name = "AchievementsHeader"
+	_achievements_header.visible = false
+	_left.add_child(_achievements_header)
+	var clip: ScrollContainer = ScrollContainer.new()
+	clip.name = "MilestonesClip"
+	clip.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	clip.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	clip.mouse_filter = Control.MOUSE_FILTER_PASS
+	_milestones = VBoxContainer.new()
+	_milestones.name = "MilestonesList"
+	_milestones.visible = false
+	_milestones.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# PORT: web/src/tilt-to-live/GoalsHUD.ts:131-132 (the list opens the screen) — on a
+	# tap's release, so a drag scrolls instead (ACH R3).
+	_milestones.mouse_filter = Control.MOUSE_FILTER_PASS
+	_milestones.gui_input.connect(_on_list_gui_input)
+	clip.add_child(_milestones)
+	_left.add_child(clip)
 	return _left
 
 
@@ -270,29 +289,13 @@ func _build_right() -> VBoxContainer:
 	_points_row.gui_input.connect(_on_rows_gui_input)
 	_right.add_child(_points_row)
 	# DIVERGENCE(RUNOVER R1): the TS coins row (TiltGame.ts:1217-1220) and the "+0" hint
-	# went (user: "no need to know how many coins"); a nudge toward the Armory instead.
-	_next_hint = UiTheme.text("", "HintText")
-	_next_hint.name = "UpgradesReadyHint"
-	_next_hint.add_theme_color_override("font_color", UiTheme.COLOR_LOCKED_IN)
-	_next_hint.visible = false
-	_right.add_child(_next_hint)
+	# went (user: "no need to know how many coins").
 
-	# M9 plan R9: the list sits in the board's flex gap (RunOver.dc.html's
-	# flex-grow spacer) and clips there, so a long list never grows the sheet.
-	var clip: Control = Control.new()
-	clip.name = "MilestonesClip"
-	clip.clip_contents = true
-	clip.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_milestones = VBoxContainer.new()
-	_milestones.name = "MilestonesList"
-	_milestones.visible = false
-	# PORT: web/src/tilt-to-live/GoalsHUD.ts:131-132 (the list opens the screen)
-	_milestones.mouse_filter = Control.MOUSE_FILTER_STOP
-	_milestones.gui_input.connect(_on_rows_gui_input)
-	clip.add_child(_milestones)
-	_milestones.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	_right.add_child(clip)
+	# The board's flex gap: Steer, Retry and the bottom row sit at the column's foot.
+	var gap: Control = Control.new()
+	gap.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_right.add_child(gap)
 
 	_steer_row = HBoxContainer.new()
 	_steer_caption = UiTheme.caps("Steer")
@@ -361,6 +364,17 @@ func _fill_milestones(goals: Array[GoalManager.Goal]) -> void:
 	for goal: GoalManager.Goal in goals:
 		_milestones.add_child(_milestone_row(goal))
 	_milestones.visible = not goals.is_empty()
+	_achievements_header.visible = not goals.is_empty()
+	# The stats sit centred until a list needs the space below them (ACH R3).
+	_left.alignment = (
+		BoxContainer.ALIGNMENT_BEGIN if not goals.is_empty() else BoxContainer.ALIGNMENT_CENTER
+	)
+	_achievements_header.text = achievements_header_text(goals.size()).to_upper()
+
+
+## "Achievements · 3" (ACH R3).
+static func achievements_header_text(count: int) -> String:
+	return "Achievements · %d" % count
 
 
 ## One earned milestone. PORT: web/src/tilt-to-live/TiltGame.ts:2133-2139
@@ -375,7 +389,9 @@ func _milestone_row(goal: GoalManager.Goal) -> HBoxContainer:
 	check.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
 	check.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(check)
-	var text: Label = UiTheme.text("%s — %s" % [goal.title, goal.description], "BodyText")
+	# DIVERGENCE(ACH R3): the title alone (the description trimmed to "…" on the phone and
+	# cost the list rows; the Achievements screen carries it).
+	var text: Label = UiTheme.text(goal.title, "BodyText")
 	text.name = "MilestoneText"
 	text.add_theme_color_override("font_color", UiTheme.TEXT_SECONDARY)
 	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -390,6 +406,17 @@ func _milestone_row(goal: GoalManager.Goal) -> HBoxContainer:
 	pts.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(pts)
 	return row
+
+
+## The list opens the Achievements screen on a tap, not on a drag that scrolls it (ACH R3).
+func _on_list_gui_input(event: InputEvent) -> void:
+	var click: InputEventMouseButton = event as InputEventMouseButton
+	if click == null or click.button_index != MOUSE_BUTTON_LEFT:
+		return
+	if click.pressed:
+		_press_at = click.position
+	elif click.position.distance_to(_press_at) < UiTheme.TOUCH_TARGET * 0.25 * _ui_scale:
+		milestones_requested.emit()
 
 
 ## bindGameOverClicks' handler. PORT: web/src/tilt-to-live/GoalsHUD.ts:131-134
@@ -414,7 +441,5 @@ class RunResult:
 	var best_diff: int = 0
 	var earned: int = 0
 	var balance: int = 0
-	## DIVERGENCE(RUNOVER R1): next purchases the new balance covers (0 hides the nudge).
-	var upgrades_ready: int = 0
 	## The goals evaluateRun completed. PORT: web/src/tilt-to-live/TiltGame.ts:2086
 	var milestones: Array[GoalManager.Goal] = []

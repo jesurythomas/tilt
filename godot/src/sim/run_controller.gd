@@ -59,6 +59,10 @@ var run_payout_credited: int = 0
 # PORT-NOTE: a local in the TS, read by the game-over setTimeout closure
 # (:2111-2144); kept here so HudController's run_ended handler can read it.
 var run_completed_goals: Array[GoalManager.Goal] = []
+## DIVERGENCE(ACH R2): every achievement completed since reset_run, in completion order —
+## the live ones mid-run as well as evaluate_run's at death (GameRoot's goal callback
+## appends). The TS Run over listed only evaluate_run's (TiltGame.ts:2132).
+var run_achievements: Array[GoalManager.Goal] = []
 
 ## renderer.triggerShake. GameRoot sets it; an empty Callable skips the shake (tests).
 ## PORT: web/src/tilt-to-live/TiltGame.ts:2064, :2081 (the TS calls the renderer directly)
@@ -109,6 +113,7 @@ func reset_run(arena_bounds: Vector2) -> void:
 	points_earned_this_run = 0  # PORT: web/src/tilt-to-live/TiltGame.ts:1566
 	points_credited_this_run = 0  # DIVERGENCE(ECON R1)
 	run_payout_credited = 0
+	run_achievements = []  # DIVERGENCE(ACH R2)
 	# PORT: web/src/tilt-to-live/TiltGame.ts:1567-1568
 	max_lives = progression.get_starting_lives()
 	lives = max_lives

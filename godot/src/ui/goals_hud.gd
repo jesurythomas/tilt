@@ -42,6 +42,10 @@ const TOAST_SUBTITLE_SIZE: int = 12
 ## PORT: web/src/tilt-to-live/GoalsHUD.ts:209, :234
 const GOAL_TOAST_SECONDS: float = 3.0
 const MESSAGE_TOAST_SECONDS: float = 2.8
+## DIVERGENCE(ACH R4): achievements completed together queue instead of replacing each
+## other (the TS rewrote the one toast, GoalsHUD.ts:192); while more wait, each shows
+## this long.
+const QUEUED_TOAST_SECONDS: float = 1.6
 # I4: the message toast's ion ring (GoalsHUD.ts:217-220) lives on UiTheme as
 # ICON_RING, next to ICON_CHECK (interface spec §4.1 — no file keeps a
 # private copy of a token hex). See this task's UiTheme step below.
@@ -98,6 +102,9 @@ var _rail_fill: ColorRect = null
 var _toast: PanelContainer = null  # PORT: :13 (toastContainerEl)
 var _milestones_modal: Control = null  # PORT: :14 (milestonesModalEl)
 var _toast_timer: Timer = null  # PORT: :17 (completedToastTimer)
+## DIVERGENCE(ACH R4): achievement toasts waiting their turn, oldest first.
+var _toast_queue: Array[GoalManager.Goal] = []
+var _is_goal_toast_showing: bool = false
 var _is_evaluating_unlock_goals: bool = false  # PORT: :18
 var _ui_scale: float = 1.0
 var _inset: Vector2 = Vector2.ZERO
@@ -229,9 +236,26 @@ func toggle_collapse() -> void:
 func show_goal_toast(goal: GoalManager.Goal) -> void:
 	if _toast == null:
 		return
+	# DIVERGENCE(ACH R4): one showing already — this one waits, and the current one
+	# shortens so the queue moves.
+	if _toast.visible and _is_goal_toast_showing:
+		_toast_queue.append(goal)
+		if _toast_timer.time_left > QUEUED_TOAST_SECONDS:
+			_toast_timer.start(QUEUED_TOAST_SECONDS)
+		return
+	_present_goal_toast(goal, GOAL_TOAST_SECONDS)
+
+
+## Achievement toasts waiting behind the one showing (ACH R4).
+func queued_toast_count() -> int:
+	return _toast_queue.size()
+
+
+func _present_goal_toast(goal: GoalManager.Goal, seconds: float) -> void:
 	_fill_toast(UiTheme.ICON_CHECK, goal.title, "", UiTheme.reward_text(goal.reward_points))
 	_toast.visible = true
-	_toast_timer.start(GOAL_TOAST_SECONDS)
+	_is_goal_toast_showing = true
+	_toast_timer.start(seconds)
 
 
 ## PORT: web/src/tilt-to-live/GoalsHUD.ts:212-235
@@ -240,6 +264,7 @@ func show_message_toast(title: String, subtitle: String, reward_badge: String = 
 		return
 	_fill_toast(UiTheme.ICON_RING, title, subtitle, reward_badge)
 	_toast.visible = true
+	_is_goal_toast_showing = false
 	_toast_timer.start(MESSAGE_TOAST_SECONDS)
 
 
@@ -339,6 +364,14 @@ func _on_points_awarded(pts: int) -> void:
 
 
 func _on_toast_timer_timeout() -> void:
+	# DIVERGENCE(ACH R4): the next queued achievement, if any.
+	if not _toast_queue.is_empty():
+		var next: GoalManager.Goal = _toast_queue.pop_front()
+		_present_goal_toast(
+			next, QUEUED_TOAST_SECONDS if not _toast_queue.is_empty() else GOAL_TOAST_SECONDS
+		)
+		return
+	_is_goal_toast_showing = false
 	_toast.visible = false  # PORT: :206-208
 
 
@@ -466,7 +499,10 @@ func _build_milestones_modal() -> Control:
 	# PORT: web/src/tilt-to-live/GoalsHUD.ts:484-486 (btn-close-milestones)
 	_back_button.pressed.connect(close_all_goals_modal)
 	_header.add_child(_back_button)
-	var title: Label = UiTheme.text("Milestones", "TitleText")  # PORT: :364
+	# PORT: :364
+	# DIVERGENCE(ACH R1): "Achievements" — user 2026-09-28: "rename milestones to
+	# achievements"
+	var title: Label = UiTheme.text("Achievements", "TitleText")
 	title.name = "TitleLabel"
 	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_header.add_child(title)

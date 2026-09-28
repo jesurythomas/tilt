@@ -814,6 +814,7 @@ func _on_run_ended(_final_score: int, _stats: Types.GameStats) -> void:
 ## PORT: web/src/tilt-to-live/TiltGame.ts:200-204 (the onGoalCompleted callback)
 func _on_goal_completed(goal: GoalManager.Goal) -> void:
 	_run_controller.points_earned_this_run += goal.reward_points
+	_run_controller.run_achievements.append(goal)  # DIVERGENCE(ACH R2)
 	_goals_hud.show_goal_toast(goal)
 	GameEvents.goal_completed.emit(goal.id)  # spec §5.3; M9 plan R5
 

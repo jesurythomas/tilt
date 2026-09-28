@@ -29,7 +29,6 @@ func _result() -> RunOverSheet.RunResult:
 	result.best_diff = 4110
 	result.earned = 3331
 	result.balance = 7331
-	result.upgrades_ready = 3
 	return result
 
 
@@ -72,7 +71,6 @@ func test_sheet_carries_the_board_controls() -> void:
 		"FinalChainLabel",
 		"FinalTimeLabel",
 		"PointsEarnedLabel",
-		"UpgradesReadyHint",
 		"MilestonesList",
 		"MilestonesClip",
 		"ControlPicker",
@@ -81,7 +79,9 @@ func test_sheet_carries_the_board_controls() -> void:
 	]:
 		assert_not_null(sheet.find_child(name, true, false), name)
 	# RUNOVER R1 (user: no previous balance, no coin count).
-	for gone: String in ["PointsBalanceLabel", "SpendValueLabel", "CoinsRow", "PointsEarnedHint"]:
+	for gone: String in [
+		"PointsBalanceLabel", "SpendValueLabel", "CoinsRow", "PointsEarnedHint", "UpgradesReadyHint"
+	]:
 		assert_null(sheet.find_child(gone, true, false), gone)
 	assert_eq((sheet.find_child("GameOverArmoryButton", true, false) as Button).text, "Armory")
 	assert_null(sheet.find_child("MenuButton", true, false), "Menu is M11's (spec §5)")
@@ -112,8 +112,6 @@ func test_show_result_fills_every_figure() -> void:
 	assert_eq(_label(sheet, "FinalChainLabel").text, "12×")
 	assert_eq(_label(sheet, "FinalTimeLabel").text, "1:42")
 	assert_eq(_label(sheet, "PointsEarnedLabel").text, "+3,331")
-	assert_eq(_label(sheet, "UpgradesReadyHint").text, "3 upgrades ready in the Armory")
-	assert_true(_label(sheet, "UpgradesReadyHint").visible)
 
 
 func test_earned_counts_up_from_zero_and_a_tap_skips() -> void:
@@ -133,15 +131,6 @@ func test_earned_count_up_lands_on_the_total() -> void:
 	sheet.show_result(_result())
 	await get_tree().create_timer(RunOverSheet.COUNT_UP_SECONDS + 0.2).timeout
 	assert_eq(_label(sheet, "PointsEarnedLabel").text, "+3,331")
-
-
-func test_upgrades_ready_hint() -> void:
-	assert_eq(RunOverSheet.upgrades_ready_text(1), "1 upgrade ready in the Armory")
-	var sheet: RunOverSheet = _sheet(Vector2(844, 390), 1.0)
-	var result: RunOverSheet.RunResult = _result()
-	result.upgrades_ready = 0
-	sheet.show_result(result)
-	assert_false(_label(sheet, "UpgradesReadyHint").visible, "nothing to buy: no nudge")
 
 
 func test_the_kills_cell_reads_destroyed() -> void:
@@ -205,8 +194,8 @@ func test_milestones_list_shows_each_earned_goal() -> void:
 	assert_eq(String(row.name), "MilestoneRow_score_1k")
 	assert_eq(
 		(row.find_child("MilestoneText", true, false) as Label).text,
-		"Rookie Dodger — Reach 1,000 score in a run",
-		":2136"
+		"Rookie Dodger",
+		":2136 — ACH R3: the title alone"
 	)
 	assert_eq(
 		(row.find_child("MilestonePoints", true, false) as Label).text,
@@ -233,8 +222,21 @@ func test_tapping_the_points_row_or_the_list_requests_the_screen() -> void:
 	watch_signals(sheet)
 	(sheet.find_child("PointsRow", true, false) as Control).gui_input.emit(_click())
 	assert_signal_emit_count(sheet, "milestones_requested", 1)
-	(sheet.find_child("MilestonesList", true, false) as Control).gui_input.emit(_click())
+	# ACH R3: the scrolling list opens the screen on a tap's release, not its press.
+	var list: Control = sheet.find_child("MilestonesList", true, false) as Control
+	list.gui_input.emit(_click())
+	assert_signal_emit_count(sheet, "milestones_requested", 1, "a press alone may be a drag")
+	var up: InputEventMouseButton = _click()
+	up.pressed = false
+	list.gui_input.emit(up)
 	assert_signal_emit_count(sheet, "milestones_requested", 2)
+	var drag_start: InputEventMouseButton = _click()
+	list.gui_input.emit(drag_start)
+	var drag_end: InputEventMouseButton = _click()
+	drag_end.pressed = false
+	drag_end.position = drag_start.position + Vector2(0.0, 60.0)
+	list.gui_input.emit(drag_end)
+	assert_signal_emit_count(sheet, "milestones_requested", 2, "a drag scrolls, it does not tap")
 	var release: InputEventMouseButton = _click()
 	release.pressed = false
 	(sheet.find_child("PointsRow", true, false) as Control).gui_input.emit(release)
@@ -262,7 +264,11 @@ func test_many_milestones_keep_the_sheet_on_screen() -> void:
 	assert_true(
 		panel.get_global_rect().grow(0.5).encloses(retry.get_global_rect()), "Retry on the sheet"
 	)
-	assert_true((sheet.find_child("MilestonesClip", true, false) as Control).clip_contents)
+	# ACH R3: the list scrolls in its space, so every achievement stays reachable.
+	var clip: ScrollContainer = sheet.find_child("MilestonesClip", true, false) as ScrollContainer
+	assert_not_null(clip)
+	assert_gt(clip.get_v_scroll_bar().max_value, clip.size.y, "7 rows overflow and scroll")
+	assert_eq(_label(sheet, "AchievementsHeader").text, "ACHIEVEMENTS · 7")
 
 
 func test_run_over_has_a_menu_button() -> void:

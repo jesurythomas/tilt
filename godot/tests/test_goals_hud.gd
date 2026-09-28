@@ -112,22 +112,27 @@ func test_goal_toast_shows_title_reward_and_restarts_its_timer() -> void:
 	assert_false((_node("GoalToast") as Control).visible, ":207")
 
 
-func test_a_second_toast_replaces_the_first() -> void:
+func test_toasts_completed_together_queue_and_each_shows() -> void:
+	# ACH R4 (user: "when there are multiple achivements completed on a run, the user
+	# cannot see all of those achievements") — the TS rewrote the one toast (:192).
 	_hud.bind(_gm, _pm)
 	_hud.show_goal_toast(_gm.catalog[0])
-	var timer: Timer = _node("ToastTimer") as Timer
-	# PLAN DEFECT: Timer.time_left has no setter in Godot 4.7.2 (getter only,
-	# ClassDB confirms no set_time_left) — the brief's `timer.time_left = 0.4`
-	# fails to parse ("Cannot assign a new value to a read-only property").
-	# timer.start(0.4) drives the timer into the same "partway through"
-	# state the test needs, preserving its intent.
-	timer.start(0.4)
 	_hud.show_goal_toast(_gm.catalog[1])
+	_hud.show_goal_toast(_gm.catalog[2])
+	var timer: Timer = _node("ToastTimer") as Timer
 	var toast: Control = _node("GoalToast") as Control
+	assert_eq((_node("ToastTitle") as Label).text, _gm.catalog[0].title, "the first stays up")
+	assert_eq(_hud.queued_toast_count(), 2)
+	assert_almost_eq(timer.time_left, GoalsHUD.QUEUED_TOAST_SECONDS, 0.01, "shortened to move on")
+	timer.timeout.emit()
+	assert_true(toast.visible)
 	assert_eq(toast.get_child_count(), 1, "innerHTML is rewritten, not appended (:192)")
 	assert_eq((_node("ToastTitle") as Label).text, _gm.catalog[1].title)
-	# M9: Review Focus 5 — the second toast restarts the timer, it does not stack.
-	assert_almost_eq(timer.time_left, 3.0, 0.001, "restarted, not left counting down")
+	timer.timeout.emit()
+	assert_eq((_node("ToastTitle") as Label).text, _gm.catalog[2].title)
+	assert_almost_eq(timer.wait_time, GoalsHUD.GOAL_TOAST_SECONDS, 0.01, "the last gets full time")
+	timer.timeout.emit()
+	assert_false(toast.visible, "queue empty: hidden (:207)")
 
 
 func test_message_toast_carries_subtitle_and_badge() -> void:
@@ -229,7 +234,7 @@ func test_header_shows_counter_progress_and_points() -> void:
 	SaveStore.save_string_list(GoalManager.SAVE_PATH, ["score_1k"] as Array[String])
 	_gm = GoalManager.new()
 	await _open()
-	assert_eq(_text("TitleLabel"), "Milestones")
+	assert_eq(_text("TitleLabel"), "Achievements", "ACH R1")
 	assert_eq(_text("CounterLabel"), "1", "GoalsHUD.ts:367")
 	assert_eq(_text("CounterDenomLabel"), "/57")
 	assert_eq(_text("HeaderPointsLabel"), "500", ":372 toLocaleString (ECON R3 start)")

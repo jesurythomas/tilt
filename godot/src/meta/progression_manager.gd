@@ -60,8 +60,6 @@ const RUN_PAYOUT_KILL_SCALE: float = 4.0
 const RUN_PAYOUT_KILL_EXPONENT: float = 0.7
 ## DIVERGENCE(ECON R3): a fresh save's balance (TS 7331, :423-424).
 const STARTING_POINTS: int = 500
-## DIVERGENCE(ECON R4): the keystones with a coded effect, the only ones the Armory sells.
-const LIVE_KEYSTONES: Array[String] = ["supernovaCollapse", "crossBeam"]
 ## DIVERGENCE(ECON R4): keystones with no effect (or, for Aegis, now innate — ECON R5)
 ## left the Armory; a save that bought one gets this refund once on load, and the flag
 ## clears. Keys are "<weapon>.<perk>" in the save's spelling; values are the TS prices.
@@ -242,34 +240,6 @@ static func run_payout(seconds_alive: float, kills: int, mode_multiplier: float)
 		+ RUN_PAYOUT_KILL_SCALE * pow(float(maxi(kills, 0)), RUN_PAYOUT_KILL_EXPONENT)
 	)
 	return roundi(base * mode_multiplier)
-
-
-## DIVERGENCE(RUNOVER R1): how many next purchases the balance covers — every track's
-## next rank, each live keystone and each boost's next rank (the Run over's nudge).
-func count_affordable_upgrades() -> int:
-	var count: int = 0
-	var all: Dictionary = data.perks.to_dict()
-	for weapon: String in all:
-		var weapon_perks: Dictionary = all[weapon]
-		for key: String in weapon_perks:
-			var val: Variant = weapon_perks[key]
-			if val is int:
-				var rank: int = val
-				if rank < 5 and data.points >= get_perk_cost(rank):  # PORT: :594 (the cap)
-					count += 1
-			elif val is bool and not val and LIVE_KEYSTONES.has(key):
-				if data.points >= get_perk_cost(0, true, key):
-					count += 1
-	for cost: int in [
-		get_extra_lives_cost(),
-		get_hull_compact_cost(),
-		get_enemy_slow_cost(),
-		get_score_multiplier_cost(),
-		get_points_multiplier_cost(),
-	]:
-		if cost != Types.ABSENT and data.points >= cost:
-			count += 1
-	return count
 
 
 ## PORT: web/src/tilt-to-live/ProgressionManager.ts:554-560

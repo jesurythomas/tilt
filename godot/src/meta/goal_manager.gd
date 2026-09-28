@@ -720,7 +720,7 @@ static func _build_catalog() -> Array[Goal]:
 			"total_points_10",
 			"cumulative",
 			"Vault Apprentice",
-			"Earn 500 milestone points in total",  # DIVERGENCE(ECON R1): TS 10, rewards ×50
+			"Earn 500 achievement points in total",  # DIVERGENCE(ECON R1, ACH R1): TS 10
 			500,
 			2,
 			"total_points"
@@ -730,7 +730,7 @@ static func _build_catalog() -> Array[Goal]:
 			"total_points_25",
 			"cumulative",
 			"Vault Master",
-			"Earn 1,250 milestone points in total",  # DIVERGENCE(ECON R1): TS 25, rewards ×50
+			"Earn 1,250 achievement points in total",  # DIVERGENCE(ECON R1, ACH R1): TS 25
 			1250,
 			5,
 			"total_points"
