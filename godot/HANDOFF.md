@@ -4,7 +4,14 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**Current (2026-09-28): the game is feature-complete and shareable.** Every module is
+**Current (2026-09-29): the game is feature-complete and in players' hands; next is the
+MVP for a Play Store closed test.** The plan for that, with the user's rulings and
+estimates, is `docs/superpowers/plans/2026-09-29-mvp-roadmap.md`. Start with its Week 1
+(analytics and the first run). Release 0.1.1 (code 2) is on the A55 and on a Galaxy Tab
+S9 FE (`R52WA05819H`). The tablet logs an empty-image texture error on two first frames,
+still to find; see the roadmap.
+
+**Earlier (2026-09-28): the game is feature-complete and shareable.** Every module is
 done: M0–M11, the M11c performance work on the C++ path, and the user-requested
 reworks since (economy, Armory, icons, achievements, keystones, UI R1–R12, SKIN R1,
 ARMORY R5–R7). Active plan: `docs/superpowers/plans/2026-09-28-achievements-keystones-ui.md`.
@@ -1711,6 +1718,22 @@ block and output: "## How to verify right now" above. Full report:
    story but not its coverage.
 
 ## Next
+
+**Now (2026-09-29): the MVP roadmap.** Read `docs/superpowers/plans/2026-09-29-mvp-roadmap.md`
+and work its Week 1 top down:
+1. analytics and crash reporting;
+2. the first run (Standard by default, a one-time hint);
+3. the Android back button and pause on focus loss;
+4. haptics;
+5. the AAB export and a real upload key;
+6. the mode renames (MVP R4), once the user names them;
+7. the tablet's texture error.
+
+Open decisions for the user: MVP R3 (clickable power-ups) and the new mode names. Since
+the last entry: UI R13 (one nav button with glyphs on every screen), ORB R1 (power-up
+magnet; opening orbs exempt), TOUCH R1 (the stick's base follows the thumb, it reaches
+tilt's top speed, Stick size slider), and 0.1.1 built and installed. Suite 775.
+
 
 **Done (2026-09-28): Armory / economy / icons rework** — plan
 `docs/superpowers/plans/2026-09-28-armory-economy-icons.md` (user request; rulings ECON

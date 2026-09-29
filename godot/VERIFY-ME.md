@@ -698,6 +698,10 @@ refunded once on the first launch.
       base follows, so the ship turns round at once. Full push is as fast as full tilt.
       Try Armory → Handling → Stick size at 60–160%. Does it now feel as good as tilt?
       Knobs: FloatingJoystick.DEAD_FRACTION, GameRoot.TOUCH_JOYSTICK_SPEED_SCALE.
+- [ ] 19. **Galaxy Tab S9 FE (2026-09-29).** Plays at p50 60 fps with ~7% of frames
+      > 20 ms. Watch for hitches in busy moments. Does the 16:10 layout feel right
+      (menu, Armory, Run over)? The tablet logs an empty-image texture error on two
+      first frames with nothing visibly missing. Report anything that looks absent.
 
 ## M11c part 1 — Performance (plan `2026-09-26-m11c-performance.md`)
 
