@@ -381,7 +381,7 @@ func render() -> void:
 
 	if active_tab == Tab.HANDLING:
 		_init_handling_preview()
-	_let_drags_scroll(_body)
+	UiTheme.let_drags_scroll(_body, [HandlingPreview])
 
 	for s: Node in _body.find_children("*", "ScrollContainer", true, false):
 		var sc: ScrollContainer = s as ScrollContainer
@@ -391,27 +391,6 @@ func render() -> void:
 		if prev.x > 0:
 			sc.set_deferred("scroll_horizontal", prev.x)
 	_pop_new_pip()  # DIVERGENCE(ARMORY R2)
-
-
-## DIVERGENCE(M11c, A55 report 2026-09-26 "I cannot drag or move the armory"): the
-## web page scrolls from any touch; in Godot a STOP control (Button, card panel)
-## swallows the touch, so its ScrollContainer never sees the drag. Everything inside
-## a scroll view passes input up instead: a tap still presses a button, and a drag
-## scrolls (the ScrollContainer cancels the press on NOTIFICATION_SCROLL_BEGIN).
-## Nested rows pass too, so a drag they cannot scroll reaches the page. Sliders and
-## the handling preview keep STOP: their drags operate them.
-func _let_drags_scroll(root: Node) -> void:
-	for scroll: Node in root.find_children("*", "ScrollContainer", true, false):
-		(scroll as Control).mouse_filter = Control.MOUSE_FILTER_PASS
-		var stack: Array[Node] = scroll.get_children()
-		while not stack.is_empty():
-			var n: Node = stack.pop_back()
-			stack.append_array(n.get_children())
-			var c: Control = n as Control
-			if c == null or c is Range or c is HandlingPreview or c is LineEdit:
-				continue
-			if c.mouse_filter == Control.MOUSE_FILTER_STOP:
-				c.mouse_filter = Control.MOUSE_FILTER_PASS
 
 
 ## Scales the Theme and every board size to the viewport (HudController's

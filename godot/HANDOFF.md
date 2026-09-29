@@ -4,7 +4,21 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**Latest (2026-09-29): every arena theme now has its own look, phase 1 (background pattern
+**Latest (2026-09-29): the Settings overflow is fixed** (831 tests green, gdformat and gdlint
+clean, 0 SCRIPT ERROR headless; A55 pass pending, `VERIFY-ME.md` §Settings scroll). User: "fix the
+menu overflow specially after adding reporting. we are not able to scroll to it." Cause: the
+Settings board (`TiltMenu._options_body`) was three columns in an HBox with no scroll view; the
+Audio column grew in Week 1 (Vibration, the Data heading, "Share anonymous usage data", the
+usage-reporting opt-out) past the A55's height, so the last rows and Reset were off screen and
+nothing could scroll. Now the columns sit in `OptionsScroll` (a vertical `ScrollContainer`),
+`open_options_modal` keeps the scroll position across the re-render a toggle causes, and drags
+that start on a switch scroll the board (`UiTheme.let_drags_scroll`, moved out of `ArmoryUI`,
+which now calls it with `[HandlingPreview]`). Tests in `test_tilt_menu.gd`. Verified with
+`godot/bench/shot_settings.gd` (windowed shot at 2340x1080, top and end). Not fixed, predates
+this: the Touch and Tilt scheme cards clip "Drag anywhe…" and "Tilt the…" at that size.
+The arena work below is unchanged and still awaits the A55 pass.
+
+**Before that (2026-09-29): every arena theme now has its own look, phase 1 (background pattern
 and motion) is code-complete** (828 tests green, gdformat and gdlint clean, 0 SCRIPT ERROR
 headless; A55 pass pending, `VERIFY-ME.md` §Theme R2). Ruling THEME R2 (user: "arena themes
 kinda look similar which makes getting other arenas kinda pointless"; scope: pattern + motion

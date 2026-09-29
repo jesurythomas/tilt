@@ -348,6 +348,28 @@ static func sheet_column(column_name: String) -> VBoxContainer:
 	return column
 
 
+## DIVERGENCE(M11c, A55 report 2026-09-26 "I cannot drag or move the armory"): the
+## web page scrolls from any touch; in Godot a STOP control (Button, card panel)
+## swallows the touch, so its ScrollContainer never sees the drag. Everything inside
+## a scroll view passes input up instead: a tap still presses a button, and a drag
+## scrolls (the ScrollContainer cancels the press on NOTIFICATION_SCROLL_BEGIN).
+## Nested rows pass too, so a drag they cannot scroll reaches the page. Sliders keep
+## STOP (their drags operate them), as does any control whose script is in `drag_owners`.
+## Shared by the Armory and the Settings board.
+static func let_drags_scroll(root: Node, drag_owners: Array[Script] = []) -> void:
+	for scroll: Node in root.find_children("*", "ScrollContainer", true, false):
+		(scroll as Control).mouse_filter = Control.MOUSE_FILTER_PASS
+		var stack: Array[Node] = scroll.get_children()
+		while not stack.is_empty():
+			var n: Node = stack.pop_back()
+			stack.append_array(n.get_children())
+			var c: Control = n as Control
+			if c == null or c is Range or c is LineEdit or drag_owners.has(c.get_script()):
+				continue
+			if c.mouse_filter == Control.MOUSE_FILTER_STOP:
+				c.mouse_filter = Control.MOUSE_FILTER_PASS
+
+
 ## A 1 px hairline rule (vertical between columns, horizontal between rows),
 ## ignoring the mouse. Never scaled (Global Constraints).
 static func hairline(is_vertical: bool, color: Color) -> ColorRect:

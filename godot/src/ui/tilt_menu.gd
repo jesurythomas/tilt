@@ -342,6 +342,13 @@ func set_ui_scale(scale: float, inset: Vector2) -> void:
 func open_options_modal() -> void:
 	if _options_modal == null or _options == null:
 		return
+	# A toggle re-renders the board; keep where it was scrolled to (not when opening fresh).
+	var kept_scroll: int = 0
+	var old_scroll: ScrollContainer = (
+		_options_modal.find_child("OptionsScroll", true, false) as ScrollContainer
+	)
+	if old_scroll != null and _options_modal.visible:
+		kept_scroll = old_scroll.scroll_vertical
 	for root: Control in [_options_modal, _reset_confirm]:
 		for child: Node in root.get_children():
 			root.remove_child(child)
@@ -355,6 +362,11 @@ func open_options_modal() -> void:
 	_options_modal.add_child(page)
 	_build_reset_confirm()
 	_options_modal.visible = true  # PORT: web/src/tilt-to-live/TiltMenu.ts:411
+	if kept_scroll > 0:
+		var new_scroll: ScrollContainer = (
+			_options_modal.find_child("OptionsScroll", true, false) as ScrollContainer
+		)
+		new_scroll.set_deferred("scroll_vertical", kept_scroll)
 	_bind_options_events()
 
 
@@ -890,7 +902,17 @@ func _options_body() -> MarginContainer:
 	columns.add_child(_controls_column())
 	columns.add_child(_readability_column())
 	columns.add_child(_audio_column())
-	body.add_child(columns)
+	# DIVERGENCE(MVP Week 1, user 2026-09-29: "fix the menu overflow ... we are not able to
+	# scroll to it"): the Audio column grew (Vibration, usage sharing) past the phone's
+	# height, so the board scrolls, and a drag on a switch scrolls it too.
+	columns.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var scroll: ScrollContainer = ScrollContainer.new()
+	scroll.name = "OptionsScroll"
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.add_child(columns)
+	body.add_child(scroll)
+	UiTheme.let_drags_scroll(body)
 	return body
 
 

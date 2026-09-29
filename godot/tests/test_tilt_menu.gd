@@ -323,3 +323,59 @@ func test_vibration_switch_saves_and_applies() -> void:
 	assert_false(GameOptionsManager.new().settings.haptics_enabled, "saved")
 	assert_false(Haptics.enabled, "applied at once")
 	Haptics.enabled = true
+
+
+## User report 2026-09-29 (Settings overflowed once Vibration and usage sharing were added,
+## and the last rows could not be scrolled to): the board scrolls, and every row is reachable.
+func _a55_settings() -> TiltMenu:
+	var size: Vector2 = Vector2(2340.0, 1080.0)
+	var menu: TiltMenu = TiltMenu.new()
+	menu.size = size
+	add_child_autofree(menu)
+	menu.bind(_options, _progression, _goals, _scores, _settings)
+	menu.set_ui_scale(size.y / 390.0, Vector2(8.0, 12.0))
+	menu.show_menu()
+	menu.open_options_modal()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	return menu
+
+
+func test_settings_scrolls_to_the_last_row_on_the_a55() -> void:
+	var menu: TiltMenu = await _a55_settings()
+	var scroll: ScrollContainer = menu.find_child("OptionsScroll", true, false) as ScrollContainer
+	assert_not_null(scroll, "the board sits in a scroll view")
+	if scroll == null:
+		return
+	assert_gt(scroll.get_v_scroll_bar().max_value, scroll.size.y, "there is something to scroll")
+	scroll.scroll_vertical = int(scroll.get_v_scroll_bar().max_value)
+	await get_tree().process_frame
+	var modal: Control = menu.find_child("OptionsModal", true, false) as Control
+	var reset: Control = menu.find_child("ResetButton", true, false) as Control
+	assert_lte(
+		reset.get_global_rect().end.y, modal.get_global_rect().end.y + 1.0, "Reset is on screen"
+	)
+
+
+func test_settings_drags_reach_the_scroll_view() -> void:
+	var menu: TiltMenu = await _a55_settings()
+	for switch_name: String in ["VibrationSwitch", "UsageSwitch", "ResetButton"]:
+		var control: Control = menu.find_child(switch_name, true, false) as Control
+		assert_ne(control.mouse_filter, Control.MOUSE_FILTER_STOP, "%s passes drags" % switch_name)
+
+
+func test_a_setting_toggle_keeps_the_scroll_position() -> void:
+	var menu: TiltMenu = await _a55_settings()
+	var scroll: ScrollContainer = menu.find_child("OptionsScroll", true, false) as ScrollContainer
+	if scroll == null:
+		fail_test("no scroll view")
+		return
+	scroll.scroll_vertical = int(scroll.get_v_scroll_bar().max_value)
+	await get_tree().process_frame
+	var before: int = scroll.scroll_vertical
+	assert_gt(before, 0)
+	(menu.find_child("UsageSwitch", true, false) as CheckButton).toggled.emit(false)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	scroll = menu.find_child("OptionsScroll", true, false) as ScrollContainer
+	assert_eq(scroll.scroll_vertical, before, "a toggle re-renders without jumping to the top")

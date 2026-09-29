@@ -964,3 +964,13 @@ Armory → Arena tab, buy or browse each theme; the preview shows the effect too
    theme (Matrix, Neon, Snow), compare with Void Vector.
 4. [ ] The Armory preview shows the same effect at a readable size.
 5. [ ] Anything to strengthen, tone down or swap before phase 2 (grid line styles).
+
+## Settings scroll (2026-09-29)
+
+1. [ ] Menu → Settings on the A55: drag up from anywhere (including on a switch) and the board
+   scrolls; "Share anonymous usage data" and "Reset progress" are reachable.
+2. [ ] Toggling a switch near the bottom does not jump the board back to the top.
+3. [ ] Landscape on a smaller phone or the tablet still shows everything (scroll if it does
+   not fit).
+4. [ ] The Touch and Tilt cards read "Drag anywhe…" and "Tilt the…" (clipped); say if you want
+   that fixed.
