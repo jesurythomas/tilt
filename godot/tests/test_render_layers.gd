@@ -669,3 +669,28 @@ func test_banner_hides_when_the_run_ends() -> void:
 	el.set_banner_shown(true)
 	el.set_elapsed(3.0)
 	assert_false(el.is_banner_drawn(), "faded out")
+
+
+func test_grid_layer_feeds_the_pattern_to_the_background_shader() -> void:
+	# DIVERGENCE(THEME R2): the theme's pattern and accents reach the shader.
+	_remove_save()
+	var progression: ProgressionManager = ProgressionManager.new()
+	var layer: GridLayer = GridLayer.new()
+	add_child_autofree(layer)
+	layer.bind(VectorGrid.new(400, 300))
+	layer.refresh()
+	var mat: ShaderMaterial = layer.background_material()
+	var none: int = mat.get_shader_parameter("pattern")
+	assert_eq(none, 0, "no theme, no pattern")
+	var snow: ProgressionManager.ArenaThemeConfig = progression.arena_theme_catalog[6]
+	layer.set_arena_theme(snow)
+	layer.refresh()
+	var pattern: int = mat.get_shader_parameter("pattern")
+	assert_eq(pattern, int(snow.pattern))
+	var accent: Color = mat.get_shader_parameter("accent")
+	assert_eq(accent, snow.dust_color)
+	var accent2: Color = mat.get_shader_parameter("accent2")
+	assert_eq(Color(accent2, 1.0), Color(snow.boundary_color, 1.0))
+	var unit: float = mat.get_shader_parameter("unit")
+	assert_gt(unit, 0.0)
+	_remove_save()

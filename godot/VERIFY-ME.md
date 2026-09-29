@@ -950,3 +950,17 @@ skin 1600/1800), so grant yourself points or play first.
 3. [ ] The flag pairs look like the country's colours without drawing a flag.
 4. [ ] Prices feel right against the run payout.
 5. [ ] The pager says "n / 16", wraps both ways, and an old save keeps its owned items.
+
+## Theme R2 — arena patterns and motion (2026-09-29)
+
+Armory → Arena tab, buy or browse each theme; the preview shows the effect too.
+
+1. [ ] Each arena is recognisably its own place in a run (not just a colour): Void Vector
+   plain, Synthwave sun, Nebula stars, Matrix code rain, Supernova heat, Blueprint drafting
+   lines, Arctic snow, Ember sparks, Neon rain, Deep Ocean bubbles, Desert sand, Perlas rays,
+   Rising Sun ripples, Carnaval diagonal bands, Liberty Grid stars and bars, Black Forest bands.
+2. [ ] Enemies, orbs and coins stay easy to read over every effect (say which is too busy).
+3. [ ] No stutter with an effect on: `SERIAL=RRCXB04L8EJ tools/frametime.sh` mid-run in a busy
+   theme (Matrix, Neon, Snow), compare with Void Vector.
+4. [ ] The Armory preview shows the same effect at a readable size.
+5. [ ] Anything to strengthen, tone down or swap before phase 2 (grid line styles).

@@ -1201,6 +1201,7 @@ func _arena_preview(
 	preview.name = "ArenaPreview"
 	preview.custom_minimum_size = Vector2(_px(PREVIEW_MIN_WIDTH), _px(PREVIEW_MIN_HEIGHT))
 	preview.set_background(theme_config.bg_gradient)
+	preview.set_theme_pattern(theme_config)
 	preview.grid_color = theme_config.grid_color
 	preview.boundary_color = theme_config.boundary_color
 	preview.grid_step = _px(PREVIEW_GRID_STEP)

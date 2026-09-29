@@ -198,3 +198,14 @@ func test_a_new_pair_can_be_bought_and_equipped() -> void:
 	assert_eq(_pm.get_equipped_arena_theme().id, "ph")
 	assert_true(_pm.buy_enemy_skin("jp"))
 	assert_eq(_pm.get_equipped_enemy_skin().id, "jp")
+
+
+## DIVERGENCE(THEME R2, user 2026-09-29: "arena themes kinda look similar"): every arena
+## has its own background pattern; only the default Void Vector has none.
+func test_every_arena_has_its_own_pattern() -> void:
+	var seen: Dictionary = {}
+	for a: ProgressionManager.ArenaThemeConfig in _pm.arena_theme_catalog:
+		assert_false(seen.has(a.pattern), "%s repeats a pattern" % a.id)
+		seen[a.pattern] = true
+		var plain: bool = a.pattern == ProgressionManager.ArenaPattern.NONE
+		assert_eq(plain, a.id == "void", "%s: only void is plain" % a.id)

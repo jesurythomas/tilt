@@ -4,7 +4,25 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**Latest (2026-09-29): ten new arena themes and enemy skins are code-complete** (825 tests
+**Latest (2026-09-29): every arena theme now has its own look, phase 1 (background pattern
+and motion) is code-complete** (828 tests green, gdformat and gdlint clean, 0 SCRIPT ERROR
+headless; A55 pass pending, `VERIFY-ME.md` §Theme R2). Ruling THEME R2 (user: "arena themes
+kinda look similar which makes getting other arenas kinda pointless"; scope: pattern + motion
+first, then grid styles, all 16 themes). Plan `docs/superpowers/plans/2026-09-29-arena-looks.md`.
+`ArenaThemeConfig.pattern` (`ProgressionManager.ArenaPattern`, 16 distinct values, void is NONE)
+picks a procedural effect in `arena_background.gdshader` (moves with `TIME`, no CPU cost):
+synthwave sun, nebula stars, matrix code, supernova heat, blueprint drafting, arctic snow,
+ember sparks, neon rain, ocean bubbles, desert sand, ph rays, jp ripples, br diagonal bands,
+us stars and bars, de three bands. New uniforms `pattern`, `accent` (= `dust_color`, which was
+never drawn before), `accent2` (= boundary colour) and `unit` (height / 1080); `GridLayer` and
+`ArenaPreview` set them, so the Armory preview matches the run (preview scale floors at 0.5).
+Headless tests cannot compile the shader; `godot/bench/arena_sheet.gd` renders a contact sheet
+windowed (`build/shots/arena_sheet.png`; `ARENA_SHEET_ONLY=id,id` for a larger subset) and
+was reviewed. Not measured: frame time with an effect on the A55 (the effects are per-pixel
+GPU work; use `tools/frametime.sh` with a theme equipped). Next: the user's A55 pass, then
+phase 2 (a grid line style per theme: lines, dots, crosses, brick, diagonal), plan task 3.
+
+**Before that (2026-09-29): ten new arena themes and enemy skins are code-complete** (825 tests
 green, gdformat and gdlint clean; A55 pass pending, `VERIFY-ME.md` §Theme R1). Ruling THEME R1
 (user: "more variety to the map backgrounds and enemy backgrounds", "flags" = country flags,
 colours only): five concept pairs (`arctic` Arctic Lattice / Frostbite, `ember` Ember Ruins /

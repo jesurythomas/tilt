@@ -1053,3 +1053,14 @@ func test_handling_has_a_stick_size_slider() -> void:
 	assert_almost_eq(ControlSettings.new().stick_size, 0.7, 0.0001, "saved")
 	_button("ResetButton").pressed.emit()
 	assert_eq(_settings.stick_size, 1.0, "Reset restores the default stick")
+
+
+## DIVERGENCE(THEME R2): the preview draws the browsed theme's pattern, like the run.
+func test_arena_preview_carries_the_theme_pattern() -> void:
+	_armory.open("arena")
+	_browse("Theme", "arctic")
+	var preview: ArenaPreview = _armory.find_child("ArenaPreview", true, false) as ArenaPreview
+	var arctic: ProgressionManager.ArenaThemeConfig = _progression.arena_theme_catalog[6]
+	assert_eq(arctic.id, "arctic")
+	var pattern: int = preview.background_material().get_shader_parameter("pattern")
+	assert_eq(pattern, int(arctic.pattern))

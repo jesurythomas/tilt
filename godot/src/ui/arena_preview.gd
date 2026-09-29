@@ -23,6 +23,10 @@ const DOTS: Array[Vector3] = [
 ]
 ## The ship's spot, as fractions of the preview.
 const SHIP_AT: Vector2 = Vector2(0.56, 0.52)
+## The height the background effects are drawn for (grid_layer.gd PATTERN_UNIT_HEIGHT).
+const PATTERN_UNIT_HEIGHT: float = 1080.0
+## The smallest scale the preview draws effects at, so its flakes and sparks stay visible.
+const PREVIEW_MIN_UNIT: float = 0.5
 ## PORT: web/src/tilt-to-live/TiltRenderer.ts:88 (grid_layer.gd GRADIENT_OUTER_FACTOR)
 const GRADIENT_OUTER_FACTOR: float = 0.8
 ## PORT: web/src/tilt-to-live/TiltRenderer.ts:120-127 (grid_layer.gd INSET, halo 0.12)
@@ -67,10 +71,23 @@ func set_background(stops: Array[Color]) -> void:
 	queue_redraw()
 
 
+## DIVERGENCE(THEME R2): the theme's background effect, as the run draws it.
+func set_theme_pattern(theme_config: ProgressionManager.ArenaThemeConfig) -> void:
+	_material.set_shader_parameter("pattern", int(theme_config.pattern))
+	_material.set_shader_parameter("accent", theme_config.dust_color)
+	_material.set_shader_parameter("accent2", theme_config.boundary_color)
+
+
+## The background shader's material (test-visible).
+func background_material() -> ShaderMaterial:
+	return _material
+
+
 func _on_resized() -> void:
 	_background.size = size
 	_material.set_shader_parameter("centre", size / 2.0)
 	_material.set_shader_parameter("radius", maxf(1.0, size.x * GRADIENT_OUTER_FACTOR))
+	_material.set_shader_parameter("unit", maxf(PREVIEW_MIN_UNIT, size.y / PATTERN_UNIT_HEIGHT))
 	queue_redraw()
 
 

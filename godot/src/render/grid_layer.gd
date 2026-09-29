@@ -52,6 +52,8 @@ const GAUNTLET_GRID: Color = Color(1.0, 170.0 / 255.0, 0.0, 0.35)
 const GAUNTLET_BOUNDARY: Color = Color(1.0, 180.0 / 255.0, 0.0, 0.75)
 ## PORT: web/src/tilt-to-live/TiltRenderer.ts:111
 const GAUNTLET_BRACKET: Color = Color(1.0, 190.0 / 255.0, 0.0, 0.7)
+## DIVERGENCE(THEME R2): the height the background effects are drawn for (the A55's).
+const PATTERN_UNIT_HEIGHT: float = 1080.0
 ## Vignette radii as width fractions. PORT: web/src/tilt-to-live/TiltRenderer.ts:104
 const VIGNETTE_INNER: float = 0.35
 const VIGNETTE_OUTER: float = 0.75
@@ -132,7 +134,7 @@ func refresh() -> void:
 		return
 	var pt_draw: int = PerfProbe.now()
 	var viewport: Vector2 = get_viewport_rect().size
-	var bg_key: Array = [viewport, background_colors()]
+	var bg_key: Array = [viewport, background_colors(), _arena_theme]
 	if bg_key != _bg_key:
 		_bg_key = bg_key
 		_update_background_uniforms()
@@ -163,6 +165,14 @@ func _update_background_uniforms() -> void:
 	_bg_material.set_shader_parameter("outer_color", stops[2])
 	_bg_material.set_shader_parameter("centre", viewport / 2.0)
 	_bg_material.set_shader_parameter("radius", viewport.x * GRADIENT_OUTER_FACTOR)
+	# DIVERGENCE(THEME R2): the theme's effect; none without a theme (menu, tests).
+	var themed: bool = _arena_theme != null
+	var pattern: int = int(_arena_theme.pattern) if themed else 0
+	_bg_material.set_shader_parameter("pattern", pattern)
+	_bg_material.set_shader_parameter("unit", viewport.y / PATTERN_UNIT_HEIGHT)
+	if themed:
+		_bg_material.set_shader_parameter("accent", _arena_theme.dust_color)
+		_bg_material.set_shader_parameter("accent2", _arena_theme.boundary_color)
 
 
 # DIVERGENCE(M2.5 §6.1): the background still covers the whole viewport so the inset

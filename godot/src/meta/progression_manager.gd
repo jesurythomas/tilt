@@ -32,6 +32,26 @@ extends RefCounted
 
 ## PORT: web/src/tilt-to-live/ProgressionManager.ts:68
 enum ShipShape { CLASSIC, VIPER, PHANTOM, SOLAR, CYBER, SHURIKEN, CELESTIAL }
+## DIVERGENCE(THEME R2, user 2026-09-29): the background effect each arena theme draws.
+## The order is the `pattern` uniform of render/arena_background.gdshader; keep them in step.
+enum ArenaPattern {
+	NONE,
+	STARS,
+	SUN,
+	CODE,
+	SPARKS,
+	HEAT,
+	DRAFT,
+	SNOW,
+	RAIN,
+	BUBBLES,
+	SAND,
+	RAYS,
+	RIPPLES,
+	BANDS_DIAG,
+	STARS_BARS,
+	BANDS,
+}
 
 ## PORT: web/src/tilt-to-live/ProgressionManager.ts:119
 const STORAGE_KEY: String = "tilt_to_live_progression_v3"
@@ -1176,6 +1196,7 @@ func _build_arena_theme_catalog() -> Array[ArenaThemeConfig]:
 	void_arena.grid_color = Color(91.0 / 255.0, 140.0 / 255.0, 255.0 / 255.0, 0.18)
 	void_arena.boundary_color = Color(91.0 / 255.0, 140.0 / 255.0, 255.0 / 255.0, 0.4)
 	void_arena.dust_color = Color("#5B8CFF")
+	void_arena.pattern = ArenaPattern.NONE
 	out.append(void_arena)
 
 	# PORT: web/src/tilt-to-live/ProgressionManager.ts:354-363
@@ -1188,6 +1209,7 @@ func _build_arena_theme_catalog() -> Array[ArenaThemeConfig]:
 	synthwave.grid_color = Color(255.0 / 255.0, 0.0 / 255.0, 160.0 / 255.0, 0.22)
 	synthwave.boundary_color = Color(255.0 / 255.0, 0.0 / 255.0, 180.0 / 255.0, 0.5)
 	synthwave.dust_color = Color("#ff00aa")
+	synthwave.pattern = ArenaPattern.SUN
 	out.append(synthwave)
 
 	# PORT: web/src/tilt-to-live/ProgressionManager.ts:364-373
@@ -1202,6 +1224,7 @@ func _build_arena_theme_catalog() -> Array[ArenaThemeConfig]:
 	nebula.grid_color = Color(130.0 / 255.0, 90.0 / 255.0, 255.0 / 255.0, 0.22)
 	nebula.boundary_color = Color(150.0 / 255.0, 100.0 / 255.0, 255.0 / 255.0, 0.5)
 	nebula.dust_color = Color("#aa77ff")
+	nebula.pattern = ArenaPattern.STARS
 	out.append(nebula)
 
 	# PORT: web/src/tilt-to-live/ProgressionManager.ts:374-383
@@ -1216,6 +1239,7 @@ func _build_arena_theme_catalog() -> Array[ArenaThemeConfig]:
 	matrix.grid_color = Color(0.0 / 255.0, 255.0 / 255.0, 120.0 / 255.0, 0.22)
 	matrix.boundary_color = Color(0.0 / 255.0, 255.0 / 255.0, 120.0 / 255.0, 0.5)
 	matrix.dust_color = Color("#00ff88")
+	matrix.pattern = ArenaPattern.CODE
 	out.append(matrix)
 
 	# PORT: web/src/tilt-to-live/ProgressionManager.ts:384-393
@@ -1228,6 +1252,7 @@ func _build_arena_theme_catalog() -> Array[ArenaThemeConfig]:
 	supernova.grid_color = Color(255.0 / 255.0, 130.0 / 255.0, 0.0 / 255.0, 0.24)
 	supernova.boundary_color = Color(255.0 / 255.0, 140.0 / 255.0, 0.0 / 255.0, 0.55)
 	supernova.dust_color = Color("#ffaa00")
+	supernova.pattern = ArenaPattern.HEAT
 	out.append(supernova)
 
 	# PORT: web/src/tilt-to-live/ProgressionManager.ts:394-403
@@ -1242,6 +1267,7 @@ func _build_arena_theme_catalog() -> Array[ArenaThemeConfig]:
 	blueprint.grid_color = Color(255.0 / 255.0, 255.0 / 255.0, 255.0 / 255.0, 0.28)
 	blueprint.boundary_color = Color(255.0 / 255.0, 255.0 / 255.0, 255.0 / 255.0, 0.65)
 	blueprint.dust_color = Color("#ffffff")
+	blueprint.pattern = ArenaPattern.DRAFT
 	out.append(blueprint)
 
 	# DIVERGENCE(THEME R1, user 2026-09-29: "add more variety to the map backgrounds and enemy
@@ -1265,6 +1291,7 @@ func _build_arena_theme_catalog() -> Array[ArenaThemeConfig]:
 	arctic_arena.boundary_color = Color(200 / 255.0, 240 / 255.0, 255 / 255.0, 0.55)
 
 	arctic_arena.dust_color = Color("#cfefff")
+	arctic_arena.pattern = ArenaPattern.SNOW
 
 	out.append(arctic_arena)
 
@@ -1285,6 +1312,7 @@ func _build_arena_theme_catalog() -> Array[ArenaThemeConfig]:
 	ember_arena.boundary_color = Color(220 / 255.0, 120 / 255.0, 60 / 255.0, 0.5)
 
 	ember_arena.dust_color = Color("#c96a3a")
+	ember_arena.pattern = ArenaPattern.SPARKS
 
 	out.append(ember_arena)
 
@@ -1305,6 +1333,7 @@ func _build_arena_theme_catalog() -> Array[ArenaThemeConfig]:
 	neon_arena.boundary_color = Color(255 / 255.0, 80 / 255.0, 170 / 255.0, 0.5)
 
 	neon_arena.dust_color = Color("#ff5cad")
+	neon_arena.pattern = ArenaPattern.RAIN
 
 	out.append(neon_arena)
 
@@ -1325,6 +1354,7 @@ func _build_arena_theme_catalog() -> Array[ArenaThemeConfig]:
 	ocean_arena.boundary_color = Color(0 / 255.0, 220 / 255.0, 200 / 255.0, 0.5)
 
 	ocean_arena.dust_color = Color("#34ffc0")
+	ocean_arena.pattern = ArenaPattern.BUBBLES
 
 	out.append(ocean_arena)
 
@@ -1345,6 +1375,7 @@ func _build_arena_theme_catalog() -> Array[ArenaThemeConfig]:
 	desert_arena.boundary_color = Color(240 / 255.0, 160 / 255.0, 60 / 255.0, 0.5)
 
 	desert_arena.dust_color = Color("#e6b56a")
+	desert_arena.pattern = ArenaPattern.SAND
 
 	out.append(desert_arena)
 
@@ -1365,6 +1396,7 @@ func _build_arena_theme_catalog() -> Array[ArenaThemeConfig]:
 	ph_arena.boundary_color = Color(206 / 255.0, 17 / 255.0, 38 / 255.0, 0.55)
 
 	ph_arena.dust_color = Color("#fcd116")
+	ph_arena.pattern = ArenaPattern.RAYS
 
 	out.append(ph_arena)
 
@@ -1385,6 +1417,7 @@ func _build_arena_theme_catalog() -> Array[ArenaThemeConfig]:
 	jp_arena.boundary_color = Color(230 / 255.0, 20 / 255.0, 60 / 255.0, 0.55)
 
 	jp_arena.dust_color = Color("#ffffff")
+	jp_arena.pattern = ArenaPattern.RIPPLES
 
 	out.append(jp_arena)
 
@@ -1405,6 +1438,7 @@ func _build_arena_theme_catalog() -> Array[ArenaThemeConfig]:
 	br_arena.boundary_color = Color(0 / 255.0, 200 / 255.0, 80 / 255.0, 0.5)
 
 	br_arena.dust_color = Color("#ffdf00")
+	br_arena.pattern = ArenaPattern.BANDS_DIAG
 
 	out.append(br_arena)
 
@@ -1425,6 +1459,7 @@ func _build_arena_theme_catalog() -> Array[ArenaThemeConfig]:
 	us_arena.boundary_color = Color(220 / 255.0, 40 / 255.0, 70 / 255.0, 0.55)
 
 	us_arena.dust_color = Color("#ffffff")
+	us_arena.pattern = ArenaPattern.STARS_BARS
 
 	out.append(us_arena)
 
@@ -1445,6 +1480,7 @@ func _build_arena_theme_catalog() -> Array[ArenaThemeConfig]:
 	de_arena.boundary_color = Color(221 / 255.0, 0 / 255.0, 0 / 255.0, 0.55)
 
 	de_arena.dust_color = Color("#ffce00")
+	de_arena.pattern = ArenaPattern.BANDS
 
 	out.append(de_arena)
 
@@ -1740,6 +1776,8 @@ class ArenaThemeConfig:
 	var grid_color: Color = Color.WHITE
 	var boundary_color: Color = Color.WHITE
 	var dust_color: Color = Color.WHITE
+	## DIVERGENCE(THEME R2): the background effect (no TS counterpart).
+	var pattern: ArenaPattern = ArenaPattern.NONE
 
 
 ## PORT: web/src/tilt-to-live/ProgressionManager.ts:95-98
