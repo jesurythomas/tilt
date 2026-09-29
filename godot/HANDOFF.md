@@ -15,7 +15,9 @@ unchanged, so old saves load. The parity tests keep the TS fixtures and map the 
 `web/src/tilt-to-live/` citations. Store text must not say Tilt to Live. Next in Week 1,
 unblocked once the tablet is on `adb`: the tablet texture error (no cause found by reading
 the code; needs a dev-key debug build and logcat). Analytics steps 3-4 still wait on the user
-saying "Firebase done".
+saying "Firebase done". Version is now 0.1.2 (code 3): the shared dev-key APK is
+`godot/build/peril-point-0.1.2.apk`; the A55 has the renames as 0.1.1 (code 2, A55 key), so
+the next A55 build must use code 3 or higher.
 
 **Before that (2026-09-29): MVP Week 1, the AAB export is done with an interim upload key** (no game code changed, so tests were not re-run; a dev-key AAB exported and
 `jarsigner -verify` said `jar verified`). `PERIL_AAB=1 tools/release.sh` exports
