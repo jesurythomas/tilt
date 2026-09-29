@@ -931,3 +931,8 @@ Nothing in the game changes until this is done. Do it in a browser, no code.
 - [ ] 8. EEA/UK consent: nothing to do yet. Until the UMP dialog lands (MVP R1) collection
       is planned to be off on the EEA path; the Play Data safety form must match the
       Settings toggle (analytics collected, optional).
+
+## MVP Week 1 — mode names (2026-09-29)
+
+1. [ ] The menu cards, Pause, Run over and the in-run banner say Survival, Corridor and Overdrive (no Standard, Gauntlet or Code Red).
+2. [ ] Goals: "Overdrive Champion", "Corridor Runner" read right, and an old save keeps its progress on them.

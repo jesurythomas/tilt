@@ -76,7 +76,7 @@ func test_mode_cards_show_ts_names_taglines_and_multipliers() -> void:
 	var texts: PackedStringArray = PackedStringArray()
 	for label: Node in card.find_children("*", "Label", true, false):
 		texts.append((label as Label).text)
-	assert_has(texts, "Code Red", "GameOptions.ts:62")
+	assert_has(texts, "Overdrive", "GameOptions.ts:62")
 	assert_has(texts, "Double density from the first second.", "GameOptions.ts:64")
 	assert_does_not_have(texts, "1.5×", "UI R8: no multiplier on the cards (TiltMenu.ts:151)")
 

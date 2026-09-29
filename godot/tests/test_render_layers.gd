@@ -627,13 +627,13 @@ func test_banner_alpha_fades_in_holds_and_out() -> void:
 
 func test_banner_copy_per_mode() -> void:
 	var classic: PackedStringArray = EffectLayer.banner_copy(Types.GameMode.CLASSIC)
-	assert_eq(classic[0], "CLASSIC SURVIVAL", "TiltRenderer.ts:526")
+	assert_eq(classic[0], "SURVIVAL", "TiltRenderer.ts:526")
 	assert_eq(classic[1], "THE NEON ARENA", "UI R12")
 	var red: PackedStringArray = EffectLayer.banner_copy(Types.GameMode.CODE_RED)
-	assert_eq(red[0], "CODE RED PROTOCOL", ":532")
+	assert_eq(red[0], "OVERDRIVE PROTOCOL", ":532")
 	assert_eq(red[1], "INSTANT HYPER-SWARM AMBUSH", "UI R12")
 	var gauntlet: PackedStringArray = EffectLayer.banner_copy(Types.GameMode.GAUNTLET)
-	assert_eq(gauntlet[0], "THE GAUNTLET", ":537")
+	assert_eq(gauntlet[0], "THE CORRIDOR", ":537")
 	assert_eq(gauntlet[1], "DESCENDING WALL MAZE", "UI R12")
 	assert_eq(EffectLayer.banner_colors(Types.GameMode.CODE_RED)[0], Color("#FF4D5E"), "UI R9")
 	assert_eq(EffectLayer.banner_colors(Types.GameMode.GAUNTLET)[0], Color("#FFB14D"), ":539")

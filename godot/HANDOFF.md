@@ -4,7 +4,20 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**Latest (2026-09-29): MVP Week 1, the AAB export is done with an interim upload key** (no game code changed, so tests were not re-run; a dev-key AAB exported and
+**Latest (2026-09-29): MVP Week 1, the mode renames are done** (821 tests green, gdformat
+and gdlint clean; A55 pass pending, `VERIFY-ME.md` §MVP Week 1 — mode names). Ruling MVP R4:
+Standard → **Survival**, Gauntlet → **Corridor**, Code Red → **Overdrive**. Strings only:
+`GameOptionsManager` mode names, `GoalManager` titles/descriptions of the three mode goals,
+`EffectLayer.banner_copy` (`OVERDRIVE PROTOCOL`, `THE CORRIDOR`, `SURVIVAL`), and the
+tests. The `GameMode` ids, goal ids (`mode_code_red_30`), metrics and save keys are
+unchanged, so old saves load. The parity tests keep the TS fixtures and map the names
+(`MODE_DISPLAY_NAMES`, `_renamed`). Not renamed: the achievement "Red Alert Survivor", the
+`web/src/tilt-to-live/` citations. Store text must not say Tilt to Live. Next in Week 1,
+unblocked once the tablet is on `adb`: the tablet texture error (no cause found by reading
+the code; needs a dev-key debug build and logcat). Analytics steps 3-4 still wait on the user
+saying "Firebase done".
+
+**Before that (2026-09-29): MVP Week 1, the AAB export is done with an interim upload key** (no game code changed, so tests were not re-run; a dev-key AAB exported and
 `jarsigner -verify` said `jar verified`). `PERIL_AAB=1 tools/release.sh` exports
 `godot/build/peril-point-<version>.aab`: it flips `gradle_build/export_format` to 1 for
 that run and restores it on exit, so the preset stays on APK for the tester builds.

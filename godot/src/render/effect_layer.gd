@@ -96,13 +96,14 @@ static func banner_alpha(elapsed: float) -> float:
 ## [title, subline]. PORT: web/src/tilt-to-live/TiltRenderer.ts:526-541
 ## DIVERGENCE(UI R12, user 2026-09-28: "the game over screen still shows 1.5 soemthing"):
 ## the sublines drop their "1.5X SCORE //" multiplier lead.
+## DIVERGENCE(MVP R4, user 2026-09-29): the titles carry the renamed modes.
 static func banner_copy(mode: Types.GameMode) -> PackedStringArray:
 	match mode:
 		Types.GameMode.CODE_RED:
-			return PackedStringArray(["CODE RED PROTOCOL", "INSTANT HYPER-SWARM AMBUSH"])
+			return PackedStringArray(["OVERDRIVE PROTOCOL", "INSTANT HYPER-SWARM AMBUSH"])
 		Types.GameMode.GAUNTLET:
-			return PackedStringArray(["THE GAUNTLET", "DESCENDING WALL MAZE"])
-	return PackedStringArray(["CLASSIC SURVIVAL", "THE NEON ARENA"])
+			return PackedStringArray(["THE CORRIDOR", "DESCENDING WALL MAZE"])
+	return PackedStringArray(["SURVIVAL", "THE NEON ARENA"])
 
 
 ## [accent, box fill]. PORT: web/src/tilt-to-live/TiltRenderer.ts:528-541

@@ -40,7 +40,7 @@ on Google Play still needs, and the rulings the user has made so far.
   - "Watch an ad for a free charge", at most 1–2 per day.
   - The Touch stick must ignore the button's area.
   - Keep leaderboards fair through the per-run cap.
-- **MVP R4 — Identity (recommended, needs the user's names).** Rename the modes: "Code Red"
+- **MVP R4 — Identity (approved 2026-09-29: Survival, Corridor, Overdrive).** Rename the modes: "Code Red"
   is Tilt to Live 2's hard mode, and "Gauntlet" echoes *Gauntlet's Revenge*. Examples:
   Survival, Overdrive, Corridor. The store listing must never mention Tilt to Live. On
   Android, Tilt to Live 2: Redonkulous (One Man Left, 2014) still appears on Google Play
@@ -93,7 +93,9 @@ opted-in testers, before production.
   `libperil` inside). `tools/make-upload-key.sh` makes the real upload key. Interim upload key made
   2026-09-29 and checked with a signed AAB; **at deployment:** replace the key, back it up
   off-machine, enrol the app in Play App Signing when the first AAB goes up.
-- [ ] **Mode renames (MVP R4)**, once the user picks names. ~0.5 day.
+- [x] **Mode renames (MVP R4)**, done 2026-09-29: Standard → Survival, Gauntlet → Corridor,
+  Code Red → Overdrive (the names the roadmap suggested; the user said "yes"). Strings only:
+  the `GameMode` ids, goal ids, metrics and save keys are unchanged. A55 check pending.
 - [ ] **Tablet:** find the empty-image texture error, using a debug build signed with the
   dev key so it installs over the release. Look into the > 20 ms frames. ~1 day.
 

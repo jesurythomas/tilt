@@ -619,7 +619,7 @@ static func _build_catalog() -> Array[Goal]:
 			"mode_code_red_30",
 			"modes",
 			"Red Alert Survivor",
-			"Survive 30s in Code Red mode",
+			"Survive 30s in Overdrive mode",
 			30,
 			2,
 			"code_red_survival"
@@ -628,8 +628,8 @@ static func _build_catalog() -> Array[Goal]:
 		_goal(
 			"mode_code_red_60",
 			"modes",
-			"Code Red Champion",
-			"Survive 60s in Code Red mode",
+			"Overdrive Champion",
+			"Survive 60s in Overdrive mode",
 			60,
 			4,
 			"code_red_survival"
@@ -638,8 +638,8 @@ static func _build_catalog() -> Array[Goal]:
 		_goal(
 			"mode_gauntlet_30",
 			"modes",
-			"Gauntlet Runner",
-			"Survive 30s in Gauntlet mode",
+			"Corridor Runner",
+			"Survive 30s in Corridor mode",
 			30,
 			2,
 			"gauntlet_survival"

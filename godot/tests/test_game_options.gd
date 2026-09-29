@@ -52,7 +52,7 @@ func test_mode_catalog_and_lookup() -> void:
 	)
 	assert_eq(o.modes[1].id, Types.GameMode.GAUNTLET)
 	assert_eq(o.modes[2].id, Types.GameMode.CODE_RED)
-	assert_eq(o.get_mode_config(Types.GameMode.CLASSIC).name, "Standard")
+	assert_eq(o.get_mode_config(Types.GameMode.CLASSIC).name, "Survival")
 	assert_almost_eq(
 		o.get_mode_config(Types.GameMode.GAUNTLET).score_multiplier, 1.25, 0.0001, ":58"
 	)

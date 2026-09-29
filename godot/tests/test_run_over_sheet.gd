@@ -24,7 +24,7 @@ func _result() -> RunOverSheet.RunResult:
 	result.kills = 89
 	result.best_chain = 12
 	result.time_text = "1:42"
-	result.mode_name = "Standard"
+	result.mode_name = "Survival"
 	result.mode_multiplier = 1.0
 	result.best_diff = 4110
 	result.earned = 3331
@@ -106,7 +106,7 @@ func test_show_result_fills_every_figure() -> void:
 	sheet.show_result(_result())
 	sheet.finish_count_up()
 	assert_eq(_label(sheet, "FinalScoreLabel").text, "32,420")
-	assert_eq(_label(sheet, "FinalSubtitleLabel").text, "Swarmed at 1:42 — Standard")
+	assert_eq(_label(sheet, "FinalSubtitleLabel").text, "Swarmed at 1:42 — Survival")
 	assert_true((sheet.find_child("NewBestBanner", true, false) as Control).visible)
 	assert_eq(_label(sheet, "NewBestLabel").text, "New best — up 4,110")
 	assert_eq(_label(sheet, "FinalKillsLabel").text, "89")
@@ -155,7 +155,7 @@ func test_banner_hides_without_a_new_best() -> void:
 
 func test_subtitle_text() -> void:
 	# PORT: web/src/tilt-to-live/TiltGame.ts:2095
-	assert_eq(RunOverSheet.subtitle_text("0:07", "Code Red"), "Swarmed at 0:07 — Code Red")
+	assert_eq(RunOverSheet.subtitle_text("0:07", "Overdrive"), "Swarmed at 0:07 — Overdrive")
 
 
 func _goal(id: String, title: String, description: String, reward: int) -> GoalManager.Goal:

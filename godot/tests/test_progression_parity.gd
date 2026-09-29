@@ -33,6 +33,11 @@ const MODE_NAMES: Dictionary[String, Types.GameMode] = {
 	"code-red": Types.GameMode.CODE_RED,
 	"gauntlet": Types.GameMode.GAUNTLET,
 }
+const MODE_DISPLAY_NAMES: Dictionary[Types.GameMode, String] = {
+	Types.GameMode.CLASSIC: "Survival",
+	Types.GameMode.CODE_RED: "Overdrive",
+	Types.GameMode.GAUNTLET: "Corridor",
+}
 const SCHEME_NAMES: Dictionary[String, Types.ControlScheme] = {
 	"hybrid": Types.ControlScheme.HYBRID,
 	"mouse": Types.ControlScheme.MOUSE,
@@ -369,7 +374,8 @@ func test_mode_configs_match_the_typescript() -> void:
 		var mode: GameOptionsManager.ModeConfig = o.modes[i]
 		var tag: String = "mode[%d]" % i
 		assert_eq(mode.id, MODE_NAMES[SaveStore.read_string(want, "id", "")], tag)
-		assert_eq(mode.name, SaveStore.read_string(want, "name", ""), tag)
+		# DIVERGENCE(MVP R4, user 2026-09-29): renamed Survival, Corridor and Overdrive.
+		assert_eq(mode.name, MODE_DISPLAY_NAMES[mode.id], tag)
 		assert_eq(mode.badge, SaveStore.read_string(want, "badge", ""), tag)
 		assert_eq(mode.tagline, SaveStore.read_string(want, "tagline", ""), tag)
 		assert_eq(mode.description, SaveStore.read_string(want, "description", ""), tag)

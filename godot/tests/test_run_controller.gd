@@ -467,7 +467,7 @@ func test_run_result_names_the_runs_mode() -> void:
 	_rc.reset_run(_bounds)
 	_options.set_mode(Types.GameMode.CODE_RED)
 	var result: RunOverSheet.RunResult = HudController.run_result_for(0, _scores.stats, _rc)
-	assert_eq(result.mode_name, "Gauntlet", "the run's mode, not the pending pick (R4)")
+	assert_eq(result.mode_name, "Corridor", "the run's mode, not the pending pick (R4)")
 	assert_almost_eq(result.mode_multiplier, 1.25, 0.0001)
 
 

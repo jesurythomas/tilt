@@ -142,9 +142,11 @@ func _build_modes() -> Array[ModeConfig]:
 	var out: Array[ModeConfig] = []
 
 	# PORT: web/src/tilt-to-live/GameOptions.ts:38-48
+	# DIVERGENCE(MVP R4, user 2026-09-29): the modes are renamed Survival, Corridor and
+	# Overdrive (the TS: Standard, Gauntlet, Code Red); ids and save keys are unchanged.
 	var classic: ModeConfig = ModeConfig.new()
 	classic.id = Types.GameMode.CLASSIC
-	classic.name = "Standard"
+	classic.name = "Survival"
 	classic.badge = "1.0×"
 	classic.tagline = "The full arsenal, ramping swarms."
 	classic.description = "The full arsenal, ramping swarms."
@@ -157,7 +159,7 @@ func _build_modes() -> Array[ModeConfig]:
 	# PORT: web/src/tilt-to-live/GameOptions.ts:49-59
 	var gauntlet: ModeConfig = ModeConfig.new()
 	gauntlet.id = Types.GameMode.GAUNTLET
-	gauntlet.name = "Gauntlet"
+	gauntlet.name = "Corridor"
 	gauntlet.badge = "1.25×"
 	gauntlet.tagline = "Walls close in while you dodge."
 	gauntlet.description = "Walls close in while you dodge."
@@ -170,7 +172,7 @@ func _build_modes() -> Array[ModeConfig]:
 	# PORT: web/src/tilt-to-live/GameOptions.ts:60-70
 	var code_red: ModeConfig = ModeConfig.new()
 	code_red.id = Types.GameMode.CODE_RED
-	code_red.name = "Code Red"
+	code_red.name = "Overdrive"
 	code_red.badge = "1.5×"
 	code_red.tagline = "Double density from the first second."
 	code_red.description = "Double density from the first second."

@@ -34,7 +34,7 @@ func test_render() -> void:
 	result.kills = 212
 	result.best_chain = 9
 	result.time_text = "1:12"
-	result.mode_name = "Code Red"
+	result.mode_name = "Overdrive"
 	result.mode_multiplier = 1.5
 	result.earned = 1274
 	result.milestones = [

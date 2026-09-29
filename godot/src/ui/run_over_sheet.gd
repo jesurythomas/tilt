@@ -196,7 +196,7 @@ func _gui_input(event: InputEvent) -> void:
 		finish_count_up()
 
 
-## "Swarmed at 1:42 — Standard". PORT: web/src/tilt-to-live/TiltGame.ts:2095
+## "Swarmed at 1:42 — Survival". PORT: web/src/tilt-to-live/TiltGame.ts:2095
 ## DIVERGENCE(UI R12, user 2026-09-28: "the game over screen still shows 1.5 soemthing"):
 ## no ", 1.0×" (the mode cards dropped their multipliers in UI R8).
 static func subtitle_text(time_text: String, mode_name: String) -> String:

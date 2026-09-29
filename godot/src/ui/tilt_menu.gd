@@ -678,7 +678,7 @@ func _mode_card(config: GameOptionsManager.ModeConfig, is_selected: bool) -> But
 	tagline.add_theme_color_override(
 		"font_color", UiTheme.COLOR_TEXT_MUTED if is_selected else UiTheme.TEXT_FAINT
 	)
-	# DIVERGENCE(M11c review): Code Red's tagline was cut to "first seco…"; wrap to a
+	# DIVERGENCE(M11c review): Overdrive's tagline was cut to "first seco…"; wrap to a
 	# second line (the column has the height) before trimming.
 	tagline.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	tagline.max_lines_visible = WRAP_MAX_LINES

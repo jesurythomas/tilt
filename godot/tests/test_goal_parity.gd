@@ -55,7 +55,8 @@ func test_catalog_matches_the_typescript_in_order() -> void:
 		var at: String = " @%d (%s)" % [i, SaveStore.read_string(e, "id", "?")]
 		assert_eq(g.id, SaveStore.read_string(e, "id", "?"), "id" + at)
 		assert_eq(g.category, SaveStore.read_string(e, "category", "?"), "category" + at)
-		assert_eq(g.title, SaveStore.read_string(e, "title", "?"), "title" + at)
+		# DIVERGENCE(MVP R4, user 2026-09-29): the modes are renamed in titles and descriptions.
+		assert_eq(g.title, _renamed(SaveStore.read_string(e, "title", "?")), "title" + at)
 		# DIVERGENCE(ECON R1): rewards ×50, and the two "milestone points" goals count
 		# in those units (targets 500 / 1,250, their descriptions say so).
 		var id: String = SaveStore.read_string(e, "id", "?")
@@ -64,9 +65,14 @@ func test_catalog_matches_the_typescript_in_order() -> void:
 			target *= GoalManager.MILESTONE_REWARD_SCALE
 		else:
 			var want_desc: String = SaveStore.read_string(e, "description", "?")
-			assert_eq(g.description, want_desc, "description" + at)
+			assert_eq(g.description, _renamed(want_desc), "description" + at)
 		assert_eq(g.target, target, "target" + at)
 		var reward: int = SaveStore.read_int(e, "rewardPoints", -1)
 		assert_eq(g.reward_points, reward * GoalManager.MILESTONE_REWARD_SCALE, "reward" + at)
 		assert_eq(g.metric, SaveStore.read_string(e, "metric", "?"), "metric" + at)
 		assert_eq(g.target_id, SaveStore.read_string(e, "targetId", "?"), "targetId" + at)
+
+
+## The TS mode names, as the player now sees them (MVP R4).
+func _renamed(text: String) -> String:
+	return text.replace("Code Red", "Overdrive").replace("Gauntlet", "Corridor")
