@@ -4,12 +4,21 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**Latest (2026-09-29): MVP Week 1, first run is code-complete** (786 tests green, A55
+**Latest (2026-09-29): MVP Week 1, analytics is specced** (no code yet; suite still 786).
+Ruling MVP R6 (the user said "just proceed", so the assistant picked): Firebase Analytics +
+Crashlytics behind one `Telemetry` autoload facade. Spec:
+`docs/superpowers/specs/2026-09-29-analytics-crashes-design.md`. **Next, literally:**
+build its §6 step 1 (facade with a null and a recording backend, `GameStats.killer`, the
+`run_start`/`run_end`/`upgrade_buy`/`achievement` wiring, the Settings toggle; all tested,
+needs nothing from the user), then step 2 (`VERIFY-ME.md` §MVP R6: the user creates the
+Firebase project and supplies `google-services.json`). Steps 3-4 (plugin, Gradle, symbol
+upload, test crash) wait for that file. After analytics: back button, haptics, AAB, mode
+renames (needs the user's names), the tablet texture error.
+
+**Before that (2026-09-29): MVP Week 1, first run is code-complete** (786 tests green, A55
 pass pending, `VERIFY-ME.md` §MVP R5). `RunController.is_first_run`
-(`first_run_done` unset and `best_score == 0`) gently ramps the swarm (0.5×) and shows
-the HUD's one-time hint. **Next in Week 1:** analytics + crashes (architectural: spec it
-first, needs the user's Firebase or GameAnalytics account), then back button, haptics,
-AAB, mode renames (needs the user's names), and the tablet texture error.
+(`first_run_done` unset and `best_score == 0`) gently ramps the swarm (0.5x) and shows
+the HUD's one-time hint.
 
 **Before that (2026-09-29): the game is feature-complete and in players' hands; next is the
 MVP for a Play Store closed test.** The plan for that, with the user's rulings and

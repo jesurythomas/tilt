@@ -55,7 +55,13 @@ opted-in testers, before production.
 ### Week 1 — make a test worth running
 - [ ] **Analytics + crashes** (Firebase Analytics + Crashlytics, or GameAnalytics):
   retention on day 1 and 7, session length, runs per session, death cause and time, mode
-  choice, Armory purchases. ~1.5 days.
+  choice, Armory purchases. ~1.5 days. **Ruling MVP R6: Firebase** (assistant's pick; the
+  user said "just proceed"). Spec: `docs/superpowers/specs/2026-09-29-analytics-crashes-design.md`.
+  - [x] Spec written.
+  - [ ] Step 1: `Telemetry` facade, `GameStats.killer`, event wiring, Settings toggle, tests.
+  - [ ] Step 2: `VERIFY-ME.md` §MVP R6 (user: Firebase project, SHA-1s, `google-services.json`).
+  - [ ] Step 3: plugin + Gradle + symbol upload; check events in DebugView on the A55.
+  - [ ] Step 4: forced test crash appears symbolicated; remove the debug row.
 - [x] **First run.** *(Code-complete 2026-09-29; A55 pass pending, `VERIFY-ME.md` §MVP R5.)*
   New saves already started on Standard. Added: a one-time hint ("Fly into orbs. They fire
   themselves.") and a gentler first run. Ruling MVP R5 (user approved the design in chat):

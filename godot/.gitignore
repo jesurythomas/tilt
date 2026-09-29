@@ -3,3 +3,6 @@ build/
 *.apk
 *.aab
 *.idsig
+
+# Firebase config (MVP R6): the user decides whether it is committed
+godot/android/build/google-services.json
