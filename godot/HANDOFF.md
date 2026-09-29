@@ -4,9 +4,9 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**Latest (2026-09-29): MVP Week 1, analytics step 1 is done** (803 tests green, gdformat and
-gdlint clean; nothing run on a device). Ruling MVP R6: Firebase Analytics + Crashlytics
-behind one `Telemetry` autoload facade. Spec:
+**Latest (2026-09-29): MVP Week 1, analytics steps 1-2 are done; steps 3-4 wait on the
+user** (803 tests green, gdformat and gdlint clean; nothing run on a device). Ruling MVP R6:
+Firebase Analytics + Crashlytics behind one `Telemetry` autoload facade. Spec:
 `docs/superpowers/specs/2026-09-29-analytics-crashes-design.md`. Built (spec §6 step 1):
 `src/core/telemetry.gd` (autoload; `log_event`, `run_start`, `run_end`, `upgrade_buy`, and
 `achievement` from `GameEvents.goal_completed`), `src/core/telemetry_backend.gd` (the null
@@ -14,14 +14,18 @@ backend; the Firebase one will extend it), `tests/recording_telemetry_backend.gd
 `GameStats.killer` (set in `RunController._collide`, and `"maze_wall"` for a Gauntlet crush),
 `GameSettings.share_usage_data` (Settings row "Share anonymous usage data", `UsageSwitch`).
 Callers: `GameRoot._begin_cinematic` (run_start), `GameRoot._on_run_ended` (run_end),
-`ArmoryUI._log_buy` (upgrade_buy). No sim class calls Telemetry. **Next, literally:** spec
-§6 step 2, write `VERIFY-ME.md` §MVP R6 (the user creates the Firebase project, registers
-the four SHA-1s, drops in `google-services.json`; one Settings-layout item is already
-there). Then steps 3-4 once the file exists; step 3 also wires the events not yet sent
-(`mode_select`, `first_run_hint`, `settings_change`, `screen`, user properties, `Log.error`
-forwarding). Tests that swap `Telemetry.backend` must restore it and reset
-`Telemetry.run_count`. After analytics: back button, haptics, AAB, mode renames (needs the
-user's names), the tablet texture error.
+`ArmoryUI._log_buy` (upgrade_buy). No sim class calls Telemetry. Step 2 done: `VERIFY-ME.md`
+§MVP R6 part B is the user's Firebase checklist (project, package `com.jtg.perilpoint`, the
+A55 debug-key and dev-key SHA-1s already filled in, `google-services.json` into
+`godot/android/build/`). **Blocked on the user saying "Firebase done".** Then spec §6 step 3
+(check which Firebase plugin is maintained for Godot 4.7 or write a small Kotlin one; Gradle
+plugins; symbol upload in `tools/release.sh`; DebugView on the A55) and step 3 also wires the
+events not yet sent (`mode_select`, `first_run_hint`, `settings_change`, `screen`, user
+properties, `Log.error` forwarding), then step 4 (forced test crash). Tests that swap
+`Telemetry.backend` must restore it and reset `Telemetry.run_count`. **Meanwhile, unblocked
+and next in the roadmap's Week 1:** the Android back button and backgrounding (M11a Q3 in
+`VERIFY-ME.md`), then haptics, AAB + upload key, mode renames (needs the user's names), the
+tablet texture error.
 
 **Before that (2026-09-29): MVP Week 1, first run is code-complete** (786 tests green, A55
 pass pending, `VERIFY-ME.md` §MVP R5). `RunController.is_first_run`

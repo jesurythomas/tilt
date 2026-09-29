@@ -841,9 +841,48 @@ Code-complete; nothing below has run on a phone. Use a fresh install, or Setting
 
 ## MVP R6 — analytics and crashes (2026-09-29)
 
-Step 1 (the facade) is code-complete. The Firebase setup below is written at step 2.
+Step 1 (the facade) is code-complete; nothing here has run on a phone. Part A is code-only
+checks; Part B is your Firebase setup, which blocks spec §6 steps 3-4 (the plugin and the
+test crash). Spec: `docs/superpowers/specs/2026-09-29-analytics-crashes-design.md`.
+
+### Part A — the Settings toggle
 
 - [ ] 1. Settings → Data shows "Share anonymous usage data" above Reset progress, on by
       default, and the board still fits on the A55 and the tablet (scrolls or fits; nothing
       is cut off). Turn it off, close and reopen the game: it stays off. Settings → Reset
       progress keeps it off.
+
+### Part B — Firebase setup (you do this once; it unblocks the plugin work)
+
+Nothing in the game changes until this is done. Do it in a browser, no code.
+
+- [ ] 2. Create a Firebase project at console.firebase.google.com (any name, e.g. "Peril
+      Point"). Leave Google Analytics **on** when it asks; pick or create an Analytics
+      account. Default data-sharing settings are fine.
+- [ ] 3. In the project, **Add app → Android**. Package name must be exactly
+      `com.jtg.perilpoint`. Nickname optional. Skip the "SHA-1" box for now; add them in 4.
+- [ ] 4. Project settings → Your apps → the Android app → **Add fingerprint**, once per key.
+      Register these two now (read from your local keystores on 2026-09-29):
+
+      | Key | Used by | SHA-1 |
+      |---|---|---|
+      | Godot debug key (`androiddebugkey`) | the A55 build | `32:B2:72:54:90:D5:C6:17:4E:4E:D5:65:B1:2E:C9:BC:19:C2:65:AD` |
+      | `peril-dev-release.keystore` (alias `perildev`) | the tablet build, `tools/release.sh` default | `67:3D:0C:8F:C9:C5:6E:B3:F9:C5:1E:A8:29:E2:C5:12:B8:E3:95:3B` |
+
+      Two more come later, not now: the Play **upload key** (when you make it, replacing the
+      throwaway dev key) and Google's **app-signing key** (Play Console → Setup → App
+      signing, once the app is created). A key that is missing here silently drops that
+      build's reports.
+- [ ] 5. **Download `google-services.json`** from that page (step 1 of the console's Android
+      wizard, or Project settings → Your apps). Save it as
+      `godot/android/build/google-services.json`. That path is git-ignored; it is not a
+      secret, and whether to commit it is your call.
+- [ ] 6. Firebase console → Build → **Crashlytics** → Enable. It will wait for a first
+      crash; that comes at spec §6 step 4.
+- [ ] 7. Tell the next session "Firebase done". It then does spec §6 step 3: it checks which
+      Firebase plugin is maintained for Godot 4.7 (or writes a small Kotlin one), wires the
+      Gradle and Crashlytics plugins, and installs on the A55 to watch DebugView
+      (`adb -s RRCXB04L8EJ shell setprop debug.firebase.analytics.app com.jtg.perilpoint`).
+- [ ] 8. EEA/UK consent: nothing to do yet. Until the UMP dialog lands (MVP R1) collection
+      is planned to be off on the EEA path; the Play Data safety form must match the
+      Settings toggle (analytics collected, optional).

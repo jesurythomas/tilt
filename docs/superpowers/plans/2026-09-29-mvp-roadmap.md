@@ -64,9 +64,11 @@ opted-in testers, before production.
     `mode_select`, `first_run_hint`, `settings_change`, `screen`, the user properties, and
     `Log.error` forwarding. The Settings row is "Share anonymous usage data", saved as
     `shareUsageData`; Reset keeps an opt-out.)*
-  - [ ] Step 2: `VERIFY-ME.md` §MVP R6 (user: Firebase project, SHA-1s, `google-services.json`).
-  - [ ] Step 3: plugin + Gradle + symbol upload; check events in DebugView on the A55.
-  - [ ] Step 4: forced test crash appears symbolicated; remove the debug row.
+  - [x] Step 2: `VERIFY-ME.md` §MVP R6 part B written *(2026-09-29; the A55 debug-key and
+    dev-key SHA-1s are in it)*. **User action pending:** Firebase project, fingerprints,
+    `google-services.json`, then say "Firebase done".
+  - [ ] Step 3 (blocked on the user's Firebase setup): plugin + Gradle + symbol upload; check events in DebugView on the A55.
+  - [ ] Step 4 (after 3): forced test crash appears symbolicated; remove the debug row.
 - [x] **First run.** *(Code-complete 2026-09-29; A55 pass pending, `VERIFY-ME.md` §MVP R5.)*
   New saves already started on Standard. Added: a one-time hint ("Fly into orbs. They fire
   themselves.") and a gentler first run. Ruling MVP R5 (user approved the design in chat):
