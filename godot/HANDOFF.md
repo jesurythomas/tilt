@@ -17,6 +17,9 @@ which now calls it with `[HandlingPreview]`). Tests in `test_tilt_menu.gd`. Veri
 `godot/bench/shot_settings.gd` (windowed shot at 2340x1080, top and end). Not fixed, predates
 this: the Touch and Tilt scheme cards clip "Drag anywhe…" and "Tilt the…" at that size.
 The arena work below is unchanged and still awaits the A55 pass.
+Version is now 0.1.3 (code 4). The shared dev-key APK `godot/build/peril-point-0.1.3.apk`
+has everything above (renames, ten themes and skins, arena patterns, Settings scroll). The A55
+has the same content as 0.1.2 (code 3, A55 key), so the next A55 build must use code 4.
 
 **Before that (2026-09-29): every arena theme now has its own look, phase 1 (background pattern
 and motion) is code-complete** (828 tests green, gdformat and gdlint clean, 0 SCRIPT ERROR
