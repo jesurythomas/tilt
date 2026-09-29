@@ -235,7 +235,7 @@ func update(
 	# 3.5 Update Gauntlet Descending Maze Walls (blocks player, pushes downwards)
 	# PORT: web/src/tilt-to-live/TiltGame.ts:1893-1904 — spec §5.4 step 4
 	if mode == Types.GameMode.GAUNTLET:
-		maze.update(dt, bounds, player, scores.stats.score, elapsed, particles, lose_life)
+		maze.update(dt, bounds, player, scores.stats.score, elapsed, particles, _on_maze_crush)
 
 	# 4. Update Swarm Enemies
 	# PORT: web/src/tilt-to-live/TiltGame.ts:1906-1914
@@ -389,6 +389,7 @@ func _collide(i: int, plx: float, ply: float, plr: float) -> int:
 				_shatter_cascade(e.x, e.y)
 			return COLLIDE_REMOVED
 		# Crash costs a life
+		scores.stats.killer = str(Types.EnemyType.find_key(e.type)).to_lower()  # DIVERGENCE(MVP R6)
 		lose_life()
 		return COLLIDE_CRASH
 
@@ -452,6 +453,12 @@ func credit_run_points(amount: int) -> int:
 	var credited: int = progression.add_points_credited(amount)
 	points_credited_this_run += credited
 	return credited
+
+
+## The maze's crush callback: lose_life, naming the wall as the killer (DIVERGENCE(MVP R6)).
+func _on_maze_crush() -> void:
+	scores.stats.killer = "maze_wall"
+	lose_life()
 
 
 ## Decrements lives or triggers player death.

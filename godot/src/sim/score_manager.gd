@@ -59,6 +59,7 @@ func reset() -> void:
 	stats.survival_time = 0.0
 	stats.best_combo = 0
 	stats.close_calls = 0
+	stats.killer = "unknown"  # DIVERGENCE(MVP R6)
 
 	combo_count = 0
 	combo_timer = 0.0

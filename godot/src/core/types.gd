@@ -180,3 +180,6 @@ class GameStats:
 	var survival_time: float = 0.0
 	var best_combo: int = 0
 	var close_calls: int = 0
+	## DIVERGENCE(MVP R6): the snake_case name of what took the last life, for
+	## analytics; "unknown" until a death sets it. No TS counterpart.
+	var killer: String = "unknown"

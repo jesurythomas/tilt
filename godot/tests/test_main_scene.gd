@@ -1,4 +1,4 @@
-# gdlint:disable=max-public-methods
+# gdlint:disable=max-public-methods,max-file-lines
 ## test_main_scene.gd
 ## PORTS: nothing — new file, covers scenes/main.tscn
 extends GutTest
@@ -343,6 +343,66 @@ func test_pause_switches_write_settings_through_game_root() -> void:
 	var music: CheckButton = root.find_child("MusicSwitch", true, false) as CheckButton
 	music.button_pressed = false
 	assert_false(root.options.settings.music_enabled)
+
+
+func test_runs_log_run_start_and_run_end_to_telemetry() -> void:
+	var rec: RecordingTelemetryBackend = RecordingTelemetryBackend.new()
+	var previous: TelemetryBackend = Telemetry.backend
+	Telemetry.backend = rec
+	Telemetry.run_count = 0
+	var root: GameRoot = await _boot_into_run()
+	assert_eq(
+		rec.last_params("run_start"),
+		{
+			"mode": "classic",
+			"first_run": 1,
+			"run_index": 1,
+			"ship": root.progression.data.equipped_cursor_id,
+			"arena": root.progression.data.equipped_arena_theme_id,
+		},
+		"MVP R6: launch_run logs run_start"
+	)
+	root._run_controller.scores.stats.score = 900
+	root._run_controller.trigger_player_death()
+	var ended: Dictionary = rec.last_params("run_end")
+	assert_eq(
+		[ended["mode"], ended["score"], ended["first_run"], ended["is_best"]],
+		["classic", 900, 1, 1],
+		"first_run is read before death clears it"
+	)
+	assert_eq(
+		[ended["lives_used"], ended["killer"]],
+		[root._run_controller.max_lives, "unknown"],
+		"no enemy touched the ship"
+	)
+	root.restart_run()
+	var restarted: Dictionary = rec.last_params("run_start")
+	assert_eq([restarted["run_index"], restarted["first_run"]], [2, 0], "restart is a new run")
+	Telemetry.backend = previous
+
+
+func test_reset_progress_keeps_the_usage_opt_out() -> void:
+	var saved: GameOptionsManager = GameOptionsManager.new()
+	saved.settings.share_usage_data = false
+	saved.settings.first_run_done = true
+	saved.save()
+	GameRoot.reset_progress_files(true)
+	var after: GameOptionsManager = GameOptionsManager.new()
+	assert_false(after.settings.share_usage_data, "a reset must not turn analytics back on")
+	assert_false(after.settings.first_run_done, "everything else is reset")
+	GameRoot.reset_progress_files(false)
+	assert_true(GameOptionsManager.new().settings.share_usage_data, "no opt-out: back to default")
+
+
+func test_boot_applies_the_saved_usage_opt_out() -> void:
+	var saved: GameOptionsManager = GameOptionsManager.new()
+	saved.settings.share_usage_data = false
+	saved.save()
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	assert_false(Telemetry.enabled, "MVP R6: the opt-out is honoured from the first frame")
+	Telemetry.enabled = true
 
 
 func test_pause_restart_run_starts_a_fresh_run() -> void:

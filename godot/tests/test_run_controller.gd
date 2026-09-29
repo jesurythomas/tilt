@@ -114,6 +114,31 @@ func test_collision_with_enemy_triggers_death_when_single_life() -> void:
 	assert_eq(_rc.lives, 0, "lives must be zero")
 
 
+func test_killer_defaults_unknown_and_names_the_enemy_that_ended_the_run() -> void:
+	_rc.reset_run(_bounds)
+	assert_eq(_scores.stats.killer, "unknown", "no death yet")
+	_swarm.spawn_seeker(_bounds, _player.x, _player.y)
+	_rc.check_collisions()
+	assert_eq(_scores.stats.killer, "seeker", "DIVERGENCE(MVP R6): the EnemyType, snake_case")
+	_rc.reset_run(_bounds)
+	assert_eq(_scores.stats.killer, "unknown", "cleared for the next run")
+
+
+func test_killer_is_maze_wall_when_the_gauntlet_crushes_the_ship() -> void:
+	_options.set_mode(Types.GameMode.GAUNTLET)
+	_rc.reset_run(_bounds)
+	var row: GauntletMaze.GauntletWallRow = GauntletMaze.GauntletWallRow.new()
+	row.y = _bounds.y - 40.0
+	row.height = 40.0
+	row.segments = [GauntletMaze.WallSegment.new(0.0, _bounds.x)]
+	row.gaps = [GauntletMaze.MazeGap.new(0.0, 0.0)]
+	_maze.rows = [row]
+	_player.x = _bounds.x * 0.5
+	_player.y = _bounds.y - 10.0
+	_tick()
+	assert_eq(_scores.stats.killer, "maze_wall")
+
+
 func test_collision_with_shield_destroys_enemy() -> void:
 	_rc.reset_run(_bounds)
 	_player.activate_shield(3.0)

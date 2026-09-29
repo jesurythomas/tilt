@@ -4,16 +4,24 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**Latest (2026-09-29): MVP Week 1, analytics is specced** (no code yet; suite still 786).
-Ruling MVP R6 (the user said "just proceed", so the assistant picked): Firebase Analytics +
-Crashlytics behind one `Telemetry` autoload facade. Spec:
-`docs/superpowers/specs/2026-09-29-analytics-crashes-design.md`. **Next, literally:**
-build its §6 step 1 (facade with a null and a recording backend, `GameStats.killer`, the
-`run_start`/`run_end`/`upgrade_buy`/`achievement` wiring, the Settings toggle; all tested,
-needs nothing from the user), then step 2 (`VERIFY-ME.md` §MVP R6: the user creates the
-Firebase project and supplies `google-services.json`). Steps 3-4 (plugin, Gradle, symbol
-upload, test crash) wait for that file. After analytics: back button, haptics, AAB, mode
-renames (needs the user's names), the tablet texture error.
+**Latest (2026-09-29): MVP Week 1, analytics step 1 is done** (803 tests green, gdformat and
+gdlint clean; nothing run on a device). Ruling MVP R6: Firebase Analytics + Crashlytics
+behind one `Telemetry` autoload facade. Spec:
+`docs/superpowers/specs/2026-09-29-analytics-crashes-design.md`. Built (spec §6 step 1):
+`src/core/telemetry.gd` (autoload; `log_event`, `run_start`, `run_end`, `upgrade_buy`, and
+`achievement` from `GameEvents.goal_completed`), `src/core/telemetry_backend.gd` (the null
+backend; the Firebase one will extend it), `tests/recording_telemetry_backend.gd`,
+`GameStats.killer` (set in `RunController._collide`, and `"maze_wall"` for a Gauntlet crush),
+`GameSettings.share_usage_data` (Settings row "Share anonymous usage data", `UsageSwitch`).
+Callers: `GameRoot._begin_cinematic` (run_start), `GameRoot._on_run_ended` (run_end),
+`ArmoryUI._log_buy` (upgrade_buy). No sim class calls Telemetry. **Next, literally:** spec
+§6 step 2, write `VERIFY-ME.md` §MVP R6 (the user creates the Firebase project, registers
+the four SHA-1s, drops in `google-services.json`; one Settings-layout item is already
+there). Then steps 3-4 once the file exists; step 3 also wires the events not yet sent
+(`mode_select`, `first_run_hint`, `settings_change`, `screen`, user properties, `Log.error`
+forwarding). Tests that swap `Telemetry.backend` must restore it and reset
+`Telemetry.run_count`. After analytics: back button, haptics, AAB, mode renames (needs the
+user's names), the tablet texture error.
 
 **Before that (2026-09-29): MVP Week 1, first run is code-complete** (786 tests green, A55
 pass pending, `VERIFY-ME.md` §MVP R5). `RunController.is_first_run`
@@ -1737,7 +1745,7 @@ block and output: "## How to verify right now" above. Full report:
 
 **Now (2026-09-29): the MVP roadmap.** Read `docs/superpowers/plans/2026-09-29-mvp-roadmap.md`
 and work its Week 1 top down:
-1. analytics and crash reporting;
+1. analytics and crash reporting (step 1 done; step 2 is next, see Latest above);
 2. the first run (Standard by default, a one-time hint);
 3. the Android back button and pause on focus loss;
 4. haptics;

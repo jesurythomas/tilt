@@ -152,6 +152,7 @@ func _ready() -> void:
 	_tilt.tilt_sensitivity = settings.tilt_sensitivity
 	_tilt.tilt_smoothing = settings.tilt_smoothing
 	_state = GameStateMachine.new(_player, _grid, _particles, _router, _tilt, _audio, options)
+	Telemetry.set_enabled(options.settings.share_usage_data)  # DIVERGENCE(MVP R6)
 
 	_grid_layer.bind(_grid)
 	apply_readability()
@@ -573,6 +574,13 @@ func _begin_cinematic() -> void:
 	_apply_game_mode()
 	_cinematic.start(_bounds.x, _bounds.y, _state.mode)
 	GameEvents.phase_changed.emit(Types.GamePhase.CINEMATIC)
+	# DIVERGENCE(MVP R6): analytics, after the cold open starts (launch and restart).
+	Telemetry.run_start(
+		GameOptionsManager.MODE_IDS[_run_controller.mode],
+		_run_controller.is_first_run,
+		progression.data.equipped_cursor_id,
+		progression.data.equipped_arena_theme_id
+	)
 
 
 ## The TS cinematic's onFinish, GameRoot's half (M11b R6).
@@ -649,7 +657,9 @@ func set_music_enabled(is_on: bool) -> void:
 # ScoreManager.ts:162 is 'tilt_to_live_best'), so a TS reset keeps points, unlocks and the
 # best score despite its prompt (:508). The user ruled the port deletes them.
 # 'tilt_goals_hud_collapsed' (:517) has no port file; control settings and calibration stay.
-static func reset_progress_files() -> void:
+# DIVERGENCE(MVP R6): `keep_opt_out` re-saves a player's analytics opt-out, which a
+# progress reset must not undo.
+static func reset_progress_files(keep_opt_out: bool = false) -> void:
 	# DIVERGENCE(M11c P16, review fix): finish every queued write first, or the writer
 	# (or _exit_tree's flush on the scene reload) would write a deleted file back.
 	SaveStore.flush()
@@ -663,11 +673,15 @@ static func reset_progress_files() -> void:
 		var absolute: String = ProjectSettings.globalize_path(path)
 		if FileAccess.file_exists(absolute):
 			DirAccess.remove_absolute(absolute)
+	if keep_opt_out:
+		SaveStore.save_dict(
+			GameOptionsManager.SAVE_PATH, {GameOptionsManager.SHARE_USAGE_KEY: false}
+		)
 
 
 ## PORT: web/src/tilt-to-live/TiltMenu.ts:510-520 — window.location.reload() becomes a scene reload.
 func reset_progress() -> void:
-	reset_progress_files()
+	reset_progress_files(not options.settings.share_usage_data)
 	get_tree().reload_current_scene.call_deferred()
 
 
@@ -814,7 +828,15 @@ func resize_canvas() -> void:
 # emits GameEvents.run_ended and GameEvents.phase_changed(GAME_OVER) — a sim
 # system may not hold GamePhase (spec §5.3, sim→game only via signals). The
 # shell mirrors the sim's run_ended signal here instead.
-func _on_run_ended(_final_score: int, _stats: Types.GameStats) -> void:
+func _on_run_ended(_final_score: int, stats: Types.GameStats) -> void:
+	# DIVERGENCE(MVP R6): analytics. The run ends only in death, so every life was used.
+	Telemetry.run_end(
+		GameOptionsManager.MODE_IDS[_run_controller.mode],
+		stats,
+		_run_controller.is_first_run,
+		_run_controller.max_lives,
+		_scores.is_new_best
+	)
 	_state.phase = Types.GamePhase.GAME_OVER
 	_effect_layer.set_banner_shown(false)
 	_goals_hud.render()  # PORT: web/src/tilt-to-live/TiltGame.ts:2146

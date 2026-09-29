@@ -753,6 +753,7 @@ func _bind_options_events() -> void:
 	# applies audio at once, as Pause does (TiltGame.ts:1396-1416).
 	_find_options_button("SfxSwitch").toggled.connect(_on_sfx_toggled)
 	_find_options_button("MusicSwitch").toggled.connect(_on_music_toggled)
+	_find_options_button("UsageSwitch").toggled.connect(_on_usage_toggled)
 	# PORT: web/src/tilt-to-live/TiltMenu.ts:472-483 (ruling R7: the ControlSettings schemes)
 	_find_options_button("SchemeCard_touch").pressed.connect(
 		_on_scheme_card_pressed.bind(Types.ControlScheme.MOUSE)
@@ -808,6 +809,14 @@ func _on_sfx_toggled(is_on: bool) -> void:
 # PORT: web/src/tilt-to-live/TiltMenu.ts:466-470 (M11a Q2: GameRoot saves and applies)
 func _on_music_toggled(is_on: bool) -> void:
 	music_toggled.emit(is_on)
+	open_options_modal()
+
+
+# DIVERGENCE(MVP R6): no TS counterpart. Saves the opt-out and applies it at once.
+func _on_usage_toggled(is_on: bool) -> void:
+	_options.settings.share_usage_data = is_on
+	_options.save()
+	Telemetry.set_enabled(is_on)
 	open_options_modal()
 
 
@@ -1073,6 +1082,10 @@ func _audio_column() -> VBoxContainer:
 	data.add_theme_constant_override("margin_top", _px(DATA_TOP))
 	data.add_child(_section_heading("Data"))  # PORT: :397
 	column.add_child(data)
+	# DIVERGENCE(MVP R6): the analytics opt-out, above Reset (spec §3).
+	column.add_child(
+		_switch_card("UsageSwitch", "Share anonymous usage data", "", s.share_usage_data)
+	)
 	var card: PanelContainer = _options_card()
 	# PORT: :400 (label); the hint is the board's (R6)
 	var row: HBoxContainer = _card_row("Reset progress", "Cannot be undone.")

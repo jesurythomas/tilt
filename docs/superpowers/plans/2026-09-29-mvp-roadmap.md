@@ -58,7 +58,12 @@ opted-in testers, before production.
   choice, Armory purchases. ~1.5 days. **Ruling MVP R6: Firebase** (assistant's pick; the
   user said "just proceed"). Spec: `docs/superpowers/specs/2026-09-29-analytics-crashes-design.md`.
   - [x] Spec written.
-  - [ ] Step 1: `Telemetry` facade, `GameStats.killer`, event wiring, Settings toggle, tests.
+  - [x] Step 1: `Telemetry` facade, `GameStats.killer`, event wiring, Settings toggle, tests.
+    *(2026-09-29, 803 tests. Wired: `run_start`, `run_end`, `upgrade_buy`, `achievement`. Not
+    yet wired, spec §4, do with step 3 when the events can be seen in DebugView:
+    `mode_select`, `first_run_hint`, `settings_change`, `screen`, the user properties, and
+    `Log.error` forwarding. The Settings row is "Share anonymous usage data", saved as
+    `shareUsageData`; Reset keeps an opt-out.)*
   - [ ] Step 2: `VERIFY-ME.md` §MVP R6 (user: Firebase project, SHA-1s, `google-services.json`).
   - [ ] Step 3: plugin + Gradle + symbol upload; check events in DebugView on the A55.
   - [ ] Step 4: forced test crash appears symbolicated; remove the debug row.

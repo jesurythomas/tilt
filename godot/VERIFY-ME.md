@@ -839,3 +839,11 @@ Code-complete; nothing below has run on a phone. Use a fresh install, or Setting
 - [ ] 5. After the first death, the second run has no hint and the normal ramp.
 - [ ] 6. Your existing A55 save (best score above 0) never shows the hint.
 
+## MVP R6 — analytics and crashes (2026-09-29)
+
+Step 1 (the facade) is code-complete. The Firebase setup below is written at step 2.
+
+- [ ] 1. Settings → Data shows "Share anonymous usage data" above Reset progress, on by
+      default, and the board still fits on the A55 and the tablet (scrolls or fits; nothing
+      is cut off). Turn it off, close and reopen the game: it stays off. Settings → Reset
+      progress keeps it off.

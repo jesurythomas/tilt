@@ -1532,7 +1532,9 @@ func _on_weapon_item_pressed(id: String) -> void:
 
 ## PORT: web/src/tilt-to-live/ArmoryUI.ts:1156-1168
 func _on_track_pressed(weapon: String, track: String) -> void:
+	var before: int = progression.data.points
 	if progression.upgrade_perk(weapon, track):
+		_log_perk_buy(weapon, track, before)
 		state_changed.emit()
 		_pop_pips = "TrackPips_" + track
 		render()
@@ -1541,7 +1543,9 @@ func _on_track_pressed(weapon: String, track: String) -> void:
 
 ## PORT: web/src/tilt-to-live/ArmoryUI.ts:1171-1183
 func _on_keystone_pressed(weapon: String, keystone: String) -> void:
+	var before: int = progression.data.points
 	if progression.upgrade_perk(weapon, keystone):
+		_log_perk_buy(weapon, keystone, before)
 		state_changed.emit()
 		render()
 		_flash_balance()
@@ -1551,7 +1555,13 @@ func _on_keystone_pressed(weapon: String, keystone: String) -> void:
 func _on_boost_pressed(boost_id: String) -> void:
 	for boost: BoostConfig in boosts_catalog:
 		if boost.id == boost_id:
+			var before: int = progression.data.points
 			if boost.buy.call():
+				var rank_value: Variant = boost.get_rank.call()  # Variant, as at :1454
+				var rank: int = 0
+				if rank_value is int:
+					rank = rank_value
+				_log_buy("boost", boost_id, rank, before)
 				state_changed.emit()
 				_pop_pips = "BoostPips_" + boost_id
 				render()
@@ -1561,7 +1571,9 @@ func _on_boost_pressed(boost_id: String) -> void:
 
 ## PORT: web/src/tilt-to-live/ArmoryUI.ts:1199-1207
 func _on_buy_ship_pressed(id: String) -> void:
+	var before: int = progression.data.points
 	if progression.buy_ship(id):
+		_log_buy("ship", id, 1, before)
 		state_changed.emit()
 		render()
 		_flash_balance()
@@ -1576,7 +1588,9 @@ func _on_equip_ship_pressed(id: String) -> void:
 
 ## PORT: web/src/tilt-to-live/ArmoryUI.ts:1220-1228
 func _on_buy_arena_pressed(id: String) -> void:
+	var before: int = progression.data.points
 	if progression.buy_arena_theme(id):
+		_log_buy("arena", id, 1, before)
 		state_changed.emit()
 		render()
 		_flash_balance()
@@ -1591,7 +1605,9 @@ func _on_equip_arena_pressed(id: String) -> void:
 
 ## PORT: web/src/tilt-to-live/ArmoryUI.ts:1241-1249
 func _on_buy_enemy_pressed(id: String) -> void:
+	var before: int = progression.data.points
 	if progression.buy_enemy_skin(id):
+		_log_buy("skin", id, 1, before)
 		state_changed.emit()
 		render()
 		_flash_balance()
@@ -1623,6 +1639,22 @@ func _pop_new_pip() -> void:
 	var pop: Tween = create_tween()
 	pop.tween_callback(func() -> void: newest.pivot_offset = newest.size / 2.0)
 	pop.tween_property(newest, "scale", Vector2.ONE, PIP_POP_SECONDS)
+
+
+## DIVERGENCE(MVP R6): analytics. The cost is the balance drop, so no price lookup.
+func _log_buy(kind: String, id: String, rank: int, balance_before: int) -> void:
+	var after: int = progression.data.points
+	Telemetry.upgrade_buy(kind, id, rank, balance_before - after, after)
+
+
+## DIVERGENCE(MVP R6): a perk's rank is its int, or 1 for an unlocked keystone (a bool).
+func _log_perk_buy(weapon: String, perk: String, balance_before: int) -> void:
+	var weapon_perks: Dictionary = progression.data.perks.to_dict()[weapon]
+	var value: Variant = weapon_perks[perk]
+	var rank: int = 1
+	if value is int:
+		rank = value
+	_log_buy("perk", "%s.%s" % [weapon, perk], rank, balance_before)
 
 
 ## DIVERGENCE(M11c review, emulator play 2026-09-27): a purchase gave no feedback

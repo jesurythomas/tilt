@@ -159,6 +159,16 @@ func test_first_run_done_defaults_false_and_round_trips() -> void:
 	assert_true(again.settings.first_run_done, "firstRunDone survives a restart")
 
 
+func test_share_usage_data_defaults_on_and_round_trips() -> void:
+	var o: GameOptionsManager = GameOptionsManager.new()
+	assert_true(o.settings.share_usage_data, "DIVERGENCE(MVP R6): on until the player opts out")
+	o.settings.share_usage_data = false
+	o.save()
+	assert_false(GameOptionsManager.new().settings.share_usage_data, "the opt-out survives")
+	_write_raw('{"mode":"classic"}')
+	assert_true(GameOptionsManager.new().settings.share_usage_data, "old saves keep the default")
+
+
 func test_save_without_first_run_key_reads_as_not_done() -> void:
 	_write_raw('{"mode":"classic","sfxEnabled":true}')
 	var o: GameOptionsManager = GameOptionsManager.new()

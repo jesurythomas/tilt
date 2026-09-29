@@ -1,4 +1,4 @@
-# gdlint:disable=max-public-methods
+# gdlint:disable=max-public-methods,max-file-lines
 ## test_armory_ui.gd
 ## PORTS: nothing — new file, covers src/ui/armory_ui.gd, armory_theme.gd and
 ## scenes/armory.tscn
@@ -13,6 +13,8 @@ const FUNDED_POINTS: int = 7331
 var _armory: ArmoryUI = null
 var _progression: ProgressionManager = null
 var _settings: ControlSettings = null
+## Backends displaced by _record_telemetry; after_each puts the first back.
+var _displaced_backends: Array[TelemetryBackend] = []
 
 
 func _remove(path: String) -> void:
@@ -37,6 +39,9 @@ func before_each() -> void:
 
 
 func after_each() -> void:
+	if not _displaced_backends.is_empty():
+		Telemetry.backend = _displaced_backends[0]
+		_displaced_backends = []
 	_remove(ProgressionManager.SAVE_PATH)
 	_remove(SaveStore.corrupt_path_for(ProgressionManager.SAVE_PATH))
 	_remove(ControlSettings.SETTINGS_PATH)
@@ -389,6 +394,61 @@ func test_equip_ship_saves_and_emits() -> void:
 	_browse("Ship", "tactical")
 	assert_true(_button("EquippedShip_tactical").disabled, "re-rendered as equipped")
 	assert_eq(ProgressionManager.new().data.equipped_cursor_id, "tactical", "persisted")
+
+
+func _record_telemetry() -> RecordingTelemetryBackend:
+	var rec: RecordingTelemetryBackend = RecordingTelemetryBackend.new()
+	var previous: TelemetryBackend = Telemetry.backend
+	Telemetry.backend = rec
+	_displaced_backends.append(previous)
+	return rec
+
+
+func test_purchases_log_upgrade_buy() -> void:
+	var rec: RecordingTelemetryBackend = _record_telemetry()
+	_armory.open("ships")
+	_browse("Ship", "solar")
+	_button("BuyShip_solar").pressed.emit()
+	assert_eq(
+		rec.last_params("upgrade_buy"),
+		{"kind": "ship", "id": "solar", "rank": 1, "cost": 600, "balance_after": 7331 - 600}
+	)
+	_open_weapons("blackhole")
+	_button("Track_duration").pressed.emit()
+	assert_eq(
+		rec.last_params("upgrade_buy"),
+		{
+			"kind": "perk",
+			"id": "blackhole.duration",
+			"rank": 4,
+			"cost": 1000,
+			"balance_after": 7331 - 600 - 1000,
+		}
+	)
+
+
+func test_boost_purchase_logs_its_new_rank() -> void:
+	var rec: RecordingTelemetryBackend = _record_telemetry()
+	_armory.open("boosts")
+	_button("Boost_hullCompact").pressed.emit()
+	assert_eq(
+		rec.last_params("upgrade_buy"),
+		{
+			"kind": "boost",
+			"id": "hullCompact",
+			"rank": 1,
+			"cost": 800,
+			"balance_after": 7331 - 800,
+		}
+	)
+
+
+func test_refused_purchase_logs_nothing() -> void:
+	var rec: RecordingTelemetryBackend = _record_telemetry()
+	_progression.data.points = 10
+	_open_weapons("blackhole")
+	_button("Track_radius").pressed.emit()
+	assert_eq(rec.names.size(), 0)
 
 
 func test_buy_ship_charges_and_unlocks() -> void:

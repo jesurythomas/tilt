@@ -180,6 +180,21 @@ func test_halo_and_grid_switches_save_and_announce() -> void:
 	assert_signal_emit_count(menu, "readability_changed", 2, "R9: applied at once")
 
 
+func test_usage_switch_saves_and_opts_telemetry_out() -> void:
+	var rec: RecordingTelemetryBackend = RecordingTelemetryBackend.new()
+	var previous: TelemetryBackend = Telemetry.backend
+	Telemetry.backend = rec
+	var menu: TiltMenu = _settings_open()
+	var usage: CheckButton = menu.find_child("UsageSwitch", true, false) as CheckButton
+	assert_true(usage.button_pressed, "DIVERGENCE(MVP R6): sharing is on by default")
+	usage.toggled.emit(false)
+	assert_false(GameOptionsManager.new().settings.share_usage_data, "saved")
+	assert_false(Telemetry.enabled, "applied at once")
+	assert_eq(rec.collection_calls, [false] as Array[bool])
+	Telemetry.backend = previous
+	Telemetry.enabled = true
+
+
 func test_shake_segments_store_the_ts_ids() -> void:
 	var menu: TiltMenu = _settings_open()
 	(menu.find_child("ShakeLow", true, false) as Button).pressed.emit()
