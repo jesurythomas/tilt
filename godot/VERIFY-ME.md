@@ -871,10 +871,12 @@ constants. The export preset now has `permissions/vibrate=true`; this needs a fr
 `tools/release.sh` builds a Play bundle with `PERIL_AAB=1` (it flips the preset's
 `export_format` to AAB for that run only). A dev-key AAB was exported and checked
 (`jar verified`; the cert-chain warning is expected for a self-signed key). The real
-upload key does not exist yet: only you should make it.
+upload key exists now (interim, see item 1).
 
-- [ ] 1. Run `tools/make-upload-key.sh` (type a password, 12+ chars, twice). It writes
-      `~/.android/peril-upload.keystore` and `peril-upload.env` and prints the SHA-1.
+- [x] 1. Done 2026-09-29: `tools/make-upload-key.sh` wrote `~/.android/peril-upload.keystore`
+      and `peril-upload.env` (a throwaway-password interim key; replace at deployment).
+      Upload-key SHA-1: `32:90:37:AE:42:0E:42:95:84:D2:2B:16:C5:F6:27:28:3E:1B:CE:8D`.
+      An AAB signed with it exported and `keytool -printcert -jarfile` shows that SHA-1.
 - [ ] 2. Copy both files somewhere off this machine (a password manager or a drive).
       Losing the key means a reset request to Google.
 - [ ] 3. Add the printed upload-key SHA-1 to the Firebase app (R6 part B) when you do that.

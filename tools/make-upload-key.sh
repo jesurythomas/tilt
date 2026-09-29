@@ -2,11 +2,12 @@
 # Makes the Play Store upload key: ~/.android/peril-upload.keystore and the env file
 # ~/.android/peril-upload.env that tools/release.sh reads (PERIL_KEYS=...).
 #
-# Run it yourself (it asks for the password, twice), then BACK UP both files somewhere
+# It asks for the password twice, or reads PERIL_UPLOAD_PW when set. Then BACK UP both files somewhere
 # off this machine: losing the upload key means a support request to Google to reset it.
 # Never commit them.
 #
 # Usage:  tools/make-upload-key.sh
+#         PERIL_UPLOAD_PW='...' tools/make-upload-key.sh   (no prompt, e.g. from the ! prefix)
 
 set -euo pipefail
 
@@ -20,12 +21,20 @@ if [[ -e "$STORE" || -e "$ENVF" ]]; then
 	exit 1
 fi
 
-read -r -s -p "Password for the new upload key (12+ chars): " PW
-echo
-read -r -s -p "Again: " PW2
-echo
-if [[ "$PW" != "$PW2" || ${#PW} -lt 12 ]]; then
-	echo "FAIL: passwords differ or are shorter than 12 characters." >&2
+if [[ -n "${PERIL_UPLOAD_PW:-}" ]]; then
+	PW="$PERIL_UPLOAD_PW"
+else
+	read -r -s -p "Password for the new upload key (12+ chars): " PW
+	echo
+	read -r -s -p "Again: " PW2
+	echo
+	if [[ "$PW" != "$PW2" ]]; then
+		echo "FAIL: passwords differ." >&2
+		exit 1
+	fi
+fi
+if [[ ${#PW} -lt 12 ]]; then
+	echo "FAIL: password is shorter than 12 characters." >&2
 	exit 1
 fi
 

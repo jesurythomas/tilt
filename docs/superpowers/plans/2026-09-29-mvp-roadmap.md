@@ -90,9 +90,9 @@ opted-in testers, before production.
   preset's `gradle_build/export_format` must become AAB. ~0.5 day.
   Code done: `PERIL_AAB=1 tools/release.sh` flips the preset to AAB for one run and
   restores it (checked: a dev-key AAB exported, `jar verified`, arm64 libs and
-  `libperil` inside). `tools/make-upload-key.sh` makes the real upload key. **Waits on
-  the user:** run that script, back the key up, then enrol the app in Play App Signing
-  in the Play Console when the first AAB goes up.
+  `libperil` inside). `tools/make-upload-key.sh` makes the real upload key. Interim upload key made
+  2026-09-29 and checked with a signed AAB; **at deployment:** replace the key, back it up
+  off-machine, enrol the app in Play App Signing when the first AAB goes up.
 - [ ] **Mode renames (MVP R4)**, once the user picks names. ~0.5 day.
 - [ ] **Tablet:** find the empty-image texture error, using a debug build signed with the
   dev key so it installs over the release. Look into the > 20 ms frames. ~1 day.

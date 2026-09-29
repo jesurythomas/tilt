@@ -4,13 +4,13 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**Latest (2026-09-29): MVP Week 1, the AAB export is code-complete; the upload key waits on
-the user** (no game code changed, so tests were not re-run; a dev-key AAB exported and
+**Latest (2026-09-29): MVP Week 1, the AAB export is done with an interim upload key** (no game code changed, so tests were not re-run; a dev-key AAB exported and
 `jarsigner -verify` said `jar verified`). `PERIL_AAB=1 tools/release.sh` exports
 `godot/build/peril-point-<version>.aab`: it flips `gradle_build/export_format` to 1 for
 that run and restores it on exit, so the preset stays on APK for the tester builds.
-`tools/make-upload-key.sh` is for the **user** to run (it prompts for the password and
-writes `~/.android/peril-upload.keystore` + `.env`; I never read those files). Steps in
+`tools/make-upload-key.sh` was run by the user (`PERIL_UPLOAD_PW` skips the prompt): it made
+`~/.android/peril-upload.keystore` + `.env`, an interim key to replace at deployment; I never
+read those files. An AAB signed with it exported (`PERIL_AAB=1 PERIL_KEYS=~/.android/peril-upload.env`). Steps in
 `VERIFY-ME.md` §MVP Week 1 — AAB. Note for step 3 of analytics: the preset has
 `permissions/internet=false`; Firebase needs it on. Next in Week 1, unblocked: mode
 renames (needs the user's names), the tablet texture error. Analytics steps 3-4 still wait
