@@ -109,6 +109,13 @@ var _perf_measuring: bool = false
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_WM_CLOSE_REQUEST:
 		SaveStore.flush()
+	# DIVERGENCE(MVP Week 1): a run pauses when the app loses focus or is backgrounded.
+	if what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		pause_on_focus_loss()
+	# DIVERGENCE(MVP Week 1, M11a Q3): project.godot sets quit_on_go_back=false, so
+	# the Android back button lands here; only a bare menu lets it leave the app.
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST and not go_back() and is_in_menu():
+		get_tree().quit()
 
 
 func _exit_tree() -> void:
@@ -289,9 +296,7 @@ func _unhandled_input(event: InputEvent) -> void:
 				if _armory.is_open():
 					close_armory()
 				elif _state.phase == Types.GamePhase.PLAYING or is_paused():
-					toggle_pause()
-					# set_pause_panel_visible(true) refreshes the sheet, as _on_pause_pressed does.
-					_hud.set_pause_panel_visible(is_paused())
+					_toggle_pause_with_sheet()
 				return
 
 	if event is InputEventKey:
@@ -547,6 +552,43 @@ func is_in_menu() -> bool:
 ## Toggles the paused phase. Delegates to the ported state machine.
 func toggle_pause() -> void:
 	_state.toggle_pause()
+
+
+## toggle_pause plus the pause sheet; set_pause_panel_visible(true) refreshes the
+## sheet, as _on_pause_pressed does.
+func _toggle_pause_with_sheet() -> void:
+	toggle_pause()
+	_hud.set_pause_panel_visible(is_paused())
+
+
+## DIVERGENCE(MVP Week 1): pauses a live run when the app loses focus. Never
+## resumes: coming back to a paused sheet is the player's move.
+func pause_on_focus_loss() -> void:
+	if _state != null and _state.phase == Types.GamePhase.PLAYING:
+		_toggle_pause_with_sheet()
+
+
+## DIVERGENCE(MVP Week 1, M11a Q3): the Android back button. Closes the topmost
+## sheet; in a run it pauses, and resumes from the pause sheet like Escape does;
+## skips the cold open. Returns false only on a bare menu, where back leaves the app.
+func go_back() -> bool:
+	if _menu.is_options_open():
+		_menu.close_options_modal()  # also drops the reset confirm
+	elif _calibrate_screen.is_open():
+		_calibrate_screen.close()
+	elif _armory.is_open():
+		close_armory()
+	elif _goals_hud.is_modal_open():
+		_goals_hud.close_all_goals_modal()
+	elif _state.phase == Types.GamePhase.CINEMATIC:
+		skip_cinematic()
+	elif _state.phase == Types.GamePhase.PLAYING or is_paused():
+		_toggle_pause_with_sheet()
+	else:
+		# The menu and the game-over sheet. Back on game over does nothing: its
+		# buttons are the way out.
+		return not is_in_menu()
+	return true
 
 
 ## True while the run is paused.

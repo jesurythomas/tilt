@@ -839,6 +839,20 @@ Code-complete; nothing below has run on a phone. Use a fresh install, or Setting
 - [ ] 5. After the first death, the second run has no hint and the normal ramp.
 - [ ] 6. Your existing A55 save (best score above 0) never shows the hint.
 
+## MVP Week 1 — Android back button and focus loss (2026-09-29)
+
+Resolves M11a Q3 (items 10 there and 9 under M11b). On the A55, with the back gesture:
+
+- [ ] 1. Menu, nothing open: back leaves the app. Reopen: the save is intact.
+- [ ] 2. Menu → Settings: back closes Settings only. Settings → Reset → back closes both.
+- [ ] 3. Menu → Calibrate: back cancels it and returns to the menu.
+- [ ] 4. Menu → Milestones, then Armory over a paused run: each back closes one layer.
+- [ ] 5. In a run: back pauses (the sheet appears); back again resumes. Not a quit.
+- [ ] 6. During the cold open: back skips it.
+- [ ] 7. On the game-over sheet: back does nothing.
+- [ ] 8. In a run, pull down the notification shade, or press Home: the run is paused when
+      you return, and does not resume by itself.
+
 ## MVP R6 — analytics and crashes (2026-09-29)
 
 Step 1 (the facade) is code-complete; nothing here has run on a phone. Part A is code-only

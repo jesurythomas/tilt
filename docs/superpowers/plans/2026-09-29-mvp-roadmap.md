@@ -77,8 +77,12 @@ opted-in testers, before production.
   orb pickup or after ~8 s; `first_run_done` is set at the first death and saved as
   `firstRunDone`; Settings → Reset clears it, so the hint returns. All tagged
   `DIVERGENCE(MVP R5)`.
-- [ ] **Android back button and backgrounding.** Resolve the open question in VERIFY-ME
-  (M11a Q3): back = pause in a run, back out of sheets. Pause when focus is lost. ~0.5 day.
+- [x] **Android back button and backgrounding.** *(Code-complete 2026-09-29; A55 pass
+  pending, `VERIFY-ME.md` §MVP Week 1 back button.)* Resolves M11a Q3: `quit_on_go_back` is
+  off; `GameRoot.go_back()` closes the topmost sheet (Settings, Calibrate, Armory,
+  Milestones), skips the cold open, and toggles pause in a run; only a bare menu leaves the
+  app; game over ignores it. A run pauses on focus loss and on backgrounding, and never
+  resumes by itself. Tagged `DIVERGENCE(MVP Week 1)`.
 - [ ] **Haptics** on a nuke, a death and a close call; add a Settings toggle. ~0.5 day.
 - [ ] **AAB export + Play App Signing.** Use a real upload key (not the dev key). The
   preset's `gradle_build/export_format` must become AAB. ~0.5 day.

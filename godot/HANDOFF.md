@@ -4,7 +4,16 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**Latest (2026-09-29): MVP Week 1, analytics steps 1-2 are done; steps 3-4 wait on the
+**Latest (2026-09-29): MVP Week 1, the Android back button and focus-loss pause are
+code-complete** (812 tests green, gdformat and gdlint clean; A55 pass pending,
+`VERIFY-ME.md` §MVP Week 1). `project.godot` `config/quit_on_go_back=false`;
+`GameRoot.go_back()` (called from `NOTIFICATION_WM_GO_BACK_REQUEST`) and
+`pause_on_focus_loss()` (from `APPLICATION_FOCUS_OUT` and `APPLICATION_PAUSED`); tests in
+`tests/test_go_back.gd`. Next in Week 1, unblocked: haptics, then AAB + upload key, mode
+renames (needs the user's names), the tablet texture error. Analytics steps 3-4 still wait
+on the user saying "Firebase done".
+
+**Before that (2026-09-29): MVP Week 1, analytics steps 1-2 are done; steps 3-4 wait on the
 user** (803 tests green, gdformat and gdlint clean; nothing run on a device). Ruling MVP R6:
 Firebase Analytics + Crashlytics behind one `Telemetry` autoload facade. Spec:
 `docs/superpowers/specs/2026-09-29-analytics-crashes-design.md`. Built (spec §6 step 1):
@@ -23,9 +32,8 @@ plugins; symbol upload in `tools/release.sh`; DebugView on the A55) and step 3 a
 events not yet sent (`mode_select`, `first_run_hint`, `settings_change`, `screen`, user
 properties, `Log.error` forwarding), then step 4 (forced test crash). Tests that swap
 `Telemetry.backend` must restore it and reset `Telemetry.run_count`. **Meanwhile, unblocked
-and next in the roadmap's Week 1:** the Android back button and backgrounding (M11a Q3 in
-`VERIFY-ME.md`), then haptics, AAB + upload key, mode renames (needs the user's names), the
-tablet texture error.
+and next in the roadmap's Week 1:** haptics, AAB + upload key, mode renames (needs the
+user's names), the tablet texture error.
 
 **Before that (2026-09-29): MVP Week 1, first run is code-complete** (786 tests green, A55
 pass pending, `VERIFY-ME.md` §MVP R5). `RunController.is_first_run`
@@ -1751,7 +1759,7 @@ block and output: "## How to verify right now" above. Full report:
 and work its Week 1 top down:
 1. analytics and crash reporting (step 1 done; step 2 is next, see Latest above);
 2. the first run (Standard by default, a one-time hint);
-3. the Android back button and pause on focus loss;
+3. ~~the Android back button and pause on focus loss~~ (done, see Latest);
 4. haptics;
 5. the AAB export and a real upload key;
 6. the mode renames (MVP R4), once the user names them;

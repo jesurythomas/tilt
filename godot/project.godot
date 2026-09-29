@@ -17,6 +17,7 @@ config/name="Peril Point"
 config/icon="res://assets/icon/icon.png"
 run/main_scene="res://scenes/main.tscn"
 config/features=PackedStringArray("4.7")
+config/quit_on_go_back=false
 run/max_fps=60
 
 [autoload]
