@@ -4,7 +4,14 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**Current (2026-09-29): the game is feature-complete and in players' hands; next is the
+**Latest (2026-09-29): MVP Week 1, first run is code-complete** (786 tests green, A55
+pass pending, `VERIFY-ME.md` §MVP R5). `RunController.is_first_run`
+(`first_run_done` unset and `best_score == 0`) gently ramps the swarm (0.5×) and shows
+the HUD's one-time hint. **Next in Week 1:** analytics + crashes (architectural: spec it
+first, needs the user's Firebase or GameAnalytics account), then back button, haptics,
+AAB, mode renames (needs the user's names), and the tablet texture error.
+
+**Before that (2026-09-29): the game is feature-complete and in players' hands; next is the
 MVP for a Play Store closed test.** The plan for that, with the user's rulings and
 estimates, is `docs/superpowers/plans/2026-09-29-mvp-roadmap.md`. Start with its Week 1
 (analytics and the first run). Release 0.1.1 (code 2) is on the A55 and on a Galaxy Tab

@@ -824,3 +824,18 @@ an emulator attached), so nothing below has run on a phone. Run §0 first.
       unverifiable headless).
 
 When done: tick M11b in `PORT-PROGRESS.md` with the SHA you tested.
+
+## MVP R5 — first run (2026-09-29)
+
+Code-complete; nothing below has run on a phone. Use a fresh install, or Settings → Reset
+(which clears the best score and the flag).
+
+- [ ] 1. First Play on a clean save: the line "Fly into orbs. They fire themselves."
+      fades in below the score and does not sit under the thumb or the stick.
+- [ ] 2. The line goes away when the first orb is collected, or after about 8 s.
+- [ ] 3. Pause and Resume during the first run does not show the line again.
+- [ ] 4. The first run's swarm feels gentler than a normal run at the same time in. Judge
+      whether 0.5× (`EnemySwarm.GENTLE_RAMP_RATE`) is right; say a number if not.
+- [ ] 5. After the first death, the second run has no hint and the normal ramp.
+- [ ] 6. Your existing A55 save (best score above 0) never shows the hint.
+

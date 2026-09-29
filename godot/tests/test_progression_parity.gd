@@ -406,6 +406,7 @@ func test_default_settings_match_the_typescript() -> void:
 	# The round trip preserves the TS strings.
 	var got: Dictionary = o.settings.to_dict()
 	got.erase(GameOptionsManager.GRID_DEFAULT_KEY)
+	got.erase(GameOptionsManager.FIRST_RUN_KEY)  # DIVERGENCE(MVP R5): no TS counterpart
 	got["showGridlines"] = false  # the one divergent default, asserted above
 	_assert_dict_numbers_equal(got, want, "default_settings")
 

@@ -1,3 +1,4 @@
+# gdlint:disable=max-public-methods
 ## test_hud_controller.gd
 ## Verifies HUD signal response and game over display.
 extends GutTest
@@ -402,3 +403,62 @@ func test_weapon_timer_shows_the_weapon_icon_in_its_colour() -> void:
 	var tint: Color = WeaponIcons.ui_color_of(Types.WeaponType.VORTEX)
 	assert_eq(icon.self_modulate, tint)
 	assert_eq(label.get_theme_color("font_color"), tint, "label and icon share the colour")
+
+
+func _hint_of(hud: HudController) -> Label:
+	return hud.find_child("FirstRunHint", true, false) as Label
+
+
+func _bound_hud(first_run: bool) -> HudController:
+	var hud: HudController = HudController.new()
+	add_child_autofree(hud)
+	var rc: RunController = RunController.new(
+		PlayerShip.new(500.0, 300.0),
+		EnemySwarm.new(),
+		WeaponSystem.new(),
+		ParticleEngine.new(),
+		VectorGrid.new(1000, 600),
+		ScoreManager.new(),
+		AudioBank.new(),
+		ProgressionManager.new(),
+		GameOptionsManager.new(),
+		CoinSystem.new()
+	)
+	rc.is_first_run = first_run
+	hud.bind_run(rc, null)
+	return hud
+
+
+func test_first_run_hint_is_hidden_until_shown() -> void:
+	var hud: HudController = HudController.new()
+	add_child_autofree(hud)
+	assert_not_null(_hint_of(hud), "DIVERGENCE(MVP R5): the HUD owns a hint label")
+	assert_false(_hint_of(hud).visible)
+	hud.show_first_run_hint()
+	assert_true(_hint_of(hud).visible)
+	assert_true(_hint_of(hud).text.to_lower().contains("orb"), "the hint says what orbs do")
+
+
+func test_first_run_hint_hides_on_the_first_pickup() -> void:
+	var hud: HudController = HudController.new()
+	add_child_autofree(hud)
+	hud.show_first_run_hint()
+	GameEvents.weapon_activated.emit(Types.WeaponType.NUKE)
+	assert_false(_hint_of(hud).visible)
+
+
+func test_first_run_hint_hides_when_the_phase_leaves_play() -> void:
+	var hud: HudController = HudController.new()
+	add_child_autofree(hud)
+	hud.show_first_run_hint()
+	GameEvents.phase_changed.emit(Types.GamePhase.GAME_OVER)
+	assert_false(_hint_of(hud).visible)
+
+
+func test_playing_shows_the_hint_only_on_a_first_run() -> void:
+	var first: HudController = _bound_hud(true)
+	GameEvents.phase_changed.emit(Types.GamePhase.PLAYING)
+	assert_true(_hint_of(first).visible, "a first run shows it")
+	var second: HudController = _bound_hud(false)
+	GameEvents.phase_changed.emit(Types.GamePhase.PLAYING)
+	assert_false(_hint_of(second).visible, "a normal run never does")

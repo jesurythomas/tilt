@@ -46,6 +46,8 @@ var maze: GauntletMaze = null
 # in updateHUD (:2159) and at game over (:2091); nothing there can change it
 # mid-run. The run captures it at reset all the same (M10 R4).
 var mode: Types.GameMode = Types.GameMode.CLASSIC
+## DIVERGENCE(MVP R5): true for the run a new player starts; the HUD shows its hint.
+var is_first_run: bool = false
 
 ## Milestones. PORT: web/src/tilt-to-live/TiltGame.ts:66 (this.goals)
 # PORT-NOTE: assigned after construction (GameRoot._ready) — an eleventh
@@ -138,6 +140,10 @@ func reset_run(arena_bounds: Vector2) -> void:
 	run_tracker = GoalManager.RunTracker.new()
 	run_tracker.mode = GameOptionsManager.MODE_IDS[mode]
 	swarm.reset()
+	# DIVERGENCE(MVP R5): a player with no best score and no finished first run gets a
+	# gentler ramp and the HUD's one-time hint.
+	is_first_run = not options.settings.first_run_done and scores.stats.best_score == 0
+	swarm.set_gentle(is_first_run)
 	swarm.set_speed_scale(progression.get_enemy_speed_multiplier())  # PORT: :1599
 	weapons.reset()
 	coins.reset()  # PORT: :1601
@@ -483,6 +489,9 @@ func trigger_player_death() -> void:
 	_shake(24.0 * options.get_shake_multiplier())  # PORT: web/src/tilt-to-live/TiltGame.ts:2081
 
 	scores.finalize_game()
+	if is_first_run:  # DIVERGENCE(MVP R5)
+		options.settings.first_run_done = true
+		options.save()
 	# DIVERGENCE(ECON R1): bank the run payout (seconds alive, kills, mode) before the
 	# milestones and run_ended, so the Run over reads the whole run's total.
 	var mode_mult: float = options.get_mode_config(mode).score_multiplier

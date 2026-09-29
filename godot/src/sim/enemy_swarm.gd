@@ -37,6 +37,8 @@ const SWEEP_INDEX_BITS: int = 20
 const SWEEP_INDEX_MASK: int = (1 << SWEEP_INDEX_BITS) - 1
 ## DIVERGENCE(M11c P17): the empty satellite list.
 const _NO_SATELLITES: Array[PerilEnemy] = []
+## DIVERGENCE(MVP R5): the ramp rate of a first run (see `gentle`).
+const GENTLE_RAMP_RATE: float = 0.5
 ## DIVERGENCE(M11c N2, N3): the per-enemy loop and separation run in C++
 ## (PerilNative.swarm_step / separate_enemies); false forces the GDScript reference
 ## (the oracles compare both). The extension is required: enemies are PerilEnemy.
@@ -57,6 +59,9 @@ var spawn_cap: int = -1
 ## DIVERGENCE(UI R10): the formations trigger_random_formation picks from. A run keeps
 ## the TS's five (EnemySwarm.ts:806); the menu backdrop drops the wall (72 dots at once).
 var formation_pool: Array[String] = ["arrow", "circle", "wall", "turret", "snake"]
+
+## DIVERGENCE(MVP R5): true while a player's first run advances the ramp at GENTLE_RAMP_RATE.
+var gentle: bool = false
 
 var _next_enemy_id: int = 1
 var _spawn_timer: float = 0.5  # PORT: web/src/tilt-to-live/EnemySwarm.ts:39
@@ -82,9 +87,15 @@ func set_speed_scale(p_scale: float) -> void:
 	speed_scale = clampf(p_scale, 0.1, 2.0)  # PORT: web/src/tilt-to-live/EnemySwarm.ts:33
 
 
+## DIVERGENCE(MVP R5): slows the time-based ramp for a player's first run.
+func set_gentle(on: bool) -> void:
+	gentle = on
+
+
 ## Resets all enemies and timers. PORT: web/src/tilt-to-live/EnemySwarm.ts:36-43
 func reset() -> void:
 	enemies = []
+	gentle = false
 	_next_enemy_id = 1
 	_spawn_timer = 0.5  # PORT: web/src/tilt-to-live/EnemySwarm.ts:39
 	_wave_timer = 4.0  # PORT: web/src/tilt-to-live/EnemySwarm.ts:40
@@ -809,7 +820,7 @@ func update(
 	current_score: int = 0,
 	game_mode: Types.GameMode = Types.GameMode.CLASSIC
 ) -> void:
-	_elapsed += dt
+	_elapsed += dt * (GENTLE_RAMP_RATE if gentle else 1.0)  # DIVERGENCE(MVP R5)
 	_spawn_timer -= dt
 	_wave_timer -= dt
 

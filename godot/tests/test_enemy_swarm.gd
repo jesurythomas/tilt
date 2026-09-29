@@ -118,3 +118,22 @@ func test_satellite_seeker_is_not_clamped() -> void:
 	e.vx = -1000.0
 	swarm.update(0.01, Vector2(2.0, 300.0), bounds, _particles)
 	assert_eq(e.x, 2.0 + -1000.0 * 0.01, "moved past the wall, unclamped")
+
+
+func test_gentle_ramp_advances_at_half_rate() -> void:
+	var swarm: EnemySwarm = EnemySwarm.new()
+	var bounds: Vector2 = Vector2(1000.0, 600.0)
+	var particles: ParticleEngine = ParticleEngine.new()
+	swarm.update(10.0, Vector2(500.0, 300.0), bounds, particles)
+	assert_almost_eq(swarm._elapsed, 10.0, 0.0001, "default ramp is the TS one")
+	swarm.reset()
+	swarm.set_gentle(true)
+	swarm.update(10.0, Vector2(500.0, 300.0), bounds, particles)
+	assert_almost_eq(swarm._elapsed, 5.0, 0.0001, "DIVERGENCE(MVP R5): gentle ramps at 0.5x")
+
+
+func test_reset_clears_gentle() -> void:
+	var swarm: EnemySwarm = EnemySwarm.new()
+	swarm.set_gentle(true)
+	swarm.reset()
+	assert_false(swarm.gentle, "a run must opt in again")

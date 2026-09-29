@@ -146,3 +146,20 @@ func test_corrupt_settings_file_falls_back_and_is_backed_up() -> void:
 	var o: GameOptionsManager = GameOptionsManager.new()
 	assert_eq(o.settings.mode, Types.GameMode.CLASSIC)
 	assert_true(FileAccess.file_exists(SaveStore.corrupt_path_for(GameOptionsManager.SAVE_PATH)))
+
+
+func test_first_run_done_defaults_false_and_round_trips() -> void:
+	var o: GameOptionsManager = GameOptionsManager.new()
+	assert_false(
+		o.settings.first_run_done, "DIVERGENCE(MVP R5): a new save has not had its first run"
+	)
+	o.settings.first_run_done = true
+	o.save()
+	var again: GameOptionsManager = GameOptionsManager.new()
+	assert_true(again.settings.first_run_done, "firstRunDone survives a restart")
+
+
+func test_save_without_first_run_key_reads_as_not_done() -> void:
+	_write_raw('{"mode":"classic","sfxEnabled":true}')
+	var o: GameOptionsManager = GameOptionsManager.new()
+	assert_false(o.settings.first_run_done, "old saves lack the key; best_score gates them")

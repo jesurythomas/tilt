@@ -31,6 +31,7 @@ func before_each() -> void:
 	_remove(SaveStore.corrupt_path_for(ProgressionManager.SAVE_PATH))
 	_remove(GameOptionsManager.SAVE_PATH)
 	_remove(SaveStore.corrupt_path_for(GameOptionsManager.SAVE_PATH))
+	_remove(ScoreManager.BEST_SCORE_PATH)
 	_remove(GoalManager.SAVE_PATH)
 	_remove(SaveStore.corrupt_path_for(GoalManager.SAVE_PATH))
 	_remove(GoalManager.CUMULATIVE_SAVE_PATH)
@@ -67,6 +68,7 @@ func after_each() -> void:
 	_remove(SaveStore.corrupt_path_for(ProgressionManager.SAVE_PATH))
 	_remove(GameOptionsManager.SAVE_PATH)
 	_remove(SaveStore.corrupt_path_for(GameOptionsManager.SAVE_PATH))
+	_remove(ScoreManager.BEST_SCORE_PATH)
 	_remove(GoalManager.SAVE_PATH)
 	_remove(SaveStore.corrupt_path_for(GoalManager.SAVE_PATH))
 	_remove(GoalManager.CUMULATIVE_SAVE_PATH)
@@ -543,3 +545,26 @@ func test_the_run_total_sums_coins_and_payout_and_resets_per_run() -> void:
 	assert_eq(_rc.points_credited_this_run, 25)
 	_rc.reset_run(_bounds)
 	assert_eq(_rc.points_credited_this_run, 0)
+
+
+func test_fresh_save_starts_a_first_run_and_gentles_the_swarm() -> void:
+	_rc.reset_run(_bounds)
+	assert_true(_rc.is_first_run, "no best score, flag unset")
+	assert_true(_swarm.gentle, "DIVERGENCE(MVP R5): the first run ramps gently")
+
+
+func test_a_best_score_means_no_first_run() -> void:
+	_scores.stats.best_score = 1200
+	_rc.reset_run(_bounds)
+	assert_false(_rc.is_first_run, "a returning player never sees the first run")
+	assert_false(_swarm.gentle)
+
+
+func test_first_run_ends_at_death_and_saves_the_flag() -> void:
+	_rc.reset_run(_bounds)
+	_rc.trigger_player_death()
+	assert_true(_options.settings.first_run_done)
+	assert_true(GameOptionsManager.new().settings.first_run_done, "saved to disk")
+	_rc.reset_run(_bounds)
+	assert_false(_rc.is_first_run, "the second run is normal")
+	assert_false(_swarm.gentle)

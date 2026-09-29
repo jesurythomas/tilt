@@ -56,8 +56,14 @@ opted-in testers, before production.
 - [ ] **Analytics + crashes** (Firebase Analytics + Crashlytics, or GameAnalytics):
   retention on day 1 and 7, session length, runs per session, death cause and time, mode
   choice, Armory purchases. ~1.5 days.
-- [ ] **First run.** New saves start on Standard; show a one-time hint ("fly into orbs —
-  they fire themselves") and a gentler first run. ~1 day.
+- [x] **First run.** *(Code-complete 2026-09-29; A55 pass pending, `VERIFY-ME.md` §MVP R5.)*
+  New saves already started on Standard. Added: a one-time hint ("Fly into orbs. They fire
+  themselves.") and a gentler first run. Ruling MVP R5 (user approved the design in chat):
+  a first run is `first_run_done == false and best_score == 0`; the swarm ramp advances at
+  0.5× (`EnemySwarm.GENTLE_RAMP_RATE`, to be tuned on the A55); the hint hides on the first
+  orb pickup or after ~8 s; `first_run_done` is set at the first death and saved as
+  `firstRunDone`; Settings → Reset clears it, so the hint returns. All tagged
+  `DIVERGENCE(MVP R5)`.
 - [ ] **Android back button and backgrounding.** Resolve the open question in VERIFY-ME
   (M11a Q3): back = pause in a run, back out of sheets. Pause when focus is lost. ~0.5 day.
 - [ ] **Haptics** on a nuke, a death and a close call; add a Settings toggle. ~0.5 day.

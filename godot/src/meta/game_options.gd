@@ -26,6 +26,8 @@ const STORAGE_KEY: String = "tilt_to_live_settings_v1"
 const SAVE_PATH: String = "user://" + STORAGE_KEY + ".json"
 ## DIVERGENCE(M11c review): present in saves written since the grid defaults to on.
 const GRID_DEFAULT_KEY: String = "gridlinesDefaultOn"
+## DIVERGENCE(MVP R5): the saved first-run flag; not in the TS settings shape.
+const FIRST_RUN_KEY: String = "firstRunDone"
 
 ## The TS GameMode strings. PORT: web/src/tilt-to-live/GameOptions.ts:5
 const MODE_IDS: Dictionary[Types.GameMode, String] = {
@@ -208,6 +210,8 @@ class GameSettings:
 	var tether_line: bool = true
 	var high_contrast_halo: bool = true
 	var show_gridlines: bool = true  # DIVERGENCE(M11c review): see _get_default_settings
+	## DIVERGENCE(MVP R5): set when a player's first run ends; no TS counterpart.
+	var first_run_done: bool = false
 
 	## JSON.stringify(this.settings) (GameOptions.ts:109), TS keys and strings.
 	func to_dict() -> Dictionary:
@@ -224,6 +228,7 @@ class GameSettings:
 			"showGridlines": show_gridlines,
 			# DIVERGENCE(M11c review): marks a save written after the grid default changed.
 			GRID_DEFAULT_KEY: true,
+			FIRST_RUN_KEY: first_run_done,
 		}
 
 	## `{...defaults, ...parsed}` (GameOptions.ts:97-101). An unknown string
@@ -248,6 +253,7 @@ class GameSettings:
 			screen_shake = SCREEN_SHAKE_IDS.find_key(shake_id)
 		tether_line = SaveStore.read_bool(d, "tetherLine", tether_line)
 		high_contrast_halo = SaveStore.read_bool(d, "highContrastHalo", high_contrast_halo)
+		first_run_done = SaveStore.read_bool(d, FIRST_RUN_KEY, first_run_done)
 		# DIVERGENCE(M11c review): a save from before the default changed (no
 		# GRID_DEFAULT_KEY) held the old default, not a choice, so the new default stands.
 		if d.has(GRID_DEFAULT_KEY):

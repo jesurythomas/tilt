@@ -70,8 +70,18 @@ const PULSE_SCALE: float = 1.18  # DIVERGENCE(HUD-FEEDBACK §4)
 ## Duration of the kill pulse's scale and colour tween, in seconds (D2).
 const PULSE_SECONDS: float = 0.22  # DIVERGENCE(HUD-FEEDBACK §4)
 
+## DIVERGENCE(MVP R5): the one-time first-run hint (no TS counterpart).
+const FIRST_RUN_HINT_TEXT: String = "Fly into orbs. They fire themselves."
+const FIRST_RUN_HINT_TOP: float = 150.0
+const FIRST_RUN_HINT_FADE_SECONDS: float = 0.4
+const FIRST_RUN_HINT_HOLD_SECONDS: float = 8.0
+
 var _run: RunController = null
 var _state: GameStateMachine = null
+var _first_run_hint: Label = null
+var _first_run_hint_tween: Tween = null
+## True once this run's hint has been shown, so resuming from Pause does not repeat it.
+var _first_run_hint_used: bool = false
 var _ui_scale: float = 1.0
 var _frame: Panel = null
 var _score_block: VBoxContainer = null
@@ -174,6 +184,8 @@ func _ready() -> void:
 	GameEvents.enemy_killed.connect(_on_enemy_killed)
 	GameEvents.run_ended.connect(_on_run_ended)
 	GameEvents.phase_changed.connect(_on_phase_changed)
+	GameEvents.weapon_activated.connect(_on_first_pickup)
+	_build_first_run_hint()
 
 	_pause_button = find_child("PauseButton", true, false) as Button
 	if _pause_button != null:
@@ -254,6 +266,8 @@ func bind_run(run: RunController, state: GameStateMachine) -> void:
 func set_ui_scale(scale: float) -> void:
 	_ui_scale = scale
 	theme = UiTheme.build(scale)
+	if _first_run_hint != null:
+		_first_run_hint.offset_top = FIRST_RUN_HINT_TOP * scale
 	if _frame != null:
 		_frame.add_theme_stylebox_override(
 			"panel",
@@ -569,6 +583,7 @@ func _on_run_over_timer_timeout() -> void:
 
 
 func _on_phase_changed(phase: Types.GamePhase) -> void:
+	_update_first_run_hint(phase)
 	# M11a R12: the in-run HUD shows only outside the menu.
 	var in_menu: bool = phase == Types.GamePhase.MENU
 	for node: Control in [_score_block, _pause_button]:
@@ -594,6 +609,66 @@ func _on_phase_changed(phase: Types.GamePhase) -> void:
 		_game_over_panel.visible = false
 	if _pause_panel != null:
 		_pause_panel.visible = false
+
+
+## DIVERGENCE(MVP R5): a centred line below the score that says what orbs do.
+func _build_first_run_hint() -> void:
+	_first_run_hint = Label.new()
+	_first_run_hint.name = "FirstRunHint"
+	_first_run_hint.text = FIRST_RUN_HINT_TEXT
+	_first_run_hint.visible = false
+	_first_run_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_first_run_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	UiTheme.legible_over_play(_first_run_hint)
+	add_child(_first_run_hint)
+	# Grows both ways from its centre anchor (see M11b's cold-open grow-direction bug).
+	_first_run_hint.set_anchors_preset(Control.PRESET_CENTER_TOP, true)
+	_first_run_hint.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_first_run_hint.offset_top = FIRST_RUN_HINT_TOP * _ui_scale
+
+
+## Shows the hint, fades it in, holds, then fades it out.
+func show_first_run_hint() -> void:
+	if _first_run_hint == null:
+		return
+	if _first_run_hint_tween != null:
+		_first_run_hint_tween.kill()
+	_first_run_hint.modulate.a = 0.0
+	_first_run_hint.visible = true
+	_first_run_hint_tween = create_tween()
+	_first_run_hint_tween.tween_property(
+		_first_run_hint, "modulate:a", 1.0, FIRST_RUN_HINT_FADE_SECONDS
+	)
+	_first_run_hint_tween.tween_interval(FIRST_RUN_HINT_HOLD_SECONDS)
+	_first_run_hint_tween.tween_property(
+		_first_run_hint, "modulate:a", 0.0, FIRST_RUN_HINT_FADE_SECONDS
+	)
+	_first_run_hint_tween.tween_callback(hide_first_run_hint)
+
+
+func hide_first_run_hint() -> void:
+	if _first_run_hint_tween != null:
+		_first_run_hint_tween.kill()
+		_first_run_hint_tween = null
+	if _first_run_hint != null:
+		_first_run_hint.visible = false
+
+
+func _update_first_run_hint(phase: Types.GamePhase) -> void:
+	if phase == Types.GamePhase.PLAYING:
+		if _run != null and _run.is_first_run and not _first_run_hint_used:
+			_first_run_hint_used = true
+			show_first_run_hint()
+		return
+	if phase == Types.GamePhase.PAUSED:
+		return
+	# MENU, CINEMATIC and GAME_OVER bound a run: hide, and allow the next run's hint.
+	_first_run_hint_used = false
+	hide_first_run_hint()
+
+
+func _on_first_pickup(_type: Types.WeaponType) -> void:
+	hide_first_run_hint()
 
 
 func _on_restart_pressed() -> void:
