@@ -215,7 +215,9 @@ func test_ship_catalog_matches_the_typescript() -> void:
 
 func test_enemy_skin_catalog_matches_the_typescript() -> void:
 	var expected: Array = _fixture["enemy_skin_catalog"]
-	assert_eq(_pm.enemy_skin_catalog.size(), expected.size(), "skin count")
+	# DIVERGENCE(THEME R1, user 2026-09-29): ten skins follow the TS's six; they are
+	# checked in test_progression_catalogs.gd.
+	assert_gte(_pm.enemy_skin_catalog.size(), expected.size(), "skin count")
 	for i: int in range(expected.size()):
 		var want: Dictionary = expected[i]
 		var skin: ProgressionManager.EnemySkinConfig = _pm.enemy_skin_catalog[i]
@@ -239,7 +241,8 @@ func test_enemy_skin_catalog_matches_the_typescript() -> void:
 
 func test_arena_theme_catalog_matches_the_typescript() -> void:
 	var expected: Array = _fixture["arena_theme_catalog"]
-	assert_eq(_pm.arena_theme_catalog.size(), expected.size(), "arena count")
+	# DIVERGENCE(THEME R1, user 2026-09-29): ten themes follow the TS's six (see above).
+	assert_gte(_pm.arena_theme_catalog.size(), expected.size(), "arena count")
 	for i: int in range(expected.size()):
 		var want: Dictionary = expected[i]
 		var arena: ProgressionManager.ArenaThemeConfig = _pm.arena_theme_catalog[i]

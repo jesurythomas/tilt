@@ -936,3 +936,17 @@ Nothing in the game changes until this is done. Do it in a browser, no code.
 
 1. [ ] The menu cards, Pause, Run over and the in-run banner say Survival, Corridor and Overdrive (no Standard, Gauntlet or Code Red).
 2. [ ] Goals: "Overdrive Champion", "Corridor Runner" read right, and an old save keeps its progress on them.
+
+## Theme R1 — ten new arena themes and enemy skins (2026-09-29)
+
+Armory → Arena tab; the carousels now hold 16 each. Buying needs points (arena 1400/1600,
+skin 1600/1800), so grant yourself points or play first.
+
+1. [ ] Each new arena reads as its own place: Arctic Lattice, Ember Ruins, Neon Tokyo Night,
+   Deep Ocean, Desert Signal, then Perlas Archipelago, Rising Sun, Carnaval, Liberty Grid,
+   Black Forest. Grid lines and the boundary are visible on the A55.
+2. [ ] Each new enemy skin is readable in a run and its pattern shows on the dots (rays,
+   rings, stripes or blossoms), not a blur, at the in-game dot size.
+3. [ ] The flag pairs look like the country's colours without drawing a flag.
+4. [ ] Prices feel right against the run payout.
+5. [ ] The pager says "n / 16", wraps both ways, and an old save keeps its owned items.

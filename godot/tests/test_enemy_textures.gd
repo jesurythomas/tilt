@@ -37,3 +37,9 @@ func test_the_skinned_dot_sprite_carries_the_pattern() -> void:
 	assert_eq(toxic.get_size(), classic.get_size(), "same layout")
 	assert_ne(toxic.get_data(), classic.get_data())
 	assert_ne(menu.get_data(), toxic.get_data(), "the menu (no skin) stays plain")
+
+
+func test_every_new_skin_paints_a_pattern_that_rasterises() -> void:
+	for id: String in ["arctic", "ember", "neon", "ocean", "desert", "ph", "jp", "br", "us", "de"]:
+		assert_true(EnemyTextures.has_texture(id), id)
+		assert_not_null(EnemyTextures.image(id, 52, 23.5), "%s rasterises" % id)

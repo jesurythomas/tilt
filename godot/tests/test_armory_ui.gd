@@ -479,7 +479,7 @@ func test_arena_tab_shows_both_catalogs_with_counts() -> void:
 	_armory.open("arena")
 	await get_tree().process_frame
 	# PORT: web/src/tilt-to-live/ArmoryUI.ts:779, :790 — counts use catalog length
-	assert_eq(_label("ThemesPill").text, "Arena themes · 1 of 6 unlocked")
+	assert_eq(_label("ThemesPill").text, "Arena themes · 1 of 16 unlocked")
 	_browse("Theme", "void")
 	assert_true(_button("EquippedArena_void").disabled)
 	_browse("Theme", "void")
@@ -488,7 +488,7 @@ func test_arena_tab_shows_both_catalogs_with_counts() -> void:
 	assert_eq(_button("BuyArena_synthwave").text, "400 pts")
 	_browse("Theme", "synthwave")
 	assert_false(_button("BuyArena_synthwave").disabled)
-	assert_eq(_label("EnemiesPill").text, "Enemy variations · 1 of 6 unlocked")
+	assert_eq(_label("EnemiesPill").text, "Enemy variations · 1 of 16 unlocked")
 	_browse("Enemy", "classic")
 	assert_true(_button("EquippedEnemy_classic").disabled)
 	_browse("Enemy", "gold")
@@ -530,7 +530,7 @@ func test_buy_then_equip_enemy_skin() -> void:
 	_browse("Enemy", "toxic")
 	_button("EquipEnemy_toxic").pressed.emit()
 	assert_eq(_progression.data.equipped_enemy_skin_id, "toxic")
-	assert_eq(_label("EnemiesPill").text, "Enemy variations · 3 of 6 unlocked")
+	assert_eq(_label("EnemiesPill").text, "Enemy variations · 3 of 16 unlocked")
 	assert_signal_emit_count(_armory, "state_changed", 3, "buy toxic, buy glitch, equip toxic")
 	var reloaded: ProgressionManager = ProgressionManager.new()
 	assert_true(reloaded.data.unlocked_enemy_skins.has("glitch"), "buy_enemy_skin saved")
@@ -887,9 +887,9 @@ func test_ship_cards_carry_normalised_meters() -> void:
 func test_carousels_cycle_one_item_and_preview_it() -> void:
 	_armory.open("arena")
 	assert_eq(_armory.find_children("ArenaCard_*", "PanelContainer", true, false).size(), 1)
-	assert_eq(_label("ThemePager").text, "1 / 6")
+	assert_eq(_label("ThemePager").text, "1 / 16")
 	_button("ThemePrev").pressed.emit()
-	assert_eq(_label("ThemePager").text, "6 / 6", "Prev wraps to the last")
+	assert_eq(_label("ThemePager").text, "16 / 16", "Prev wraps to the last")
 	_button("ThemeNext").pressed.emit()
 	assert_not_null(_armory.find_child("ArenaCard_void", true, false))
 	var preview: ArenaPreview = _armory.find_child("ArenaPreview", true, false) as ArenaPreview
@@ -912,7 +912,7 @@ func _browse(kind: String, id: String) -> void:
 	var prefixes: Dictionary[String, String] = {
 		"Ship": "Ship_", "Theme": "ArenaCard_", "Enemy": "EnemyCard_"
 	}
-	for i: int in range(12):
+	for i: int in range(20):
 		if _armory.find_child(prefixes[kind] + id, true, false) != null:
 			return
 		_button(kind + "Next").pressed.emit()

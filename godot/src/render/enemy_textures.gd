@@ -10,7 +10,25 @@ extends RefCounted
 
 ## Skins with a pattern, in catalog order. PORT-NOTE: ids from
 ## web/src/tilt-to-live/ProgressionManager.ts:280-341.
-const TEXTURED: Array[String] = ["toxic", "glitch", "magma", "void", "gold"]
+## DIVERGENCE(THEME R1, user 2026-09-29): the last ten are the concept and country-colour
+## skins, painted from four shared shapes (rays, rings, stripes, dots).
+const TEXTURED: Array[String] = [
+	"toxic",
+	"glitch",
+	"magma",
+	"void",
+	"gold",
+	"arctic",
+	"ember",
+	"neon",
+	"ocean",
+	"desert",
+	"ph",
+	"jp",
+	"br",
+	"us",
+	"de",
+]
 
 
 ## True when `skin_id` paints a pattern.
@@ -93,6 +111,53 @@ static func _pattern(skin_id: String, c: float, r: float) -> String:
 			return _void(c, r)
 		"gold":
 			return _gold(c, r)
+		# DIVERGENCE(THEME R1): the concept skins, then the country-colour skins.
+		"arctic":
+			return _rays(c, r, 6, "#ffffff", 0.85)
+		"ember":
+			return _dots(
+				c,
+				r,
+				[
+					Vector3(-0.5, -0.4, 0.14),
+					Vector3(0.45, -0.55, 0.1),
+					Vector3(0.55, 0.3, 0.16),
+					Vector3(-0.3, 0.55, 0.12),
+					Vector3(0.0, 0.05, 0.09),
+					Vector3(-0.72, 0.2, 0.08),
+				],
+				"#1a1412",
+				0.7
+			)
+		"neon":
+			return _petals(c, r, "#ffe6f2")
+		"ocean":
+			return _dots(
+				c,
+				r,
+				[
+					Vector3(-0.5, -0.3, 0.1),
+					Vector3(0.4, -0.5, 0.13),
+					Vector3(0.5, 0.35, 0.09),
+					Vector3(-0.2, 0.6, 0.12),
+					Vector3(-0.72, 0.25, 0.07),
+					Vector3(0.1, 0.0, 0.16),
+				],
+				"#b6ff5c",
+				0.85
+			)
+		"desert":
+			return _stripes(c, r, 20.0, 5, "#6b3f12", 0.45)
+		"ph":
+			return _rays(c, r, 8, "#fcd116", 0.9)
+		"jp":
+			return _rings(c, r, "#ffffff", 0.85)
+		"br":
+			return _stripes(c, r, 45.0, 4, "#ffdf00", 0.8)
+		"us":
+			return _stripes(c, r, 0.0, 4, "#ffffff", 0.85)
+		"de":
+			return _stripes(c, r, 90.0, 4, "#ffce00", 0.85)
 	return ""
 
 
@@ -224,3 +289,73 @@ static func _gold(c: float, r: float) -> String:
 		]
 	)
 	return shade + gleam + star
+
+
+## `count` spokes from the eye out to the rim.
+static func _rays(c: float, r: float, count: int, color: String, opacity: float) -> String:
+	var out: String = ""
+	for i: int in range(count):
+		var dir: Vector2 = Vector2.from_angle(TAU * i / count)
+		var from: Vector2 = dir * 0.3 * r
+		var to: Vector2 = dir * r
+		out += (
+			(
+				"<line x1='%.2f' y1='%.2f' x2='%.2f' y2='%.2f' "
+				% [c + from.x, c + from.y, c + to.x, c + to.y]
+			)
+			+ (
+				"stroke='%s' stroke-opacity='%.2f' stroke-width='%.2f' stroke-linecap='round'/>"
+				% [color, opacity, maxf(0.9, r * 0.09)]
+			)
+		)
+	return out
+
+
+## Concentric rings around the eye.
+static func _rings(c: float, r: float, color: String, opacity: float) -> String:
+	var out: String = ""
+	for radius: float in [0.5, 0.78]:
+		out += (
+			(
+				"<circle cx='%.2f' cy='%.2f' r='%.2f' fill='none' stroke='%s' stroke-opacity='%.2f' "
+				% [c, c, r * radius, color, opacity]
+			)
+			+ "stroke-width='%.2f'/>" % maxf(0.9, r * 0.1)
+		)
+	return out
+
+
+## `count` bands across the dot, turned `degrees`.
+static func _stripes(
+	c: float, r: float, degrees: float, count: int, color: String, opacity: float
+) -> String:
+	var out: String = "<g transform='rotate(%.1f %.2f %.2f)'>" % [degrees, c, c]
+	var band: float = r * 2.0 / (count * 2.0)
+	for i: int in range(count):
+		out += (
+			"<rect x='%.2f' y='%.2f' width='%.2f' height='%.2f' fill='%s' fill-opacity='%.2f'/>"
+			% [c - r, c - r + band * (2 * i + 0.5), r * 2.0, band, color, opacity]
+		)
+	return out + "</g>"
+
+
+## Filled dots at (u, v) dot radii with radius w dot radii.
+static func _dots(
+	c: float, r: float, dots: Array[Vector3], color: String, opacity: float
+) -> String:
+	var out: String = ""
+	for d: Vector3 in dots:
+		out += (
+			"<circle cx='%.2f' cy='%.2f' r='%.2f' fill='%s' fill-opacity='%.2f'/>"
+			% [c + d.x * r, c + d.y * r, d.z * r, color, opacity]
+		)
+	return out
+
+
+## Five blossoms in a ring around the eye.
+static func _petals(c: float, r: float, color: String) -> String:
+	var dots: Array[Vector3] = []
+	for i: int in range(5):
+		var a: float = TAU * i / 5.0 - PI * 0.5
+		dots.append(Vector3(cos(a) * 0.55, sin(a) * 0.55, 0.2))
+	return _dots(c, r, dots, color, 0.8)

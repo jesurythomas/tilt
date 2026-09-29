@@ -96,6 +96,8 @@ opted-in testers, before production.
 - [x] **Mode renames (MVP R4)**, done 2026-09-29: Standard → Survival, Gauntlet → Corridor,
   Code Red → Overdrive (the names the roadmap suggested; the user said "yes"). Strings only:
   the `GameMode` ids, goal ids, metrics and save keys are unchanged. A55 check pending.
+- [x] **More arena themes and enemy skins (THEME R1)**, done 2026-09-29: ten pairs, see
+  `godot/HANDOFF.md`. A55 check pending.
 - [ ] **Tablet:** find the empty-image texture error, using a debug build signed with the
   dev key so it installs over the release. Look into the > 20 ms frames. ~1 day.
 

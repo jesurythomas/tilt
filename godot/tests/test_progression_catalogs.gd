@@ -5,6 +5,12 @@ extends GutTest
 ## Proves buy/equip/get for the three catalogs, the legacy ship-id aliases,
 ## and the clamped steering tuning setters.
 
+## DIVERGENCE(THEME R1, user 2026-09-29): five concept and five country-colour pairs of
+## arena and enemy skin follow the TS's six, appended so saved ids keep their meaning.
+const NEW_PAIRS: Array[String] = [
+	"arctic", "ember", "neon", "ocean", "desert", "ph", "jp", "br", "us", "de"
+]
+
 var _pm: ProgressionManager = null
 
 
@@ -154,3 +160,41 @@ func test_ship_svg_preview_returns_the_ts_markup() -> void:
 		image.load_svg_from_string(_pm.get_ship_svg_preview("revenant"), 1.0), OK, "rasterises"
 	)
 	assert_eq(image.get_size(), Vector2i(64, 64))
+
+
+func test_the_new_arena_and_enemy_pairs_are_appended_and_well_formed() -> void:
+	assert_eq(_pm.arena_theme_catalog.size(), 16)
+	assert_eq(_pm.enemy_skin_catalog.size(), 16)
+	for i: int in range(NEW_PAIRS.size()):
+		var id: String = NEW_PAIRS[i]
+		var arena: ProgressionManager.ArenaThemeConfig = _pm.arena_theme_catalog[6 + i]
+		var skin: ProgressionManager.EnemySkinConfig = _pm.enemy_skin_catalog[6 + i]
+		assert_eq(arena.id, id)
+		assert_eq(skin.id, id)
+		assert_ne(arena.name, "", id)
+		assert_ne(skin.name, "", id)
+		assert_gt(arena.price, 0, id)
+		assert_gt(skin.price, 0, id)
+		assert_eq(arena.bg_gradient.size(), 3, id)
+		assert_eq(skin.body_gradient.size(), 3, id)
+		assert_ne(arena.description, "", id)
+		assert_ne(skin.description, "", id)
+
+
+func test_the_new_ids_are_unique_within_each_catalog() -> void:
+	var arenas: Dictionary = {}
+	for a: ProgressionManager.ArenaThemeConfig in _pm.arena_theme_catalog:
+		assert_false(arenas.has(a.id), "duplicate arena id %s" % a.id)
+		arenas[a.id] = true
+	var skins: Dictionary = {}
+	for s: ProgressionManager.EnemySkinConfig in _pm.enemy_skin_catalog:
+		assert_false(skins.has(s.id), "duplicate skin id %s" % s.id)
+		skins[s.id] = true
+
+
+func test_a_new_pair_can_be_bought_and_equipped() -> void:
+	_pm.data.points = 10000
+	assert_true(_pm.buy_arena_theme("ph"))
+	assert_eq(_pm.get_equipped_arena_theme().id, "ph")
+	assert_true(_pm.buy_enemy_skin("jp"))
+	assert_eq(_pm.get_equipped_enemy_skin().id, "jp")

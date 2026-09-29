@@ -955,6 +955,210 @@ func _build_enemy_skin_catalog() -> Array[EnemySkinConfig]:
 	gold.border_color = Color("#fff088")
 	out.append(gold)
 
+	# DIVERGENCE(THEME R1, user 2026-09-29: "add more variety to the map backgrounds and enemy
+
+	# backgrounds", five concept pairs and five country-colour pairs): appended after the TS's six.
+
+	var arctic_skin: EnemySkinConfig = EnemySkinConfig.new()
+
+	arctic_skin.id = "arctic"
+
+	arctic_skin.name = "Frostbite"
+
+	arctic_skin.price = 1600
+
+	arctic_skin.description = "Glacial ice orbs laced with pale crystal frost."
+
+	arctic_skin.glow_color = Color(150 / 255.0, 225 / 255.0, 255 / 255.0, 0.4)
+
+	arctic_skin.body_gradient = [Color("#e8fbff"), Color("#7fd0f0"), Color("#1d6a99")]
+
+	arctic_skin.pupil_color = Color("#02182a")
+
+	arctic_skin.border_color = Color("#d5f4ff")
+
+	out.append(arctic_skin)
+
+	var ember_skin: EnemySkinConfig = EnemySkinConfig.new()
+
+	ember_skin.id = "ember"
+
+	ember_skin.name = "Ashen Husk"
+
+	ember_skin.price = 1600
+
+	ember_skin.description = "Burnt grey husks flecked with dark soot and a hot orange eye."
+
+	ember_skin.glow_color = Color(200 / 255.0, 110 / 255.0, 60 / 255.0, 0.35)
+
+	ember_skin.body_gradient = [Color("#b0a8a2"), Color("#5d5450"), Color("#231d1b")]
+
+	ember_skin.pupil_color = Color("#ff6a1a")
+
+	ember_skin.border_color = Color("#9a8f88")
+
+	out.append(ember_skin)
+
+	var neon_skin: EnemySkinConfig = EnemySkinConfig.new()
+
+	neon_skin.id = "neon"
+
+	neon_skin.name = "Sakura Pulse"
+
+	neon_skin.price = 1600
+
+	neon_skin.description = "Neon-pink blossoms with a petal ring around a dark eye."
+
+	neon_skin.glow_color = Color(255 / 255.0, 110 / 255.0, 190 / 255.0, 0.42)
+
+	neon_skin.body_gradient = [Color("#ffd0e6"), Color("#ff5cad"), Color("#8a1a5e")]
+
+	neon_skin.pupil_color = Color("#1a0033")
+
+	neon_skin.border_color = Color("#ffb0d8")
+
+	out.append(neon_skin)
+
+	var ocean_skin: EnemySkinConfig = EnemySkinConfig.new()
+
+	ocean_skin.id = "ocean"
+
+	ocean_skin.name = "Anglerfish"
+
+	ocean_skin.price = 1600
+
+	ocean_skin.description = "Deep-sea orbs speckled with bioluminescent green lures."
+
+	ocean_skin.glow_color = Color(60 / 255.0, 255 / 255.0, 190 / 255.0, 0.42)
+
+	ocean_skin.body_gradient = [Color("#5fd8b0"), Color("#0a6a66"), Color("#021c24")]
+
+	ocean_skin.pupil_color = Color("#b6ff5c")
+
+	ocean_skin.border_color = Color("#34ffc0")
+
+	out.append(ocean_skin)
+
+	var desert_skin: EnemySkinConfig = EnemySkinConfig.new()
+
+	desert_skin.id = "desert"
+
+	desert_skin.name = "Sandstorm"
+
+	desert_skin.price = 1600
+
+	desert_skin.description = "Wind-carved sand spheres streaked with dune ripples."
+
+	desert_skin.glow_color = Color(230 / 255.0, 170 / 255.0, 80 / 255.0, 0.4)
+
+	desert_skin.body_gradient = [Color("#f3d9a0"), Color("#c98a3a"), Color("#6b3f12")]
+
+	desert_skin.pupil_color = Color("#2b1400")
+
+	desert_skin.border_color = Color("#f0c880")
+
+	out.append(desert_skin)
+
+	var ph_skin: EnemySkinConfig = EnemySkinConfig.new()
+
+	ph_skin.id = "ph"
+
+	ph_skin.name = "Sampaguita"
+
+	ph_skin.price = 1800
+
+	ph_skin.description = "Deep-blue orbs with a gold radiance and red rim (Philippine colours)."
+
+	ph_skin.glow_color = Color(252 / 255.0, 209 / 255.0, 22 / 255.0, 0.4)
+
+	ph_skin.body_gradient = [Color("#5b8cff"), Color("#0038a8"), Color("#001a54")]
+
+	ph_skin.pupil_color = Color("#fcd116")
+
+	ph_skin.border_color = Color("#e0243a")
+
+	out.append(ph_skin)
+
+	var jp_skin: EnemySkinConfig = EnemySkinConfig.new()
+
+	jp_skin.id = "jp"
+
+	jp_skin.name = "Hinode"
+
+	jp_skin.price = 1800
+
+	jp_skin.description = "Crimson orbs ringed in white (Japanese colours)."
+
+	jp_skin.glow_color = Color(230 / 255.0, 20 / 255.0, 60 / 255.0, 0.42)
+
+	jp_skin.body_gradient = [Color("#ffe8ec"), Color("#e5163f"), Color("#7a0a20")]
+
+	jp_skin.pupil_color = Color("#ffffff")
+
+	jp_skin.border_color = Color("#ffffff")
+
+	out.append(jp_skin)
+
+	var br_skin: EnemySkinConfig = EnemySkinConfig.new()
+
+	br_skin.id = "br"
+
+	br_skin.name = "Verde Ouro"
+
+	br_skin.price = 1800
+
+	br_skin.description = "Green orbs with golden diagonal bands (Brazilian colours)."
+
+	br_skin.glow_color = Color(0 / 255.0, 200 / 255.0, 80 / 255.0, 0.4)
+
+	br_skin.body_gradient = [Color("#ffef66"), Color("#00b34a"), Color("#004d1f")]
+
+	br_skin.pupil_color = Color("#002776")
+
+	br_skin.border_color = Color("#ffdf00")
+
+	out.append(br_skin)
+
+	var us_skin: EnemySkinConfig = EnemySkinConfig.new()
+
+	us_skin.id = "us"
+
+	us_skin.name = "Star Spangled"
+
+	us_skin.price = 1800
+
+	us_skin.description = "Red orbs with white bars and a navy eye (American colours)."
+
+	us_skin.glow_color = Color(220 / 255.0, 40 / 255.0, 70 / 255.0, 0.4)
+
+	us_skin.body_gradient = [Color("#ffffff"), Color("#d42a4f"), Color("#5a0f25")]
+
+	us_skin.pupil_color = Color("#0a3161")
+
+	us_skin.border_color = Color("#ffffff")
+
+	out.append(us_skin)
+
+	var de_skin: EnemySkinConfig = EnemySkinConfig.new()
+
+	de_skin.id = "de"
+
+	de_skin.name = "Gilded Ember"
+
+	de_skin.price = 1800
+
+	de_skin.description = "Black-red orbs with gold vertical bands (German colours)."
+
+	de_skin.glow_color = Color(255 / 255.0, 206 / 255.0, 0 / 255.0, 0.4)
+
+	de_skin.body_gradient = [Color("#ffe066"), Color("#dd0000"), Color("#3a0000")]
+
+	de_skin.pupil_color = Color("#000000")
+
+	de_skin.border_color = Color("#ffce00")
+
+	out.append(de_skin)
+
 	return out
 
 
@@ -1039,6 +1243,210 @@ func _build_arena_theme_catalog() -> Array[ArenaThemeConfig]:
 	blueprint.boundary_color = Color(255.0 / 255.0, 255.0 / 255.0, 255.0 / 255.0, 0.65)
 	blueprint.dust_color = Color("#ffffff")
 	out.append(blueprint)
+
+	# DIVERGENCE(THEME R1, user 2026-09-29: "add more variety to the map backgrounds and enemy
+
+	# backgrounds", five concept pairs and five country-colour pairs): appended after the TS's six.
+
+	var arctic_arena: ArenaThemeConfig = ArenaThemeConfig.new()
+
+	arctic_arena.id = "arctic"
+
+	arctic_arena.name = "Arctic Lattice"
+
+	arctic_arena.price = 1400
+
+	arctic_arena.description = "Frozen slate night with pale-ice grid lines and drifting snow."
+
+	arctic_arena.bg_gradient = [Color("#10222e"), Color("#08131b"), Color("#03080c")]
+
+	arctic_arena.grid_color = Color(170 / 255.0, 230 / 255.0, 255 / 255.0, 0.24)
+
+	arctic_arena.boundary_color = Color(200 / 255.0, 240 / 255.0, 255 / 255.0, 0.55)
+
+	arctic_arena.dust_color = Color("#cfefff")
+
+	out.append(arctic_arena)
+
+	var ember_arena: ArenaThemeConfig = ArenaThemeConfig.new()
+
+	ember_arena.id = "ember"
+
+	ember_arena.name = "Ember Ruins"
+
+	ember_arena.price = 1400
+
+	ember_arena.description = "Charred rust-brown ruins with smouldering orange grid lines."
+
+	ember_arena.bg_gradient = [Color("#241612"), Color("#120a08"), Color("#070303")]
+
+	ember_arena.grid_color = Color(200 / 255.0, 110 / 255.0, 60 / 255.0, 0.22)
+
+	ember_arena.boundary_color = Color(220 / 255.0, 120 / 255.0, 60 / 255.0, 0.5)
+
+	ember_arena.dust_color = Color("#c96a3a")
+
+	out.append(ember_arena)
+
+	var neon_arena: ArenaThemeConfig = ArenaThemeConfig.new()
+
+	neon_arena.id = "neon"
+
+	neon_arena.name = "Neon Tokyo Night"
+
+	neon_arena.price = 1400
+
+	neon_arena.description = "Deep indigo city night with teal grid lines and hot-pink glow."
+
+	neon_arena.bg_gradient = [Color("#1a0f36"), Color("#0d0720"), Color("#05030f")]
+
+	neon_arena.grid_color = Color(0 / 255.0, 230 / 255.0, 210 / 255.0, 0.22)
+
+	neon_arena.boundary_color = Color(255 / 255.0, 80 / 255.0, 170 / 255.0, 0.5)
+
+	neon_arena.dust_color = Color("#ff5cad")
+
+	out.append(neon_arena)
+
+	var ocean_arena: ArenaThemeConfig = ArenaThemeConfig.new()
+
+	ocean_arena.id = "ocean"
+
+	ocean_arena.name = "Deep Ocean"
+
+	ocean_arena.price = 1400
+
+	ocean_arena.description = "Abyssal teal water with sea-green grid lines and glowing plankton."
+
+	ocean_arena.bg_gradient = [Color("#04202b"), Color("#020f16"), Color("#01060a")]
+
+	ocean_arena.grid_color = Color(0 / 255.0, 190 / 255.0, 200 / 255.0, 0.22)
+
+	ocean_arena.boundary_color = Color(0 / 255.0, 220 / 255.0, 200 / 255.0, 0.5)
+
+	ocean_arena.dust_color = Color("#34ffc0")
+
+	out.append(ocean_arena)
+
+	var desert_arena: ArenaThemeConfig = ArenaThemeConfig.new()
+
+	desert_arena.id = "desert"
+
+	desert_arena.name = "Desert Signal"
+
+	desert_arena.price = 1400
+
+	desert_arena.description = "Dusk ochre dunes with burnt-orange grid lines and blown sand."
+
+	desert_arena.bg_gradient = [Color("#2b1808"), Color("#150b03"), Color("#080401")]
+
+	desert_arena.grid_color = Color(230 / 255.0, 150 / 255.0, 50 / 255.0, 0.22)
+
+	desert_arena.boundary_color = Color(240 / 255.0, 160 / 255.0, 60 / 255.0, 0.5)
+
+	desert_arena.dust_color = Color("#e6b56a")
+
+	out.append(desert_arena)
+
+	var ph_arena: ArenaThemeConfig = ArenaThemeConfig.new()
+
+	ph_arena.id = "ph"
+
+	ph_arena.name = "Perlas Archipelago"
+
+	ph_arena.price = 1600
+
+	ph_arena.description = "Midnight blue seas, gold grid lines, red edge (Philippine colours)."
+
+	ph_arena.bg_gradient = [Color("#061a4a"), Color("#030d28"), Color("#01061a")]
+
+	ph_arena.grid_color = Color(252 / 255.0, 209 / 255.0, 22 / 255.0, 0.22)
+
+	ph_arena.boundary_color = Color(206 / 255.0, 17 / 255.0, 38 / 255.0, 0.55)
+
+	ph_arena.dust_color = Color("#fcd116")
+
+	out.append(ph_arena)
+
+	var jp_arena: ArenaThemeConfig = ArenaThemeConfig.new()
+
+	jp_arena.id = "jp"
+
+	jp_arena.name = "Rising Sun"
+
+	jp_arena.price = 1600
+
+	jp_arena.description = "Ink-dark night, white grid lines, crimson edge (Japanese colours)."
+
+	jp_arena.bg_gradient = [Color("#1f0a10"), Color("#10050a"), Color("#080205")]
+
+	jp_arena.grid_color = Color(255 / 255.0, 255 / 255.0, 255 / 255.0, 0.2)
+
+	jp_arena.boundary_color = Color(230 / 255.0, 20 / 255.0, 60 / 255.0, 0.55)
+
+	jp_arena.dust_color = Color("#ffffff")
+
+	out.append(jp_arena)
+
+	var br_arena: ArenaThemeConfig = ArenaThemeConfig.new()
+
+	br_arena.id = "br"
+
+	br_arena.name = "Carnaval"
+
+	br_arena.price = 1600
+
+	br_arena.description = "Rainforest green, golden grid lines, bright edge (Brazilian colours)."
+
+	br_arena.bg_gradient = [Color("#03230f"), Color("#01120a"), Color("#000804")]
+
+	br_arena.grid_color = Color(255 / 255.0, 223 / 255.0, 0 / 255.0, 0.22)
+
+	br_arena.boundary_color = Color(0 / 255.0, 200 / 255.0, 80 / 255.0, 0.5)
+
+	br_arena.dust_color = Color("#ffdf00")
+
+	out.append(br_arena)
+
+	var us_arena: ArenaThemeConfig = ArenaThemeConfig.new()
+
+	us_arena.id = "us"
+
+	us_arena.name = "Liberty Grid"
+
+	us_arena.price = 1600
+
+	us_arena.description = "Navy night with white grid lines and a red edge (American colours)."
+
+	us_arena.bg_gradient = [Color("#0a1a3a"), Color("#050d20"), Color("#02060f")]
+
+	us_arena.grid_color = Color(255 / 255.0, 255 / 255.0, 255 / 255.0, 0.2)
+
+	us_arena.boundary_color = Color(220 / 255.0, 40 / 255.0, 70 / 255.0, 0.55)
+
+	us_arena.dust_color = Color("#ffffff")
+
+	out.append(us_arena)
+
+	var de_arena: ArenaThemeConfig = ArenaThemeConfig.new()
+
+	de_arena.id = "de"
+
+	de_arena.name = "Black Forest"
+
+	de_arena.price = 1600
+
+	de_arena.description = "Near-black woods with gold grid lines and a red edge (German colours)."
+
+	de_arena.bg_gradient = [Color("#17130b"), Color("#0b0905"), Color("#040302")]
+
+	de_arena.grid_color = Color(255 / 255.0, 206 / 255.0, 0 / 255.0, 0.22)
+
+	de_arena.boundary_color = Color(221 / 255.0, 0 / 255.0, 0 / 255.0, 0.55)
+
+	de_arena.dust_color = Color("#ffce00")
+
+	out.append(de_arena)
 
 	return out
 

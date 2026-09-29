@@ -4,7 +4,25 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**Latest (2026-09-29): MVP Week 1, the mode renames are done** (821 tests green, gdformat
+**Latest (2026-09-29): ten new arena themes and enemy skins are code-complete** (825 tests
+green, gdformat and gdlint clean; A55 pass pending, `VERIFY-ME.md` §Theme R1). Ruling THEME R1
+(user: "more variety to the map backgrounds and enemy backgrounds", "flags" = country flags,
+colours only): five concept pairs (`arctic` Arctic Lattice / Frostbite, `ember` Ember Ruins /
+Ashen Husk, `neon` Neon Tokyo Night / Sakura Pulse, `ocean` Deep Ocean / Anglerfish, `desert`
+Desert Signal / Sandstorm) and five country-colour pairs (`ph` Perlas Archipelago /
+Sampaguita, `jp` Rising Sun / Hinode, `br` Carnaval / Verde Ouro, `us` Liberty Grid / Star
+Spangled, `de` Black Forest / Gilded Ember), appended to both catalogs in
+`progression_manager.gd` (16 each; TS six first, so saved ids keep their meaning). Arena
+prices 1400 (concept) and 1600 (flags), skin prices 1600 and 1800 (guesses; tune on the
+device). Each skin paints a pattern from four shared shapes (rays, rings, stripes, dots) in
+`enemy_textures.gd` (SKIN R1). No flag emblem is drawn. The two catalog parity tests now
+check the TS six and `>=`; the new ones are in `test_progression_catalogs.gd`. Not done: no
+unlock goals for the new items (the goal catalog stays the TS 57), no per-theme grid shape or
+motion (roadmap option 2/3, only if the recolours feel samey). Version is 0.1.2 (code 3); the
+A55 has this build (`peril-point-0.1.2-a55.apk`), the shared dev-key APK
+`peril-point-0.1.2.apk` was built BEFORE this change and must be rebuilt to include it.
+
+**Before that (2026-09-29): MVP Week 1, the mode renames are done** (821 tests green, gdformat
 and gdlint clean; A55 pass pending, `VERIFY-ME.md` §MVP Week 1 — mode names). Ruling MVP R4:
 Standard → **Survival**, Gauntlet → **Corridor**, Code Red → **Overdrive**. Strings only:
 `GameOptionsManager` mode names, `GoalManager` titles/descriptions of the three mode goals,
