@@ -30,6 +30,8 @@ const GRID_DEFAULT_KEY: String = "gridlinesDefaultOn"
 const FIRST_RUN_KEY: String = "firstRunDone"
 ## DIVERGENCE(MVP R6): the saved analytics opt-out; not in the TS settings shape.
 const SHARE_USAGE_KEY: String = "shareUsageData"
+## DIVERGENCE(MVP Week 1): the saved Vibration switch; not in the TS settings shape.
+const HAPTICS_KEY: String = "hapticsEnabled"
 
 ## The TS GameMode strings. PORT: web/src/tilt-to-live/GameOptions.ts:5
 const MODE_IDS: Dictionary[Types.GameMode, String] = {
@@ -216,6 +218,8 @@ class GameSettings:
 	var first_run_done: bool = false
 	## DIVERGENCE(MVP R6): "Share anonymous usage data"; on until the player opts out.
 	var share_usage_data: bool = true
+	## DIVERGENCE(MVP Week 1): "Vibration"; on until the player turns it off.
+	var haptics_enabled: bool = true
 
 	## JSON.stringify(this.settings) (GameOptions.ts:109), TS keys and strings.
 	func to_dict() -> Dictionary:
@@ -234,6 +238,7 @@ class GameSettings:
 			GRID_DEFAULT_KEY: true,
 			FIRST_RUN_KEY: first_run_done,
 			SHARE_USAGE_KEY: share_usage_data,
+			HAPTICS_KEY: haptics_enabled,
 		}
 
 	## `{...defaults, ...parsed}` (GameOptions.ts:97-101). An unknown string
@@ -260,6 +265,7 @@ class GameSettings:
 		high_contrast_halo = SaveStore.read_bool(d, "highContrastHalo", high_contrast_halo)
 		first_run_done = SaveStore.read_bool(d, FIRST_RUN_KEY, first_run_done)
 		share_usage_data = SaveStore.read_bool(d, SHARE_USAGE_KEY, share_usage_data)
+		haptics_enabled = SaveStore.read_bool(d, HAPTICS_KEY, haptics_enabled)
 		# DIVERGENCE(M11c review): a save from before the default changed (no
 		# GRID_DEFAULT_KEY) held the old default, not a choice, so the new default stands.
 		if d.has(GRID_DEFAULT_KEY):

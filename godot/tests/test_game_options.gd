@@ -173,3 +173,15 @@ func test_save_without_first_run_key_reads_as_not_done() -> void:
 	_write_raw('{"mode":"classic","sfxEnabled":true}')
 	var o: GameOptionsManager = GameOptionsManager.new()
 	assert_false(o.settings.first_run_done, "old saves lack the key; best_score gates them")
+
+
+func test_haptics_defaults_on_and_round_trips() -> void:
+	var o: GameOptionsManager = GameOptionsManager.new()
+	assert_true(
+		o.settings.haptics_enabled, "DIVERGENCE(MVP Week 1): on until the player turns it off"
+	)
+	o.settings.haptics_enabled = false
+	o.save()
+	assert_false(GameOptionsManager.new().settings.haptics_enabled, "the choice survives")
+	_write_raw('{"mode":"classic"}')
+	assert_true(GameOptionsManager.new().settings.haptics_enabled, "old saves keep the default")

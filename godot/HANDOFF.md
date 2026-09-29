@@ -4,7 +4,18 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**Latest (2026-09-29): MVP Week 1, the Android back button and focus-loss pause are
+**Latest (2026-09-29): MVP Week 1, haptics are code-complete** (821 tests green, gdformat
+and gdlint clean; A55 pass pending, `VERIFY-ME.md` §MVP Week 1 — haptics). `src/core/haptics.gd`
+is an autoload (`Haptics`) that listens to `GameEvents`: a nuke (`weapon_activated`), the
+last life lost (`life_lost(0)`) and the new `GameEvents.close_call` (emitted by
+`RunController._collide` beside the audio call). `Haptics.vibrate` is a Callable so tests
+record pulses. `GameSettings.haptics_enabled` (save key `hapticsEnabled`, Settings → Audio
+"Vibration", `VibrationSwitch`) is applied at boot in `GameRoot._ready` and on toggle.
+`export_presets.cfg` `permissions/vibrate=true`. Pulse lengths are guesses to tune on the
+device. Next in Week 1, unblocked: AAB + upload key, mode renames (needs the user's names),
+the tablet texture error. Analytics steps 3-4 still wait on the user saying "Firebase done".
+
+**Before that (2026-09-29): MVP Week 1, the Android back button and focus-loss pause are
 code-complete** (812 tests green, gdformat and gdlint clean; A55 pass pending,
 `VERIFY-ME.md` §MVP Week 1). `project.godot` `config/quit_on_go_back=false`;
 `GameRoot.go_back()` (called from `NOTIFICATION_WM_GO_BACK_REQUEST`) and
@@ -32,7 +43,7 @@ plugins; symbol upload in `tools/release.sh`; DebugView on the A55) and step 3 a
 events not yet sent (`mode_select`, `first_run_hint`, `settings_change`, `screen`, user
 properties, `Log.error` forwarding), then step 4 (forced test crash). Tests that swap
 `Telemetry.backend` must restore it and reset `Telemetry.run_count`. **Meanwhile, unblocked
-and next in the roadmap's Week 1:** haptics, AAB + upload key, mode renames (needs the
+and next in the roadmap's Week 1:** AAB + upload key, mode renames (needs the
 user's names), the tablet texture error.
 
 **Before that (2026-09-29): MVP Week 1, first run is code-complete** (786 tests green, A55
@@ -1760,7 +1771,7 @@ and work its Week 1 top down:
 1. analytics and crash reporting (step 1 done; step 2 is next, see Latest above);
 2. the first run (Standard by default, a one-time hint);
 3. ~~the Android back button and pause on focus loss~~ (done, see Latest);
-4. haptics;
+4. ~~haptics~~ (done, see Latest);
 5. the AAB export and a real upload key;
 6. the mode renames (MVP R4), once the user names them;
 7. the tablet's texture error.

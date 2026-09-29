@@ -853,6 +853,19 @@ Resolves M11a Q3 (items 10 there and 9 under M11b). On the A55, with the back ge
 - [ ] 8. In a run, pull down the notification shade, or press Home: the run is paused when
       you return, and does not resume by itself.
 
+## MVP Week 1 — haptics (2026-09-29)
+
+Code-complete; nothing here has run on a phone. The pulse lengths (`Haptics.NUKE_MS` 120,
+`DEATH_MS` 250, `CLOSE_CALL_MS` 30) are first guesses: tune them by feel and edit the
+constants. The export preset now has `permissions/vibrate=true`; this needs a fresh APK.
+
+- [ ] 1. Settings → Audio shows "Vibration", on by default.
+- [ ] 2. In a run, a nuke pickup gives a medium buzz, the last life lost a longer one, and a
+      close call ("CLOSE CALL!") a light tick. A hit with lives left gives none.
+- [ ] 3. Turn Vibration off: none of the three buzz. Close and reopen the game: still off.
+- [ ] 4. The ticks do not feel like noise in a busy swarm (many close calls in a row). If
+      they do, say so; the fix is a cooldown.
+
 ## MVP R6 — analytics and crashes (2026-09-29)
 
 Step 1 (the facade) is code-complete; nothing here has run on a phone. Part A is code-only

@@ -753,6 +753,7 @@ func _bind_options_events() -> void:
 	# applies audio at once, as Pause does (TiltGame.ts:1396-1416).
 	_find_options_button("SfxSwitch").toggled.connect(_on_sfx_toggled)
 	_find_options_button("MusicSwitch").toggled.connect(_on_music_toggled)
+	_find_options_button("VibrationSwitch").toggled.connect(_on_vibration_toggled)
 	_find_options_button("UsageSwitch").toggled.connect(_on_usage_toggled)
 	# PORT: web/src/tilt-to-live/TiltMenu.ts:472-483 (ruling R7: the ControlSettings schemes)
 	_find_options_button("SchemeCard_touch").pressed.connect(
@@ -809,6 +810,14 @@ func _on_sfx_toggled(is_on: bool) -> void:
 # PORT: web/src/tilt-to-live/TiltMenu.ts:466-470 (M11a Q2: GameRoot saves and applies)
 func _on_music_toggled(is_on: bool) -> void:
 	music_toggled.emit(is_on)
+	open_options_modal()
+
+
+# DIVERGENCE(MVP Week 1): no TS counterpart. Saves the switch and applies it at once.
+func _on_vibration_toggled(is_on: bool) -> void:
+	_options.settings.haptics_enabled = is_on
+	_options.save()
+	Haptics.enabled = is_on
 	open_options_modal()
 
 
@@ -1078,6 +1087,8 @@ func _audio_column() -> VBoxContainer:
 	var s: GameOptionsManager.GameSettings = _options.settings
 	column.add_child(_switch_card("SfxSwitch", "Sound", "", s.sfx_enabled))  # PORT: :355
 	column.add_child(_switch_card("MusicSwitch", "Music", "", s.music_enabled))  # PORT: :356
+	# DIVERGENCE(MVP Week 1): the vibration switch, no TS counterpart.
+	column.add_child(_switch_card("VibrationSwitch", "Vibration", "", s.haptics_enabled))
 	var data: MarginContainer = MarginContainer.new()
 	data.add_theme_constant_override("margin_top", _px(DATA_TOP))
 	data.add_child(_section_heading("Data"))  # PORT: :397

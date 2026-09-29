@@ -21,6 +21,9 @@ signal weapon_activated(weapon_type: Types.WeaponType)
 ## Emitted when the player loses a life.
 signal life_lost(lives_remaining: int)
 
+## Emitted on a near miss. DIVERGENCE(MVP Week 1): no TS counterpart; Haptics listens.
+signal close_call
+
 ## Emitted when a run finishes on player death.
 signal run_ended(final_score: int, stats: Types.GameStats)
 

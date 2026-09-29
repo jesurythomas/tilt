@@ -114,6 +114,16 @@ func test_collision_with_enemy_triggers_death_when_single_life() -> void:
 	assert_eq(_rc.lives, 0, "lives must be zero")
 
 
+func test_near_miss_emits_close_call_and_a_hit_does_not() -> void:
+	_rc.reset_run(_bounds)
+	watch_signals(GameEvents)
+	var e: PerilEnemy = _swarm.spawn_seeker(_bounds, _player.x, _player.y)
+	e.x = _player.x + _player.radius + e.radius + 8.0  # inside the +16 close-call ring
+	_rc.check_collisions()
+	assert_signal_emitted(GameEvents, "close_call", "DIVERGENCE(MVP Week 1): Haptics listens")
+	assert_false(_player.is_dead, "a near miss is not a hit")
+
+
 func test_killer_defaults_unknown_and_names_the_enemy_that_ended_the_run() -> void:
 	_rc.reset_run(_bounds)
 	assert_eq(_scores.stats.killer, "unknown", "no death yet")

@@ -1055,3 +1055,14 @@ func test_run_over_lists_every_achievement_of_the_run() -> void:
 	assert_eq(header.text, "ACHIEVEMENTS · %d" % ids.size())
 	rc.reset_run(root._bounds)
 	assert_true(rc.run_achievements.is_empty(), "a new run starts a new list")
+
+
+func test_boot_applies_the_saved_vibration_choice() -> void:
+	var saved: GameOptionsManager = GameOptionsManager.new()
+	saved.settings.haptics_enabled = false
+	saved.save()
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	assert_false(Haptics.enabled, "the choice is honoured from the first frame")
+	Haptics.enabled = true

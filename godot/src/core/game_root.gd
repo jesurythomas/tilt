@@ -160,6 +160,7 @@ func _ready() -> void:
 	_tilt.tilt_smoothing = settings.tilt_smoothing
 	_state = GameStateMachine.new(_player, _grid, _particles, _router, _tilt, _audio, options)
 	Telemetry.set_enabled(options.settings.share_usage_data)  # DIVERGENCE(MVP R6)
+	Haptics.enabled = options.settings.haptics_enabled  # DIVERGENCE(MVP Week 1)
 
 	_grid_layer.bind(_grid)
 	apply_readability()

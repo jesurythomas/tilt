@@ -313,3 +313,13 @@ func test_code_red_is_red() -> void:
 	var red: Color = _options.get_mode_config(Types.GameMode.CODE_RED).color
 	assert_gt(red.r, 0.9)
 	assert_lt(red.b, 0.5, "red, not the TS's violet")
+
+
+func test_vibration_switch_saves_and_applies() -> void:
+	var menu: TiltMenu = _settings_open()
+	var vibration: CheckButton = menu.find_child("VibrationSwitch", true, false) as CheckButton
+	assert_true(vibration.button_pressed, "DIVERGENCE(MVP Week 1): on by default")
+	vibration.toggled.emit(false)
+	assert_false(GameOptionsManager.new().settings.haptics_enabled, "saved")
+	assert_false(Haptics.enabled, "applied at once")
+	Haptics.enabled = true

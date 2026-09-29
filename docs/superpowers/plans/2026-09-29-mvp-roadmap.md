@@ -83,7 +83,9 @@ opted-in testers, before production.
   Milestones), skips the cold open, and toggles pause in a run; only a bare menu leaves the
   app; game over ignores it. A run pauses on focus loss and on backgrounding, and never
   resumes by itself. Tagged `DIVERGENCE(MVP Week 1)`.
-- [ ] **Haptics** on a nuke, a death and a close call; add a Settings toggle. ~0.5 day.
+- [x] **Haptics** on a nuke, a death and a close call; add a Settings toggle. ~0.5 day.
+  Done: `src/core/haptics.gd` autoload, `GameEvents.close_call`, "Vibration" switch,
+  `permissions/vibrate=true`; pulse lengths still to tune on the A55 (VERIFY-ME §haptics).
 - [ ] **AAB export + Play App Signing.** Use a real upload key (not the dev key). The
   preset's `gradle_build/export_format` must become AAB. ~0.5 day.
 - [ ] **Mode renames (MVP R4)**, once the user picks names. ~0.5 day.

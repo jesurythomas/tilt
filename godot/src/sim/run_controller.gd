@@ -397,6 +397,7 @@ func _collide(i: int, plx: float, ply: float, plr: float) -> int:
 	if dist < plr + er + 16.0 and player.close_call_timer <= 0.0:
 		player.close_call_timer = 0.75
 		scores.register_close_call(player.x, player.y, audio)
+		GameEvents.close_call.emit()  # DIVERGENCE(MVP Week 1)
 	return COLLIDE_NONE
 
 
