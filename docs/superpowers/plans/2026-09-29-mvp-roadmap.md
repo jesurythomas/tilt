@@ -88,6 +88,11 @@ opted-in testers, before production.
   `permissions/vibrate=true`; pulse lengths still to tune on the A55 (VERIFY-ME §haptics).
 - [ ] **AAB export + Play App Signing.** Use a real upload key (not the dev key). The
   preset's `gradle_build/export_format` must become AAB. ~0.5 day.
+  Code done: `PERIL_AAB=1 tools/release.sh` flips the preset to AAB for one run and
+  restores it (checked: a dev-key AAB exported, `jar verified`, arm64 libs and
+  `libperil` inside). `tools/make-upload-key.sh` makes the real upload key. **Waits on
+  the user:** run that script, back the key up, then enrol the app in Play App Signing
+  in the Play Console when the first AAB goes up.
 - [ ] **Mode renames (MVP R4)**, once the user picks names. ~0.5 day.
 - [ ] **Tablet:** find the empty-image texture error, using a debug build signed with the
   dev key so it installs over the release. Look into the > 20 ms frames. ~1 day.

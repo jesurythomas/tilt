@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Builds a signed release APK of Peril Point: godot/build/peril-point-<version>.apk.
+# PERIL_AAB=1 builds the Play Store bundle (.aab) instead; sign it with the upload key
+# (PERIL_KEYS=~/.android/peril-upload.env, made by tools/make-upload-key.sh).
 #
 # Usage:  tools/release.sh
 # Needs:  the release native library (godot/bin/libperil.android.template_release.arm64.so;
@@ -39,13 +41,25 @@ fi
 
 VERSION="$(sed -n 's/^version\/name="\(.*\)"$/\1/p' "$REPO/godot/export_presets.cfg")"
 CODE="$(sed -n 's/^version\/code=\(.*\)$/\1/p' "$REPO/godot/export_presets.cfg")"
-OUT="build/${PERIL_OUT:-peril-point-${VERSION:-release}.apk}"
+EXT=apk
+PRESETS="$REPO/godot/export_presets.cfg"
+if [[ "${PERIL_AAB:-}" == 1 ]]; then
+	EXT=aab
+	# The preset stays on APK; flip its export format for this run only.
+	trap 'sed -i "s/^gradle_build\/export_format=1$/gradle_build\/export_format=0/" "$PRESETS"' EXIT
+	sed -i 's/^gradle_build\/export_format=0/gradle_build\/export_format=1/' "$PRESETS"
+fi
+OUT="build/${PERIL_OUT:-peril-point-${VERSION:-release}.$EXT}"
 
 "$GODOT" --headless --path "$REPO/godot" --export-release "Android" "$OUT"
 # A headless run strips one default-valued line from project.godot; put it back.
 git -C "$REPO" checkout godot/project.godot 2>/dev/null || true
 
 APK="$REPO/godot/$OUT"
-BT="$(ls -d "$SDK"/build-tools/* | tail -1)"
-"$BT/apksigner.bat" verify "$APK"
+if [[ "$EXT" == aab ]]; then
+	jarsigner -verify "$APK"
+else
+	BT="$(ls -d "$SDK"/build-tools/* | tail -1)"
+	"$BT/apksigner.bat" verify "$APK"
+fi
 echo "OK: $APK (version $VERSION, code $CODE, $(du -h "$APK" | cut -f1))"

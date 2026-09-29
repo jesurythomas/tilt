@@ -866,6 +866,22 @@ constants. The export preset now has `permissions/vibrate=true`; this needs a fr
 - [ ] 4. The ticks do not feel like noise in a busy swarm (many close calls in a row). If
       they do, say so; the fix is a cooldown.
 
+## MVP Week 1 — AAB and the upload key (2026-09-29)
+
+`tools/release.sh` builds a Play bundle with `PERIL_AAB=1` (it flips the preset's
+`export_format` to AAB for that run only). A dev-key AAB was exported and checked
+(`jar verified`; the cert-chain warning is expected for a self-signed key). The real
+upload key does not exist yet: only you should make it.
+
+- [ ] 1. Run `tools/make-upload-key.sh` (type a password, 12+ chars, twice). It writes
+      `~/.android/peril-upload.keystore` and `peril-upload.env` and prints the SHA-1.
+- [ ] 2. Copy both files somewhere off this machine (a password manager or a drive).
+      Losing the key means a reset request to Google.
+- [ ] 3. Add the printed upload-key SHA-1 to the Firebase app (R6 part B) when you do that.
+- [ ] 4. When the Play Console app exists, upload
+      `PERIL_AAB=1 PERIL_KEYS=~/.android/peril-upload.env tools/release.sh` output and
+      accept Play App Signing when it asks.
+
 ## MVP R6 — analytics and crashes (2026-09-29)
 
 Step 1 (the facade) is code-complete; nothing here has run on a phone. Part A is code-only

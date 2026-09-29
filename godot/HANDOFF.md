@@ -4,7 +4,19 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**Latest (2026-09-29): MVP Week 1, haptics are code-complete** (821 tests green, gdformat
+**Latest (2026-09-29): MVP Week 1, the AAB export is code-complete; the upload key waits on
+the user** (no game code changed, so tests were not re-run; a dev-key AAB exported and
+`jarsigner -verify` said `jar verified`). `PERIL_AAB=1 tools/release.sh` exports
+`godot/build/peril-point-<version>.aab`: it flips `gradle_build/export_format` to 1 for
+that run and restores it on exit, so the preset stays on APK for the tester builds.
+`tools/make-upload-key.sh` is for the **user** to run (it prompts for the password and
+writes `~/.android/peril-upload.keystore` + `.env`; I never read those files). Steps in
+`VERIFY-ME.md` §MVP Week 1 — AAB. Note for step 3 of analytics: the preset has
+`permissions/internet=false`; Firebase needs it on. Next in Week 1, unblocked: mode
+renames (needs the user's names), the tablet texture error. Analytics steps 3-4 still wait
+on the user saying "Firebase done".
+
+**Before that (2026-09-29): MVP Week 1, haptics are code-complete** (821 tests green, gdformat
 and gdlint clean; A55 pass pending, `VERIFY-ME.md` §MVP Week 1 — haptics). `src/core/haptics.gd`
 is an autoload (`Haptics`) that listens to `GameEvents`: a nuke (`weapon_activated`), the
 last life lost (`life_lost(0)`) and the new `GameEvents.close_call` (emitted by
