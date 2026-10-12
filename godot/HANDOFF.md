@@ -21,7 +21,7 @@ has this build (`build/peril-point-0.1.3-a55.apk`, 0.1.3 code 4, A55 key, instal
 18:26), so the next A55 build must use code 5. A55: confirmed ("power ups look good now", "the enhancement for powerups are
 confirmed"). Merged into `main` through PR #3. Next: ENH-302 (joystick position, GitHub #4);
 brainstorm it with the user first, its open questions are in the issue. Found 2026-10-12, not ticketed: the Run over big score
-(`FinalScoreLabel`) has no width cap; 11+ digits push Retry/Menu/Armory off the sheet. `main` and `feat/godot-port` sit at `c3d3aeb`, pushed; this branch is not.
+(`FinalScoreLabel`) has no width cap; 11+ digits push Retry/Menu/Armory off the sheet.
 
 **Latest (2026-09-29): the Settings overflow is fixed** (831 tests green, gdformat and gdlint
 clean, 0 SCRIPT ERROR headless; A55 pass pending, `VERIFY-ME.md` §Settings scroll). User: "fix the
