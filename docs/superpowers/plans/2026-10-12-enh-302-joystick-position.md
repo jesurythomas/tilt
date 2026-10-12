@@ -34,10 +34,15 @@ option."
    `set_size`; `_is_touch_stick_live` names the routing condition and drives
    `JoystickLayer.show_idle` (`IDLE_ALPHA` 0.4). No headless test sees draw calls; the bench does.
    Seen once each in 2 of 3 suite runs here, never on `main` (2 runs) nor in 3 `--verbose` runs:
-   "1 ObjectDB instance was leaked at exit". Recheck at task 5.
+   "1 ObjectDB instance was leaked at exit". Recheck at task 5: it predates ENH-302 (main
+   2/15, pre-ENH-301 `c3d3aeb` 1/9); verbose names a leaked `Image` plus a texture RID. Fixed
+   on its own branch `fix/exit-image-leak` (user 2026-10-12: "Fix it first", "create a new
+   branch for this issue"); merge that first, then rebase this branch onto main.
 4. [x] `TiltMenu`: the Stick position row and the Touch card subtitle. Tests in
    `test_tilt_menu.gd`. `StickCard` ("Touch stick": `StickDynamic`/`StickLeft`/`StickRight`, built
    as Screen shake's card, hidden off mobile), `TiltMenu.touch_hint`, signal
    `stick_anchor_changed` → `GameRoot._apply_stick_anchor`.
 5. [ ] Bench render at A55 size (idle and held, both corners); full suite, gdformat, gdlint.
+   `godot/bench/shot_stick.gd` done and reviewed (Settings row, idle Left, held Right look
+   right); 845/845 green, gdformat and gdlint clean. Open: the exit leak above.
 6. [ ] A55 pass, `godot/VERIFY-ME.md` §ENH-302.

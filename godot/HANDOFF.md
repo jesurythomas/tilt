@@ -7,7 +7,9 @@ Rewritten at every module stop. Written for a session with zero context.
 **Latest (2026-10-12): ENH-302, Stick position (GitHub #4), in progress** on branch
 `ENH-302-joystick-position`. Design approved in chat (bounded path); rulings R1-R4 and the task
 list are in `docs/superpowers/plans/2026-10-12-enh-302-joystick-position.md`. Done: tasks 1-4
-(`ControlSettings.stick_anchor`; `FloatingJoystick.set_anchor`/`clear_anchor`, `GRAB_FRACTION`). Next: the first unticked task there.
+(`ControlSettings.stick_anchor`; `FloatingJoystick.set_anchor`/`clear_anchor`, `GRAB_FRACTION`) and the
+bench (`bench/shot_stick.gd`). Paused for `fix/exit-image-leak` (a pre-existing intermittent
+"Image leaked at exit" in the suite): merge that, rebase this onto main, then task 5-6.
 
 **Latest (2026-10-12): ENH-301, power-ups and coins at a glance, is done: R2 confirmed on the A55**
 on branch `ENH-301-powerup-coin-glance` (67/67 test scripts, 831 tests green, gdformat and
