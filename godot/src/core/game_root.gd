@@ -184,6 +184,7 @@ func _ready() -> void:
 	_menu.armory_requested.connect(open_armory.bind(""))
 	_menu.all_goals_requested.connect(open_all_goals_modal)  # PORT: :195
 	_menu.scheme_chosen.connect(_on_menu_scheme_chosen)
+	_menu.stick_anchor_changed.connect(_apply_stick_anchor)  # DIVERGENCE(ENH-302 R3)
 	# The Settings modal (M11a ruling R9): readability and audio apply at once.
 	_menu.readability_changed.connect(apply_readability)
 	_menu.sfx_toggled.connect(set_sfx_enabled)

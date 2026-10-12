@@ -379,3 +379,29 @@ func test_a_setting_toggle_keeps_the_scroll_position() -> void:
 	await get_tree().process_frame
 	scroll = menu.find_child("OptionsScroll", true, false) as ScrollContainer
 	assert_eq(scroll.scroll_vertical, before, "a toggle re-renders without jumping to the top")
+
+
+## ENH-302 R3: Stick position in Settings → Controls saves, tells GameRoot, and re-marks.
+func test_stick_position_segments_save_and_signal() -> void:
+	var menu: TiltMenu = _settings_open()
+	watch_signals(menu)
+	(menu.find_child("StickRight", true, false) as Button).pressed.emit()
+	assert_eq(_settings.stick_anchor, ControlSettings.StickAnchor.RIGHT, "written")
+	assert_eq(ControlSettings.new().stick_anchor, ControlSettings.StickAnchor.RIGHT, "saved")
+	assert_signal_emitted(menu, "stick_anchor_changed", "GameRoot applies it at once")
+	assert_true(
+		(menu.find_child("StickRight", true, false) as Button).button_pressed,
+		"the re-render marks the choice"
+	)
+
+
+func test_dynamic_is_marked_by_default() -> void:
+	var menu: TiltMenu = _settings_open()
+	assert_true((menu.find_child("StickDynamic", true, false) as Button).button_pressed)
+
+
+## ENH-302 R3: the Touch card's subtitle follows the Stick position.
+func test_touch_card_hint_follows_the_stick_position() -> void:
+	assert_eq(TiltMenu.touch_hint(ControlSettings.StickAnchor.DYNAMIC), "Drag anywhere")
+	assert_eq(TiltMenu.touch_hint(ControlSettings.StickAnchor.LEFT), "Stick left")
+	assert_eq(TiltMenu.touch_hint(ControlSettings.StickAnchor.RIGHT), "Stick right")

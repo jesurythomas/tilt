@@ -35,7 +35,9 @@ option."
    `JoystickLayer.show_idle` (`IDLE_ALPHA` 0.4). No headless test sees draw calls; the bench does.
    Seen once each in 2 of 3 suite runs here, never on `main` (2 runs) nor in 3 `--verbose` runs:
    "1 ObjectDB instance was leaked at exit". Recheck at task 5.
-4. [ ] `TiltMenu`: the Stick position row and the Touch card subtitle. Tests in
-   `test_tilt_menu.gd`.
+4. [x] `TiltMenu`: the Stick position row and the Touch card subtitle. Tests in
+   `test_tilt_menu.gd`. `StickCard` ("Touch stick": `StickDynamic`/`StickLeft`/`StickRight`, built
+   as Screen shake's card, hidden off mobile), `TiltMenu.touch_hint`, signal
+   `stick_anchor_changed` → `GameRoot._apply_stick_anchor`.
 5. [ ] Bench render at A55 size (idle and held, both corners); full suite, gdformat, gdlint.
 6. [ ] A55 pass, `godot/VERIFY-ME.md` §ENH-302.
