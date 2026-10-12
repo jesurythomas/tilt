@@ -40,5 +40,5 @@ user's call whether desktop needs it.
 4. [x] Full suite: `OK: 67/67 scripts collected, all tests passed, nothing leaked` (852 tests,
    20239 asserts); `gdformat --check` 120 unchanged; `gdlint` clean; headless boot 0 SCRIPT
    ERROR.
-5. [ ] User: a look at a big score on the A55 (optional; the layout is asserted headless),
-   then merge into `main`.
+5. [x] Merged into `main` by its PR (user: "merge"). An A55 look at a big score stays
+   optional; the layout is asserted headless.
