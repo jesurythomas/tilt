@@ -30,6 +30,19 @@ const SHIELD_STROKE: Color = Color("#00ffff")
 ## DIVERGENCE(ICONS R2): the orb sprite's half-size over its disc radius (WeaponIcons.orb_svg:
 ## a 64-unit square whose lit disc has radius 28.5).
 const ORB_SPRITE_HALF: float = 32.0 / 28.5
+## DIVERGENCE(ENH-301): coins and orbs draw this much larger than their sim radius, so
+## they read at a glance in a busy swarm (user 2026-10-12: "power ups and coins can be
+## hard to identify"; on the emulator 1.3 was "a bit smaller", then 1.15 "make it bigger").
+## Render-only; pickup radii and magnets are untouched. Tune on the A55.
+const PICKUP_DRAW_SCALE: float = 1.25
+## DIVERGENCE(ENH-301): the coin and orb halo is a soft glow (CircleSprites.draw_glow) this
+## many px past the pickup's radius, at this centre alpha, in the pickup colour with its
+## saturation scaled by PICKUP_GLOW_SATURATION (user: "make the glow better", "make the colors
+## more pop out"; then 16 px at 0.85: "tone the glow up a bit more"). The TS drew a flat
+## disc, +7 px at alpha 0x33 (coin), +8 px at 0.2 (orb).
+const PICKUP_GLOW_PAD: float = 20.0
+const PICKUP_GLOW_ALPHA: float = 1.0
+const PICKUP_GLOW_SATURATION: float = 1.25
 ## PORT: web/src/tilt-to-live/GauntletMaze.ts:315
 const MAZE_BODY: Color = Color("#140c04")
 ## PORT: web/src/tilt-to-live/GauntletMaze.ts:324
@@ -338,9 +351,9 @@ func get_model_scale() -> float:
 
 
 ## Puts one entity's playfield position at the origin, rotated and scaled by
-## the model scale, so its drawer works in entity-local pixels.
-func _begin_entity(pos: Vector2, angle: float = 0.0) -> void:
-	draw_set_transform(_arena_origin + pos, angle, Vector2.ONE * _model_scale)
+## the model scale (times extra_scale), so its drawer works in entity-local pixels.
+func _begin_entity(pos: Vector2, angle: float = 0.0, extra_scale: float = 1.0) -> void:
+	draw_set_transform(_arena_origin + pos, angle, Vector2.ONE * _model_scale * extra_scale)
 
 
 ## Restores the standing arena transform _draw() set.
@@ -415,13 +428,13 @@ func _draw_coins() -> void:
 		var fade_alpha: float = 1.0
 		if coin.lifetime < CoinSystem.FADE_WARNING_TIME:
 			fade_alpha = maxf(0.15, coin.lifetime / CoinSystem.FADE_WARNING_TIME)  # PORT: :132
-		_begin_entity(Vector2(coin.x, coin.y))
+		_begin_entity(Vector2(coin.x, coin.y), 0.0, PICKUP_DRAW_SCALE)
 		var pos: Vector2 = Vector2.ZERO
 
 		# Soft amber glow halo. PORT: :139-142 (`${COIN_COLOR}33` = alpha 0x33)
-		var halo: Color = CoinSystem.COIN_COLOR
-		halo.a = (0x33 / 255.0) * fade_alpha
-		CircleSprites.draw_disc(self, pos, (coin.radius + 7.0) * pulse, halo)
+		var halo: Color = _glow_color(CoinSystem.COIN_COLOR)
+		halo.a *= fade_alpha
+		CircleSprites.draw_glow(self, pos, (coin.radius + PICKUP_GLOW_PAD) * pulse, halo)
 
 		# Solid coin disc. PORT: :146-153
 		var disc: Color = CoinSystem.COIN_COLOR
@@ -462,6 +475,13 @@ func _draw_coins() -> void:
 		_end_entity()
 
 
+# DIVERGENCE(ENH-301): a pickup's glow colour, more saturated and at PICKUP_GLOW_ALPHA.
+func _glow_color(base: Color) -> Color:
+	return Color.from_hsv(
+		base.h, minf(base.s * PICKUP_GLOW_SATURATION, 1.0), base.v, PICKUP_GLOW_ALPHA
+	)
+
+
 # A quadratic Bézier (Canvas quadraticCurveTo) sampled as a polyline.
 # PORT-NOTE: polyline resolution, a Godot choice with no TS counterpart
 # (canvas arc/quadraticCurveTo are analytic) — same class as the M3 gradient
@@ -489,12 +509,12 @@ func _draw_weapons() -> void:
 
 		var pulse: float = 0.88 + 0.12 * sin(_elapsed * 6.0 + orb.pulse_offset)
 		var orb_col: Color = WeaponSystem.get_weapon_color(orb.type)
-		_begin_entity(Vector2(orb.x, orb.y))
+		_begin_entity(Vector2(orb.x, orb.y), 0.0, PICKUP_DRAW_SCALE)
 		var orb_pos: Vector2 = Vector2.ZERO
 
 		# Outer pulsing glow (PORT: WeaponSystem.ts:804-807)
-		var glow_col: Color = Color(orb_col.r, orb_col.g, orb_col.b, 0.2)
-		CircleSprites.draw_disc(self, orb_pos, (orb.radius + 8.0) * pulse, glow_col)
+		var glow_col: Color = _glow_color(orb_col)
+		CircleSprites.draw_glow(self, orb_pos, (orb.radius + PICKUP_GLOW_PAD) * pulse, glow_col)
 
 		# DIVERGENCE(ICONS R2): the bubble, rim and glyph are one baked sprite (WeaponIcons:
 		# dark core lit in the weapon colour, colour and white rims, a white silhouette
@@ -502,7 +522,7 @@ func _draw_weapons() -> void:
 		# gradient bubble, a 1.8 px white ring and a 1.6 px line glyph (WeaponSystem.ts:
 		# 809-822, :833-923); its disc edge sits on orb.radius as before.
 		var half: float = orb.radius * ORB_SPRITE_HALF
-		var px: int = ceili(half * 2.0 * _model_scale)
+		var px: int = ceili(half * 2.0 * _model_scale * PICKUP_DRAW_SCALE)
 		var sprite: Texture2D = WeaponIcons.orb_texture(orb.type, px)
 		draw_texture_rect(sprite, Rect2(-half, -half, half * 2.0, half * 2.0), false)
 		_end_entity()

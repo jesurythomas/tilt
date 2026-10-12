@@ -4,6 +4,25 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
+**Latest (2026-10-12): ENH-301, power-ups and coins at a glance, is done: R2 confirmed on the A55**
+on branch `ENH-301-powerup-coin-glance` (67/67 test scripts, 831 tests green, gdformat and
+gdlint clean; A55 pass done, `VERIFY-ME.md` §ENH-301). User: "power ups and coins can be hard to identify"
+in busy play. R1 (pickups drawn over the swarm, 1.3x) was tried on the emulator and replaced by
+R2 (user: "keep how it previously was ... but make it bigger. make the glow better. make the
+colors more pop out", "a bit smaller" than 1.3): the TS draw order (pickups under enemies),
+`PICKUP_DRAW_SCALE` 1.25 (1.15 was "make it bigger"), and a soft saturated glow (`CircleSprites.draw_glow`,
+`EntityLayer._glow_color`; pad 20 px, alpha 1.0, saturation x1.25). Render-only. Plan
+`docs/superpowers/plans/2026-10-12-enh-301-pickup-glance.md`. Benches: `bench/shot_pickups.gd`
+(static, every pickup buried) and `bench/play_pickups.gd` (plays main.tscn windowed). Known: a
+pickup fully under a cluster is hidden again, as in the TS. Emulator: the x86_64 image runs the
+arm64 debug APK by translation (`--export-debug "Android" build/peril-point-debug.apk`, then
+`adb -s emulator-5554 install -r`; check `lastUpdateTime`, it dropped offline once). The A55
+has this build (`build/peril-point-0.1.3-a55.apk`, 0.1.3 code 4, A55 key, installed 2026-10-12
+18:26), so the next A55 build must use code 5. A55: confirmed ("power ups look good now", "the enhancement for powerups are
+confirmed"). Merged into `main` through PR #3. Next: ENH-302 (joystick position, GitHub #4);
+brainstorm it with the user first, its open questions are in the issue. Found 2026-10-12, not ticketed: the Run over big score
+(`FinalScoreLabel`) has no width cap; 11+ digits push Retry/Menu/Armory off the sheet.
+
 **Latest (2026-09-29): the Settings overflow is fixed** (831 tests green, gdformat and gdlint
 clean, 0 SCRIPT ERROR headless; A55 pass pending, `VERIFY-ME.md` §Settings scroll). User: "fix the
 menu overflow specially after adding reporting. we are not able to scroll to it." Cause: the
@@ -154,7 +173,10 @@ The head of `## Next` below says what to do first; `README.md` says what the pro
   key, so it installs over the old debug install and keeps the save:
   `PERIL_KEYS=~/.android/peril-a55.env PERIL_OUT=peril-point-0.1.0-a55.apk tools/release.sh`,
   then `adb -s RRCXB04L8EJ install -r`. A backup of the save from 2026-09-28 is in
-  `~/Documents/PerilPoint-A55-save-backup-2026-09-28/`. That install is no longer
+  `~/Documents/PerilPoint-A55-save-backup-2026-09-28/`. The A55 also has the Play Store build
+  (`ph.newzenith.perilpoint`, installer `com.android.vending`); both show as Peril Point, so
+  after a sideload, launch `com.jtg.perilpoint` with
+  `adb -s RRCXB04L8EJ shell monkey -p com.jtg.perilpoint -c android.intent.category.LAUNCHER 1`. That install is no longer
   debuggable, so `run-as` save reads stop working until a debug build goes back on.
 - **Native extension required.** Enemies are the C++ class `PerilEnemy`, so the game
   does not parse without `godot/bin/libperil.*`.
@@ -326,7 +348,7 @@ from overflowing the 700-px Run over sheet.
 - P — `ControlPicker` is Segmented, Touch | Tilt (+ Keyboard off-mobile), no `ButtonGroup`.
 - Pre-flight M14 (applied in Tasks 6–7): spec-quoted explain lines win over TS strings.
 
-Branch: `feat/godot-port` (no upstream; nothing pushed).
+Branch: `feat/godot-port` (pushed to `origin` on 2026-10-11 and fast-forwarded into `main`).
 
 > ### ⚠ Read `godot/VERIFY-ME.md`
 > Every check that needs a hand on the phone or a decision from the user is
