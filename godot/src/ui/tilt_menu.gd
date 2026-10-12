@@ -1090,7 +1090,8 @@ func _armory_link() -> Button:
 	words.bbcode_enabled = true
 	words.text = (
 		# DIVERGENCE(UI R4): shorter, so it fits one line on the phone.
-		"[u color=#%s]Turn rate & sensitivity: Armory › Handling[/u]"
+		# DIVERGENCE(HANDLING R1): "Speed", the Handling slider's new name.
+		"[u color=#%s]Speed & sensitivity: Armory › Handling[/u]"
 		% UiTheme.COLOR_LINE_STRONG.to_html(false)
 	)
 	words.scroll_active = false

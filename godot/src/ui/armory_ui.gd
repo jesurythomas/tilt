@@ -1311,12 +1311,15 @@ func _render_handling_tab() -> Control:
 	var controls: VBoxContainer = VBoxContainer.new()
 	controls.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	controls.add_theme_constant_override("separation", _px(HANDLING_STACK_GAP))
+	# DIVERGENCE(HANDLING R1, user 2026-10-12): the TS's "Turn rate" / "Higher turns sharper."
+	# (:815-818) misnamed it: tuning.sensitivity scales top speed and never turning
+	# (player_ship.gd). Node names keep "Turn" (tests and lookups use them).
 	controls.add_child(
 		_handling_field(
-			"Turn rate",
+			"Top speed",
 			"TurnValue",
 			"%.1f×" % tuning.sensitivity,  # PORT: :816
-			"Higher turns sharper.",
+			"Higher moves faster.",
 			"TurnSlider",
 			[TURN_MIN, TURN_MAX, TURN_STEP, tuning.sensitivity],
 			_on_turn_rate_changed

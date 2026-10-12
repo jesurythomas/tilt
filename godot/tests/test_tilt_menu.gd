@@ -239,8 +239,11 @@ func test_calibrate_link_shows_only_for_tilt_and_armory_link_closes() -> void:
 	menu.open_options_modal()
 	calibrate = menu.find_child("SettingsCalibrateButton", true, false) as Control
 	assert_true(calibrate.is_visible_in_tree())
+	var link: Button = menu.find_child("ArmoryLink", true, false) as Button
+	var words: RichTextLabel = link.find_children("*", "RichTextLabel", true, false)[0]
+	assert_eq(words.get_parsed_text(), "Speed & sensitivity: Armory › Handling", "HANDLING R1")
 	watch_signals(menu)
-	(menu.find_child("ArmoryLink", true, false) as Button).pressed.emit()
+	link.pressed.emit()
 	assert_false(menu.is_options_open(), "TiltMenu.ts:501")
 	assert_signal_emitted(menu, "armory_requested", "TiltMenu.ts:502")
 

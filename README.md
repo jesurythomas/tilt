@@ -22,7 +22,7 @@ Android package `com.jtg.perilpoint`. iOS waits on a macOS host.
   - *Weapons*: upgrade tracks per power-up, plus three keystones each (21 in all).
   - *Ships*: seven hulls, each with its own hitbox, turn rate and starting weapon.
   - *Arena*: six themes and six enemy skins; the skins add patterns to the dots.
-  - *Handling*: turn rate and tilt sensitivity.
+  - *Handling*: top speed and tilt sensitivity.
   - *Boosts*: extra life, smaller hull, enemy slow, and score and points multipliers.
   - The Ships and Arena tabs preview your choice in a live arena view.
 - **57 achievements**, each paying points. A run's completions queue as toasts and are

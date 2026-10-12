@@ -350,8 +350,8 @@ Facts from execution (not in the brief):
       `rgba(91,140,255,0.4)` rather than M1's 0.45 and the grid 0.18 rather
       than 0.28 (same class as the skin note — the theme is always passed in
       a live run).
-- [ ] **Handling:** drag the Turn rate slider — the pill updates live and the
-      preview ship on the right turns sharper; Deadzone likewise grows the
+- [ ] **Handling:** drag the Top speed slider (named Turn rate until HANDLING R1) — the
+      pill updates live and the preview ship on the right moves faster; Deadzone likewise grows the
       amber ring. Drag a finger inside the preview box: the ship chases it.
       Reset restores 1.0× / 4px. Play a run: the steering change is felt
       (tuning is read by PlayerShip every frame).
@@ -443,7 +443,7 @@ tick M8's section only through this one (spec §7). Build and install per
 - [ ] Ships: cards scroll sideways; Hitbox/Turn meters differ per ship; Equip/Buy work.
 - [ ] Arena: themes and enemies rows scroll sideways; tapping a card buys or equips it; the arena changes in a run.
 - [ ] Nested scrolls (Task 6 review): a sideways drag that **starts on a card** scrolls its row (Ships, Arena themes, enemies) instead of being eaten as a tap; a vertical drag starting on a row still scrolls the tab body.
-- [ ] Handling: Turn rate and Tilt sensitivity sliders; the preview ship responds to tilt; **Calibrate tilt** re-zeroes; Reset restores both.
+- [ ] Handling: Top speed and Tilt sensitivity sliders; the preview ship responds to tilt; **Calibrate tilt** re-zeroes; Reset restores both.
 - [ ] Boosts: 2×N cards with pips; cost buttons; "Max" when maxed.
 
 **Findings** (fill in; one line each: screen — what differs from the board)
@@ -1010,3 +1010,10 @@ Touch, then the "Touch stick" row: Dynamic / Left / Right.
    feel right; say "closer to the edge", "further in", "fainter" or "brighter".
 6. [ ] Stick size still works with a fixed stick, and changing Stick position mid-run (Pause →
    Settings) moves the stick at once.
+
+## HANDLING R1 — the Top speed slider (2026-10-12)
+
+- [ ] Armory → Handling: the first slider reads **Top speed**, hint "Higher moves faster."
+- [ ] At 2.0× the preview ship moves faster but turns no sharper than at 0.5×.
+- [ ] Settings → Controls: the link reads "Speed & sensitivity: Armory › Handling" on one line.
+- [ ] In a run (touch or tilt), 2.0× gives a faster ship; turning feels the same as before.

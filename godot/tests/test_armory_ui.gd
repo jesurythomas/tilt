@@ -778,6 +778,19 @@ func test_handling_tab_shows_the_tuning_and_starts_the_preview() -> void:
 	assert_true(preview.is_running(), "initHandlingPreview on the handling tab (:387-389)")
 
 
+func test_the_speed_slider_says_what_it_does() -> void:
+	# HANDLING R1 (2026-10-12): tuning.sensitivity scales top speed, never turning
+	# (player_ship.gd); the TS's "Turn rate" / "Higher turns sharper." misnamed it.
+	_armory.open("handling")
+	var field: Node = _label("TurnValue").get_parent().get_parent()
+	var texts: Array[String] = []
+	for label: Node in field.find_children("*", "Label", true, false):
+		texts.append((label as Label).text)
+	assert_has(texts, "Top speed")
+	assert_has(texts, "Higher moves faster.")
+	assert_does_not_have(texts, "Turn rate")
+
+
 func test_sliders_write_through_and_emit_without_rerender() -> void:
 	_armory.open("handling")
 	watch_signals(_armory)
