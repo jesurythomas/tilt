@@ -11,6 +11,10 @@ extends RefCounted
 # Persisted through SaveStore alongside tilt_gyro_calibration.json and
 # tilt_to_live_best.json, per M2.5 spec D7.
 
+## DIVERGENCE(ENH-302 R1, GitHub #4): where the touch stick sits. DYNAMIC floats under the
+## finger (M2.5 §8.1); LEFT and RIGHT fix it in that bottom corner of the playfield.
+enum StickAnchor { DYNAMIC, LEFT, RIGHT }
+
 ## Where the settings are persisted.
 const SETTINGS_PATH: String = "user://peril_point_settings.json"
 
@@ -34,6 +38,8 @@ var tilt_sensitivity: float = 1.0
 var tilt_smoothing: float = 0.0
 ## DIVERGENCE(TOUCH R1): the touch stick's radius, as a multiple of its default.
 var stick_size: float = 1.0
+## DIVERGENCE(ENH-302 R1): where the touch stick sits.
+var stick_anchor: StickAnchor = StickAnchor.DYNAMIC
 
 
 func _init() -> void:
@@ -52,6 +58,7 @@ func save_settings() -> void:
 				"tilt_sensitivity": tilt_sensitivity,
 				"tilt_smoothing": tilt_smoothing,
 				"stick_size": stick_size,
+				"stick_anchor": int(stick_anchor),
 			}
 		)
 	)
@@ -81,3 +88,8 @@ func _load_settings() -> void:
 	stick_size = clampf(
 		SaveStore.read_float(data, "stick_size", stick_size), MIN_STICK_SIZE, MAX_STICK_SIZE
 	)
+	var anchor: int = SaveStore.read_int(data, "stick_anchor", int(stick_anchor))
+	if anchor >= StickAnchor.DYNAMIC and anchor <= StickAnchor.RIGHT:
+		stick_anchor = anchor
+	else:
+		Log.warn("control settings carry an unknown stick anchor %d; keeping default" % anchor)

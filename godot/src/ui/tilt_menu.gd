@@ -31,6 +31,8 @@ signal calibrate_screen_requested
 signal scheme_chosen(scheme: Types.ControlScheme)
 ## A Settings readability option (halo, grid, shake) changed and was saved (R9).
 signal readability_changed
+## DIVERGENCE(ENH-302 R3): Settings' Stick position changed and was saved; GameRoot applies it.
+signal stick_anchor_changed
 ## Settings' Sound switch (R9, M11a Q2 ruling): GameRoot saves and applies it.
 signal sfx_toggled(is_on: bool)
 ## Settings' Music switch (R9, M11a Q2 ruling): GameRoot saves and applies it.
@@ -777,6 +779,16 @@ func _bind_options_events() -> void:
 	_find_options_button("SchemeCard_keys").pressed.connect(
 		_on_scheme_card_pressed.bind(Types.ControlScheme.KEYBOARD)
 	)
+	# DIVERGENCE(ENH-302 R3)
+	_find_options_button("StickDynamic").pressed.connect(
+		_on_stick_pressed.bind(ControlSettings.StickAnchor.DYNAMIC)
+	)
+	_find_options_button("StickLeft").pressed.connect(
+		_on_stick_pressed.bind(ControlSettings.StickAnchor.LEFT)
+	)
+	_find_options_button("StickRight").pressed.connect(
+		_on_stick_pressed.bind(ControlSettings.StickAnchor.RIGHT)
+	)
 	# PORT-NOTE: the TS button calibrates in place (:485-497); the Settings board
 	# links to the Calibrate screen instead (rulings R4, R5).
 	var calibrate: Button = _find_options_button("SettingsCalibrateButton")
@@ -810,6 +822,14 @@ func _on_shake_pressed(shake: GameOptionsManager.ScreenShake) -> void:
 	_options.settings.screen_shake = shake
 	_options.save()
 	readability_changed.emit()  # ruling R9: applied at once
+	open_options_modal()
+
+
+# DIVERGENCE(ENH-302 R3): saved here, as Screen shake is; GameRoot moves the stick.
+func _on_stick_pressed(anchor: ControlSettings.StickAnchor) -> void:
+	_settings.stick_anchor = anchor
+	_settings.save_settings()
+	stick_anchor_changed.emit()
 	open_options_modal()
 
 
@@ -940,7 +960,12 @@ func _controls_column() -> VBoxContainer:
 	# DIVERGENCE(UI R12, user 2026-09-28: "fix the capitalization of the texts"): sentence case
 	# (the board's "drag anywhere", "phone gyroscope"), and "Tilt the phone" fits one line.
 	cards.add_child(
-		_scheme_card("SchemeCard_touch", "Touch", "Drag anywhere", Types.ControlScheme.MOUSE)
+		_scheme_card(
+			"SchemeCard_touch",
+			"Touch",
+			touch_hint(_settings.stick_anchor),  # DIVERGENCE(ENH-302 R3)
+			Types.ControlScheme.MOUSE
+		)
 	)
 	cards.add_child(
 		_scheme_card("SchemeCard_tilt", "Tilt", "Tilt the phone", Types.ControlScheme.GYRO)
@@ -952,6 +977,7 @@ func _controls_column() -> VBoxContainer:
 	keys.visible = not OS.has_feature("mobile")
 	cards.add_child(keys)
 	column.add_child(cards)
+	column.add_child(_stick_card())
 	# PORT: web/src/tilt-to-live/TiltMenu.ts:378 — only while the scheme is gyro
 	if _settings.scheme == Types.ControlScheme.GYRO:
 		var calibrate: Button = _button(
@@ -963,6 +989,52 @@ func _controls_column() -> VBoxContainer:
 		column.add_child(calibrate)
 	column.add_child(_armory_link())
 	return column
+
+
+## DIVERGENCE(ENH-302 R3): the Touch card's subtitle for a Stick position.
+static func touch_hint(anchor: ControlSettings.StickAnchor) -> String:
+	match anchor:
+		ControlSettings.StickAnchor.LEFT:
+			return "Stick left"
+		ControlSettings.StickAnchor.RIGHT:
+			return "Stick right"
+	return "Drag anywhere"
+
+
+# DIVERGENCE(ENH-302 R3, GitHub #4): Stick position, built as Screen shake's card. Phones
+# only: the stick exists only there (GameRoot._is_touch_stick_live).
+func _stick_card() -> PanelContainer:
+	var card: PanelContainer = _options_card()
+	card.name = "StickCard"
+	card.visible = OS.has_feature("mobile")
+	var box: StyleBoxFlat = card.get_theme_stylebox("panel") as StyleBoxFlat
+	box.content_margin_top = _px(SHAKE_PAD_TOP)
+	box.content_margin_bottom = _px(SHAKE_PAD_BOTTOM)
+	var stack: VBoxContainer = VBoxContainer.new()
+	stack.add_theme_constant_override("separation", _px(SHAKE_GAP))
+	stack.add_child(_card_label("Touch stick"))
+	var segmented: PanelContainer = PanelContainer.new()
+	segmented.theme_type_variation = "Segmented"
+	var row: HBoxContainer = HBoxContainer.new()
+	row.add_theme_constant_override("separation", _px(UiTheme.SEGMENT_PAD))
+	row.add_child(_stick_button("StickDynamic", "Dynamic", ControlSettings.StickAnchor.DYNAMIC))
+	row.add_child(_stick_button("StickLeft", "Left", ControlSettings.StickAnchor.LEFT))
+	row.add_child(_stick_button("StickRight", "Right", ControlSettings.StickAnchor.RIGHT))
+	segmented.add_child(row)
+	stack.add_child(segmented)
+	card.add_child(stack)
+	return card
+
+
+func _stick_button(
+	button_name: String, label: String, anchor: ControlSettings.StickAnchor
+) -> Button:
+	var button: Button = _button(button_name, "SegmentButton", label)
+	button.toggle_mode = true
+	button.set_pressed_no_signal(_settings.stick_anchor == anchor)
+	button.custom_minimum_size.y = _px(UiTheme.TOUCH_TARGET)
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	return button
 
 
 # One scheme card. PORT: web/src/tilt-to-live/TiltMenu.ts:367-375
