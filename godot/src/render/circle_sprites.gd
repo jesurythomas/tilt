@@ -18,7 +18,12 @@ const AA: float = 2.0 / TEX_SIZE
 ## The disc's half-alpha edge, as a fraction of the texture half-size.
 const DISC_EDGE: float = 1.0 - AA * 1.5
 
+## DIVERGENCE(ENH-301): the soft glow's falloff, white alpha at each offset from the centre.
+const GLOW_OFFSETS: PackedFloat32Array = [0.0, 0.4, 1.0]
+const GLOW_ALPHAS: PackedFloat32Array = [1.0, 0.55, 0.0]
+
 static var _disc: GradientTexture2D = null
+static var _glow: GradientTexture2D = null
 static var _rings: Dictionary[int, GradientTexture2D] = {}
 
 
@@ -41,6 +46,14 @@ static func disc_rect(centre: Vector2, radius: float) -> Rect2:
 ## Draws a filled circle like CanvasItem.draw_circle(centre, radius, color).
 static func draw_disc(ci: CanvasItem, centre: Vector2, radius: float, color: Color) -> void:
 	ci.draw_texture_rect(disc(), disc_rect(centre, radius), false, color)
+
+
+## DIVERGENCE(ENH-301): a soft glow fading from color at the centre to clear at radius.
+static func draw_glow(ci: CanvasItem, centre: Vector2, radius: float, color: Color) -> void:
+	if _glow == null:
+		_glow = _radial(GLOW_OFFSETS, GLOW_ALPHAS)
+	var half: Vector2 = Vector2(radius, radius)
+	ci.draw_texture_rect(_glow, Rect2(centre - half, half * 2.0), false, color)
 
 
 ## Quantised stroke-width / radius ratio.

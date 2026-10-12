@@ -32,10 +32,16 @@ const SHIELD_STROKE: Color = Color("#00ffff")
 const ORB_SPRITE_HALF: float = 32.0 / 28.5
 ## DIVERGENCE(ENH-301): coins and orbs draw this much larger than their sim radius, so
 ## they read at a glance in a busy swarm (user 2026-10-12: "power ups and coins can be
-## hard to identify"). Render-only; pickup radii and magnets are untouched. Tune on the A55.
-const PICKUP_DRAW_SCALE: float = 1.3
-## DIVERGENCE(ENH-301): the coin and orb halo alpha (the TS drew 0x33 and 0.2).
-const PICKUP_HALO_ALPHA: float = 0.4
+## hard to identify"; 2026-10-12 after 1.3 on the emulator: "a bit smaller"). Render-only;
+## pickup radii and magnets are untouched. Tune on the A55.
+const PICKUP_DRAW_SCALE: float = 1.15
+## DIVERGENCE(ENH-301): the coin and orb halo is a soft glow (CircleSprites.draw_glow) this
+## many px past the pickup's radius, at this centre alpha, in the pickup colour with its
+## saturation scaled by PICKUP_GLOW_SATURATION (user: "make the glow better", "make the colors
+## more pop out"). The TS drew a flat disc, +7 px at alpha 0x33 (coin), +8 px at 0.2 (orb).
+const PICKUP_GLOW_PAD: float = 16.0
+const PICKUP_GLOW_ALPHA: float = 0.85
+const PICKUP_GLOW_SATURATION: float = 1.25
 ## PORT: web/src/tilt-to-live/GauntletMaze.ts:315
 const MAZE_BODY: Color = Color("#140c04")
 ## PORT: web/src/tilt-to-live/GauntletMaze.ts:324
@@ -156,11 +162,9 @@ func _draw() -> void:
 	_dash_cache.clear()
 	if is_maze_drawn():
 		_draw_maze()
-	# DIVERGENCE(ENH-301): pickups draw over the swarm (the TS drew them under it), so a
-	# dense wave cannot bury a coin or orb.
-	_draw_enemies()
 	_draw_coins()
 	_draw_weapons()
+	_draw_enemies()
 	_draw_player()
 	PerfProbe.add("d_entity", pt_draw)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
@@ -427,9 +431,9 @@ func _draw_coins() -> void:
 		var pos: Vector2 = Vector2.ZERO
 
 		# Soft amber glow halo. PORT: :139-142 (`${COIN_COLOR}33` = alpha 0x33)
-		var halo: Color = CoinSystem.COIN_COLOR
-		halo.a = PICKUP_HALO_ALPHA * fade_alpha
-		CircleSprites.draw_disc(self, pos, (coin.radius + 7.0) * pulse, halo)
+		var halo: Color = _glow_color(CoinSystem.COIN_COLOR)
+		halo.a *= fade_alpha
+		CircleSprites.draw_glow(self, pos, (coin.radius + PICKUP_GLOW_PAD) * pulse, halo)
 
 		# Solid coin disc. PORT: :146-153
 		var disc: Color = CoinSystem.COIN_COLOR
@@ -470,6 +474,13 @@ func _draw_coins() -> void:
 		_end_entity()
 
 
+# DIVERGENCE(ENH-301): a pickup's glow colour, more saturated and at PICKUP_GLOW_ALPHA.
+func _glow_color(base: Color) -> Color:
+	return Color.from_hsv(
+		base.h, minf(base.s * PICKUP_GLOW_SATURATION, 1.0), base.v, PICKUP_GLOW_ALPHA
+	)
+
+
 # A quadratic Bézier (Canvas quadraticCurveTo) sampled as a polyline.
 # PORT-NOTE: polyline resolution, a Godot choice with no TS counterpart
 # (canvas arc/quadraticCurveTo are analytic) — same class as the M3 gradient
@@ -501,8 +512,8 @@ func _draw_weapons() -> void:
 		var orb_pos: Vector2 = Vector2.ZERO
 
 		# Outer pulsing glow (PORT: WeaponSystem.ts:804-807)
-		var glow_col: Color = Color(orb_col.r, orb_col.g, orb_col.b, PICKUP_HALO_ALPHA)
-		CircleSprites.draw_disc(self, orb_pos, (orb.radius + 8.0) * pulse, glow_col)
+		var glow_col: Color = _glow_color(orb_col)
+		CircleSprites.draw_glow(self, orb_pos, (orb.radius + PICKUP_GLOW_PAD) * pulse, glow_col)
 
 		# DIVERGENCE(ICONS R2): the bubble, rim and glyph are one baked sprite (WeaponIcons:
 		# dark core lit in the weapon colour, colour and white rims, a white silhouette

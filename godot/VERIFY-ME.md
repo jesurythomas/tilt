@@ -975,12 +975,13 @@ Armory → Arena tab, buy or browse each theme; the preview shows the effect too
 4. [ ] The Touch and Tilt cards read "Drag anywhe…" and "Tilt the…" (clipped); say if you want
    that fixed.
 
-## ENH-301 — power-ups and coins at a glance (2026-10-12)
+## ENH-301 — power-ups and coins at a glance (2026-10-12, ruling R2)
 
-Plan `docs/superpowers/plans/2026-10-12-enh-301-pickup-glance.md`. Pickups now draw over the
-swarm, 1.3x larger, with a 0.4 halo (`entity_layer.gd` `PICKUP_DRAW_SCALE`, `PICKUP_HALO_ALPHA`).
+Plan `docs/superpowers/plans/2026-10-12-enh-301-pickup-glance.md`. Pickups draw under the
+swarm as in the TS, 1.15x larger, with a soft saturated glow (`entity_layer.gd` `PICKUP_*`).
 
-1. [ ] In a busy wave, orbs and coins are easy to spot without hunting for them.
-2. [ ] Coins stand out over the amber skins and arenas (Ember, Desert, Sandstorm) too.
-3. [ ] A pickup sitting on top of an enemy never hides an enemy you then hit.
-4. [ ] The size (1.3x) and halo (0.4) feel right; say "bigger", "smaller" or "too glowy".
+1. [ ] Orbs and coins are easy to spot in a busy wave.
+2. [ ] The glow reads as a glow (soft, not a flat disc) and the colours pop on every arena.
+3. [ ] Coins stand out over the amber skins and arenas (Ember, Desert, Sandstorm).
+4. [ ] The size (1.15x) feels right; say "bigger" or "smaller", and whether the glow is too
+   wide (`PICKUP_GLOW_PAD`) or too strong (`PICKUP_GLOW_ALPHA`).

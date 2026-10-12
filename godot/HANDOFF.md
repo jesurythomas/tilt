@@ -4,18 +4,20 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**Latest (2026-10-12): ENH-301, power-ups and coins at a glance, is code-complete** on branch
-`ENH-301-powerup-coin-glance` (67/67 test scripts green, gdformat and gdlint clean, 0 SCRIPT
-ERROR headless; A55 pass pending, `VERIFY-ME.md` §ENH-301). User: "power ups and coins can be
-hard to identify" in busy play. Ruling ENH-301 R1 (user chose "lift + bigger/brighter"):
-`EntityLayer._draw` now draws enemies before coins and orbs, and both pickups draw
-`PICKUP_DRAW_SCALE` (1.3) larger with `PICKUP_HALO_ALPHA` (0.4) halos, render-only (sim radii,
-hitboxes, magnets untouched). Plan `docs/superpowers/plans/2026-10-12-enh-301-pickup-glance.md`.
-Evidence: `godot/bench/shot_pickups.gd` (windowed; `SHOT_NAME=` names the png); before, no
-pickup was visible in a dense swarm; after, every orb reads, coins are visible but the
-weakest over the ember skin. Next: the user's A55 pass; if coins still get lost, add option
-A's dark outline + ping ring for coins (plan task 3). `main` and `feat/godot-port` both sit at
-`c3d3aeb` and are pushed; this branch is not pushed.
+**Latest (2026-10-12): ENH-301, power-ups and coins at a glance, is code-complete (ruling R2)**
+on branch `ENH-301-powerup-coin-glance` (67/67 test scripts green, gdformat and gdlint clean;
+A55 pass pending, `VERIFY-ME.md` §ENH-301). User: "power ups and coins can be hard to identify"
+in busy play. R1 (pickups drawn over the swarm, 1.3x) was tried on the emulator and replaced by
+R2 (user: "keep how it previously was ... but make it bigger. make the glow better. make the
+colors more pop out", "a bit smaller" than 1.3): the TS draw order (pickups under enemies),
+`PICKUP_DRAW_SCALE` 1.15, and a soft saturated glow (`CircleSprites.draw_glow`,
+`EntityLayer._glow_color`, `PICKUP_GLOW_PAD`/`_ALPHA`/`_SATURATION`). Render-only. Plan
+`docs/superpowers/plans/2026-10-12-enh-301-pickup-glance.md`. Benches: `bench/shot_pickups.gd`
+(static, every pickup buried) and `bench/play_pickups.gd` (plays main.tscn windowed). Known: a
+pickup fully under a cluster is hidden again, as in the TS. Emulator: the x86_64 image runs the
+arm64 debug APK by translation (`--export-debug "Android" build/peril-point-debug.apk`, then
+`adb -s emulator-5554 install -r`; check `lastUpdateTime`, it dropped offline once). Next: the
+user's A55 pass. `main` and `feat/godot-port` sit at `c3d3aeb`, pushed; this branch is not.
 
 **Latest (2026-09-29): the Settings overflow is fixed** (831 tests green, gdformat and gdlint
 clean, 0 SCRIPT ERROR headless; A55 pass pending, `VERIFY-ME.md` §Settings scroll). User: "fix the

@@ -18,6 +18,13 @@ hard to identify."
 Options offered: (A) lift + dark outline + expanding ping ring, (B) lift + bigger/brighter,
 (C) ping + outline only, keep the TS draw order. **User chose B.**
 
+## Ruling ENH-301 R2 (supersedes R1, same day)
+
+After R1 (1.3x, drawn over the swarm) on the emulator, the user: "keep how it previously was
+prior the changes we did, but make it bigger. make the glow better. make the colors more pop
+out", and earlier "a bit smaller than it currently is". So: the TS draw order again (pickups
+under the swarm), size between the TS 1.0 and R1's 1.3, and a better, more saturated glow.
+
 ## Tasks
 
 1. [x] `entity_layer.gd`: enemies draw before coins and orbs (player still last);
@@ -27,9 +34,16 @@ Options offered: (A) lift + dark outline + expanding ping ring, (B) lift + bigge
 2. [x] `godot/bench/shot_pickups.gd`: windowed before/after shot (every orb and three coins
    buried in seekers, classic and ember skins, A55 size). Before: no pickup visible. After: all
    orbs read; coins visible but the weakest, most of all over the ember skin.
-3. [ ] A55 pass, `godot/VERIFY-ME.md` §ENH-301. If coins still get lost, the next step is
-   option A's dark outline and ping ring for coins only (no new ruling needed beyond the user
-   saying so).
+3. [x] R2: `_draw` back to the TS order (coins, orbs, enemies, player);
+   `PICKUP_DRAW_SCALE = 1.15`; both halos are a soft radial glow (`CircleSprites.draw_glow`, a new
+   falloff texture, `GLOW_OFFSETS`/`GLOW_ALPHAS`) `PICKUP_GLOW_PAD` (16) px past the radius at
+   `PICKUP_GLOW_ALPHA` (0.85), in the pickup colour with saturation x `PICKUP_GLOW_SATURATION`
+   (1.25) (`EntityLayer._glow_color`). Seen in a live run on the emulator (debug APK) and in
+   `godot/bench/play_pickups.gd` (plays main.tscn windowed, packs seekers around orbs and coins).
+   Known consequence: a pickup fully under a cluster is hidden again, as in the TS.
+4. [ ] A55 pass, `godot/VERIFY-ME.md` §ENH-301. If pickups still get lost under clusters, ask
+   the user before changing the draw order again (R2 reverted it on purpose); an outline or ping
+   ring (option A without the lift) is the other lever.
 
 No headless test pins the draw order: Godot exposes no way to observe draw calls (same gap as
 `queue_redraw`, HANDOFF §M2.5 Accepted gaps). The bench shot is the evidence.
