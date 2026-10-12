@@ -16,8 +16,9 @@ colors more pop out", "a bit smaller" than 1.3): the TS draw order (pickups unde
 (static, every pickup buried) and `bench/play_pickups.gd` (plays main.tscn windowed). Known: a
 pickup fully under a cluster is hidden again, as in the TS. Emulator: the x86_64 image runs the
 arm64 debug APK by translation (`--export-debug "Android" build/peril-point-debug.apk`, then
-`adb -s emulator-5554 install -r`; check `lastUpdateTime`, it dropped offline once). Next: the
-user's A55 pass. `main` and `feat/godot-port` sit at `c3d3aeb`, pushed; this branch is not.
+`adb -s emulator-5554 install -r`; check `lastUpdateTime`, it dropped offline once). The A55
+has this build (`build/peril-point-0.1.3-a55.apk`, 0.1.3 code 4, A55 key, installed 2026-10-12
+18:26), so the next A55 build must use code 5. Next: the user's A55 pass. `main` and `feat/godot-port` sit at `c3d3aeb`, pushed; this branch is not.
 
 **Latest (2026-09-29): the Settings overflow is fixed** (831 tests green, gdformat and gdlint
 clean, 0 SCRIPT ERROR headless; A55 pass pending, `VERIFY-ME.md` §Settings scroll). User: "fix the
