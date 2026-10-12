@@ -123,6 +123,14 @@ GUT's exit code *is* trustworthy for ordinary assertion failures (a failing
 reports must equal the number of `test_*.gd` files on disk.** It also fails an
 empty suite and a run that produces no summary.
 
+**It fails a run that leaks at exit** (`... leaked at exit`), which GUT never
+reports. A test that leaves a node, object or texture alive past quit fails the
+suite; name the culprit with the `--verbose` command the failure prints. The
+suite runs with `--render-thread safe`: under the project's Separate render
+thread (`thread_model=2`, M11c P24, kept for the game) Godot drops a texture free
+queued just before quit in about one run in six and reports a leaked `Image` —
+an engine shutdown race, not a game leak (`fix/exit-image-leak`, 2026-10-12).
+
 When it reports `collected N of M`, find the culprit with:
 
 ```

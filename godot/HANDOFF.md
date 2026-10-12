@@ -4,6 +4,14 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
+**Latest (2026-10-12): `fix/exit-image-leak`** — the suite sometimes printed "Image /
+texture RID leaked at exit" yet passed. Cause: the Separate render thread (`thread_model=2`,
+P24) drops a texture free queued just before quit, an engine race (0 of 15 runs on Safe, about
+1 in 6 on Separate). `tools/run_tests.sh` now runs with `--render-thread safe` and fails any run
+that leaks at exit (CONVENTIONS §1.3). The game keeps Separate. Plan
+`docs/superpowers/plans/2026-10-12-fix-exit-image-leak.md`. Next: merge this to `main`, then
+rebase `ENH-302-joystick-position` (paused at task 5; its plan has the rest).
+
 **Latest (2026-10-12): ENH-301, power-ups and coins at a glance, is done: R2 confirmed on the A55**
 on branch `ENH-301-powerup-coin-glance` (67/67 test scripts, 831 tests green, gdformat and
 gdlint clean; A55 pass done, `VERIFY-ME.md` §ENH-301). User: "power ups and coins can be hard to identify"

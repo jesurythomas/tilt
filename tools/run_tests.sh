@@ -15,9 +15,18 @@
 # adds exactly one check GUT lacks: the number of scripts GUT reports running
 # must equal the number of test scripts on disk.
 #
+# It also fails a run that leaks at exit ("... leaked at exit"), which GUT never
+# reports. The suite runs with the render thread set to Safe: the project's
+# Separate render thread (thread_model=2, M11c P24, kept for the game's frame
+# rate) can drop a texture free queued just before quit, which Godot reports as
+# a leaked Image and texture RID in about one run in six (fix/exit-image-leak,
+# 2026-10-12: 10 of 59 runs on Separate, 0 of 15 on Safe). That is an engine
+# shutdown race, not a leak in the game; without it, any leak the gate sees is real.
+#
 # Usage:  tools/run_tests.sh
 # Env:    GODOT  — override the engine path if it moves.
-# Exits:  0 only if every test script was collected AND every test passed.
+# Exits:  0 only if every test script was collected, every test passed, AND
+#         nothing leaked at exit.
 
 set -uo pipefail
 
@@ -54,7 +63,7 @@ fi
 # (CONVENTIONS §1.3), so the collection check below still catches it.
 "$GODOT" --headless --path "$REPO/godot" --import >/dev/null 2>&1
 
-output="$("$GODOT" --headless --path "$REPO/godot" \
+output="$("$GODOT" --headless --render-thread safe --path "$REPO/godot" \
 	-s addons/gut/gut_cmdln.gd -gdir=res://tests -gexit 2>&1)"
 gut_exit=$?
 
@@ -83,8 +92,15 @@ if [[ "$gut_exit" -ne 0 ]]; then
 	status=1
 fi
 
+if printf '%s\n' "$output" | grep -q 'leaked at exit'; then
+	echo "FAIL: the run leaked at exit (lines above). Name the leaked objects with:" >&2
+	echo "        \"\$GODOT\" --headless --verbose --render-thread safe --path godot \\" >&2
+	echo "          -s addons/gut/gut_cmdln.gd -gdir=res://tests -gexit" >&2
+	status=1
+fi
+
 if [[ "$status" -eq 0 ]]; then
-	echo "OK: $reported/$expected scripts collected, all tests passed."
+	echo "OK: $reported/$expected scripts collected, all tests passed, nothing leaked."
 fi
 
 exit "$status"
