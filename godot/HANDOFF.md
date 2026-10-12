@@ -170,7 +170,10 @@ The head of `## Next` below says what to do first; `README.md` says what the pro
   key, so it installs over the old debug install and keeps the save:
   `PERIL_KEYS=~/.android/peril-a55.env PERIL_OUT=peril-point-0.1.0-a55.apk tools/release.sh`,
   then `adb -s RRCXB04L8EJ install -r`. A backup of the save from 2026-09-28 is in
-  `~/Documents/PerilPoint-A55-save-backup-2026-09-28/`. That install is no longer
+  `~/Documents/PerilPoint-A55-save-backup-2026-09-28/`. The A55 also has the Play Store build
+  (`ph.newzenith.perilpoint`, installer `com.android.vending`); both show as Peril Point, so
+  after a sideload, launch `com.jtg.perilpoint` with
+  `adb -s RRCXB04L8EJ shell monkey -p com.jtg.perilpoint -c android.intent.category.LAUNCHER 1`. That install is no longer
   debuggable, so `run-as` save reads stop working until a debug build goes back on.
 - **Native extension required.** Enemies are the C++ class `PerilEnemy`, so the game
   does not parse without `godot/bin/libperil.*`.
