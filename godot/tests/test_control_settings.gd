@@ -114,3 +114,36 @@ func test_stick_size_persists_and_clamps() -> void:
 	assert_almost_eq(ControlSettings.new().stick_size, 0.8, 0.0001)
 	SaveStore.save_dict(ControlSettings.SETTINGS_PATH, {"stick_size": 9.0})
 	assert_eq(ControlSettings.new().stick_size, ControlSettings.MAX_STICK_SIZE)
+
+
+# DIVERGENCE(ENH-302 R1): Stick position.
+func test_stick_anchor_defaults_to_dynamic() -> void:
+	var settings: ControlSettings = ControlSettings.new()
+	assert_eq(
+		settings.stick_anchor,
+		ControlSettings.StickAnchor.DYNAMIC,
+		"the floating stick stays the default"
+	)
+
+
+func test_stick_anchor_survives_a_reload() -> void:
+	var settings: ControlSettings = ControlSettings.new()
+	settings.stick_anchor = ControlSettings.StickAnchor.RIGHT
+	settings.save_settings()
+
+	var reloaded: ControlSettings = ControlSettings.new()
+	assert_eq(reloaded.stick_anchor, ControlSettings.StickAnchor.RIGHT, "the choice is saved")
+
+
+func test_an_unknown_stick_anchor_keeps_dynamic() -> void:
+	var file: FileAccess = FileAccess.open(ControlSettings.SETTINGS_PATH, FileAccess.WRITE)
+	assert_not_null(file, "test fixture is writable")
+	file.store_string('{"stick_anchor": 7}')
+	file.close()
+
+	var settings: ControlSettings = ControlSettings.new()
+	assert_eq(
+		settings.stick_anchor,
+		ControlSettings.StickAnchor.DYNAMIC,
+		"a hand-edited value cannot hide the stick"
+	)

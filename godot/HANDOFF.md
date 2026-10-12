@@ -4,6 +4,11 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
+**Latest (2026-10-12): ENH-302, Stick position (GitHub #4), in progress** on branch
+`ENH-302-joystick-position`. Design approved in chat (bounded path); rulings R1-R4 and the task
+list are in `docs/superpowers/plans/2026-10-12-enh-302-joystick-position.md`. Done: task 1
+(`ControlSettings.stick_anchor`). Next: the first unticked task there.
+
 **Latest (2026-10-12): ENH-301, power-ups and coins at a glance, is done: R2 confirmed on the A55**
 on branch `ENH-301-powerup-coin-glance` (67/67 test scripts, 831 tests green, gdformat and
 gdlint clean; A55 pass done, `VERIFY-ME.md` §ENH-301). User: "power ups and coins can be hard to identify"
