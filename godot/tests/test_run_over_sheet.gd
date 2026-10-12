@@ -101,6 +101,47 @@ func test_layout_fits_the_a55() -> void:
 	await _assert_fits(Vector2(2340, 1080), 1080.0 / 390.0)
 
 
+## Found 2026-10-12: 11+ digits widened the sheet and pushed Retry/Menu/Armory off it.
+func _assert_big_score_fits(size: Vector2, scale: float) -> void:
+	var sheet: RunOverSheet = _sheet(size, scale)
+	var result: RunOverSheet.RunResult = _result()
+	result.score = 99_999_999_999_999
+	sheet.show_result(result)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var panel: Control = sheet.find_child("Sheet", true, false) as Control
+	assert_almost_eq(panel.size.x, RunOverSheet.SHEET_WIDTH * scale, 0.5, "sheet keeps its width")
+	var score: Label = _label(sheet, "FinalScoreLabel")
+	assert_eq(score.text, "99,999,999,999,999", "every digit shown")
+	var left: Control = sheet.find_child("LeftColumn", true, false) as Control
+	assert_true(left.get_global_rect().grow(0.5).encloses(score.get_global_rect()), "in its column")
+	var font_px: int = score.get_theme_font_size("font_size")
+	var width: float = (
+		score
+		. get_theme_font("font")
+		. get_string_size(score.text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_px)
+		. x
+	)
+	assert_lte(width, score.size.x + 0.5, "the digits fit the label")
+
+
+func test_a_big_score_fits_the_board_frame() -> void:
+	await _assert_big_score_fits(Vector2(844, 390), 1.0)
+
+
+func test_a_big_score_fits_the_a55() -> void:
+	await _assert_big_score_fits(Vector2(2340, 1080), 1080.0 / 390.0)
+
+
+func test_a_short_score_keeps_the_board_size() -> void:
+	var sheet: RunOverSheet = _sheet(Vector2(844, 390), 1.0)
+	sheet.show_result(_result())
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var score: Label = _label(sheet, "FinalScoreLabel")
+	assert_eq(score.get_theme_font_size("font_size"), UiTheme.BIG_SCORE_SIZE)
+
+
 func test_show_result_fills_every_figure() -> void:
 	var sheet: RunOverSheet = _sheet(Vector2(844, 390), 1.0)
 	sheet.show_result(_result())

@@ -4,6 +4,16 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
+**Latest (2026-10-12): `fix/runover-score-and-scheme-cards`, the Run over big score is fixed,
+not merged.** A score of 11+ digits used to widen the sheet past Retry/Menu/Armory. Ruling
+RUNOVER R2: `FinalScoreLabel` clips and `RunOverSheet._fit_score` shrinks its font until every
+digit fits the left column. 852 tests green, gdformat and gdlint clean, 0 SCRIPT ERROR headless.
+The Settings scheme-card clip ("Drag anywhe…") is **not a phone defect**: it shows only with
+the desktop-only Keys card (three cards); the phone layout fits. It was left as is. Plan
+`docs/superpowers/plans/2026-10-12-fix-runover-big-score.md`. Next: the user merges the branch
+(an A55 look at a big score is optional). Open question 1 (R7/I3) below still waits for a
+ruling.
+
 **Latest (2026-10-12): ENH-302, Stick position (GitHub #4), done** — merged into `main` by its
 PR. Settings → Controls → Touch stick: Dynamic (default, unchanged) / Left / Right. A fixed stick
 sits in that bottom corner (`ANCHOR_INSET` 1.5 radii), is grabbed within `GRAB_FRACTION` 2 radii,

@@ -137,6 +137,7 @@ func set_ui_scale(scale: float) -> void:
 	_achievements_row.add_theme_constant_override("separation", UiTheme.px(BANNER_GAP, scale))
 	_earned.add_theme_font_size_override("font_size", UiTheme.px(UiTheme.SCORE_SIZE, scale))
 	_picker.set_ui_scale(scale)
+	_fit_score()
 	_milestones.add_theme_constant_override("separation", UiTheme.px(LIST_GAP, scale))
 	_fill_milestones(_shown_milestones)
 
@@ -144,6 +145,7 @@ func set_ui_scale(scale: float) -> void:
 ## Fills every figure. PORT: web/src/tilt-to-live/TiltGame.ts:2093-2122
 func show_result(result: RunResult) -> void:
 	_score.text = UiTheme.group_digits(result.score)  # PORT: :2093
+	_fit_score()
 	_subtitle.text = subtitle_text(result.time_text, result.mode_name)
 	_banner.visible = result.best_diff > 0  # PORT: :2097-2102
 	_new_best.text = "New best — up %s" % UiTheme.group_digits(result.best_diff)  # PORT: :2098
@@ -155,6 +157,23 @@ func show_result(result: RunResult) -> void:
 	# ok"), counting up; the TS showed "+earned → balance" (:2121).
 	_start_count_up(result.earned)
 	_fill_milestones(result.milestones)  # PORT: :2132-2144
+
+
+## DIVERGENCE(RUNOVER R2, found 2026-10-12): a score too long for its column (11+ digits)
+## shrinks to fit it; the TS let it overflow, and here it widened the sheet past Retry,
+## Menu and Armory. The label clips, so its text never sets the column's width.
+func _fit_score() -> void:
+	var full: int = UiTheme.px(UiTheme.BIG_SCORE_SIZE, _ui_scale)
+	var room: float = _score.size.x
+	var font: Font = _score.get_theme_font("font")
+	var fit: int = full
+	if room > 0.0:
+		while (
+			fit > 1
+			and font.get_string_size(_score.text, HORIZONTAL_ALIGNMENT_LEFT, -1, fit).x > room
+		):
+			fit -= 1
+	_score.add_theme_font_size_override("font_size", fit)
 
 
 ## "+1,274" — the earned figure as shown.
@@ -218,6 +237,8 @@ func _build_left() -> VBoxContainer:
 	_left.alignment = BoxContainer.ALIGNMENT_CENTER
 	_score_block = VBoxContainer.new()
 	_score = _centered("FinalScoreLabel", "BigScoreText")
+	_score.clip_text = true  # RUNOVER R2
+	_score.resized.connect(_fit_score)
 	_score_block.add_child(_score)
 	_subtitle = _centered("FinalSubtitleLabel", "BodyText")
 	_subtitle.add_theme_color_override("font_color", UiTheme.TEXT_FAINT)
