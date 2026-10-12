@@ -8,8 +8,11 @@ Rewritten at every module stop. Written for a session with zero context.
 `ENH-302-joystick-position`. Design approved in chat (bounded path); rulings R1-R4 and the task
 list are in `docs/superpowers/plans/2026-10-12-enh-302-joystick-position.md`. Done: tasks 1-4
 (`ControlSettings.stick_anchor`; `FloatingJoystick.set_anchor`/`clear_anchor`, `GRAB_FRACTION`) and the
-bench (`bench/shot_stick.gd`). Paused for `fix/exit-image-leak` (a pre-existing intermittent
-"Image leaked at exit" in the suite): merge that, rebase this onto main, then task 5-6.
+bench (`bench/shot_stick.gd`). `fix/exit-image-leak` (the suite's intermittent "Image leaked at
+exit", an engine race under the Separate render thread) is committed on its own branch, not
+merged yet. The A55 has this branch: `build/peril-point-0.1.4-a55.apk` (0.1.4 code 5, A55 key,
+installed 2026-10-12 20:46), so the next A55 build must use code 6. Next: the user's A55 pass
+(`VERIFY-ME.md` §ENH-302), merge `fix/exit-image-leak`, rebase this onto main.
 
 **Latest (2026-10-12): ENH-301, power-ups and coins at a glance, is done: R2 confirmed on the A55**
 on branch `ENH-301-powerup-coin-glance` (67/67 test scripts, 831 tests green, gdformat and

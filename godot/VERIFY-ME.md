@@ -988,3 +988,19 @@ powerups are confirmed").
 3. [x] Coins stand out over the amber skins and arenas (Ember, Desert, Sandstorm).
 4. [x] The size (1.25x) feels right; say "bigger" or "smaller", and whether the glow is too
    wide (`PICKUP_GLOW_PAD`) or too strong (`PICKUP_GLOW_ALPHA`).
+
+## ENH-302 — Stick position (2026-10-12, GitHub #4)
+
+Plan `docs/superpowers/plans/2026-10-12-enh-302-joystick-position.md`. Build
+`godot/build/peril-point-0.1.4-a55.apk` (0.1.4 code 5, A55 key). Settings → Controls → pick
+Touch, then the "Touch stick" row: Dynamic / Left / Right.
+
+1. [ ] Dynamic plays exactly as before (the stick appears where you touch).
+2. [ ] Left and Right: the stick sits faintly in that bottom corner during a run, and you can
+   find it without looking.
+3. [ ] A touch near the stick grabs it at once; touches elsewhere do nothing.
+4. [ ] The base never moves when your thumb overshoots; steering feels as good as Dynamic.
+5. [ ] The corner position (`ANCHOR_INSET` 1.5 radii in) and the faint look (`IDLE_ALPHA` 0.4)
+   feel right; say "closer to the edge", "further in", "fainter" or "brighter".
+6. [ ] Stick size still works with a fixed stick, and changing Stick position mid-run (Pause →
+   Settings) moves the stick at once.
