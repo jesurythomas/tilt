@@ -992,14 +992,18 @@ powerups are confirmed").
 ## ENH-302 — Stick position (2026-10-12, GitHub #4)
 
 Plan `docs/superpowers/plans/2026-10-12-enh-302-joystick-position.md`. Build
-`godot/build/peril-point-0.1.4-a55.apk` (0.1.4 code 5, A55 key). Settings → Controls → pick
+`godot/build/peril-point-0.1.5-a55.apk` (0.1.5 code 6, A55 key; R5: the fixed stick is 1.3x
+bigger and its base follows an overshooting thumb up to one radius, then returns home).
+Pass 1 (0.1.4, user): "a bit scuffed" — drift after a while, stick too small → R5. Settings → Controls → pick
 Touch, then the "Touch stick" row: Dynamic / Left / Right.
 
 1. [ ] Dynamic plays exactly as before (the stick appears where you touch).
 2. [ ] Left and Right: the stick sits faintly in that bottom corner during a run, and you can
    find it without looking.
 3. [ ] A touch near the stick grabs it at once; touches elsewhere do nothing.
-4. [ ] The base never moves when your thumb overshoots; steering feels as good as Dynamic.
+4. [ ] No drift: an overshooting thumb pulls the stick along a little, reversing is quick,
+   and the stick is back in its corner on the next touch; steering feels as good as Dynamic.
+   Size (`ANCHORED_SCALE` 1.3) and leash (`ANCHOR_LEASH` 1 radius) feel right.
 5. [ ] The corner position (`ANCHOR_INSET` 1.5 radii in) and the faint look (`IDLE_ALPHA` 0.4)
    feel right; say "closer to the edge", "further in", "fainter" or "brighter".
 6. [ ] Stick size still works with a fixed stick, and changing Stick position mid-run (Pause →

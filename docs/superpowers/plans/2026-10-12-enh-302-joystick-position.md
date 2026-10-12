@@ -58,4 +58,5 @@ option."
    `test_floating_joystick.gd` (R2's fixed-base test rewritten as the leash tests; 24/24, all
    Dynamic tests unchanged). Bench re-rendered. `GameRoot` needed no change (`apply_anchor`
    already carries the playfield size).
-8. [ ] 0.1.5 (code 6) on the A55 and VERIFY-ME §ENH-302 again.
+8. [x] 0.1.5 (code 6) on the A55 (installed 20:55, 0 script errors at launch).
+9. [ ] A55 pass 2, `godot/VERIFY-ME.md` §ENH-302.
