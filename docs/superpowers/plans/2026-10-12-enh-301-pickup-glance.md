@@ -41,6 +41,8 @@ under the swarm), size between the TS 1.0 and R1's 1.3, and a better, more satur
    (1.25) (`EntityLayer._glow_color`). Seen in a live run on the emulator (debug APK) and in
    `godot/bench/play_pickups.gd` (plays main.tscn windowed, packs seekers around orbs and coins).
    Known consequence: a pickup fully under a cluster is hidden again, as in the TS.
+   Then, after 1.15 on the emulator (user: "make it bigger. tone the glow up a bit more"):
+   `PICKUP_DRAW_SCALE` 1.25, `PICKUP_GLOW_PAD` 20, `PICKUP_GLOW_ALPHA` 1.0.
 4. [ ] A55 pass, `godot/VERIFY-ME.md` §ENH-301. If pickups still get lost under clusters, ask
    the user before changing the draw order again (R2 reverted it on purpose); an outline or ping
    ring (option A without the lift) is the other lever.

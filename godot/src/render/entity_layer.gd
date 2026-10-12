@@ -32,15 +32,16 @@ const SHIELD_STROKE: Color = Color("#00ffff")
 const ORB_SPRITE_HALF: float = 32.0 / 28.5
 ## DIVERGENCE(ENH-301): coins and orbs draw this much larger than their sim radius, so
 ## they read at a glance in a busy swarm (user 2026-10-12: "power ups and coins can be
-## hard to identify"; 2026-10-12 after 1.3 on the emulator: "a bit smaller"). Render-only;
-## pickup radii and magnets are untouched. Tune on the A55.
-const PICKUP_DRAW_SCALE: float = 1.15
+## hard to identify"; on the emulator 1.3 was "a bit smaller", then 1.15 "make it bigger").
+## Render-only; pickup radii and magnets are untouched. Tune on the A55.
+const PICKUP_DRAW_SCALE: float = 1.25
 ## DIVERGENCE(ENH-301): the coin and orb halo is a soft glow (CircleSprites.draw_glow) this
 ## many px past the pickup's radius, at this centre alpha, in the pickup colour with its
 ## saturation scaled by PICKUP_GLOW_SATURATION (user: "make the glow better", "make the colors
-## more pop out"). The TS drew a flat disc, +7 px at alpha 0x33 (coin), +8 px at 0.2 (orb).
-const PICKUP_GLOW_PAD: float = 16.0
-const PICKUP_GLOW_ALPHA: float = 0.85
+## more pop out"; then 16 px at 0.85: "tone the glow up a bit more"). The TS drew a flat
+## disc, +7 px at alpha 0x33 (coin), +8 px at 0.2 (orb).
+const PICKUP_GLOW_PAD: float = 20.0
+const PICKUP_GLOW_ALPHA: float = 1.0
 const PICKUP_GLOW_SATURATION: float = 1.25
 ## PORT: web/src/tilt-to-live/GauntletMaze.ts:315
 const MAZE_BODY: Color = Color("#140c04")

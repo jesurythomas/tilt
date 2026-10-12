@@ -978,10 +978,10 @@ Armory → Arena tab, buy or browse each theme; the preview shows the effect too
 ## ENH-301 — power-ups and coins at a glance (2026-10-12, ruling R2)
 
 Plan `docs/superpowers/plans/2026-10-12-enh-301-pickup-glance.md`. Pickups draw under the
-swarm as in the TS, 1.15x larger, with a soft saturated glow (`entity_layer.gd` `PICKUP_*`).
+swarm as in the TS, 1.25x larger, with a soft saturated glow (`entity_layer.gd` `PICKUP_*`).
 
 1. [ ] Orbs and coins are easy to spot in a busy wave.
 2. [ ] The glow reads as a glow (soft, not a flat disc) and the colours pop on every arena.
 3. [ ] Coins stand out over the amber skins and arenas (Ember, Desert, Sandstorm).
-4. [ ] The size (1.15x) feels right; say "bigger" or "smaller", and whether the glow is too
+4. [ ] The size (1.25x) feels right; say "bigger" or "smaller", and whether the glow is too
    wide (`PICKUP_GLOW_PAD`) or too strong (`PICKUP_GLOW_ALPHA`).

@@ -10,8 +10,8 @@ A55 pass pending, `VERIFY-ME.md` §ENH-301). User: "power ups and coins can be h
 in busy play. R1 (pickups drawn over the swarm, 1.3x) was tried on the emulator and replaced by
 R2 (user: "keep how it previously was ... but make it bigger. make the glow better. make the
 colors more pop out", "a bit smaller" than 1.3): the TS draw order (pickups under enemies),
-`PICKUP_DRAW_SCALE` 1.15, and a soft saturated glow (`CircleSprites.draw_glow`,
-`EntityLayer._glow_color`, `PICKUP_GLOW_PAD`/`_ALPHA`/`_SATURATION`). Render-only. Plan
+`PICKUP_DRAW_SCALE` 1.25 (1.15 was "make it bigger"), and a soft saturated glow (`CircleSprites.draw_glow`,
+`EntityLayer._glow_color`; pad 20 px, alpha 1.0, saturation x1.25). Render-only. Plan
 `docs/superpowers/plans/2026-10-12-enh-301-pickup-glance.md`. Benches: `bench/shot_pickups.gd`
 (static, every pickup buried) and `bench/play_pickups.gd` (plays main.tscn windowed). Known: a
 pickup fully under a cluster is hidden again, as in the TS. Emulator: the x86_64 image runs the
