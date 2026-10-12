@@ -96,6 +96,7 @@ this is only needed after editing `native/src/`:
 git submodule update --init native/godot-cpp
 cd native
 python -m SCons platform=windows target=template_debug
+python -m SCons platform=macos arch=universal target=template_debug   # on a Mac
 ANDROID_HOME=C:/Users/Jesury/AppData/Local/Android/Sdk \
   python -m SCons platform=android arch=arm64 target=template_debug ndk_version=29.0.14206865
 ```

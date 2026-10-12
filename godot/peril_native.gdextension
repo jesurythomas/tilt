@@ -7,5 +7,6 @@ compatibility_minimum = "4.7"
 
 windows.debug.x86_64 = "res://bin/libperil.windows.template_debug.x86_64.dll"
 windows.release.x86_64 = "res://bin/libperil.windows.template_release.x86_64.dll"
+macos.debug = "res://bin/libperil.macos.template_debug.universal.dylib"
 android.debug.arm64 = "res://bin/libperil.android.template_debug.arm64.so"
 android.release.arm64 = "res://bin/libperil.android.template_release.arm64.so"

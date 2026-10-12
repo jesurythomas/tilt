@@ -6,6 +6,16 @@ extends GutTest
 
 const BOUNDS: Vector2 = Vector2(1000.0, 600.0)
 
+## Recorded from the pre-P32 code (full target/contact scans), keyed "<OS>/<arch>".
+## The hash depends on the CPU: x86_64 and arm64 round some float math differently.
+## Windows/x86_64 is from 2026-09-27; the macOS pair ran the pre-P32 tree (da4fe3f)
+## on 2026-10-11, and its x86_64 run (Rosetta) gave the Windows hash.
+const PRE_P32_HASHES: Dictionary[String, String] = {
+	"Windows/x86_64": "bcf1798be2b93dc3d14bfc31385a86943b4cf8b5b57835ac7aa54ee5d5375149",
+	"macOS/x86_64": "bcf1798be2b93dc3d14bfc31385a86943b4cf8b5b57835ac7aa54ee5d5375149",
+	"macOS/arm64": "ae641cbfb9a4dccb26daabf8cd022faf92491d17de16d8e141b8196ca88ab464",
+}
+
 var _player: PlayerShip = null
 var _particles: ParticleEngine = null
 var _grid: VectorGrid = null
@@ -246,12 +256,15 @@ func _missile_run_hash() -> String:
 
 
 func test_missiles_match_the_pre_p32_full_scans() -> void:
-	# Recorded from the pre-P32 code (full target/contact scans), 2026-09-27.
-	assert_eq(
-		_missile_run_hash(),
-		"bcf1798be2b93dc3d14bfc31385a86943b4cf8b5b57835ac7aa54ee5d5375149",
-		"the snapshot scans change nothing"
-	)
+	var platform: String = "%s/%s" % [OS.get_name(), Engine.get_architecture_name()]
+	var got: String = _missile_run_hash()
+	if not PRE_P32_HASHES.has(platform):
+		# An unverified platform is not a regression: record its hash from the
+		# pre-P32 tree, then add it to PRE_P32_HASHES.
+		pending("no pre-P32 hash recorded for %s; this run gave %s" % [platform, got])
+		return
+	var want: String = PRE_P32_HASHES[platform]
+	assert_eq(got, want, "the snapshot scans change nothing")
 	assert_gte(_last_kills, 15, "the run kills enough to exercise retargets and splits")
 
 
