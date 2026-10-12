@@ -4,16 +4,26 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**Latest (2026-10-12): ENH-302, Stick position (GitHub #4), in progress** on branch
-`ENH-302-joystick-position`. Design approved in chat (bounded path); rulings R1-R4 and the task
-list are in `docs/superpowers/plans/2026-10-12-enh-302-joystick-position.md`. Done: tasks 1-4
-(`ControlSettings.stick_anchor`; `FloatingJoystick.set_anchor`/`clear_anchor`, `GRAB_FRACTION`) and the
-bench (`bench/shot_stick.gd`). `fix/exit-image-leak` (the suite's intermittent "Image leaked at
-exit", an engine race under the Separate render thread) is committed on its own branch, not
-merged yet. A55 pass 1 (0.1.4): "a bit scuffed" (drift, too small) → ruling R5 (1.3x, leashed base). The
-A55 has `build/peril-point-0.1.5-a55.apk` (0.1.5 code 6, A55 key, installed 2026-10-12 20:55),
-so the next A55 build must use code 7. A55 pass 2: "feels better". Next: the user's
-sign-off on `VERIFY-ME.md` §ENH-302, merge `fix/exit-image-leak`, rebase this onto main.
+**Latest (2026-10-12): ENH-302, Stick position (GitHub #4), done** — merged into `main` by its
+PR. Settings → Controls → Touch stick: Dynamic (default, unchanged) / Left / Right. A fixed stick
+sits in that bottom corner (`ANCHOR_INSET` 1.5 radii), is grabbed within `GRAB_FRACTION` 2 radii,
+draws at `ANCHORED_SCALE` 1.3x, its base follows an overshooting thumb up to `ANCHOR_LEASH` 1
+radius and returns home on release, and it shows faintly at rest (`IDLE_ALPHA` 0.4). Rulings
+R1-R5 in `docs/superpowers/plans/2026-10-12-enh-302-joystick-position.md`. A55: pass 1 (0.1.4)
+"a bit scuffed" (drift, too small) → R5; pass 2 (0.1.5) "feels better", and the user asked to
+merge. The A55 has `build/peril-point-0.1.5-a55.apk` (0.1.5 code 6, A55 key), so the next A55
+build must use code 7. The four tunables are provisional; retune on request.
+
+**Also (2026-10-12): `fix/exit-image-leak`, merged (PR #5)** — the suite sometimes printed "Image /
+texture RID leaked at exit" yet passed. Cause: the Separate render thread (`thread_model=2`,
+P24) drops a texture free queued just before quit, an engine race (0 of 25 runs on Safe, about
+1 in 6 on Separate). `tools/run_tests.sh` now runs with `--render-thread safe` and fails any run
+that leaks at exit (CONVENTIONS §1.3). The game keeps Separate. Plan
+`docs/superpowers/plans/2026-10-12-fix-exit-image-leak.md`.
+
+Next: nothing in flight. Ask the user what to pick up; the Run over big score has no width cap
+(11+ digits push Retry/Menu/Armory off the sheet, not ticketed), and Open question 1 (R7/I3,
+lifetime goals double-count a run) below still waits for a ruling.
 
 **Latest (2026-10-12): ENH-301, power-ups and coins at a glance, is done: R2 confirmed on the A55**
 on branch `ENH-301-powerup-coin-glance` (67/67 test scripts, 831 tests green, gdformat and

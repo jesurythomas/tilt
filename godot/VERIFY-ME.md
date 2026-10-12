@@ -995,7 +995,8 @@ Plan `docs/superpowers/plans/2026-10-12-enh-302-joystick-position.md`. Build
 `godot/build/peril-point-0.1.5-a55.apk` (0.1.5 code 6, A55 key; R5: the fixed stick is 1.3x
 bigger and its base follows an overshooting thumb up to one radius, then returns home).
 Pass 1 (0.1.4, user): "a bit scuffed" — drift after a while, stick too small → R5.
-Pass 2 (0.1.5, user, 2026-10-12): "feels better". Items below not yet confirmed one by one. Settings → Controls → pick
+Pass 2 (0.1.5, user, 2026-10-12): "feels better", then asked to merge. Accepted as a whole;
+the items were not confirmed one by one, so retune any that come up later. Settings → Controls → pick
 Touch, then the "Touch stick" row: Dynamic / Left / Right.
 
 1. [ ] Dynamic plays exactly as before (the stick appears where you touch).

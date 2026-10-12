@@ -50,13 +50,14 @@ option."
    `test_tilt_menu.gd`. `StickCard` ("Touch stick": `StickDynamic`/`StickLeft`/`StickRight`, built
    as Screen shake's card, hidden off mobile), `TiltMenu.touch_hint`, signal
    `stick_anchor_changed` → `GameRoot._apply_stick_anchor`.
-5. [ ] Bench render at A55 size (idle and held, both corners); full suite, gdformat, gdlint.
+5. [x] Bench render at A55 size (idle and held, both corners); full suite, gdformat, gdlint.
    `godot/bench/shot_stick.gd` done and reviewed (Settings row, idle Left, held Right look
-   right); 845/845 green, gdformat and gdlint clean. Open: the exit leak above.
-6. [ ] A55 pass, `godot/VERIFY-ME.md` §ENH-302.
+   right); 845/845 green, gdformat and gdlint clean. The exit leak was fixed on `fix/exit-image-leak` (PR #5).
+6. [x] A55 pass, `godot/VERIFY-ME.md` §ENH-302 (pass 1 → R5, see task 7-9).
 7. [x] R5: `ANCHORED_SCALE`, the leashed base, the edge clamp, return home. Tests in
    `test_floating_joystick.gd` (R2's fixed-base test rewritten as the leash tests; 24/24, all
    Dynamic tests unchanged). Bench re-rendered. `GameRoot` needed no change (`apply_anchor`
    already carries the playfield size).
 8. [x] 0.1.5 (code 6) on the A55 (installed 20:55, 0 script errors at launch).
-9. [ ] A55 pass 2, `godot/VERIFY-ME.md` §ENH-302. User: "feels better" (2026-10-12).
+9. [x] A55 pass 2, `godot/VERIFY-ME.md` §ENH-302. User: "feels better", then "commit and
+   create a PR for both and merge" (2026-10-12).
