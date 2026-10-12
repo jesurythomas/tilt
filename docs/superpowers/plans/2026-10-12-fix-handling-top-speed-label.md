@@ -36,4 +36,11 @@ Copy only; the feel and the saved value's meaning do not change.
 4. [x] Full suite: `OK: 67/67 scripts collected, all tests passed, nothing leaked` (854 tests);
    `gdformat --check` 120 unchanged; `gdlint` clean; headless boot 0 SCRIPT ERROR. A windowed
    shot of the Handling tab at 2340x1080: "Top speed" / "Higher moves faster." on one line each.
-5. [ ] User: merge into `main`, then update the public guide; A55 pass `VERIFY-ME.md` §HANDLING R1.
+5. [x] Merged into `main` by its PR (user: "commit push create PR - merge"). Left to the user:
+   the public guide, the A55 pass `VERIFY-ME.md` §HANDLING R1.
+
+## Offered, not ruled
+
+The ship's turn rate (Ships tab, 0.45×–1.60×) and Top speed never overlap in code
+(`run_controller.gd` passes both to `player.update`). The Handling preview turns at 1.0× for every
+ship; it could read `progression.get_equipped_ship().turn_rate`, a one-line change plus a test.
