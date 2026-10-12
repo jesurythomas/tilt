@@ -1,3 +1,4 @@
+# gdlint:disable=max-public-methods
 ## test_floating_joystick.gd
 ## PORTS: nothing — new file, covers src/native/floating_joystick.gd
 extends GutTest
@@ -177,3 +178,28 @@ func test_clear_anchor_returns_to_the_floating_stick() -> void:
 	_stick.on_touch(0, Vector2(1500.0, 300.0))
 	assert_false(_stick.is_anchored, "dynamic again")
 	assert_eq(_stick.base_position, Vector2(1500.0, 300.0), "the base lands under the finger")
+
+
+## ENH-302 R1: Left and Right sit in the playfield's bottom corners, ANCHOR_INSET radii in.
+func test_anchor_centre_sits_in_the_bottom_corners() -> void:
+	var bounds: Vector2 = Vector2(2340.0, 1080.0)
+	var inset: float = FloatingJoystick.BASE_RADIUS * FloatingJoystick.ANCHOR_INSET
+	assert_eq(
+		_stick.anchor_centre(ControlSettings.StickAnchor.LEFT, bounds),
+		Vector2(inset, bounds.y - inset),
+		"bottom-left"
+	)
+	assert_eq(
+		_stick.anchor_centre(ControlSettings.StickAnchor.RIGHT, bounds),
+		Vector2(bounds.x - inset, bounds.y - inset),
+		"bottom-right"
+	)
+
+
+func test_apply_anchor_fixes_or_frees_the_stick() -> void:
+	var bounds: Vector2 = Vector2(2340.0, 1080.0)
+	_stick.apply_anchor(ControlSettings.StickAnchor.RIGHT, bounds)
+	assert_true(_stick.is_anchored, "Right fixes the stick")
+	assert_eq(_stick.anchor, _stick.anchor_centre(ControlSettings.StickAnchor.RIGHT, bounds))
+	_stick.apply_anchor(ControlSettings.StickAnchor.DYNAMIC, bounds)
+	assert_false(_stick.is_anchored, "Dynamic frees it")

@@ -22,6 +22,13 @@ const KNOB_RADIUS: float = 34.0
 ## DIVERGENCE(TOUCH R1): the knob keeps KNOB_RADIUS's share of the base as the stick's
 ## size changes (FloatingJoystick.set_size).
 const KNOB_FRACTION: float = KNOB_RADIUS / FloatingJoystick.BASE_RADIUS
+## DIVERGENCE(ENH-302 R4): an anchored stick at rest draws at this share of its colours' alpha,
+## so players know where to put their thumb without it covering play. Provisional until the
+## A55 pass.
+const IDLE_ALPHA: float = 0.4
+
+## DIVERGENCE(ENH-302 R4): true while an anchored stick should show at rest. Set by GameRoot.
+var show_idle: bool = false
 
 var _joystick: FloatingJoystick = null
 var _arena_origin: Vector2 = Vector2.ZERO
@@ -38,11 +45,19 @@ func set_arena_origin(origin: Vector2) -> void:
 
 
 func _draw() -> void:
-	if _joystick == null or not _joystick.is_active:
+	if _joystick == null:
 		return
+	if _joystick.is_active:
+		_draw_stick(_joystick.base_position, _joystick.knob_position, 1.0)
+	elif show_idle and _joystick.is_anchored:
+		_draw_stick(_joystick.anchor, _joystick.anchor, IDLE_ALPHA)
 
+
+func _draw_stick(base: Vector2, knob: Vector2, alpha: float) -> void:
 	draw_set_transform(_arena_origin, 0.0, Vector2.ONE)
-	draw_circle(_joystick.base_position, _joystick.radius, BASE_COLOR)
-	draw_arc(_joystick.base_position, _joystick.radius, 0.0, TAU, 48, BASE_RING_COLOR, 2.0)
-	draw_circle(_joystick.knob_position, _joystick.radius * KNOB_FRACTION, KNOB_COLOR)
+	draw_circle(base, _joystick.radius, Color(BASE_COLOR, BASE_COLOR.a * alpha))
+	draw_arc(
+		base, _joystick.radius, 0.0, TAU, 48, Color(BASE_RING_COLOR, BASE_RING_COLOR.a * alpha), 2.0
+	)
+	draw_circle(knob, _joystick.radius * KNOB_FRACTION, Color(KNOB_COLOR, KNOB_COLOR.a * alpha))
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)

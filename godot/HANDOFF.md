@@ -6,7 +6,7 @@ Rewritten at every module stop. Written for a session with zero context.
 
 **Latest (2026-10-12): ENH-302, Stick position (GitHub #4), in progress** on branch
 `ENH-302-joystick-position`. Design approved in chat (bounded path); rulings R1-R4 and the task
-list are in `docs/superpowers/plans/2026-10-12-enh-302-joystick-position.md`. Done: tasks 1-2
+list are in `docs/superpowers/plans/2026-10-12-enh-302-joystick-position.md`. Done: tasks 1-3
 (`ControlSettings.stick_anchor`; `FloatingJoystick.set_anchor`/`clear_anchor`, `GRAB_FRACTION`). Next: the first unticked task there.
 
 **Latest (2026-10-12): ENH-301, power-ups and coins at a glance, is done: R2 confirmed on the A55**

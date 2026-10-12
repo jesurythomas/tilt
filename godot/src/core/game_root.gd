@@ -240,11 +240,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	# M11a final review: the menu backdrop is autopiloted and takes no player
 	# input (TiltGame.ts:1650-1830); skip the joystick so a backdrop tap does
 	# not draw it over the menu.
-	if (
-		_router.control_scheme == Types.ControlScheme.MOUSE
-		and OS.has_feature("mobile")
-		and not is_in_menu()
-	):
+	if _is_touch_stick_live():
 		if event is InputEventScreenTouch:
 			var touch: InputEventScreenTouch = event
 			if touch.pressed:
@@ -370,6 +366,7 @@ func _process(_delta: float) -> void:
 	_grid_layer.refresh()  # DIVERGENCE(M11c review): redraws only what changed
 	_entity_layer.queue_redraw()
 	_effect_layer.queue_redraw()
+	_joystick_layer.show_idle = _is_touch_stick_live()  # DIVERGENCE(ENH-302 R4)
 	_joystick_layer.queue_redraw()
 	if PerfProbe.enabled:
 		# Queued after the queue_redraw() calls above, so it runs after their _draw.
@@ -543,6 +540,22 @@ func return_to_menu() -> void:
 	_goals_hud.render()
 	_bind_menu_layers()
 	GameEvents.phase_changed.emit(Types.GamePhase.MENU)
+
+
+## DIVERGENCE(M2.5 §8.1): the touch stick takes input (and, ENH-302 R4, an anchored one is
+## drawn at rest) under the TOUCH scheme on a phone, outside the menu.
+func _is_touch_stick_live() -> bool:
+	return (
+		_router.control_scheme == Types.ControlScheme.MOUSE
+		and OS.has_feature("mobile")
+		and not is_in_menu()
+	)
+
+
+## DIVERGENCE(ENH-302 R1): fixes or frees the stick per the Stick position setting. After
+## set_size, since the corner centre depends on the radius.
+func _apply_stick_anchor() -> void:
+	_joystick.apply_anchor(settings.stick_anchor, _bounds)
 
 
 ## True while the menu is up. PORT: web/src/tilt-to-live/TiltGame.ts:42 (phase === 'menu')
@@ -857,6 +870,7 @@ func resize_canvas() -> void:
 	var ui_scale: float = HudController.ui_scale_for(viewport)
 	_ui_scale = ui_scale
 	_joystick.set_size(ui_scale, settings.stick_size)  # DIVERGENCE(TOUCH R1)
+	_apply_stick_anchor()
 	_armory.set_ui_scale(ui_scale, arena_origin)
 	_goals_hud.set_ui_scale(ui_scale, arena_origin)
 	_menu.set_ui_scale(ui_scale, arena_origin)
@@ -911,6 +925,7 @@ func _on_armory_state_changed() -> void:
 	# Interface spec §6.4: the Handling tab's tilt slider edits settings.tilt_sensitivity.
 	_tilt.tilt_sensitivity = settings.tilt_sensitivity
 	_joystick.set_size(_ui_scale, settings.stick_size)  # DIVERGENCE(TOUCH R1): Stick size
+	_apply_stick_anchor()
 	# PORT-NOTE: the menu render takes no skin (:2274-2276), so an Armory opened
 	# from the menu must not re-skin the backdrop.
 	if not is_in_menu():

@@ -29,6 +29,9 @@ const DEAD_FRACTION: float = 0.07
 ## DIVERGENCE(ENH-302 R2, GitHub #4): an anchored stick is grabbed by a touch within this
 ## many radii of its centre.
 const GRAB_FRACTION: float = 2.0
+## DIVERGENCE(ENH-302 R1): an anchored stick's centre sits this many radii in from the
+## playfield's side and bottom edges (a radius plus a margin). Provisional until the A55 pass.
+const ANCHOR_INSET: float = 1.5
 
 ## True while a finger is driving the stick.
 var is_active: bool = false
@@ -71,6 +74,22 @@ func set_anchor(centre: Vector2) -> void:
 func clear_anchor() -> void:
 	is_anchored = false
 	anchor = Vector2.ZERO
+
+
+## DIVERGENCE(ENH-302 R1): where a Left or Right stick sits in a playfield of `bounds`.
+func anchor_centre(side: ControlSettings.StickAnchor, bounds: Vector2) -> Vector2:
+	var inset: float = radius * ANCHOR_INSET
+	var x: float = bounds.x - inset if side == ControlSettings.StickAnchor.RIGHT else inset
+	return Vector2(x, bounds.y - inset)
+
+
+## DIVERGENCE(ENH-302 R1): applies the Stick position setting for a playfield of `bounds`.
+## Call after set_size, which moves the centre.
+func apply_anchor(side: ControlSettings.StickAnchor, bounds: Vector2) -> void:
+	if side == ControlSettings.StickAnchor.DYNAMIC:
+		clear_anchor()
+	else:
+		set_anchor(anchor_centre(side, bounds))
 
 
 ## Engages the stick if no finger already owns it.

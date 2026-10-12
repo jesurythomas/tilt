@@ -28,8 +28,13 @@ option."
    `"stick_anchor"`, unknown values keep Dynamic. Tests in `test_control_settings.gd`.
 2. [x] `FloatingJoystick`: anchor mode (`set_anchor`), grab zone, fixed base, recentre on
    release. Dynamic unchanged. Tests in `test_floating_joystick.gd`.
-3. [ ] `GameRoot`: place the anchor in `resize_canvas` and when the setting changes, mid-run
-   included. `JoystickLayer`: the idle stick (R4).
+3. [x] `GameRoot`: place the anchor in `resize_canvas` and when the setting changes, mid-run
+   included. `JoystickLayer`: the idle stick (R4). Placement is `FloatingJoystick.anchor_centre`
+   / `apply_anchor` (`ANCHOR_INSET` 1.5 radii, tested); `GameRoot._apply_stick_anchor` after each
+   `set_size`; `_is_touch_stick_live` names the routing condition and drives
+   `JoystickLayer.show_idle` (`IDLE_ALPHA` 0.4). No headless test sees draw calls; the bench does.
+   Seen once each in 2 of 3 suite runs here, never on `main` (2 runs) nor in 3 `--verbose` runs:
+   "1 ObjectDB instance was leaked at exit". Recheck at task 5.
 4. [ ] `TiltMenu`: the Stick position row and the Touch card subtitle. Tests in
    `test_tilt_menu.gd`.
 5. [ ] Bench render at A55 size (idle and held, both corners); full suite, gdformat, gdlint.
