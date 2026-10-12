@@ -32,6 +32,12 @@ const GRAB_FRACTION: float = 2.0
 ## DIVERGENCE(ENH-302 R1): an anchored stick's centre sits this many radii in from the
 ## playfield's side and bottom edges (a radius plus a margin). Provisional until the A55 pass.
 const ANCHOR_INSET: float = 1.5
+## DIVERGENCE(ENH-302 R5, user: "stick too small"): an anchored stick is this much bigger than
+## a floating one at the same Stick size. Provisional until the A55 pass.
+const ANCHORED_SCALE: float = 1.3
+## DIVERGENCE(ENH-302 R5, user: "drift after a while"): how far, in radii, an anchored base may
+## follow an overshooting thumb from its home. Provisional until the A55 pass.
+const ANCHOR_LEASH: float = 1.0
 
 ## True while a finger is driving the stick.
 var is_active: bool = false
@@ -50,6 +56,10 @@ var is_anchored: bool = false
 ## Where an anchored stick sits. Meaningless while is_anchored is false.
 var anchor: Vector2 = Vector2.ZERO
 
+# The radius set_size gives, before an anchored stick's ANCHORED_SCALE.
+var _size_radius: float = BASE_RADIUS
+# The playfield an anchored base must stay inside; Vector2.ZERO when unknown (set_anchor alone).
+var _bounds: Vector2 = Vector2.ZERO
 # Which touch index owns the stick, or Types.ABSENT when it is idle. A second
 # simultaneous finger is ignored rather than stealing control, so a stray palm
 # touch cannot yank the ship mid-run.
@@ -59,13 +69,15 @@ var _owner_index: int = Types.ABSENT
 ## DIVERGENCE(TOUCH R1): sizes the stick for this screen — RADIUS_UNITS at `ui_scale`,
 ## times the player's Stick size setting (ControlSettings.stick_size).
 func set_size(ui_scale: float, stick_size: float) -> void:
-	radius = maxf(1.0, RADIUS_UNITS * ui_scale * stick_size)
+	_size_radius = maxf(1.0, RADIUS_UNITS * ui_scale * stick_size)
+	_update_radius()
 
 
 ## DIVERGENCE(ENH-302 R1): fixes the stick at `centre`, playfield-local.
 func set_anchor(centre: Vector2) -> void:
 	is_anchored = true
 	anchor = centre
+	_update_radius()
 	if is_active:
 		base_position = centre
 
@@ -74,11 +86,13 @@ func set_anchor(centre: Vector2) -> void:
 func clear_anchor() -> void:
 	is_anchored = false
 	anchor = Vector2.ZERO
+	_bounds = Vector2.ZERO
+	_update_radius()
 
 
 ## DIVERGENCE(ENH-302 R1): where a Left or Right stick sits in a playfield of `bounds`.
 func anchor_centre(side: ControlSettings.StickAnchor, bounds: Vector2) -> Vector2:
-	var inset: float = radius * ANCHOR_INSET
+	var inset: float = _size_radius * ANCHORED_SCALE * ANCHOR_INSET
 	var x: float = bounds.x - inset if side == ControlSettings.StickAnchor.RIGHT else inset
 	return Vector2(x, bounds.y - inset)
 
@@ -89,6 +103,7 @@ func apply_anchor(side: ControlSettings.StickAnchor, bounds: Vector2) -> void:
 	if side == ControlSettings.StickAnchor.DYNAMIC:
 		clear_anchor()
 	else:
+		_bounds = bounds
 		set_anchor(anchor_centre(side, bounds))
 
 
@@ -124,11 +139,12 @@ func on_drag(index: int, position: Vector2) -> void:
 	var distance: float = offset.length()
 
 	if distance > radius:
-		offset = offset / distance * radius
-		# DIVERGENCE(ENH-302 R2): an anchored base stays put; the knob stops at the rim.
-		if not is_anchored:
-			base_position = position - offset
-		distance = radius
+		base_position = position - offset / distance * radius
+		# DIVERGENCE(ENH-302 R5): an anchored base follows only on its leash.
+		if is_anchored:
+			base_position = _leashed(base_position)
+		offset = (position - base_position).limit_length(radius)
+		distance = offset.length()
 
 	knob_position = base_position + offset
 	var mag: float = distance / radius
@@ -136,6 +152,20 @@ func on_drag(index: int, position: Vector2) -> void:
 		vector = Vector2.ZERO
 		return
 	vector = offset / distance * ((mag - DEAD_FRACTION) / (1.0 - DEAD_FRACTION))
+
+
+# DIVERGENCE(ENH-302 R5): `base` kept within ANCHOR_LEASH radii of home and, when the
+# playfield is known, with the whole stick on it.
+func _leashed(base: Vector2) -> Vector2:
+	var leashed: Vector2 = anchor + (base - anchor).limit_length(radius * ANCHOR_LEASH)
+	if _bounds == Vector2.ZERO:
+		return leashed
+	var rim: Vector2 = Vector2(radius, radius)
+	return leashed.clamp(rim, _bounds - rim)
+
+
+func _update_radius() -> void:
+	radius = _size_radius * (ANCHORED_SCALE if is_anchored else 1.0)
 
 
 ## Disengages the stick, if this is the owning finger.

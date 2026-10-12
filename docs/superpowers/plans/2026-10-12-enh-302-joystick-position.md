@@ -22,6 +22,14 @@ option."
 - **R4 — Look.** During a run, a fixed stick is drawn faintly at rest in its corner, and at
   the normal look while held. Not drawn in the menu.
 
+- **R5 — Bigger, leashed (A55 pass 1, 2026-10-12).** User: "make the joystick area bigger with
+  better tracking for the sticky joystick - currently it is a bit scuffed"; asked, they named
+  "drift after a while" and "stick too small". A fixed stick draws at `ANCHORED_SCALE` (1.3x)
+  the Dynamic radius (times Stick size; the grab zone and corner inset scale with it). Past the
+  rim its base follows the thumb, at most `ANCHOR_LEASH` (1 radius) from home and never past
+  the playfield edge; release returns it home. Supersedes R2's "the base never moves".
+  Design approved ("yes").
+
 ## Tasks
 
 1. [x] `ControlSettings.stick_anchor` (`ControlSettings.StickAnchor` DYNAMIC/LEFT/RIGHT), saved as
@@ -46,3 +54,8 @@ option."
    `godot/bench/shot_stick.gd` done and reviewed (Settings row, idle Left, held Right look
    right); 845/845 green, gdformat and gdlint clean. Open: the exit leak above.
 6. [ ] A55 pass, `godot/VERIFY-ME.md` §ENH-302.
+7. [x] R5: `ANCHORED_SCALE`, the leashed base, the edge clamp, return home. Tests in
+   `test_floating_joystick.gd` (R2's fixed-base test rewritten as the leash tests; 24/24, all
+   Dynamic tests unchanged). Bench re-rendered. `GameRoot` needed no change (`apply_anchor`
+   already carries the playfield size).
+8. [ ] 0.1.5 (code 6) on the A55 and VERIFY-ME §ENH-302 again.
