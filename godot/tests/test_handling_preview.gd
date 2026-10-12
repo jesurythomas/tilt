@@ -89,6 +89,20 @@ func test_angle_turns_toward_velocity_at_the_tuned_rate() -> void:
 	assert_almost_eq(_preview.angle, expected, 0.0001)
 
 
+func test_the_speed_setting_does_not_change_turning() -> void:
+	# HANDLING R1: the ship's turn never reads tuning.sensitivity (player_ship.gd), so
+	# the preview's does not either; the TS scaled it (:1078).
+	_progression.set_sensitivity(2.0)
+	_preview.start(_progression)
+	_preview.angle = 0.0
+	_preview.vx = 0.0
+	_preview.vy = 100.0
+	_preview.mouse_pos = Vector2(_preview.ship_x, _preview.ship_y)
+	_preview.step()
+	var expected: float = (PI / 2.0) * minf(1.0, (1.0 / 60.0) * 16.0)
+	assert_almost_eq(_preview.angle, expected, 0.0001)
+
+
 func test_pointer_follows_gui_input() -> void:
 	_preview.start(_progression)
 	var motion: InputEventMouseMotion = InputEventMouseMotion.new()

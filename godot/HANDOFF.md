@@ -4,6 +4,16 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
+**Latest (2026-10-12): `fix/handling-top-speed-label`, ruling HANDLING R1, not merged.** The
+Armory → Handling "Turn rate" slider (inherited from the TS) never changed turning: it scales
+top speed on phones (tilt and touch) and the cursor's reach on desktop. User: "Rename it". Now
+**Top speed** / "Higher moves faster.", the Settings link reads "Speed & sensitivity: Armory ›
+Handling", and the Handling preview no longer turns sharper with the slider. Copy only; feel and
+saves unchanged. 854 tests green, gdformat and gdlint clean, 0 SCRIPT ERROR headless. Plan
+`docs/superpowers/plans/2026-10-12-fix-handling-top-speed-label.md`. Next: the user merges the
+branch and updates the public guide (perilpoint.newzenith.ph/how-to-play); A55 checks in
+`VERIFY-ME.md` §HANDLING R1.
+
 **Latest (2026-10-12): `fix/runover-score-and-scheme-cards`, the Run over big score is fixed,
 merged into `main` by its PR.** A score of 11+ digits used to widen the sheet past Retry/Menu/Armory. Ruling
 RUNOVER R2: `FinalScoreLabel` clips and `RunOverSheet._fit_score` shrinks its font until every

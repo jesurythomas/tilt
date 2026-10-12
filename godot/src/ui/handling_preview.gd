@@ -5,7 +5,7 @@
 class_name HandlingPreview
 extends Control
 ## Live steering preview (Board 11): a ship chasing the pointer with the real
-## turn-rate and deadzone maths over a 40 px grid. Runs only while the
+## top-speed and deadzone maths over a 40 px grid. Runs only while the
 ## handling tab is shown.
 ##
 ## PORT-NOTE: the TS steps in requestAnimationFrame with a fixed 1/60 dt
@@ -159,7 +159,7 @@ func step() -> void:
 	var tuning: ProgressionManager.SteeringTuning = progression.data.tuning
 	var deadzone_radius: float = maxf(DEADZONE_MIN_RADIUS, tuning.deadzone * DEADZONE_SCALE)  # :1010
 
-	# 4. Steer ship toward cursor with real turn rate & deadzone physics
+	# 4. Steer ship toward cursor with real top speed & deadzone physics
 	var dx: float = mouse_pos.x - ship_x
 	var dy: float = mouse_pos.y - ship_y
 	var dist: float = sqrt(dx * dx + dy * dy)
@@ -188,7 +188,7 @@ func step() -> void:
 	ship_x = maxf(CLAMP_MARGIN, minf(current_w - CLAMP_MARGIN, ship_x))
 	ship_y = maxf(CLAMP_MARGIN, minf(current_h - CLAMP_MARGIN, ship_y))
 
-	# Angular lerp tuned by turn rate
+	# Angular lerp at the ship's base rate
 	var current_speed: float = sqrt(vx * vx + vy * vy)
 	var target_angle: float = angle
 	if current_speed > TURN_SPEED_THRESHOLD:
@@ -201,7 +201,9 @@ func step() -> void:
 		diff += TAU
 	while diff > PI:
 		diff -= TAU
-	angle += diff * minf(1.0, STEP_DT * ANGLE_LERP_RATE * tuning.sensitivity)
+	# DIVERGENCE(HANDLING R1): the TS scaled this by tuning.sensitivity (:1078); the ship's
+	# turn never reads it (player_ship.gd), so the preview's does not either.
+	angle += diff * minf(1.0, STEP_DT * ANGLE_LERP_RATE)
 
 
 ## The canvas body. PORT: web/src/tilt-to-live/ArmoryUI.ts:992-1035, :1080-1100
