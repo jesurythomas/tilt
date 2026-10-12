@@ -26,6 +26,9 @@ const RADIUS_UNITS: float = BASE_RADIUS * 390.0 / 1080.0
 ## deadzone (TiltInput.DEADZONE_THRESHOLD, GyroscopeController.ts:178); M2.5 used a
 ## flat 8 px, 0.07 of 115.
 const DEAD_FRACTION: float = 0.07
+## DIVERGENCE(ENH-302 R2, GitHub #4): an anchored stick is grabbed by a touch within this
+## many radii of its centre.
+const GRAB_FRACTION: float = 2.0
 
 ## True while a finger is driving the stick.
 var is_active: bool = false
@@ -38,6 +41,11 @@ var knob_position: Vector2 = Vector2.ZERO
 var vector: Vector2 = Vector2.ZERO
 ## Full-deflection distance in px (see set_size).
 var radius: float = BASE_RADIUS
+## DIVERGENCE(ENH-302 R1): true while the stick is fixed at `anchor` (Stick position Left
+## or Right) rather than floating under the finger.
+var is_anchored: bool = false
+## Where an anchored stick sits. Meaningless while is_anchored is false.
+var anchor: Vector2 = Vector2.ZERO
 
 # Which touch index owns the stick, or Types.ABSENT when it is idle. A second
 # simultaneous finger is ignored rather than stealing control, so a stray palm
@@ -51,15 +59,35 @@ func set_size(ui_scale: float, stick_size: float) -> void:
 	radius = maxf(1.0, RADIUS_UNITS * ui_scale * stick_size)
 
 
+## DIVERGENCE(ENH-302 R1): fixes the stick at `centre`, playfield-local.
+func set_anchor(centre: Vector2) -> void:
+	is_anchored = true
+	anchor = centre
+	if is_active:
+		base_position = centre
+
+
+## DIVERGENCE(ENH-302 R1): back to the floating stick.
+func clear_anchor() -> void:
+	is_anchored = false
+	anchor = Vector2.ZERO
+
+
 ## Engages the stick if no finger already owns it.
+## DIVERGENCE(ENH-302 R2): an anchored stick only takes a touch within GRAB_FRACTION radii of
+## its centre, and its knob jumps to the thumb.
 func on_touch(index: int, position: Vector2) -> void:
 	if _owner_index != Types.ABSENT:
 		return
+	if is_anchored and position.distance_to(anchor) > radius * GRAB_FRACTION:
+		return
 	_owner_index = index
 	is_active = true
-	base_position = position
-	knob_position = position
+	base_position = anchor if is_anchored else position
+	knob_position = base_position
 	vector = Vector2.ZERO
+	if is_anchored:
+		on_drag(index, position)
 
 
 ## Moves the knob, if this is the owning finger.
@@ -78,7 +106,9 @@ func on_drag(index: int, position: Vector2) -> void:
 
 	if distance > radius:
 		offset = offset / distance * radius
-		base_position = position - offset
+		# DIVERGENCE(ENH-302 R2): an anchored base stays put; the knob stops at the rim.
+		if not is_anchored:
+			base_position = position - offset
 		distance = radius
 
 	knob_position = base_position + offset

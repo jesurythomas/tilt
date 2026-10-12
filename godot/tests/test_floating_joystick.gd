@@ -113,3 +113,67 @@ func test_set_size_scales_the_radius() -> void:
 	_stick.on_touch(0, Vector2(300.0, 400.0))
 	_stick.on_drag(0, Vector2(300.0 + FloatingJoystick.BASE_RADIUS * 0.6, 400.0))
 	assert_almost_eq(_stick.vector.x, 1.0, 0.0001, "a smaller stick hits full speed sooner")
+
+
+## ENH-302 R2: a fixed stick, grabbed near its centre; the knob jumps to the thumb.
+func test_an_anchored_stick_is_grabbed_near_its_centre() -> void:
+	var centre: Vector2 = Vector2(200.0, 800.0)
+	_stick.set_anchor(centre)
+	var r: float = FloatingJoystick.BASE_RADIUS
+	_stick.on_touch(0, centre + Vector2(r, 0.0))
+	assert_true(_stick.is_active, "a touch within the grab zone engages the stick")
+	assert_eq(_stick.base_position, centre, "the base stays on the anchor")
+	assert_almost_eq(_stick.vector.x, 1.0, 0.0001, "the knob jumps to the thumb at once")
+
+
+func test_a_touch_outside_the_grab_zone_is_ignored() -> void:
+	var centre: Vector2 = Vector2(200.0, 800.0)
+	_stick.set_anchor(centre)
+	var zone: float = FloatingJoystick.BASE_RADIUS * FloatingJoystick.GRAB_FRACTION
+	_stick.on_touch(0, centre + Vector2(zone + 1.0, 0.0))
+	assert_false(_stick.is_active, "a touch elsewhere does not steer")
+	_stick.on_touch(1, centre)
+	assert_true(_stick.is_active, "the ignored finger does not block a real grab")
+
+
+func test_an_anchored_base_never_moves() -> void:
+	var centre: Vector2 = Vector2(200.0, 800.0)
+	_stick.set_anchor(centre)
+	_stick.on_touch(0, centre)
+	_stick.on_drag(0, centre + Vector2(0.0, -400.0))
+	assert_eq(_stick.base_position, centre, "an overshooting thumb leaves the base in place")
+	assert_almost_eq(
+		_stick.knob_position.distance_to(centre),
+		FloatingJoystick.BASE_RADIUS,
+		0.0001,
+		"the knob stops at the rim"
+	)
+	assert_almost_eq(_stick.vector.y, -1.0, 0.0001, "full deflection up")
+
+
+func test_releasing_an_anchored_stick_recentres_it() -> void:
+	var centre: Vector2 = Vector2(200.0, 800.0)
+	_stick.set_anchor(centre)
+	_stick.on_touch(0, centre + Vector2(30.0, 0.0))
+	_stick.on_release(0)
+	assert_false(_stick.is_active, "release disengages")
+	assert_eq(_stick.vector, Vector2.ZERO, "no steering after release")
+	assert_true(_stick.is_anchored, "the stick stays fixed for the next touch")
+	assert_eq(_stick.anchor, centre, "at the same place")
+
+
+func test_the_grab_zone_follows_the_stick_size() -> void:
+	var centre: Vector2 = Vector2(200.0, 800.0)
+	_stick.set_anchor(centre)
+	_stick.set_size(1080.0 / 390.0, 0.6)
+	var zone: float = FloatingJoystick.BASE_RADIUS * 0.6 * FloatingJoystick.GRAB_FRACTION
+	_stick.on_touch(0, centre + Vector2(zone + 1.0, 0.0))
+	assert_false(_stick.is_active, "a smaller stick has a smaller zone")
+
+
+func test_clear_anchor_returns_to_the_floating_stick() -> void:
+	_stick.set_anchor(Vector2(200.0, 800.0))
+	_stick.clear_anchor()
+	_stick.on_touch(0, Vector2(1500.0, 300.0))
+	assert_false(_stick.is_anchored, "dynamic again")
+	assert_eq(_stick.base_position, Vector2(1500.0, 300.0), "the base lands under the finger")

@@ -26,7 +26,7 @@ option."
 
 1. [x] `ControlSettings.stick_anchor` (`ControlSettings.StickAnchor` DYNAMIC/LEFT/RIGHT), saved as
    `"stick_anchor"`, unknown values keep Dynamic. Tests in `test_control_settings.gd`.
-2. [ ] `FloatingJoystick`: anchor mode (`set_anchor`), grab zone, fixed base, recentre on
+2. [x] `FloatingJoystick`: anchor mode (`set_anchor`), grab zone, fixed base, recentre on
    release. Dynamic unchanged. Tests in `test_floating_joystick.gd`.
 3. [ ] `GameRoot`: place the anchor in `resize_canvas` and when the setting changes, mid-run
    included. `JoystickLayer`: the idle stick (R4).
