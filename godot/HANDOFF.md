@@ -12,8 +12,8 @@ bench (`bench/shot_stick.gd`). `fix/exit-image-leak` (the suite's intermittent "
 exit", an engine race under the Separate render thread) is committed on its own branch, not
 merged yet. A55 pass 1 (0.1.4): "a bit scuffed" (drift, too small) → ruling R5 (1.3x, leashed base). The
 A55 has `build/peril-point-0.1.5-a55.apk` (0.1.5 code 6, A55 key, installed 2026-10-12 20:55),
-so the next A55 build must use code 7. Next: the user's A55 pass
-(`VERIFY-ME.md` §ENH-302), merge `fix/exit-image-leak`, rebase this onto main.
+so the next A55 build must use code 7. A55 pass 2: "feels better". Next: the user's
+sign-off on `VERIFY-ME.md` §ENH-302, merge `fix/exit-image-leak`, rebase this onto main.
 
 **Latest (2026-10-12): ENH-301, power-ups and coins at a glance, is done: R2 confirmed on the A55**
 on branch `ENH-301-powerup-coin-glance` (67/67 test scripts, 831 tests green, gdformat and

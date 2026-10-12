@@ -59,4 +59,4 @@ option."
    Dynamic tests unchanged). Bench re-rendered. `GameRoot` needed no change (`apply_anchor`
    already carries the playfield size).
 8. [x] 0.1.5 (code 6) on the A55 (installed 20:55, 0 script errors at launch).
-9. [ ] A55 pass 2, `godot/VERIFY-ME.md` §ENH-302.
+9. [ ] A55 pass 2, `godot/VERIFY-ME.md` §ENH-302. User: "feels better" (2026-10-12).
