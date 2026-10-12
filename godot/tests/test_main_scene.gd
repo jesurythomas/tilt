@@ -1019,6 +1019,44 @@ func test_launch_run_does_not_recalibrate_the_gyro() -> void:
 	)
 
 
+func test_boot_keeps_the_saved_calibration() -> void:
+	# BUG-101: boot armed a capture that the run's first poll took, so a
+	# calibration set on an earlier launch became the pose at Play.
+	SaveStore.save_dict(
+		TiltInput.CALIBRATION_PATH, {"beta": 0.0, "gamma": 0.0, "gravity": [2.0, -8.0, -5.7]}
+	)
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	assert_false(root._tilt.is_calibration_pending(), "boot must not re-arm a calibration")
+	assert_eq(root._tilt._calibrated_gravity, Vector3(2.0, -8.0, -5.7), "the saved pose stays")
+
+
+func test_retry_does_not_recalibrate_the_gyro() -> void:
+	# BUG-101: TiltGame.ts restart() (:1519-1521) never recalibrates.
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	root._tilt.start_listening()
+	root._tilt.calibrate_current_position()
+	root._tilt.apply_gravity(Vector3(2.0, -8.0, -5.7), 90)
+	root.launch_run(root.options.settings.mode)
+	root.restart_run()
+	assert_false(root._tilt.is_calibration_pending(), "Retry must not re-arm a calibration")
+
+
+func test_choosing_tilt_does_not_recalibrate_the_gyro() -> void:
+	# BUG-101: the menu Steer picker armed a capture that Play then took.
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	root._tilt.start_listening()
+	root._tilt.calibrate_current_position()
+	root._tilt.apply_gravity(Vector3(2.0, -8.0, -5.7), 90)
+	root.set_control_scheme(Types.ControlScheme.GYRO)
+	assert_false(root._tilt.is_calibration_pending(), "choosing tilt must not re-arm a calibration")
+
+
 func test_a_run_clips_the_play_layers_to_the_arena() -> void:
 	# M11c review: blast rings and pushed grid lines drew into the margin.
 	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot

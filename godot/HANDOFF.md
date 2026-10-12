@@ -4,6 +4,17 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
+**Latest (2026-10-12): BUG-101, calibration sticks, on branch `fix/bug-101-calibration-sticks`,
+not merged.** User: the tilt calibration set on the home screen was replaced in game by the pose
+at Play. Cause: `calibrate_current_position()` only arms a capture that the next `poll()` takes,
+and nothing polls in the menu, so the run's first poll took it. The port armed one at boot, on
+Retry and on choosing tilt (none in the TS), and Armory's Calibrate tilt armed one from the menu.
+Fixed in `game_root.gd`: those three calls are gone and `calibrate_gyro` polls at once. 857 tests
+green, gdformat and gdlint clean. Plan `docs/superpowers/plans/2026-10-12-fix-bug-101-calibration-sticks.md`.
+Next: A55 pass (`VERIFY-ME.md` §BUG-101; next A55 build uses version code 7), then PR and merge.
+Open: a user clip of the ship that "can't go to the right" was not viewed (no ffmpeg here);
+re-test it on this build first.
+
 **Latest (2026-10-12): `fix/handling-top-speed-label`, ruling HANDLING R1, merged into `main` by its PR.** The
 Armory → Handling "Turn rate" slider (inherited from the TS) never changed turning: it scales
 top speed on phones (tilt and touch) and the cursor's reach on desktop. User: "Rename it". Now

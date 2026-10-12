@@ -219,9 +219,10 @@ func _ready() -> void:
 	# PORT-NOTE: updateCursor (:1480) — no pointer on Android (M11a R16).
 	_bind_menu_layers()
 	GameEvents.phase_changed.emit(Types.GamePhase.MENU)
-	# DIVERGENCE(M2.5 §5.3): this requests calibration; TiltInput now waits for
-	# a real gravity sample rather than falling back to a hardcoded pose.
-	_tilt.calibrate_current_position()
+	# PORT-NOTE(BUG-101): no boot calibration, as in the TS. TiltInput loads the
+	# saved pose; with none it takes the first gravity sample. Calibrating here
+	# armed a capture that the run's first poll took, so the pose at Play
+	# replaced the one the player set.
 	Log.info(
 		(
 			"boot: bounds=%s arena_scale=%f"
@@ -471,8 +472,8 @@ func set_control_scheme(scheme: Types.ControlScheme) -> void:
 
 	# PORT: the sensor transition at game_state_machine.gd:125-128.
 	if scheme == Types.ControlScheme.GYRO:
+		# PORT-NOTE(BUG-101): no recalibration; the saved pose stays (see _ready).
 		_tilt.start_listening()
-		_tilt.calibrate_current_position()
 	else:
 		_tilt.stop_listening()
 
@@ -613,8 +614,8 @@ func is_paused() -> bool:
 
 ## restart → startCinematic: a fresh run behind a fresh cold open (M11b R10).
 ## PORT: web/src/tilt-to-live/TiltGame.ts:1519-1530
+# PORT-NOTE(BUG-101): restart() never recalibrates (TS :1519-1521); the saved pose stays.
 func restart_run() -> void:
-	_tilt.calibrate_current_position()
 	_state.restart()
 	_goals_hud.set_menu_mode(false)  # PORT: web/src/tilt-to-live/TiltGame.ts:1524
 	_begin_cinematic()
@@ -666,6 +667,9 @@ func calibrate_gyro() -> bool:
 	var success: bool = _tilt.request_permission_and_start()
 	if success:
 		_tilt.calibrate_current_position()
+		# BUG-101: capture the pose now. Nothing polls in the menu, so Armory's
+		# Calibrate tilt otherwise left the capture to the run's first poll.
+		_tilt.poll()
 		_goals_hud.show_message_toast("TILT CALIBRATED", "Neutral Angle Zeroed ✓")  # PORT: :2335
 	else:
 		_goals_hud.show_message_toast("GYRO SENSOR", "Sensor Unavailable or Blocked")  # PORT: :2337

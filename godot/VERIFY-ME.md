@@ -1017,3 +1017,12 @@ Touch, then the "Touch stick" row: Dynamic / Left / Right.
 - [ ] At 2.0× the preview ship moves faster but turns no sharper than at 0.5×.
 - [ ] Settings → Controls: the link reads "Speed & sensitivity: Armory › Handling" on one line.
 - [ ] In a run (touch or tilt), 2.0× gives a faster ship; turning feels the same as before.
+
+## BUG-101 — calibration sticks (2026-10-12)
+
+- [ ] Menu → Calibrate → hold an unusual angle → Set level → Play holding a *different* angle:
+      the ship rests at the angle set, not the one held at Play.
+- [ ] Same with Armory → Handling → Calibrate tilt.
+- [ ] Die → Retry while holding another angle: the calibration still holds.
+- [ ] Kill the app, relaunch, Play: the calibration from the last session still holds.
+- [ ] The 0:11 clip ("can't go to the right"): does it still happen on this build?
