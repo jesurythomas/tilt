@@ -5,8 +5,8 @@ Rewritten at every module stop. Written for a session with zero context.
 ## State
 
 **Latest (2026-10-12): ENH-301, power-ups and coins at a glance, is done: R2 confirmed on the A55**
-on branch `ENH-301-powerup-coin-glance` (67/67 test scripts green, gdformat and gdlint clean;
-A55 pass pending, `VERIFY-ME.md` §ENH-301). User: "power ups and coins can be hard to identify"
+on branch `ENH-301-powerup-coin-glance` (67/67 test scripts, 831 tests green, gdformat and
+gdlint clean; A55 pass done, `VERIFY-ME.md` §ENH-301). User: "power ups and coins can be hard to identify"
 in busy play. R1 (pickups drawn over the swarm, 1.3x) was tried on the emulator and replaced by
 R2 (user: "keep how it previously was ... but make it bigger. make the glow better. make the
 colors more pop out", "a bit smaller" than 1.3): the TS draw order (pickups under enemies),
