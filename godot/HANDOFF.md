@@ -4,6 +4,19 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
+**Latest (2026-10-12): ENH-301, power-ups and coins at a glance, is code-complete** on branch
+`ENH-301-powerup-coin-glance` (67/67 test scripts green, gdformat and gdlint clean, 0 SCRIPT
+ERROR headless; A55 pass pending, `VERIFY-ME.md` §ENH-301). User: "power ups and coins can be
+hard to identify" in busy play. Ruling ENH-301 R1 (user chose "lift + bigger/brighter"):
+`EntityLayer._draw` now draws enemies before coins and orbs, and both pickups draw
+`PICKUP_DRAW_SCALE` (1.3) larger with `PICKUP_HALO_ALPHA` (0.4) halos, render-only (sim radii,
+hitboxes, magnets untouched). Plan `docs/superpowers/plans/2026-10-12-enh-301-pickup-glance.md`.
+Evidence: `godot/bench/shot_pickups.gd` (windowed; `SHOT_NAME=` names the png); before, no
+pickup was visible in a dense swarm; after, every orb reads, coins are visible but the
+weakest over the ember skin. Next: the user's A55 pass; if coins still get lost, add option
+A's dark outline + ping ring for coins (plan task 3). `main` and `feat/godot-port` both sit at
+`c3d3aeb` and are pushed; this branch is not pushed.
+
 **Latest (2026-09-29): the Settings overflow is fixed** (831 tests green, gdformat and gdlint
 clean, 0 SCRIPT ERROR headless; A55 pass pending, `VERIFY-ME.md` §Settings scroll). User: "fix the
 menu overflow specially after adding reporting. we are not able to scroll to it." Cause: the
@@ -326,7 +339,7 @@ from overflowing the 700-px Run over sheet.
 - P — `ControlPicker` is Segmented, Touch | Tilt (+ Keyboard off-mobile), no `ButtonGroup`.
 - Pre-flight M14 (applied in Tasks 6–7): spec-quoted explain lines win over TS strings.
 
-Branch: `feat/godot-port` (no upstream; nothing pushed).
+Branch: `feat/godot-port` (pushed to `origin` on 2026-10-11 and fast-forwarded into `main`).
 
 > ### ⚠ Read `godot/VERIFY-ME.md`
 > Every check that needs a hand on the phone or a decision from the user is
