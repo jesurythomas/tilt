@@ -36,5 +36,8 @@ set."
 ## Open (not part of this fix)
 
 User, same session: a 0:11 clip (`WhatsApp Video 2026-10-11 at 20.56.05.mp4`) where the ship
-"can't go to the right" at any tilt. Not viewed: no video decoder on this machine. Possibly the
-same cause (a bad pose captured at Play). Re-test on the BUG-101 build before investigating.
+"can't go to the right" at any tilt. Viewed (ffmpeg contact sheet, 1 fps): a fresh launch
+(splash) straight into Survival on Tilt with no calibration step, the path where the boot
+calibration was taken at the first run poll. The ship drifts up and left and reaches the left
+edge; it does move right once, along the bottom (~0:07-0:08). Consistent with an off-level pose
+captured at Play, not a dead right axis. Re-test on the BUG-101 build (VERIFY-ME §BUG-101).
