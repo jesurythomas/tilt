@@ -4,7 +4,7 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**Latest (2026-10-12): ENH-301, power-ups and coins at a glance, is code-complete (ruling R2)**
+**Latest (2026-10-12): ENH-301, power-ups and coins at a glance, is done: R2 confirmed on the A55**
 on branch `ENH-301-powerup-coin-glance` (67/67 test scripts green, gdformat and gdlint clean;
 A55 pass pending, `VERIFY-ME.md` §ENH-301). User: "power ups and coins can be hard to identify"
 in busy play. R1 (pickups drawn over the swarm, 1.3x) was tried on the emulator and replaced by
@@ -18,8 +18,10 @@ pickup fully under a cluster is hidden again, as in the TS. Emulator: the x86_64
 arm64 debug APK by translation (`--export-debug "Android" build/peril-point-debug.apk`, then
 `adb -s emulator-5554 install -r`; check `lastUpdateTime`, it dropped offline once). The A55
 has this build (`build/peril-point-0.1.3-a55.apk`, 0.1.3 code 4, A55 key, installed 2026-10-12
-18:26), so the next A55 build must use code 5. A55: power-ups (orbs) pass ("power ups look good
- now"). Next: the user's word on coins, the amber arenas and the size (`VERIFY-ME.md` §ENH-301 1-4). `main` and `feat/godot-port` sit at `c3d3aeb`, pushed; this branch is not.
+18:26), so the next A55 build must use code 5. A55: confirmed ("power ups look good now", "the enhancement for powerups are
+confirmed"). Next: merge `ENH-301-powerup-coin-glance` into `main` (user's call), then ENH-302
+(joystick position, GitHub #4). Found 2026-10-12, not ticketed: the Run over big score
+(`FinalScoreLabel`) has no width cap; 11+ digits push Retry/Menu/Armory off the sheet. `main` and `feat/godot-port` sit at `c3d3aeb`, pushed; this branch is not.
 
 **Latest (2026-09-29): the Settings overflow is fixed** (831 tests green, gdformat and gdlint
 clean, 0 SCRIPT ERROR headless; A55 pass pending, `VERIFY-ME.md` §Settings scroll). User: "fix the

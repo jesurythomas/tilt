@@ -43,8 +43,8 @@ under the swarm), size between the TS 1.0 and R1's 1.3, and a better, more satur
    Known consequence: a pickup fully under a cluster is hidden again, as in the TS.
    Then, after 1.15 on the emulator (user: "make it bigger. tone the glow up a bit more"):
    `PICKUP_DRAW_SCALE` 1.25, `PICKUP_GLOW_PAD` 20, `PICKUP_GLOW_ALPHA` 1.0.
-4. [ ] A55 pass, `godot/VERIFY-ME.md` §ENH-301. Orbs pass (2026-10-12, user: "power ups look
-   good now"); coins, the amber arenas and the size are still to report. If pickups still get lost under clusters, ask
+4. [x] A55 pass, `godot/VERIFY-ME.md` §ENH-301. Confirmed 2026-10-12 (user: "power ups look
+   good now", then "the enhancement for powerups are confirmed"). ENH-301 is done. If pickups still get lost under clusters, ask
    the user before changing the draw order again (R2 reverted it on purpose); an outline or ping
    ring (option A without the lift) is the other lever.
 
