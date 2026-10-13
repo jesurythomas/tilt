@@ -73,6 +73,9 @@ var run_completed_goals: Array[GoalManager.Goal] = []
 ## appends). The TS Run over listed only evaluate_run's (TiltGame.ts:2132).
 var run_achievements: Array[GoalManager.Goal] = []
 
+## DIVERGENCE(DASH R1-R4, ITEM R1): the run's dash and item slots.
+var abilities: AbilitySystem = AbilitySystem.new()
+
 ## renderer.triggerShake. GameRoot sets it; an empty Callable skips the shake (tests).
 ## PORT: web/src/tilt-to-live/TiltGame.ts:2064, :2081 (the TS calls the renderer directly)
 var trigger_shake: Callable = Callable()
@@ -149,6 +152,12 @@ func reset_run(arena_bounds: Vector2) -> void:
 	swarm.set_gentle(is_first_run)
 	swarm.set_speed_scale(progression.get_enemy_speed_multiplier())  # PORT: :1599
 	weapons.reset()
+	# DIVERGENCE(DASH R3, ITEM R1): the dash is ready and every item is back at each run start.
+	abilities.reset(
+		progression.get_dash_cooldown(),
+		progression.get_dash_shield(),
+		progression.data.equipped_items
+	)
 	coins.reset()  # PORT: :1601
 	particles.reset()
 	scores.reset()
@@ -235,6 +244,18 @@ func update(
 	)
 	PerfProbe.add("s_player", pt_player)
 
+	# 3.2 DIVERGENCE(DASH R2): the dash moves the ship after its own step, before the maze
+	# pushes it, so a burst never ends inside a wall.
+	abilities.update_dash(
+		dt,
+		player,
+		bounds,
+		maze if mode == Types.GameMode.GAUNTLET else null,
+		particles,
+		grid,
+		audio
+	)
+
 	# 3.5 Update Gauntlet Descending Maze Walls (blocks player, pushes downwards)
 	# PORT: web/src/tilt-to-live/TiltGame.ts:1893-1904 — spec §5.4 step 4
 	if mode == Types.GameMode.GAUNTLET:
@@ -245,6 +266,10 @@ func update(
 	var pt_swarm: int = PerfProbe.now()
 	swarm.update(dt, Vector2(player.x, player.y), bounds, particles, scores.stats.score, mode)
 	PerfProbe.add("s_swarm", pt_swarm)
+
+	# 4.9 DIVERGENCE(ITEM R1): fire the items the player tapped, before the weapon step.
+	for type: Types.WeaponType in abilities.take_item_requests():
+		_fire_item(type)
 
 	# 5. Update Weapons
 	var pt_weapons: int = PerfProbe.now()
@@ -530,6 +555,31 @@ func trigger_player_death() -> void:
 	run_completed_goals = goals.evaluate_run(run_tracker)
 	GameEvents.run_ended.emit(scores.stats.score, scores.stats)
 	GameEvents.phase_changed.emit(Types.GamePhase.GAME_OVER)
+
+
+## DIVERGENCE(ITEM R1): fires an item's power-up at the ship as an orb pickup would (perks,
+## keystones, milestone counts, the HUD timer), without the pickup chime.
+func _fire_item(type: Types.WeaponType) -> void:
+	weapons.activate_weapon(
+		type,
+		player.x,
+		player.y,
+		player,
+		swarm.enemies,
+		particles,
+		grid,
+		audio,
+		Callable(self, "handle_enemy_killed"),
+		progression.data.perks
+	)
+	_on_weapon_activated(type)
+	particles.emit_sparks(
+		player.x,
+		player.y,
+		AbilitySystem.ITEM_SPARKS,
+		WeaponSystem.get_weapon_color(type),
+		AbilitySystem.ITEM_SPARK_SPEED
+	)
 
 
 ## Tracks superweapon activation, then relays the pickup to the UI bus.

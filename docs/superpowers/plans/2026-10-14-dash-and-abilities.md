@@ -128,7 +128,9 @@ Baseline before any change (desktop, `bench/bench_sim.gd` headless, 3 runs): a f
 
 1. [x] Save data: dash ranks, item unlocks and loadout, costs, buy/equip (ProgressionManager);
    tests. (`test_progression_abilities.gd`, 10 tests; parity test expects the three new keys.)
-2. [ ] `AbilitySystem` (dash + item slots) in the run; `GauntletMaze.blocks`; tests.
+2. [x] `AbilitySystem` (dash + item slots) in the run; `GauntletMaze.blocks`; tests.
+   (`src/sim/ability_system.gd`, `test_abilities.gd` 17 tests; `GameEvents.dash_activated`,
+   Haptics `DASH_MS` 25. Sim bench full tick 68-69 µs vs 70-73 µs before: no cost.)
 3. [ ] Input: `DoubleTap`, GameRoot wiring (gesture, Shift, double-click, 1/2, item use);
    `GameEvents.dash_activated`, Haptics; tests.
 4. [ ] HUD R1 + R2 (`AbilityBar`); screenshot `bench/shot_hud.gd`; tests.
@@ -139,4 +141,4 @@ Baseline before any change (desktop, `bench/bench_sim.gd` headless, 3 runs): a f
 
 ## Status
 
-- Task 1 done: `dash`, `unlockedItems`, `equippedItems` in the save, cleaned on load. Next: Task 2.
+- Task 1 done: `dash`, `unlockedItems`, `equippedItems` in the save, cleaned on load. Task 2 done. Next: Task 3.

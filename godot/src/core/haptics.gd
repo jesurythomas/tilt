@@ -12,6 +12,8 @@ extends Node
 const NUKE_MS: int = 120
 const DEATH_MS: int = 250
 const CLOSE_CALL_MS: int = 30
+## DIVERGENCE(DASH R2): a short kick when the ship dashes.
+const DASH_MS: int = 25
 ## DIVERGENCE(HAPTICS R1): the buzz when Vibration is switched on, so the player feels it work.
 const PREVIEW_MS: int = 60
 
@@ -38,6 +40,7 @@ func _ready() -> void:
 	GameEvents.weapon_activated.connect(_on_weapon_activated)
 	GameEvents.life_lost.connect(_on_life_lost)
 	GameEvents.close_call.connect(_on_close_call)
+	GameEvents.dash_activated.connect(_on_dash_activated)  # DIVERGENCE(DASH R2)
 	_bind_media_vibrator()
 
 
@@ -89,3 +92,7 @@ func _on_life_lost(lives_remaining: int) -> void:
 
 func _on_close_call() -> void:
 	_pulse(CLOSE_CALL_MS)
+
+
+func _on_dash_activated() -> void:
+	_pulse(DASH_MS)

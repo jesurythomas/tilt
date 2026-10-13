@@ -24,6 +24,9 @@ signal life_lost(lives_remaining: int)
 ## Emitted on a near miss. DIVERGENCE(MVP Week 1): no TS counterpart; Haptics listens.
 signal close_call
 
+## Emitted when the ship dashes. DIVERGENCE(DASH R2): no TS counterpart; Haptics listens.
+signal dash_activated
+
 ## Emitted when a run finishes on player death.
 signal run_ended(final_score: int, stats: Types.GameStats)
 
