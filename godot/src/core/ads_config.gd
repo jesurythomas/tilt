@@ -10,9 +10,12 @@ extends RefCounted
 const TEST_APP_ID: String = "ca-app-pub-3940256099942544~3347511713"
 ## Google's test interstitial unit (developers.google.com/admob/android/interstitial).
 const TEST_INTERSTITIAL_ID: String = "ca-app-pub-3940256099942544/1033173712"
+## Google's test rewarded unit (developers.google.com/admob/android/rewarded).
+const TEST_REWARDED_ID: String = "ca-app-pub-3940256099942544/5224354917"
 
 const APP_ID_SETTING: String = "peril/ads/android_app_id"
 const INTERSTITIAL_ID_SETTING: String = "peril/ads/android_interstitial_id"
+const REWARDED_ID_SETTING: String = "peril/ads/android_rewarded_id"
 ## The device's hashed ID from logcat: a UMP debug device and an SDK test device (test ads).
 const TEST_DEVICE_SETTING: String = "peril/ads/test_device_hashed_id"
 ## UMP's DebugGeography (1 EEA, 2 not EEA); applies only to the test device. 0 is off.
@@ -29,6 +32,11 @@ static func app_id() -> String:
 ## The interstitial ad unit shown at the break.
 static func interstitial_id() -> String:
 	return _text(INTERSTITIAL_ID_SETTING, TEST_INTERSTITIAL_ID)
+
+
+## The rewarded ad unit behind the Run over's 3x coins (ADS R6).
+static func rewarded_id() -> String:
+	return _text(REWARDED_ID_SETTING, TEST_REWARDED_ID)
 
 
 ## Blank unless a test device is set.

@@ -1093,6 +1093,11 @@ Checked on the emulator (Pixel_10, Play Store image), 2026-10-13:
       opened in ~50 ms and the game had focus after ✕.)*
 - [ ] No ad: after a run under 20 s, from Pause's Restart run or Quit to menu, or with the phone
       in flight mode (Retry and Menu act at once).
+- [ ] (ADS R6) The Run over shows **Watch ad · 3× points** (play glyph, under Points earned) a
+      few seconds after launch. Tap it: a test rewarded ad plays, the game is silent; watch it to
+      the end and close it. The earned figure counts up to 3× and the button goes; the Armory
+      balance has the extra. Close one early instead: no extra, and the button returns when the
+      next ad loads. Retry right after a rewarded ad shows no interstitial.
 - [ ] Frame time in a run: `tools/frametime.sh 20 ads`. HTP's Power-ups page read mean 16.71 ms,
       p95 25.2 on 0.1.11; the ads build adds no per-frame game code, so a run should match the
       runs before it.
@@ -1112,12 +1117,15 @@ Checked on the emulator (Pixel_10, Play Store image), 2026-10-13:
    `ph.newzenith.perilpoint`. Register the AdMob app under the package that will be on Play.
 2. admob.google.com → Apps → Add app → Android, linked to the Play listing → copy the **app
    ID** (`ca-app-pub-…~…`). Ad units → Interstitial → copy the **unit ID** (`ca-app-pub-…/…`).
-3. Put both in `godot/project.godot` and commit:
+   Ad units → Rewarded → copy its **unit ID** too (ADS R6; the game grants its own reward, so
+   the unit's reward amount and type do not matter).
+3. Put them in `godot/project.godot` and commit:
    ```
    [peril]
 
    ads/android_app_id="ca-app-pub-XXXXXXXX~YYYYYYYY"
    ads/android_interstitial_id="ca-app-pub-XXXXXXXX/ZZZZZZZZ"
+   ads/android_rewarded_id="ca-app-pub-XXXXXXXX/WWWWWWWW"
    ads/test_device_hashed_id="9A0837A109CE8195013D1AF3E32EC41B"
    ```
    That is the A55's hash, so your own phone keeps getting test ads. Also add the A55 under

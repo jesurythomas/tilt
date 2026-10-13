@@ -1,5 +1,5 @@
 ## ads_backend.gd
-## PORTS: nothing — new file (ruling ADS R4, docs/superpowers/plans/2026-10-13-in-game-ads.md)
+## PORTS: nothing — new file (rulings ADS R4, R6, docs/superpowers/plans/2026-10-13-in-game-ads.md)
 class_name AdsBackend
 extends RefCounted
 ## What `Ads` talks to. This base class is the null backend: consent never arrives, so no ad
@@ -18,6 +18,18 @@ signal interstitial_opened
 signal interstitial_closed
 ## The interstitial could not show (none held, expired, or the SDK refused).
 signal interstitial_failed_to_show
+## A rewarded ad is loaded and ready to show.
+signal rewarded_loaded
+## A rewarded load failed.
+signal rewarded_failed_to_load
+## The rewarded ad covers the game.
+signal rewarded_opened
+## The player watched enough of the rewarded ad to earn its reward (before it closes).
+signal rewarded_earned
+## The player closed the rewarded ad.
+signal rewarded_closed
+## The rewarded ad could not show (none held, expired, or the SDK refused).
+signal rewarded_failed_to_show
 
 
 ## Requests this launch's consent state and shows the consent form if it is required.
@@ -33,6 +45,16 @@ func load_interstitial(_ad_unit_id: String) -> void:
 
 ## Shows the loaded interstitial.
 func show_interstitial() -> void:
+	pass
+
+
+## Loads one rewarded ad from `ad_unit_id`.
+func load_rewarded(_ad_unit_id: String) -> void:
+	pass
+
+
+## Shows the loaded rewarded ad.
+func show_rewarded() -> void:
 	pass
 
 

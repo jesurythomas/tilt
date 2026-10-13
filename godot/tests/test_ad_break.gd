@@ -151,3 +151,100 @@ func test_settings_offers_ad_privacy_only_when_ump_asks() -> void:
 	assert_not_null(manage, "consent asking for it redraws Settings with the row")
 	manage.pressed.emit()
 	assert_eq(_rec.count("privacy"), 1)
+
+
+## Boots, grants consent with a rewarded ad loaded (the pacing as shipped), and dies in a run.
+func _boot_to_run_over_with_reward() -> GameRoot:
+	var root: GameRoot = await _boot()
+	_rec.consent_finished.emit(true, false)
+	_rec.rewarded_loaded.emit()
+	root.launch_run(root.options.settings.mode)
+	root.skip_cinematic()
+	root._player.shield_timer = 0.0  # past the cold open's spawn shield
+	root._run_controller.lives = 1
+	root._run_controller.lose_life()
+	assert_eq(root._state.phase, Types.GamePhase.GAME_OVER)
+	return root
+
+
+func _offer(root: GameRoot) -> Button:
+	return root.find_child("WatchAdButton", true, false) as Button
+
+
+func test_the_run_over_offers_the_rewarded_ad_when_one_is_ready() -> void:
+	var root: GameRoot = await _boot_to_run_over_with_reward()
+	assert_true(_offer(root).visible)
+	assert_false(_offer(root).disabled)
+
+
+func test_no_offer_until_a_rewarded_ad_loads() -> void:
+	var root: GameRoot = await _boot()
+	_rec.consent_finished.emit(true, false)
+	root.launch_run(root.options.settings.mode)
+	root.skip_cinematic()
+	root._player.shield_timer = 0.0
+	root._run_controller.lives = 1
+	root._run_controller.lose_life()
+	assert_false(_offer(root).visible, "no ad, no offer")
+	_rec.rewarded_loaded.emit()
+	assert_true(_offer(root).visible, "it appears when one loads")
+
+
+func test_watching_the_ad_triples_the_runs_points_once() -> void:
+	var root: GameRoot = await _boot_to_run_over_with_reward()
+	var run: RunController = root._run_controller
+	var earned: int = run.points_credited_this_run
+	assert_gt(earned, 0, "the payout at death")
+	var balance: int = run.progression.data.points
+	_press(root, "WatchAdButton")
+	assert_eq(_rec.count("reward_show"), 1)
+	assert_true(_offer(root).disabled, "greyed while its ad is on its way")
+	_rec.rewarded_opened.emit()
+	_rec.rewarded_earned.emit()
+	assert_eq(run.points_credited_this_run, earned * GameRoot.AD_REWARD_MULTIPLIER)
+	assert_eq(run.progression.data.points, balance + earned * 2)
+	assert_false(_offer(root).visible, "once a run")
+	_rec.rewarded_closed.emit()
+	_rec.rewarded_loaded.emit()
+	assert_false(_offer(root).visible, "a fresh ad does not reopen it")
+	assert_eq(root._state.phase, Types.GamePhase.GAME_OVER, "the player stays on the Run over")
+
+
+func test_the_bonus_skips_the_points_multiplier() -> void:
+	var root: GameRoot = await _boot_to_run_over_with_reward()
+	var run: RunController = root._run_controller
+	run.progression.data.points_multiplier = 3
+	var earned: int = run.points_credited_this_run
+	var balance: int = run.progression.data.points
+	_press(root, "WatchAdButton")
+	_rec.rewarded_opened.emit()
+	_rec.rewarded_earned.emit()
+	assert_eq(run.progression.data.points, balance + earned * 2, "already multiplied once")
+
+
+func test_closing_the_ad_early_keeps_the_offer_for_the_next_ad() -> void:
+	var root: GameRoot = await _boot_to_run_over_with_reward()
+	var run: RunController = root._run_controller
+	var earned: int = run.points_credited_this_run
+	_press(root, "WatchAdButton")
+	_rec.rewarded_opened.emit()
+	_rec.rewarded_closed.emit()
+	assert_eq(run.points_credited_this_run, earned, "no reward")
+	assert_false(_offer(root).visible, "until another ad loads")
+	_rec.rewarded_loaded.emit()
+	assert_true(_offer(root).visible)
+
+
+func test_retry_while_the_rewarded_ad_opens_is_ignored() -> void:
+	var root: GameRoot = await _boot_to_run_over_with_reward()
+	root._hud._on_run_over_timer_timeout()
+	var panel: Control = root.find_child("GameOverPanel", true, false) as Control
+	assert_true(panel.visible)
+	_press(root, "WatchAdButton")
+	_press(root, "RestartButton")
+	assert_true(panel.visible, "the sheet stays while the ad is on its way")
+	assert_eq(root._state.phase, Types.GamePhase.GAME_OVER)
+	_rec.rewarded_opened.emit()
+	_rec.rewarded_closed.emit()
+	_press(root, "RestartButton")
+	assert_eq(root._state.phase, Types.GamePhase.CINEMATIC, "Retry works once it is done")

@@ -62,6 +62,8 @@ var points_earned_this_run: int = 0
 var points_credited_this_run: int = 0
 ## DIVERGENCE(ECON R1): the payout banked at death (part of points_credited_this_run).
 var run_payout_credited: int = 0
+## DIVERGENCE(ADS R6): true once this run's points were multiplied by a rewarded ad.
+var is_reward_claimed: bool = false
 ## triggerPlayerDeath's `newlyCompleted` (TiltGame.ts:2086).
 # PORT-NOTE: a local in the TS, read by the game-over setTimeout closure
 # (:2111-2144); kept here so HudController's run_ended handler can read it.
@@ -120,6 +122,7 @@ func reset_run(arena_bounds: Vector2) -> void:
 	points_earned_this_run = 0  # PORT: web/src/tilt-to-live/TiltGame.ts:1566
 	points_credited_this_run = 0  # DIVERGENCE(ECON R1)
 	run_payout_credited = 0
+	is_reward_claimed = false  # DIVERGENCE(ADS R6)
 	run_achievements = []  # DIVERGENCE(ACH R2)
 	# PORT: web/src/tilt-to-live/TiltGame.ts:1567-1568
 	max_lives = progression.get_starting_lives()
@@ -454,6 +457,22 @@ func credit_run_points(amount: int) -> int:
 	var credited: int = progression.add_points_credited(amount)
 	points_credited_this_run += credited
 	return credited
+
+
+## DIVERGENCE(ADS R6): true while the run has points a rewarded ad may multiply.
+func can_claim_reward() -> bool:
+	return not is_reward_claimed and points_credited_this_run > 0
+
+
+## DIVERGENCE(ADS R6): makes the run's points `multiplier` times what it credited, once a run.
+## The bonus skips the Points Multiplier, which those points already carry. Returns the bonus.
+func claim_reward(multiplier: int) -> int:
+	if not can_claim_reward():
+		return 0
+	is_reward_claimed = true
+	var bonus: int = progression.add_points_bonus(points_credited_this_run * (multiplier - 1))
+	points_credited_this_run += bonus
+	return bonus
 
 
 ## The maze's crush callback: lose_life, naming the wall as the killer (DIVERGENCE(MVP R6)).

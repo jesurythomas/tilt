@@ -1,3 +1,4 @@
+# gdlint:disable=max-public-methods
 ## test_run_over_sheet.gd
 ## PORTS: nothing — new file, covers src/ui/run_over_sheet.gd (interface spec §6.3)
 extends GutTest
@@ -38,9 +39,10 @@ func _label(sheet: Node, name: String) -> Label:
 	return label
 
 
-func _assert_fits(size: Vector2, scale: float) -> void:
+func _assert_fits(size: Vector2, scale: float, is_offering_ad: bool = false) -> void:
 	var sheet: RunOverSheet = _sheet(size, scale)
 	sheet.show_result(_result())
+	sheet.set_reward_offer(is_offering_ad, false)
 	sheet.finish_count_up()
 	await get_tree().process_frame
 	await get_tree().process_frame
@@ -99,6 +101,38 @@ func test_layout_fits_the_board_frame() -> void:
 
 func test_layout_fits_the_a55() -> void:
 	await _assert_fits(Vector2(2340, 1080), 1080.0 / 390.0)
+
+
+func test_layout_fits_the_board_frame_with_the_ad_offer() -> void:
+	await _assert_fits(Vector2(844, 390), 1.0, true)  # ADS R6
+
+
+func test_layout_fits_the_a55_with_the_ad_offer() -> void:
+	await _assert_fits(Vector2(2340, 1080), 1080.0 / 390.0, true)  # ADS R6
+
+
+func test_the_ad_offer_is_hidden_until_offered_and_asks_for_the_ad() -> void:
+	var sheet: RunOverSheet = _sheet(Vector2(844, 390), 1.0)
+	var offer: Button = sheet.find_child("WatchAdButton", true, false) as Button
+	assert_false(offer.visible, "hidden until GameRoot offers it")
+	sheet.set_reward_offer(true, false)
+	assert_true(offer.visible)
+	assert_eq(offer.text, "Watch ad · 3× points")
+	watch_signals(sheet)
+	offer.pressed.emit()
+	assert_signal_emitted(sheet, "reward_requested")
+	sheet.set_reward_offer(true, true)
+	assert_true(offer.disabled, "greyed while its ad is on its way")
+
+
+func test_a_bonus_counts_up_from_the_shown_figure() -> void:
+	var sheet: RunOverSheet = _sheet(Vector2(844, 390), 1.0)
+	sheet.show_result(_result())
+	sheet.finish_count_up()
+	sheet.show_bonus(9993)
+	assert_eq(_label(sheet, "PointsEarnedLabel").text, "+3,331", "starts from the old figure")
+	sheet.finish_count_up()
+	assert_eq(_label(sheet, "PointsEarnedLabel").text, "+9,993")
 
 
 ## Found 2026-10-12: 11+ digits widened the sheet and pushed Retry/Menu/Armory off it.

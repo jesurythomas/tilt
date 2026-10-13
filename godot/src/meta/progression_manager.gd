@@ -249,6 +249,18 @@ func add_points_credited(amount: int) -> int:
 	return credited
 
 
+## DIVERGENCE(ADS R6): credits `amount` as is, without the Points Multiplier: for a bonus
+## computed from points that were already multiplied (the Run over's 3× ad reward).
+func add_points_bonus(amount: int) -> int:
+	if amount <= 0:
+		return 0
+	data.points += amount
+	data.lifetime_points += amount
+	save()
+	GameEvents.points_changed.emit(data.points)
+	return amount
+
+
 ## DIVERGENCE(ECON R1): the points a finished run banks (before the Points Multiplier,
 ## which add_points_credited applies).
 static func run_payout(seconds_alive: float, kills: int, mode_multiplier: float) -> int:

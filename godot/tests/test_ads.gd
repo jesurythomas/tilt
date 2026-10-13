@@ -331,3 +331,106 @@ func test_config_uses_a_set_id_and_falls_back_to_googles_test_id() -> void:
 func test_off_android_the_autoload_runs_on_the_null_backend() -> void:
 	assert_false(Engine.has_singleton(AndroidAdsBackend.SINGLETON))
 	assert_false(_previous is AndroidAdsBackend)
+
+
+## Consent granted and one rewarded ad loaded.
+func _ready_with_reward() -> void:
+	Ads.start()
+	_rec.consent_finished.emit(true, false)
+	_rec.rewarded_loaded.emit()
+
+
+func test_consent_loads_a_rewarded_ad_too() -> void:
+	Ads.start()
+	_rec.consent_finished.emit(true, false)
+	assert_eq(_rec.count("reward_load " + AdsConfig.rewarded_id()), 1)
+	assert_false(Ads.is_reward_ready(), "not before it loads")
+	_rec.rewarded_loaded.emit()
+	assert_true(Ads.is_reward_ready())
+
+
+func test_a_rewarded_ad_rewards_once_then_runs_on_done() -> void:
+	_ready_with_reward()
+	Ads.show_rewarded(_count_other_action, _count_action)
+	assert_eq(_rec.count("reward_show"), 1)
+	assert_true(AudioServer.is_bus_mute(0), "the game is silent under the ad")
+	assert_false(Ads.is_reward_ready(), "used")
+	_rec.rewarded_opened.emit()
+	_rec.rewarded_earned.emit()
+	_rec.rewarded_earned.emit()
+	assert_eq(_other_actions, 1, "the reward, once")
+	assert_eq(_actions, 0, "on_done waits for the close")
+	_rec.rewarded_closed.emit()
+	assert_eq(_actions, 1)
+	assert_false(AudioServer.is_bus_mute(0), "sound is back")
+	assert_eq(_rec.count("reward_load"), 2, "the next rewarded ad loads")
+
+
+func test_a_rewarded_ad_closed_early_gives_nothing() -> void:
+	_ready_with_reward()
+	Ads.show_rewarded(_count_other_action, _count_action)
+	_rec.rewarded_opened.emit()
+	_rec.rewarded_closed.emit()
+	assert_eq(_other_actions, 0)
+	assert_eq(_actions, 1)
+
+
+func test_a_rewarded_ad_that_fails_to_show_gives_nothing() -> void:
+	_ready_with_reward()
+	Ads.show_rewarded(_count_other_action, _count_action)
+	_rec.rewarded_failed_to_show.emit()
+	_rec.rewarded_earned.emit()
+	assert_eq(_other_actions, 0)
+	assert_eq(_actions, 1)
+	assert_false(AudioServer.is_bus_mute(0))
+
+
+func test_a_rewarded_ad_not_ready_runs_on_done_at_once() -> void:
+	Ads.start()
+	_rec.consent_finished.emit(true, false)
+	Ads.show_rewarded(_count_other_action, _count_action)
+	assert_eq(_actions, 1)
+	assert_eq(_rec.count("reward_show"), 0)
+
+
+func test_a_rewarded_ad_counts_as_the_ad_for_the_pacing() -> void:
+	_ready_with_reward()
+	_rec.interstitial_loaded.emit()
+	_make_due()
+	Ads.show_rewarded(_count_other_action, _count_action)
+	_rec.rewarded_opened.emit()
+	_rec.rewarded_closed.emit()
+	assert_eq(Ads.pacing.games_since_ad, 0)
+	Ads.ad_break(_count_action)
+	assert_eq(_rec.count("show"), 0, "no interstitial right after it")
+	assert_eq(_actions, 2)
+
+
+func test_a_late_rewarded_ad_still_rewards_after_the_watchdog() -> void:
+	_ready_with_reward()
+	Engine.time_scale = 20.0
+	Ads.show_rewarded(_count_other_action, _count_action)
+	await get_tree().create_timer(Ads.OPEN_TIMEOUT_SECONDS + 0.5).timeout
+	Engine.time_scale = 1.0
+	assert_eq(_actions, 1, "the watchdog let the game go on")
+	_rec.rewarded_opened.emit()
+	_rec.rewarded_earned.emit()
+	_rec.rewarded_closed.emit()
+	assert_eq(_other_actions, 1, "a reward the player earned is still given")
+	assert_eq(_actions, 1, "on_done ran once")
+
+
+func test_a_break_while_a_rewarded_ad_opens_is_dropped() -> void:
+	_ready_with_reward()
+	_rec.interstitial_loaded.emit()
+	_make_due()
+	Ads.show_rewarded(_count_other_action, _count_action)
+	Ads.ad_break(_count_action)
+	assert_eq(_rec.count("show"), 0)
+	assert_eq(_actions, 0)
+
+
+func test_rewarded_changed_tells_the_run_over() -> void:
+	watch_signals(Ads)
+	_ready_with_reward()
+	assert_signal_emitted(Ads, "rewarded_changed")

@@ -1,5 +1,5 @@
 ## android_ads_backend.gd
-## PORTS: nothing — new file (ruling ADS R1, docs/superpowers/plans/2026-10-13-in-game-ads.md)
+## PORTS: nothing — new file (rulings ADS R1, R6, docs/superpowers/plans/2026-10-13-in-game-ads.md)
 class_name AndroidAdsBackend
 extends AdsBackend
 ## The PerilAds Android plugin (android/peril-ads/…/PerilAdsPlugin.java) behind AdsBackend.
@@ -19,6 +19,12 @@ func _init(plugin: Object) -> void:
 	_plugin.connect("interstitial_opened", interstitial_opened.emit)
 	_plugin.connect("interstitial_closed", interstitial_closed.emit)
 	_plugin.connect("interstitial_failed_to_show", _on_interstitial_failed_to_show)
+	_plugin.connect("rewarded_loaded", rewarded_loaded.emit)
+	_plugin.connect("rewarded_failed_to_load", _on_rewarded_failed_to_load)
+	_plugin.connect("rewarded_opened", rewarded_opened.emit)
+	_plugin.connect("rewarded_earned", rewarded_earned.emit)
+	_plugin.connect("rewarded_closed", rewarded_closed.emit)
+	_plugin.connect("rewarded_failed_to_show", _on_rewarded_failed_to_show)
 
 
 # PORT-NOTE: the plugin is a JNI singleton with no script class, so its Java methods are
@@ -33,6 +39,14 @@ func load_interstitial(ad_unit_id: String) -> void:
 
 func show_interstitial() -> void:
 	_plugin.call("showInterstitial")
+
+
+func load_rewarded(ad_unit_id: String) -> void:
+	_plugin.call("loadRewarded", ad_unit_id)
+
+
+func show_rewarded() -> void:
+	_plugin.call("showRewarded")
 
 
 func show_privacy_options() -> void:
@@ -57,3 +71,13 @@ func _on_interstitial_failed_to_load(code: int, message: String) -> void:
 func _on_interstitial_failed_to_show(code: int, message: String) -> void:
 	Log.info("ads: interstitial failed to show (%d %s)" % [code, message])
 	interstitial_failed_to_show.emit()
+
+
+func _on_rewarded_failed_to_load(code: int, message: String) -> void:
+	Log.info("ads: rewarded failed to load (%d %s)" % [code, message])
+	rewarded_failed_to_load.emit()
+
+
+func _on_rewarded_failed_to_show(code: int, message: String) -> void:
+	Log.info("ads: rewarded failed to show (%d %s)" % [code, message])
+	rewarded_failed_to_show.emit()

@@ -11,6 +11,8 @@ extends Control
 
 ## Tapping the points row or the milestones list. PORT: web/src/tilt-to-live/GoalsHUD.ts:129-135
 signal milestones_requested
+## DIVERGENCE(ADS R6): "Watch ad · 3× points" was tapped.
+signal reward_requested
 
 const CONTROL_PICKER: PackedScene = preload("res://scenes/control_picker.tscn")
 
@@ -46,6 +48,8 @@ const ROW_POINTS_SIZE: int = 12
 ## DIVERGENCE(RUNOVER R1): the earned figure is the hero (score size, flare) and counts
 ## up from 0 over this long; a tap on the sheet skips to the total.
 const COUNT_UP_SECONDS: float = 0.6
+## DIVERGENCE(ADS R6): the rewarded ad's offer, under the figure it multiplies.
+const REWARD_TEXT: String = "Watch ad · 3× points"
 
 var _ui_scale: float = 1.0
 var _points_row: HBoxContainer = null
@@ -75,6 +79,7 @@ var _kills: Label = null
 var _chain: Label = null
 var _time: Label = null
 var _earned: Label = null
+var _reward: Button = null
 var _steer_row: HBoxContainer = null
 var _steer_caption: Label = null
 var _picker: ControlPicker = null
@@ -128,6 +133,8 @@ func set_ui_scale(scale: float) -> void:
 	_steer_row.add_theme_constant_override("separation", UiTheme.px(STEER_GAP, scale))
 	_steer_caption.custom_minimum_size.x = STEER_LABEL_WIDTH * scale
 	_retry.custom_minimum_size.y = UiTheme.HERO_TARGET * scale
+	_reward.custom_minimum_size.y = UiTheme.TOUCH_TARGET * scale
+	_reward.icon = UiTheme.svg_texture(UiTheme.ICON_PLAY, scale)
 	_bottom.add_theme_constant_override("separation", UiTheme.px(BOTTOM_GAP, scale))
 	for button: Button in [_menu, _spend]:
 		UiTheme.scale_nav_button(button, scale)
@@ -176,6 +183,18 @@ func _fit_score() -> void:
 	_score.add_theme_font_size_override("font_size", fit)
 
 
+## DIVERGENCE(ADS R6): shows the "Watch ad · 3× points" offer when `is_offered`; `is_waiting`
+## greys it out while its ad is on its way.
+func set_reward_offer(is_offered: bool, is_waiting: bool) -> void:
+	_reward.visible = is_offered
+	_reward.disabled = is_waiting
+
+
+## DIVERGENCE(ADS R6): the earned figure counts up from where it stands to `earned`.
+func show_bonus(earned: int) -> void:
+	_start_count_up(earned, _earned_target)
+
+
 ## "+1,274" — the earned figure as shown.
 static func earned_text(points: int) -> String:
 	return "+%s" % UiTheme.group_digits(points)
@@ -189,17 +208,17 @@ func finish_count_up() -> void:
 	_earned.text = earned_text(_earned_target)
 
 
-func _start_count_up(target: int) -> void:
+func _start_count_up(target: int, from: int = 0) -> void:
 	_earned_target = target
 	if _count_tween != null:
 		_count_tween.kill()
-	_earned.text = earned_text(0)
+	_earned.text = earned_text(from)
 	_count_tween = create_tween()
 	(
 		_count_tween
 		. tween_method(
 			func(v: float) -> void: _earned.text = earned_text(roundi(v)),
-			0.0,
+			float(from),
 			float(target),
 			COUNT_UP_SECONDS
 		)
@@ -327,6 +346,15 @@ func _build_right() -> VBoxContainer:
 	_points_row.mouse_filter = Control.MOUSE_FILTER_STOP
 	_points_row.gui_input.connect(_on_rows_gui_input)
 	_right.add_child(_points_row)
+	# DIVERGENCE(ADS R6, user 2026-10-14: "during game over screen, have a watch ads button for
+	# 3x the coins"): under the figure it triples, hidden until GameRoot offers a rewarded ad.
+	_reward = Button.new()
+	_reward.name = "WatchAdButton"
+	_reward.theme_type_variation = "EquipButton"
+	_reward.text = REWARD_TEXT
+	_reward.visible = false
+	_reward.pressed.connect(reward_requested.emit)
+	_right.add_child(_reward)
 	# DIVERGENCE(RUNOVER R1): the TS coins row (TiltGame.ts:1217-1220) and the "+0" hint
 	# went (user: "no need to know how many coins").
 

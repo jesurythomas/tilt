@@ -1,6 +1,6 @@
 // PerilAdsPlugin.java
-// The game's AdMob plugin (ruling ADS R1, docs/superpowers/plans/2026-10-13-in-game-ads.md):
-// UMP consent, one interstitial, and the privacy options form. GDScript reaches it as the
+// The game's AdMob plugin (rulings ADS R1, R6, docs/superpowers/plans/2026-10-13-in-game-ads.md):
+// UMP consent, one interstitial, one rewarded ad, and the privacy options form. GDScript reaches it as the
 // "PerilAds" singleton, only through godot/src/core/android_ads_backend.gd.
 //
 // Threads: Godot calls the @UsedByGodot methods on its render thread; every SDK call and every
@@ -19,6 +19,8 @@ import com.google.android.gms.ads.MobileAds;
 import com.google.android.gms.ads.RequestConfiguration;
 import com.google.android.gms.ads.interstitial.InterstitialAd;
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
+import com.google.android.gms.ads.rewarded.RewardedAd;
+import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback;
 import com.google.android.ump.ConsentDebugSettings;
 import com.google.android.ump.ConsentInformation;
 import com.google.android.ump.ConsentRequestParameters;
@@ -37,7 +39,7 @@ import java.util.Set;
 public class PerilAdsPlugin extends GodotPlugin {
 	private static final String TAG = "PerilAds";
 
-	/** Google: a loaded interstitial expires after an hour; drop it a little before. */
+	/** Google: a loaded full-screen ad expires after an hour; drop it a little before. */
 	private static final long AD_MAX_AGE_MS = 55L * 60L * 1000L;
 
 	private static final SignalInfo CONSENT_FINISHED =
@@ -49,12 +51,23 @@ public class PerilAdsPlugin extends GodotPlugin {
 	private static final SignalInfo INTERSTITIAL_CLOSED = new SignalInfo("interstitial_closed");
 	private static final SignalInfo INTERSTITIAL_FAILED_TO_SHOW =
 			new SignalInfo("interstitial_failed_to_show", Integer.class, String.class);
+	private static final SignalInfo REWARDED_LOADED = new SignalInfo("rewarded_loaded");
+	private static final SignalInfo REWARDED_FAILED_TO_LOAD =
+			new SignalInfo("rewarded_failed_to_load", Integer.class, String.class);
+	private static final SignalInfo REWARDED_OPENED = new SignalInfo("rewarded_opened");
+	private static final SignalInfo REWARDED_EARNED = new SignalInfo("rewarded_earned");
+	private static final SignalInfo REWARDED_CLOSED = new SignalInfo("rewarded_closed");
+	private static final SignalInfo REWARDED_FAILED_TO_SHOW =
+			new SignalInfo("rewarded_failed_to_show", Integer.class, String.class);
 
 	private ConsentInformation consentInformation;
 	private boolean isMobileAdsStarted;
 	private InterstitialAd interstitial;
 	private long interstitialLoadedAt;
 	private boolean isLoading;
+	private RewardedAd rewarded;
+	private long rewardedLoadedAt;
+	private boolean isRewardedLoading;
 	private String testDeviceHashedId = "";
 
 	public PerilAdsPlugin(Godot godot) {
@@ -75,6 +88,12 @@ public class PerilAdsPlugin extends GodotPlugin {
 		signals.add(INTERSTITIAL_OPENED);
 		signals.add(INTERSTITIAL_CLOSED);
 		signals.add(INTERSTITIAL_FAILED_TO_SHOW);
+		signals.add(REWARDED_LOADED);
+		signals.add(REWARDED_FAILED_TO_LOAD);
+		signals.add(REWARDED_OPENED);
+		signals.add(REWARDED_EARNED);
+		signals.add(REWARDED_CLOSED);
+		signals.add(REWARDED_FAILED_TO_SHOW);
 		return signals;
 	}
 
@@ -140,7 +159,7 @@ public class PerilAdsPlugin extends GodotPlugin {
 			if (isLoading) {
 				return;
 			}
-			if (interstitial != null && !isStale()) {
+			if (interstitial != null && !isStale(interstitialLoadedAt)) {
 				emitSignal(INTERSTITIAL_LOADED.getName());
 				return;
 			}
@@ -181,7 +200,7 @@ public class PerilAdsPlugin extends GodotPlugin {
 		}
 		activity.runOnUiThread(() -> {
 			InterstitialAd ad = interstitial;
-			boolean isUsable = ad != null && !isStale();
+			boolean isUsable = ad != null && !isStale(interstitialLoadedAt);
 			interstitial = null;
 			if (!isUsable) {
 				emitSignal(INTERSTITIAL_FAILED_TO_SHOW.getName(), -1,
@@ -210,6 +229,90 @@ public class PerilAdsPlugin extends GodotPlugin {
 		});
 	}
 
+	/** Loads one rewarded ad unless one is loading or a fresh one is already held. */
+	@UsedByGodot
+	public void loadRewarded(String adUnitId) {
+		final Activity activity = getActivity();
+		if (activity == null) {
+			return;
+		}
+		activity.runOnUiThread(() -> {
+			if (isRewardedLoading) {
+				return;
+			}
+			if (rewarded != null && !isStale(rewardedLoadedAt)) {
+				emitSignal(REWARDED_LOADED.getName());
+				return;
+			}
+			rewarded = null;
+			isRewardedLoading = true;
+			RewardedAd.load(activity, adUnitId, new AdRequest.Builder().build(),
+					new RewardedAdLoadCallback() {
+						@Override
+						public void onAdLoaded(RewardedAd ad) {
+							isRewardedLoading = false;
+							rewarded = ad;
+							rewardedLoadedAt = SystemClock.elapsedRealtime();
+							emitSignal(REWARDED_LOADED.getName());
+						}
+
+						@Override
+						public void onAdFailedToLoad(LoadAdError error) {
+							isRewardedLoading = false;
+							rewarded = null;
+							Log.w(TAG, "rewarded failed to load: " + error);
+							emitSignal(REWARDED_FAILED_TO_LOAD.getName(), error.getCode(),
+									error.getMessage());
+						}
+					});
+		});
+	}
+
+	/**
+	 * Shows the held rewarded ad. Emits rewarded_opened, rewarded_earned when the player earns
+	 * the reward (Google sends it before the close), then rewarded_closed; or
+	 * rewarded_failed_to_show (also when none is held or it went stale).
+	 */
+	@UsedByGodot
+	public void showRewarded() {
+		final Activity activity = getActivity();
+		if (activity == null) {
+			emitSignal(REWARDED_FAILED_TO_SHOW.getName(), -1, "no activity");
+			return;
+		}
+		activity.runOnUiThread(() -> {
+			RewardedAd ad = rewarded;
+			boolean isUsable = ad != null && !isStale(rewardedLoadedAt);
+			rewarded = null;
+			if (!isUsable) {
+				emitSignal(REWARDED_FAILED_TO_SHOW.getName(), -1,
+						ad == null ? "no ad loaded" : "ad expired");
+				return;
+			}
+			ad.setFullScreenContentCallback(new FullScreenContentCallback() {
+				@Override
+				public void onAdShowedFullScreenContent() {
+					emitSignal(REWARDED_OPENED.getName());
+				}
+
+				@Override
+				public void onAdDismissedFullScreenContent() {
+					emitSignal(REWARDED_CLOSED.getName());
+				}
+
+				@Override
+				public void onAdFailedToShowFullScreenContent(AdError error) {
+					Log.w(TAG, "rewarded failed to show: " + error);
+					emitSignal(REWARDED_FAILED_TO_SHOW.getName(), error.getCode(),
+							error.getMessage());
+				}
+			});
+			// The game grants its own reward (3x the run's coins), so the item's amount and type,
+			// set on the AdMob unit, are not passed on.
+			ad.show(activity, rewardItem -> emitSignal(REWARDED_EARNED.getName()));
+		});
+	}
+
 	private void finishConsent(Activity activity, String error) {
 		boolean canRequestAds = consentInformation.canRequestAds();
 		boolean isPrivacyRequired = consentInformation.getPrivacyOptionsRequirementStatus()
@@ -233,8 +336,8 @@ public class PerilAdsPlugin extends GodotPlugin {
 				CONSENT_FINISHED.getName(), true, isPrivacyRequired, error))).start();
 	}
 
-	private boolean isStale() {
-		return SystemClock.elapsedRealtime() - interstitialLoadedAt > AD_MAX_AGE_MS;
+	private static boolean isStale(long loadedAt) {
+		return SystemClock.elapsedRealtime() - loadedAt > AD_MAX_AGE_MS;
 	}
 
 	private static String describe(FormError error) {

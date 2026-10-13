@@ -153,6 +153,7 @@ func _ready() -> void:
 	_run_over = _game_over_panel as RunOverSheet
 	if _run_over != null:
 		_run_over.milestones_requested.connect(_on_milestones_requested)
+		_run_over.reward_requested.connect(_on_reward_requested)  # DIVERGENCE(ADS R6)
 	if _restart_button == null:
 		_restart_button = find_child("RestartButton", true, false) as Button
 
@@ -675,6 +676,10 @@ func _on_first_pickup(_type: Types.WeaponType) -> void:
 
 
 func _on_restart_pressed() -> void:
+	# DIVERGENCE(ADS R6): an ad on its way (the rewarded one, or this Retry's own) holds the
+	# sheet; hiding it now would leave a blank Run over when the break drops the tap.
+	if Ads.is_break_pending():
+		return
 	_run_over_timer.stop()
 	if _game_over_panel != null:
 		_game_over_panel.visible = false
@@ -724,6 +729,24 @@ func _on_pause_pressed() -> void:
 
 
 ## PORT: web/src/tilt-to-live/TiltGame.ts:1436-1438, :1457-1459
+## DIVERGENCE(ADS R6): GameRoot's word on the Run over's "Watch ad · 3× points".
+func set_reward_offer(is_offered: bool, is_waiting: bool) -> void:
+	if _run_over != null:
+		_run_over.set_reward_offer(is_offered, is_waiting)
+
+
+## DIVERGENCE(ADS R6): the Run over's earned figure, after the rewarded ad multiplied it.
+func show_reward_bonus(earned: int) -> void:
+	if _run_over != null:
+		_run_over.show_bonus(earned)
+
+
+func _on_reward_requested() -> void:
+	var root: GameRoot = get_tree().get_first_node_in_group("game_root") as GameRoot
+	if root != null:
+		root.watch_reward_ad()
+
+
 func _on_armory_pressed() -> void:
 	var root: GameRoot = get_tree().get_first_node_in_group("game_root") as GameRoot
 	if root == null:

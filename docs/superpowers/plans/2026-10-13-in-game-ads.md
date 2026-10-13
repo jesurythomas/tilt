@@ -94,7 +94,7 @@ ruling is its own roadmap item (Play Billing) and is not built here.
 ## Ruling ADS R4 — scope
 
 - Not built: the Remove ads purchase (next roadmap item; it will switch the break off), banners,
-  rewarded ads (MVP R3 is unapproved), mediation, iOS, Telemetry ad events (AdMob reports
+  rewarded ads (MVP R3 is unapproved; the user asked for one on the Run over, ADS R6), mediation, iOS, Telemetry ad events (AdMob reports
   impressions; the analytics spec §7 keeps ad revenue out).
 - The facade follows Telemetry's shape: `Ads` autoload (`src/core/ads.gd`), a null
   `AdsBackend` for desktop, headless and tests, and `AndroidAdsBackend`, the only file that
@@ -115,6 +115,28 @@ playing a mode". Replaces R2's 3 runs and 180 wall-clock seconds; the rest of R2
 - **Saved across launches** (my call): `user://peril_point_ads.json` holds the two counts and the
   drawn gap (`Ads.SAVE_PATH`, written through `SaveStore` at each run end and each opened ad).
   Without it, players whose sessions are 3-4 games would never see an ad.
+
+## Ruling ADS R6 — "Watch ad · 3× points" on the Run over (user, 2026-10-14)
+
+User: "during game over screen, have a watch ads button for 3x the coins". The game's currency is
+points ("Points earned"), so the button says points.
+- **The offer:** a `WatchAdButton` ("Watch ad · 3× points", play glyph, Armory's Equip style)
+  under the Run over's Points earned row. Shown while a rewarded ad is loaded, consent allows
+  ads, and the run credited points it has not yet multiplied (`RunController.can_claim_reward`).
+  Greyed while its ad is on its way; gone once claimed; back when a new ad loads if the player
+  closed the last one early. Any run counts, the first one too (it is opt-in).
+- **The reward:** the run's points become `GameRoot.AD_REWARD_MULTIPLIER` = 3 times what it
+  credited (`points_credited_this_run`: payout, coins, milestones), once a run. The extra 2× is
+  credited through `ProgressionManager.add_points_bonus`, which skips the Points Multiplier (the
+  run's points already carry it). The earned figure counts up from the old total.
+- **The ad:** Google's rewarded format (`PerilAds.loadRewarded`/`showRewarded`; test unit
+  `ca-app-pub-3940256099942544/5224354917`; real one in `peril/ads/android_rewarded_id`).
+  Preloaded with the interstitial after consent, after each ad and at each run end. Same mute,
+  4 s watchdog and one-ad-at-a-time rule as the break. The reward is granted on Google's
+  `onUserEarnedReward` (sent before the close), even if the watchdog had already let the game go
+  on. A rewarded view resets the interstitial pacing, so Retry right after it shows none.
+- **Retry while an ad is on its way** is ignored (HudController), so the sheet never hides
+  under a dropped tap.
 
 ## Tasks
 
@@ -162,7 +184,9 @@ playing a mode". Replaces R2's 3 runs and 180 wall-clock seconds; the rest of R2
       AdMob and Play Console steps), the roadmap's Week 2 ticks, `tools/README.md`.
 - [x] 10. ADS R5: `AdPacing` by games or play time, saved; `Ads.clock` removed (no wall
       clock left). *(Done 2026-10-14: 70/70 scripts, nothing leaked; gdformat, gdlint clean.)*
-- [ ] 11. Rewarded ad on the Run over: "Watch ad · 3× coins" (user, 2026-10-14). Ruling ADS R6.
+- [x] 11. Rewarded ad on the Run over: "Watch ad · 3× points" (user, 2026-10-14). Ruling ADS R6.
+      *(Done 2026-10-14: plugin AARs rebuilt; 70/70 scripts, nothing leaked; gdformat, gdlint
+      clean. Device check pending, VERIFY-ME §ADS Part A.)*
 - [ ] 12. Raise prices of weapon upgrades, ships, arenas and boosts (user, 2026-10-14). Ruling
       ADS R7.
 - [ ] 9. The user's A55 pass (§ADS Part A) and AdMob setup (Part B); merge. *(User: "rebuild

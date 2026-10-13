@@ -4,7 +4,8 @@ class_name RecordingAdsBackend
 extends AdsBackend
 ## A backend that keeps every call, so specs can assert them and answer with its signals.
 
-## Calls in order: "consent <id> <geography>", "load <unit>", "show", "privacy".
+## Calls in order: "consent <id> <geography>", "load <unit>", "show", "reward_load <unit>",
+## "reward_show", "privacy".
 var calls: Array[String] = []
 
 
@@ -18,6 +19,14 @@ func load_interstitial(ad_unit_id: String) -> void:
 
 func show_interstitial() -> void:
 	calls.append("show")
+
+
+func load_rewarded(ad_unit_id: String) -> void:
+	calls.append("reward_load " + ad_unit_id)
+
+
+func show_rewarded() -> void:
+	calls.append("reward_show")
 
 
 func show_privacy_options() -> void:
