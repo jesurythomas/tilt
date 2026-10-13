@@ -123,6 +123,14 @@ Baseline before any change (desktop, `bench/bench_sim.gd` headless, 3 runs): a f
   anchored stick.
 - Redraws only when what it shows changes (the ring's fraction in 1/48 steps, the seconds).
 
+## Ruling HUD R3 — no panels behind the bar (user 2026-10-14: "having the background on abilities/items seem bad")
+
+- The item buttons draw no panel in any state (empty styleboxes); the orb is the button, now 42
+  of its 48-unit touch target. The dash gauge loses its dark disc: the track ring (line-strong)
+  and the fill sit on the playfield; the cooldown seconds take the HUD's void outline
+  (`UiTheme.OVER_PLAY_OUTLINE`) so dots behind them do not show through. `dash.ogv` re-recorded
+  to match.
+
 ## Ruling HTP R3 — the guide
 
 - A fourth page, **Dash and items**, before The Armory: a Dash card and an Items card with the
@@ -167,5 +175,7 @@ Baseline before any change (desktop, `bench/bench_sim.gd` headless, 3 runs): a f
 
 ## Status
 
+- HUD R3 done (after the first A55 build): panels gone from the item buttons and the gauge;
+  0.1.21 (code 22) built.
 - All 7 tasks done (2026-10-14). Next: the user's A55 pass (VERIFY-ME §DASH / ITEM / HUD /
   HTP R3), then a PR from `feat/dash-and-abilities` to `staging`.

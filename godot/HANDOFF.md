@@ -4,7 +4,13 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**Latest (2026-10-14): dash, items (active abilities), and the play-screen rework, on branch
+**Latest (2026-10-14, later): HUD R3.** User: "having the background on abilities/items seem
+bad". The item buttons have no panel (empty styleboxes; the orb is 42 of the 48-unit target) and
+the dash gauge has no disc (track ring + fill on the playfield; the seconds carry the HUD's void
+outline). `dash.ogv` re-recorded. 0.1.21 (code 22, `godot/build/peril-point-0.1.21-a55.apk`, A55
+key) is built but NOT installed: the game was in the foreground on the A55 (someone playing), so it waits for the user (`adb -s RRCXB04L8EJ install -r godot/build/peril-point-0.1.21-a55.apk`, data kept); the A55 has 0.1.20. Next A55 build uses code 23. Everything below still holds.
+
+**Earlier (2026-10-14): dash, items (active abilities), and the play-screen rework, on branch
 `feat/dash-and-abilities` (from `feat/in-game-ads` at `31040da`, which holds `staging`), not
 merged.** User: "1. Dash ... 2. Active abilities ... 3. ... hard to see the middle upper center
 due to the score and multiplier. 4. ... show the Dash cooldown and clickable items. 5. Update the
@@ -37,7 +43,7 @@ MVP R3 (clickable power-ups) is marked superseded in the roadmap. Review shots:
 0 SCRIPT ERROR headless. Perf: desktop full run tick 68-69 µs vs 70-73 before; the bar's
 per-frame update 1.3 µs. **0.1.20 (code 21, `godot/build/peril-point-0.1.20-a55.apk`, A55 key)
 is on the A55** (installed 01:42, data kept); someone was playing it at once and dashed twice;
-frame time mean 16.66 ms, p95 25.0 (same as 0.1.18). Next A55 build uses code 22. Seen, not
+frame time mean 16.66 ms, p95 25.0 (same as 0.1.18). Seen, not
 fixed: the Armory weapon list clips "Blackhole" beside a two-digit rank ("9/15"). Next: the
 user's A55 pass (`VERIFY-ME.md` §DASH / ITEM / HUD / HTP R3, and §ADS still open), then PR
 `feat/dash-and-abilities` → `staging`.

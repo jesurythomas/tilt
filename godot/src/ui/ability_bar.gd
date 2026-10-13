@@ -8,26 +8,28 @@ extends HBoxContainer
 ## The gauge is display only (a tap on it passes through and counts toward a double tap). It
 ## refills over the cooldown, drains in the shield's green while the dash shield is up, shows
 ## the seconds left while cooling, and lights up when the dash is ready. Each item button shows
-## its power-up's orb, fires it once, and dims once used. HudController feeds show_abilities()
+## its power-up's orb, fires it once, and dims once used. DIVERGENCE(HUD R3, user 2026-10-14:
+## "having the background on abilities/items seem bad"): neither has a panel behind it; the
+## orbs and the ring sit on the playfield. HudController feeds show_abilities()
 ## every frame; nothing redraws unless what it shows changed.
 
 ## An item button was pressed; `slot` is its loadout slot.
 signal item_pressed(slot: int)
 
 ## DIVERGENCE(HUD R2): sizes in UI px at 1x — the gauge, the item buttons (a touch target), the
-## gap, the gauge's ring, the item orb and the gauge glyph; the seconds' font size.
+## gap, the gauge's ring, the item orb and the gauge glyph; the seconds' font size. HUD R3: with
+## no panel behind it, the orb fills most of its touch target.
 const GAUGE_SIZE: int = 44
 const ITEM_SIZE: int = 48
 const GAP: int = 10
 const RING_WIDTH: float = 3.0
-const ORB_SIZE: int = 34
+const ORB_SIZE: int = 42
 const GLYPH_SIZE: int = 20
 const SECONDS_SIZE: int = 14
 ## DIVERGENCE(HUD R2): the ring's fill is redrawn in this many steps (a 20 s cooldown: ~0.4 s).
 const FRACTION_STEPS: int = 48
-## DIVERGENCE(HUD R2): a used item's opacity, and the gauge disc's.
+## DIVERGENCE(HUD R2): a used item's opacity.
 const USED_ALPHA: float = 0.3
-const DISC_ALPHA: float = 0.85
 ## DIVERGENCE(HUD R2): ready is the HUD's top tier cyan, the shield the power-up shield's green.
 const COLOR_READY: Color = Color("#3dfff0")
 const COLOR_SHIELD: Color = UiTheme.COLOR_LOCKED_IN
@@ -113,8 +115,10 @@ func _rebuild_buttons(types: Array[Types.WeaponType]) -> void:
 	for slot: int in range(types.size()):
 		var button: Button = Button.new()
 		button.name = "ItemButton_%d" % slot
-		button.theme_type_variation = "IconButton"
 		button.focus_mode = Control.FOCUS_NONE
+		# DIVERGENCE(HUD R3): no panel, in any state; the orb is the button.
+		for state: String in ["normal", "hover", "pressed", "hover_pressed", "disabled", "focus"]:
+			button.add_theme_stylebox_override(state, StyleBoxEmpty.new())
 		button.custom_minimum_size = Vector2(side, side)
 		button.icon = WeaponIcons.orb_texture(types[slot], UiTheme.px(ORB_SIZE, _ui_scale))
 		button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -152,8 +156,8 @@ class DashGauge:
 		var centre: Vector2 = size * 0.5
 		var ring_width: float = RING_WIDTH * ui_scale
 		var radius: float = minf(size.x, size.y) * 0.5 - ring_width * 0.5
-		draw_circle(centre, radius, UiTheme.tint(UiTheme.COLOR_PANEL, DISC_ALPHA))
-		draw_arc(centre, radius, 0.0, TAU, 48, UiTheme.COLOR_LINE, ring_width, true)
+		# DIVERGENCE(HUD R3): no disc behind the ring; the track alone marks the gauge.
+		draw_arc(centre, radius, 0.0, TAU, 48, UiTheme.COLOR_LINE_STRONG, ring_width, true)
 		var color: Color = COLOR_READY
 		if state == AbilitySystem.DashState.SHIELD:
 			color = COLOR_SHIELD
@@ -172,6 +176,18 @@ class DashGauge:
 			)
 			var baseline: Vector2 = Vector2(
 				centre.x - text_size.x * 0.5, centre.y + font.get_ascent(font_size) * 0.5 - 1.0
+			)
+			# HUD R3: over the playfield, the seconds take the HUD's void outline
+			# (UiTheme.legible_over_play) so dots behind them do not show through.
+			draw_string_outline(
+				font,
+				baseline,
+				text,
+				HORIZONTAL_ALIGNMENT_LEFT,
+				-1,
+				font_size,
+				UiTheme.OVER_PLAY_OUTLINE,
+				UiTheme.COLOR_VOID
 			)
 			draw_string(
 				font,
