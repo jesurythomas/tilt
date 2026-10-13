@@ -276,14 +276,22 @@ func test_selecting_a_weapon_rerenders_its_detail() -> void:
 	assert_eq(_armory.selected_weapon_id, "laser")
 	assert_not_null(_armory.find_child("Track_length", true, false))
 	assert_not_null(_armory.find_child("Keystone_crossBeam", true, false))
-	assert_eq(_label("InvestedValue").text, "650", "laser.length = 2 → 250 + 400 (ECON R2)")
+	assert_eq(
+		_label("InvestedValue").text,
+		UiTheme.group_digits((250 + 400) * ProgressionManager.PRICE_SCALE),
+		"laser.length = 2 → 250 + 400 (ECON R2), times PRICE_SCALE (ADS R7)"
+	)
 
 
 func test_track_readout_shows_current_and_next_value() -> void:
 	_open_weapons("blackhole")
 	# PORT: web/src/tilt-to-live/ArmoryUI.ts:459-472 — duration rank 3: 4.8 + 0.5*3 → 6.3s → 6.8s
 	assert_eq(_value_text("TrackValue_duration"), "6.3s → 6.8s")
-	assert_eq(_button("Track_duration").text, "1,000", "rank 3 costs PERK_COSTS[3] (ECON R2)")
+	assert_eq(
+		_button("Track_duration").text,
+		UiTheme.group_digits(ProgressionManager.PERK_COSTS[3] * ProgressionManager.PRICE_SCALE),
+		"rank 3 costs PERK_COSTS[3] (ECON R2) × PRICE_SCALE (ADS R7)"
+	)
 	assert_false(_button("Track_duration").disabled)
 
 
@@ -292,9 +300,10 @@ func test_buying_a_track_rank_charges_saves_and_emits() -> void:
 	watch_signals(_armory)
 	_button("Track_duration").pressed.emit()
 	assert_eq(_progression.data.perks.blackhole.duration, 4)
-	assert_eq(_progression.data.points, 7331 - 1000)
+	var balance: int = 7331 - ProgressionManager.PERK_COSTS[3] * ProgressionManager.PRICE_SCALE
+	assert_eq(_progression.data.points, balance)
 	assert_signal_emitted(_armory, "state_changed")
-	assert_eq(_label("BalanceLabel").text, UiTheme.group_digits(7331 - 1000), "re-rendered (:1164)")
+	assert_eq(_label("BalanceLabel").text, UiTheme.group_digits(balance), "re-rendered (:1164)")
 	var reloaded: ProgressionManager = ProgressionManager.new()
 	assert_eq(
 		reloaded.data.perks.blackhole.duration, 4, "upgrade_perk saved (spec §8 M8 acceptance)"
@@ -314,7 +323,11 @@ func test_unaffordable_track_is_disabled() -> void:
 	_progression.data.points = 10
 	_open_weapons("blackhole")
 	assert_true(_button("Track_radius").disabled)
-	assert_eq(_button("Track_radius").text, "650", "the plain price, disabled (user 2026-09-28)")
+	assert_eq(
+		_button("Track_radius").text,
+		UiTheme.group_digits(650 * ProgressionManager.PRICE_SCALE),
+		"the plain price, disabled (user 2026-09-28; ADS R7)"
+	)
 	watch_signals(_armory)
 	_button("Track_radius").pressed.emit()
 	assert_signal_not_emitted(_armory, "state_changed", "upgrade_perk refused (:1162)")
@@ -323,11 +336,15 @@ func test_unaffordable_track_is_disabled() -> void:
 func test_keystone_shows_its_keystone_cost_and_unlocks() -> void:
 	_open_weapons("laser")
 	var btn: Button = _button("Keystone_crossBeam")
-	assert_eq(btn.text, "3,500", "KEYSTONE_COSTS.crossBeam (:507)")
+	assert_eq(
+		btn.text,
+		UiTheme.group_digits(3500 * ProgressionManager.PRICE_SCALE),
+		"KEYSTONE_COSTS.crossBeam (:507) × PRICE_SCALE (ADS R7)"
+	)
 	watch_signals(_armory)
 	btn.pressed.emit()
 	assert_true(_progression.data.perks.laser.cross_beam)
-	assert_eq(_progression.data.points, 7331 - 3500)
+	assert_eq(_progression.data.points, 7331 - 3500 * ProgressionManager.PRICE_SCALE)
 	assert_signal_emitted(_armory, "state_changed")
 	assert_true(_button("Keystone_crossBeam").disabled)
 	assert_eq(_button("Keystone_crossBeam").text, "Unlocked ✓")
@@ -356,11 +373,17 @@ func test_ships_tab_lists_every_ship_with_the_right_action() -> void:
 	_browse("Ship", "tactical")
 	assert_eq(_button("EquipShip_tactical").text, "Equip")
 	_browse("Ship", "solar")
-	assert_eq(_button("BuyShip_solar").text, "600 pts")
+	# ADS R7: catalog prices are PRICE_SCALE times their figure.
+	assert_eq(
+		_button("BuyShip_solar").text, ArmoryUI.format_points(600 * ProgressionManager.PRICE_SCALE)
+	)
 	_browse("Ship", "solar")
 	assert_false(_button("BuyShip_solar").disabled)
 	_browse("Ship", "revenant")
-	assert_eq(_button("BuyShip_revenant").text, "2,500 pts")
+	assert_eq(
+		_button("BuyShip_revenant").text,
+		ArmoryUI.format_points(2500 * ProgressionManager.PRICE_SCALE)
+	)
 	# ARMORY R7: one ship at a time; Next walks the whole catalog and wraps.
 	var seen: Array[String] = []
 	for i: int in range(7):
@@ -409,9 +432,18 @@ func test_purchases_log_upgrade_buy() -> void:
 	_armory.open("ships")
 	_browse("Ship", "solar")
 	_button("BuyShip_solar").pressed.emit()
+	# ADS R7: every price is PRICE_SCALE times its figure.
+	var ship_cost: int = 600 * ProgressionManager.PRICE_SCALE
+	var perk_cost: int = ProgressionManager.PERK_COSTS[3] * ProgressionManager.PRICE_SCALE
 	assert_eq(
 		rec.last_params("upgrade_buy"),
-		{"kind": "ship", "id": "solar", "rank": 1, "cost": 600, "balance_after": 7331 - 600}
+		{
+			"kind": "ship",
+			"id": "solar",
+			"rank": 1,
+			"cost": ship_cost,
+			"balance_after": 7331 - ship_cost,
+		}
 	)
 	_open_weapons("blackhole")
 	_button("Track_duration").pressed.emit()
@@ -421,8 +453,8 @@ func test_purchases_log_upgrade_buy() -> void:
 			"kind": "perk",
 			"id": "blackhole.duration",
 			"rank": 4,
-			"cost": 1000,
-			"balance_after": 7331 - 600 - 1000,
+			"cost": perk_cost,
+			"balance_after": 7331 - ship_cost - perk_cost,
 		}
 	)
 
@@ -437,8 +469,8 @@ func test_boost_purchase_logs_its_new_rank() -> void:
 			"kind": "boost",
 			"id": "hullCompact",
 			"rank": 1,
-			"cost": 800,
-			"balance_after": 7331 - 800,
+			"cost": 800 * ProgressionManager.PRICE_SCALE,  # ADS R7
+			"balance_after": 7331 - 800 * ProgressionManager.PRICE_SCALE,
 		}
 	)
 
@@ -456,7 +488,7 @@ func test_buy_ship_charges_and_unlocks() -> void:
 	_browse("Ship", "solar")
 	_button("BuyShip_solar").pressed.emit()
 	assert_true(_progression.data.unlocked_cursors.has("solar"))
-	assert_eq(_progression.data.points, 7331 - 600)
+	assert_eq(_progression.data.points, 7331 - 600 * ProgressionManager.PRICE_SCALE)
 	assert_eq(
 		_button("EquippedShip_solar").text, "Equipped", "buying equips (ProgressionManager.ts:720)"
 	)
@@ -485,14 +517,20 @@ func test_arena_tab_shows_both_catalogs_with_counts() -> void:
 	_browse("Theme", "void")
 	assert_eq(_button("EquippedArena_void").text, "Equipped")
 	_browse("Theme", "synthwave")
-	assert_eq(_button("BuyArena_synthwave").text, "400 pts")
+	# ADS R7: catalog prices are PRICE_SCALE times their figure.
+	assert_eq(
+		_button("BuyArena_synthwave").text,
+		ArmoryUI.format_points(400 * ProgressionManager.PRICE_SCALE)
+	)
 	_browse("Theme", "synthwave")
 	assert_false(_button("BuyArena_synthwave").disabled)
 	assert_eq(_label("EnemiesPill").text, "Enemy variations · 1 of 16 unlocked")
 	_browse("Enemy", "classic")
 	assert_true(_button("EquippedEnemy_classic").disabled)
 	_browse("Enemy", "gold")
-	assert_eq(_button("BuyEnemy_gold").text, "1,500 pts")
+	assert_eq(
+		_button("BuyEnemy_gold").text, ArmoryUI.format_points(1500 * ProgressionManager.PRICE_SCALE)
+	)
 
 
 func test_buy_then_equip_arena_theme() -> void:
@@ -500,7 +538,7 @@ func test_buy_then_equip_arena_theme() -> void:
 	_browse("Theme", "synthwave")
 	_button("BuyArena_synthwave").pressed.emit()
 	assert_true(_progression.data.unlocked_arena_themes.has("synthwave"))
-	assert_eq(_progression.data.points, 7331 - 400)
+	assert_eq(_progression.data.points, 7331 - 400 * ProgressionManager.PRICE_SCALE)
 	assert_true(
 		_button("EquippedArena_synthwave").disabled, "buying equips (ProgressionManager.ts:768-777)"
 	)
@@ -589,7 +627,11 @@ func test_boosts_catalog_matches_the_ts() -> void:
 	var extra_lives_cost: int = 0
 	if cost_value is int:
 		extra_lives_cost = cost_value
-	assert_eq(extra_lives_cost, 2500, "EXTRA_LIVES_COSTS[0] (ECON R2)")
+	assert_eq(
+		extra_lives_cost,
+		ProgressionManager.EXTRA_LIVES_COSTS[0] * ProgressionManager.PRICE_SCALE,
+		"EXTRA_LIVES_COSTS[0] (ECON R2) × PRICE_SCALE (ADS R7)"
+	)
 
 
 func test_boosts_tab_shows_rank_and_cost() -> void:
@@ -597,8 +639,15 @@ func test_boosts_tab_shows_rank_and_cost() -> void:
 	await get_tree().process_frame
 	assert_eq(_filled_pips("BoostPips_extraLives"), 0)
 	assert_eq(_armory.find_child("BoostPips_extraLives", true, false).get_child_count(), 2)
-	assert_eq(_button("Boost_extraLives").text, "2,500")
-	assert_eq(_button("Boost_pointsMultiplier").text, "1,200")
+	# ADS R7: boost prices are PRICE_SCALE times the ladder.
+	assert_eq(
+		_button("Boost_extraLives").text,
+		UiTheme.group_digits(2500 * ProgressionManager.PRICE_SCALE)
+	)
+	assert_eq(
+		_button("Boost_pointsMultiplier").text,
+		UiTheme.group_digits(1200 * ProgressionManager.PRICE_SCALE)
+	)
 	assert_false(_button("Boost_hullCompact").disabled)
 
 
@@ -607,10 +656,14 @@ func test_buying_a_boost_charges_saves_and_emits() -> void:
 	watch_signals(_armory)
 	_button("Boost_hullCompact").pressed.emit()
 	assert_eq(_progression.data.hull_compact, 1)
-	assert_eq(_progression.data.points, 7331 - 800)
+	assert_eq(_progression.data.points, 7331 - 800 * ProgressionManager.PRICE_SCALE)
 	assert_signal_emitted(_armory, "state_changed")
 	assert_eq(_filled_pips("BoostPips_hullCompact"), 1)
-	assert_eq(_button("Boost_hullCompact").text, "1,600", "next rung of HULL_COMPACT_COSTS")
+	assert_eq(
+		_button("Boost_hullCompact").text,
+		UiTheme.group_digits(1600 * ProgressionManager.PRICE_SCALE),
+		"next rung of HULL_COMPACT_COSTS, times PRICE_SCALE (ADS R7)"
+	)
 	assert_eq(ProgressionManager.new().data.hull_compact, 1, "persisted")
 
 
@@ -625,10 +678,10 @@ func test_maxed_boost_reads_maxed() -> void:
 
 
 func test_unaffordable_boost_is_disabled() -> void:
-	_progression.data.points = 2499
+	_progression.data.points = 2500 * ProgressionManager.PRICE_SCALE - 1
 	_armory.open("boosts")
 	assert_true(_button("Boost_extraLives").disabled)
-	assert_false(_button("Boost_hullCompact").disabled, "800 is affordable")
+	assert_false(_button("Boost_hullCompact").disabled, "800 × PRICE_SCALE is affordable (ADS R7)")
 
 
 func test_locked_keystone_is_dimmed_with_a_lock() -> void:
@@ -679,9 +732,12 @@ func test_every_weapon_lists_three_keystone_cards() -> void:
 
 
 func test_can_buy_dot_marks_weapons_with_an_affordable_upgrade() -> void:
-	_progression.data.points = 300
+	_progression.data.points = 300 * ProgressionManager.PRICE_SCALE
 	_open_weapons()
-	assert_true((_armory.find_child("CanBuy_lightning", true, false) as Control).visible, "250")
+	assert_true(
+		(_armory.find_child("CanBuy_lightning", true, false) as Control).visible,
+		"250 × PRICE_SCALE (ADS R7)"
+	)
 	_progression.data.points = 100
 	_armory.render()
 	assert_false((_armory.find_child("CanBuy_lightning", true, false) as Control).visible)

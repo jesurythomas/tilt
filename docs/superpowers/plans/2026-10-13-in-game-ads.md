@@ -138,6 +138,21 @@ points ("Points earned"), so the button says points.
 - **Retry while an ad is on its way** is ignored (HudController), so the sheet never hides
   under a dropped tap.
 
+## Ruling ADS R7 — dearer Armory, so the 3× ad pays (user, 2026-10-14)
+
+User: "make the weapon upgrades more expensive to incentive clicking the ads as well as the
+ships, arena and boosts". My call on how much: **every Armory price doubles**, one constant,
+`ProgressionManager.PRICE_SCALE` = 2, applied where prices are read: `get_perk_cost` (weapon
+ranks and keystones), the five boost ladder getters, and every ship, enemy skin and arena theme
+in the catalogs (`_init`). The tables keep their ECON R2 / TS figures, so parity tests still
+check them and a retune is one number. The Armory's keystone cards read the price through
+`get_perk_cost` (they read `Tuning.KEYSTONE_COSTS` directly before).
+- **Why 2×:** with the 3× ad on every run a player progresses 1.5× as fast as before ADS R7;
+  without ads, half as fast. The plan model (armory-economy plan, mid player ≈970 points a run)
+  put "everything" at ≈115 mid runs before KEY R1/THEME R1; now ≈230 without ads, ≈77 with.
+- **Unchanged:** run payout, coin value, milestone rewards, the starting 500 points (still one
+  rank-1 perk at 500), the removed-keystone refund (ECON R4's own table). Owned items stay owned.
+
 ## Tasks
 
 - [x] 1. Plan (this file); branch. Commit.
@@ -187,8 +202,11 @@ points ("Points earned"), so the button says points.
 - [x] 11. Rewarded ad on the Run over: "Watch ad · 3× points" (user, 2026-10-14). Ruling ADS R6.
       *(Done 2026-10-14: plugin AARs rebuilt; 70/70 scripts, nothing leaked; gdformat, gdlint
       clean. Device check pending, VERIFY-ME §ADS Part A.)*
-- [ ] 12. Raise prices of weapon upgrades, ships, arenas and boosts (user, 2026-10-14). Ruling
-      ADS R7.
+- [x] 12. Raise prices of weapon upgrades, ships, arenas and boosts (user, 2026-10-14). Ruling
+      ADS R7. *(Done 2026-10-14: 32 price assertions in four test files now read the table figure
+      times `PRICE_SCALE`; parity tests compare the TS figure times it. 70/70 scripts, nothing
+      leaked; every Armory layout check passed with the longer prices. The weapon header's
+      invested figure sums the scaled prices, default ranks included, as it did before.)*
 - [ ] 9. The user's A55 pass (§ADS Part A) and AdMob setup (Part B); merge. *(User: "rebuild
       it". Rebuilt as 0.1.15 (code 16, same code as 0.1.14), installed on the unlocked A55
       2026-10-13 22:10 with data kept, launched: consent in ~2 s, `can_request_ads=true

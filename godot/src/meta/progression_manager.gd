@@ -69,6 +69,12 @@ const ENEMY_SLOW_COSTS: Array[int] = [1000, 2000, 3600]
 const SCORE_MULTIPLIER_COSTS: Array[int] = [500, 1000, 1800, 3000]
 const POINTS_MULTIPLIER_COSTS: Array[int] = [1200, 2400, 4200, 7000]
 
+## DIVERGENCE(ADS R7, user 2026-10-14: "make the weapon upgrades more expensive to incentive
+## clicking the ads as well as the ships, arena and boosts"): every Armory price is its table's
+## figure times this, read through the cost getters and the catalogs, so the tables keep their
+## ECON R2 / TS figures. The Run over's rewarded ad triples a run's points (ADS R6).
+const PRICE_SCALE: int = 2
+
 ## DIVERGENCE(ECON R2): perk rank prices, ×1.6 a rank (TS 300/600/1100/1800/2800, :558).
 const PERK_COSTS: Array[int] = [250, 400, 650, 1000, 1600]
 ## DIVERGENCE(ECON R1): the run payout banked at death (no TS counterpart; the TS paid
@@ -111,6 +117,13 @@ func _init() -> void:
 	cursor_catalog = ship_catalog
 	enemy_skin_catalog = _build_enemy_skin_catalog()
 	arena_theme_catalog = _build_arena_theme_catalog()
+	# DIVERGENCE(ADS R7): ships, enemy skins and arena themes at PRICE_SCALE times their figure.
+	for ship: ShipSkinConfig in ship_catalog:
+		ship.price *= PRICE_SCALE
+	for skin: EnemySkinConfig in enemy_skin_catalog:
+		skin.price *= PRICE_SCALE
+	for theme: ArenaThemeConfig in arena_theme_catalog:
+		theme.price *= PRICE_SCALE
 	data = load_data()
 
 
@@ -276,9 +289,10 @@ static func run_payout(seconds_alive: float, kills: int, mode_multiplier: float)
 func get_perk_cost(current_rank: int, is_keystone: bool = false, keystone_key: String = "") -> int:
 	if is_keystone:
 		if Tuning.KEYSTONE_COSTS.has(keystone_key):  # PORT: :556
-			return Tuning.KEYSTONE_COSTS[keystone_key]
-		return 2500
-	return PERK_COSTS[mini(current_rank, PERK_COSTS.size() - 1)]  # DIVERGENCE(ECON R2)
+			return Tuning.KEYSTONE_COSTS[keystone_key] * PRICE_SCALE  # DIVERGENCE(ADS R7)
+		return 2500 * PRICE_SCALE
+	# DIVERGENCE(ECON R2, ADS R7)
+	return PERK_COSTS[mini(current_rank, PERK_COSTS.size() - 1)] * PRICE_SCALE
 
 
 ## PORT: web/src/tilt-to-live/ProgressionManager.ts:562-578
@@ -356,7 +370,7 @@ func get_extra_lives_cost() -> int:
 	var rank: int = data.extra_lives
 	if rank >= EXTRA_LIVES_COSTS.size():
 		return Types.ABSENT
-	return EXTRA_LIVES_COSTS[rank]
+	return EXTRA_LIVES_COSTS[rank] * PRICE_SCALE  # DIVERGENCE(ADS R7)
 
 
 ## PORT: web/src/tilt-to-live/ProgressionManager.ts:619-626
@@ -375,7 +389,7 @@ func get_hull_compact_cost() -> int:
 	var rank: int = data.hull_compact
 	if rank >= HULL_COMPACT_COSTS.size():
 		return Types.ABSENT
-	return HULL_COMPACT_COSTS[rank]
+	return HULL_COMPACT_COSTS[rank] * PRICE_SCALE  # DIVERGENCE(ADS R7)
 
 
 ## PORT: web/src/tilt-to-live/ProgressionManager.ts:634-641
@@ -394,7 +408,7 @@ func get_enemy_slow_cost() -> int:
 	var rank: int = data.enemy_slow
 	if rank >= ENEMY_SLOW_COSTS.size():
 		return Types.ABSENT
-	return ENEMY_SLOW_COSTS[rank]
+	return ENEMY_SLOW_COSTS[rank] * PRICE_SCALE  # DIVERGENCE(ADS R7)
 
 
 ## PORT: web/src/tilt-to-live/ProgressionManager.ts:649-656
@@ -413,7 +427,7 @@ func get_score_multiplier_cost() -> int:
 	var rank: int = data.score_multiplier
 	if rank >= SCORE_MULTIPLIER_COSTS.size():
 		return Types.ABSENT
-	return SCORE_MULTIPLIER_COSTS[rank]
+	return SCORE_MULTIPLIER_COSTS[rank] * PRICE_SCALE  # DIVERGENCE(ADS R7)
 
 
 ## PORT: web/src/tilt-to-live/ProgressionManager.ts:664-671
@@ -432,7 +446,7 @@ func get_points_multiplier_cost() -> int:
 	var rank: int = data.points_multiplier
 	if rank >= POINTS_MULTIPLIER_COSTS.size():
 		return Types.ABSENT
-	return POINTS_MULTIPLIER_COSTS[rank]
+	return POINTS_MULTIPLIER_COSTS[rank] * PRICE_SCALE  # DIVERGENCE(ADS R7)
 
 
 ## PORT: web/src/tilt-to-live/ProgressionManager.ts:679-686
