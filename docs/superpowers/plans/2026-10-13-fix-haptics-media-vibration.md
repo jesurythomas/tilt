@@ -24,3 +24,4 @@ Branch `fix/haptics-media-vibration` (from `main` at the BUG-101 merge). Report 
 - [x] A55: 0.1.9 (code 10, `build/peril-point-0.1.9-a55.apk`) installed 2026-10-13 14:46; log
       `haptics: media vibration bound`; three pulses at 14:48 `usage: MEDIA`, `finished`.
 - [x] User on the A55, 2026-10-13: "vibration works now as well".
+- [x] Settings switch buzz confirmed on the A55, 0.1.10 (user 2026-10-13). Merged by PR #10.

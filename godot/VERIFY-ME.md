@@ -1020,27 +1020,31 @@ Touch, then the "Touch stick" row: Dynamic / Left / Right.
 
 ## BUG-101 — calibration sticks (2026-10-12)
 
+Passed on the A55, 0.1.10 (user 2026-10-13: "tick phone checks. they are working now.").
+
 0.1.8 (code 9, R1-R3) is on the A55, installed 2026-10-13 14:39 (`build/peril-point-0.1.8-a55.apk`).
 
-- [ ] Menu → Calibrate → hold an unusual angle → Set level → Play holding a *different* angle:
+- [x] Menu → Calibrate → hold an unusual angle → Set level → Play holding a *different* angle:
       the ship rests at the angle set, not the one held at Play.
-- [ ] Same with Armory → Handling → Calibrate tilt.
-- [ ] Die → Retry while holding another angle: the calibration still holds.
-- [ ] Kill the app, relaunch, Play: the calibration from the last session still holds.
-- [ ] The 0:11 clip ("can't go to the right"): does it still happen on this build?
-- [ ] R2, Each start: Play and Retry each level to how the phone is held at the start.
-- [ ] R2, Set level on the Calibrate board flips Tilt level to All runs; switching back to
+- [x] Same with Armory → Handling → Calibrate tilt.
+- [x] Die → Retry while holding another angle: the calibration still holds.
+- [x] Kill the app, relaunch, Play: the calibration from the last session still holds.
+- [x] The 0:11 clip ("can't go to the right"): does it still happen on this build?
+- [x] R2, Each start: Play and Retry each level to how the phone is held at the start.
+- [x] R2, Set level on the Calibrate board flips Tilt level to All runs; switching back to
       Each start and then to All runs still uses the level you set.
-- [ ] R3: the home page has no calibrate icon beside Steer.
-- [ ] R3: Settings → Calibrate tilt shows both Set level and Cancel on screen.
-- [ ] R3: Settings shows Touch stick only while Touch is selected.
-- [ ] R4 (0.1.10): Pause shows Keep tilt level under Tilt only, and the sheet still fits.
-- [ ] R4: Keep tilt level off → Resume levels to how you hold the phone; on → Resume and the
+- [x] R3: the home page has no calibrate icon beside Steer.
+- [x] R3: Settings → Calibrate tilt shows both Set level and Cancel on screen.
+- [x] R3: Settings shows Touch stick only while Touch is selected.
+- [x] R4 (0.1.10): Pause shows Keep tilt level under Tilt only, and the sheet still fits.
+- [x] R4: Keep tilt level off → Resume levels to how you hold the phone; on → Resume and the
       next runs keep the level you were playing with.
 
 ## HAPTICS R1 — vibration as media (2026-10-13)
 
+Passed on the A55, 0.1.10 (user 2026-10-13: "tick phone checks. they are working now.").
+
 On the A55 as 0.1.9 (code 10). Log and `dumpsys vibrator_manager` confirmed `usage: MEDIA` plays.
 
 - [x] A nuke, a close call and a death each buzz (user: "vibration works now as well").
-- [ ] Settings → Vibration off then on: one short buzz. Off: no buzz in a run.
+- [x] Settings → Vibration off then on: one short buzz. Off: no buzz in a run.

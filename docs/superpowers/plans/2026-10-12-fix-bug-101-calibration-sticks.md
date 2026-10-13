@@ -87,7 +87,7 @@ so the version codes stay in order.
       gdformat and gdlint clean, 0 SCRIPT ERROR headless. 0.1.10 (code 11) on the A55
       2026-10-13 14:55 (`build/peril-point-0.1.10-a55.apk`). Next A55 build uses code 12.
 - [x] User: "merge them all -- they all pass". PR #10 then PR #11 merged into `main`.
-- [ ] A55 pass by the user (`VERIFY-ME.md` §BUG-101) on 0.1.10. `calibrate_gyro`'s forced poll
+- [x] A55 pass by the user (`VERIFY-ME.md` §BUG-101) on 0.1.10: "they are working now". `calibrate_gyro`'s forced poll
       reads the real sensor and is not reachable headless.
 
 ## Open (not part of this fix)

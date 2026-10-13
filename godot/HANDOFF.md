@@ -9,8 +9,8 @@ Rewritten at every module stop. Written for a session with zero context.
 on -> keep on every run -> toggle off -> recalibrates when play /resume is pressed". Pause has a
 Keep tilt level switch (tilt only); off = Each start, which now also levels on Resume; on = All
 runs, keeping the level in use. 876 tests green. 0.1.10 (code 11) is on the A55; next A55 build
-uses code 12. Next: nothing in flight; ask the user what to pick up. Unticked device checks stay
-in `VERIFY-ME.md` §BUG-101 and §HAPTICS R1. Seen, not fixed: the calibrate toast draws under the
+uses code 12. Next: nothing in flight; ask the user what to pick up. The A55 checks in `VERIFY-ME.md`
+§BUG-101 and §HAPTICS R1 all passed (user: "they are working now"). Seen, not fixed: the calibrate toast draws under the
 menu's PERIL POINT title.
 
 **Also (2026-10-13): HAPTICS R1, vibration fixed, merged into `main` by PR #10.** User: "vibration isnt working". Godot's `vibrate_handheld` tags pulses `usage: TOUCH`;
