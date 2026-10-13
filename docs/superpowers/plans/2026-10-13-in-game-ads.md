@@ -105,9 +105,15 @@ ruling is its own roadmap item (Play Billing) and is not built here.
 - [x] 1. Plan (this file); branch. Commit.
 - [x] 2. `android/peril-ads/` Java plugin + `tools/build_ads_plugin.sh`; both AARs built and
       committed under `godot/addons/peril_ads/bin/`.
-- [ ] 3. Export plugin (`godot/addons/peril_ads/`), enabled in `project.godot`; preset
+- [x] 3. Export plugin (`godot/addons/peril_ads/`), enabled in `project.godot`; preset
       internet + network state. Check an exported APK's manifest: APPLICATION_ID, the
       `org.godotengine.plugin.v2.PerilAds` meta-data, INTERNET, and the SDK classes in the dex.
+      *(Done 2026-10-13: an A55-key export built in 73 s. Manifest: APPLICATION_ID = the test
+      app ID, the v2 meta-data, INTERNET, ACCESS_NETWORK_STATE, `gms.permission.AD_ID`, plus the
+      SDK's ACCESS_ADSERVICES_{AD_ID,ATTRIBUTION,TOPICS}, WAKE_LOCK, FOREGROUND_SERVICE. The dex
+      holds PerilAdsPlugin, MobileAds, InterstitialAd and UserMessagingPlatform. APK 99.2 MB vs
+      0.1.10's 82.3 MB: dex 5.1 → 14.4 MB (the SDK, with Kotlin and coroutines), the rest is
+      HTP's clips. minSdk stays 29, as before.)*
 - [ ] 4. `AdsConfig`, `AdPacing`, `AdsBackend`, `AndroidAdsBackend`, `Ads` autoload;
       `tests/recording_ads_backend.gd`, `tests/test_ads.gd`.
 - [ ] 5. GameRoot: the break on Retry/Menu from the Run over, `Ads.note_run_end` beside
