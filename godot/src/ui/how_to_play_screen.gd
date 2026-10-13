@@ -4,24 +4,27 @@
 ## https://perilpoint.newzenith.ph/how-to-play")
 class_name HowToPlayScreen
 extends Control
-## The How to play guide: five pages built in code from the public guide's text, with the
-## power-up clips the site plays. It opens by itself on a first launch and from the menu's
-## How to play button; any way it closes counts as seen (GameRoot saves that).
+## The How to play guide: three pages built in code from the public guide's text, each with
+## a clip — a run dodging red dots, the site's power-up clips, and an Armory tour. It opens
+## by itself on a first launch and from the menu's How to play button; any way it closes
+## counts as seen (GameRoot saves that).
 ##
 ## PORT-NOTE: TiltGame.ts has no guide. Every layout literal below is new and tagged
-## DIVERGENCE(HTP R1); the text is the site's, trimmed to fit a phone held sideways, with
+## DIVERGENCE(HTP R1/R2); the text is the site's, trimmed to fit a phone held sideways, with
 ## one fix: the site's "calibrate button next to Steer" is gone since BUG-101 R3, so Tilt
 ## points at Settings instead.
 
 ## The guide closed (the close chevron, Got it, or the Android back button).
 signal closed
 
-## DIVERGENCE(HTP R1): the page titles, in order.
-const PAGES: Array[String] = [
-	"The basics", "Power-ups", "Lives & enemies", "Score & Points", "Tips"
-]
-## DIVERGENCE(HTP R1): the site's power-up clips, re-encoded to Theora (Godot plays no MP4).
+## DIVERGENCE(HTP R2, user 2026-10-13: "we can remove 3 - 4 - 5 ... add in another brief
+## section for the armory"): the page titles, in order.
+const PAGES: Array[String] = ["The basics", "Power-ups", "The Armory"]
+## DIVERGENCE(HTP R1): the clips, re-encoded to Theora (Godot plays no MP4). The power-up
+## clips are the site's; dodge and armory are recorded from the game (tools/record_htp_clips.gd).
 const CLIP_PATH: String = "res://assets/how_to_play/%s.ogv"
+const DODGE_CLIP: String = "dodge"
+const ARMORY_CLIP: String = "armory"
 ## DIVERGENCE(HTP R1): the site's power-up order, names and lines.
 const WEAPONS: Array[Types.WeaponType] = [
 	Types.WeaponType.NUKE,
@@ -62,58 +65,13 @@ const WEAPON_LINES: Dictionary[Types.WeaponType, String] = {
 	Types.WeaponType.SHIELD:
 	"A barrier around your ship. While it lasts, ram straight through dots to destroy them.",
 }
-## DIVERGENCE(HTP R1): the site's enemy table — name, what it does, how to handle it.
-const ENEMIES: Array[Array] = [
-	[
-		"Seekers",
-		"Plain dots that home in on you and speed up over time.",
-		"Keep moving; lead them into a chain."
-	],
-	["Chargers", "Take aim for about a second, then dash at you.", "Sidestep when they lunge."],
-	["Specters", "Home in while fading in and out of sight.", "Watch for the flicker."],
-	[
-		"Artillery",
-		"Keep their distance, strafe and fire shots at you.",
-		"Weave between the shots, then close in with a weapon."
-	],
-	["Pulsars", "Home in, giving off bursts of sparks.", "Treat them like fast seekers."],
-	[
-		"Carriers",
-		"Slow dots ringed by orbiting seekers.",
-		"Give them room, or clear them with Nuke or Lightning."
-	],
-	[
-		"Arrow wings",
-		"A wing of seven that sweeps in from an edge. In Overdrive, wings come from both sides.",
-		"Move off their line."
-	],
-	[
-		"Walls",
-		"A line sweeping across the arena, with a gap.",
-		"Find the gap early. (Not in Corridor.)"
-	],
-	[
-		"Circles",
-		"A ring of dots around you that pauses, then closes in.",
-		"Break out before it tightens. (Not in Corridor.)"
-	],
-	["Turrets", "Slow drifting dots that take three hits.", "Leave them for the bigger weapons."],
-	["Snakes", "A chain of eight segments that drifts and re-aims.", "Watch where the head turns."],
-]
-## DIVERGENCE(HTP R1): the site's Modes table, by mode (names and colours are the menu's).
-const MODE_LINES: Dictionary[Types.GameMode, String] = {
-	Types.GameMode.CLASSIC: "The full arsenal against swarms that ramp up as you go.",
-	Types.GameMode.GAUNTLET:
-	"Walls scroll down and close in. One can crush you against the bottom. Score counts 1.25×.",
-	Types.GameMode.CODE_RED:
-	"Double density from the first second, tougher enemies sooner, faster orbs. Score counts 1.5×.",
-}
-## DIVERGENCE(HTP R1): the site's Tips.
-const TIPS: Array[String] = [
-	"Don't wait for dots to come to you: go get the next orb.",
-	"Freeze, then fly through the crystals. It's free kills.",
-	"Keep chains alive. A high multiplier makes everything else worth more.",
-	"Close calls pay well, but only if you don't touch.",
+## DIVERGENCE(HTP R2): the Armory's tabs (ArmoryUI.TAB_LABELS), one line each, from the site.
+const ARMORY_LINES: Array[Array] = [
+	["Weapons", "Upgrade each power-up and unlock keystones that change how it works."],
+	["Ships", "Seven hulls, each with its own hitbox, turn rate and starting weapon."],
+	["Arena", "Themes for the arena and skins for the enemies."],
+	["Handling", "Top speed, tilt sensitivity and stick size, with a live preview."],
+	["Boosts", "Extra Life, a smaller hitbox, slower enemies, and score or Points multipliers."],
 ]
 ## DIVERGENCE(HTP R1): a question mark in a ring, for the menu's How to play button.
 const ICON_HELP: String = (
@@ -122,11 +80,6 @@ const ICON_HELP: String = (
 	+ '<path d="M6.1 6.2 A1.95 1.95 0 1 1 8.6 8.1 C8.1 8.3 8 8.6 8 9.2" stroke="#3DDC97" '
 	+ 'stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="11.4" r="0.95" '
 	+ 'fill="#3DDC97"/></svg>'
-)
-## DIVERGENCE(HTP R1): an enemy dot (a red ring, as the clips draw them) for the enemy list.
-const ENEMY_DOT: String = (
-	'<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none">'
-	+ '<circle cx="6" cy="6" r="4" stroke="#FF4D5E" stroke-width="2.2"/></svg>'
 )
 
 ## DIVERGENCE(HTP R1): header 64 tall, padding 8/28/8/24, gap 12, as the Settings header.
@@ -152,24 +105,16 @@ const PARAGRAPH_GAP: int = 6
 const CARD_PAD_X: int = 12
 const CARD_PAD_Y: int = 10
 const CARD_GAP: int = 10
-## DIVERGENCE(HTP R1): the power-up picker — a 4-wide grid of 48 px orb buttons, orbs 30 px;
-## the left column is 320 wide and the clip takes the rest at 16:9.
+const LINE_GAP: int = 2
+## DIVERGENCE(HTP R1): the text column is 320 wide and the clip takes the rest at 16:9;
+## the power-up picker is a 4-wide grid of 48 px orb buttons, orbs 30 px.
+const TEXT_COLUMN_WIDTH: int = 320
+const CLIP_ASPECT: float = 16.0 / 9.0
 const ORB_COLUMNS: int = 4
 const ORB_BUTTON: int = 48
 const ORB_SIZE: int = 30
 const ORB_GAP: int = 8
-const POWERUP_COLUMN_WIDTH: int = 320
-const CLIP_ASPECT: float = 16.0 / 9.0
-## DIVERGENCE(HTP R1): the mode bar 3×30, r 2, as the menu's mode cards.
-const BAR_WIDTH: int = 3
-const BAR_HEIGHT: int = 30
-const BAR_RADIUS: int = 2
-## DIVERGENCE(HTP R1): enemy rows — dot gap 10, line gap 2; the enemy column 1.4× the Lives one.
-const ENEMY_GAP: int = 10
-const LINE_GAP: int = 2
-const ENEMY_COLUMN_RATIO: float = 1.4
 
-var _options: GameOptionsManager = null
 var _ui_scale: float = 1.0
 var _inset: Vector2 = Vector2.ZERO
 var _is_open: bool = false
@@ -183,11 +128,6 @@ func _ready() -> void:
 	_build()
 
 
-## Stands in for a constructor: the mode catalog the Modes column lists.
-func bind(options: GameOptionsManager) -> void:
-	_options = options
-
-
 ## Shows the guide at `start_page`.
 func open(start_page: int = 0) -> void:
 	_is_open = true
@@ -195,7 +135,7 @@ func open(start_page: int = 0) -> void:
 	_build()
 
 
-## Hides the guide, stops its clip, and emits `closed`.
+## Hides the guide, drops its clip, and emits `closed`.
 func close() -> void:
 	_is_open = false
 	_build()
@@ -238,7 +178,7 @@ func select_weapon(type: Types.WeaponType) -> void:
 	_build()
 
 
-## The clip on screen, or null off the Power-ups page and while closed.
+## The page's clip, or null while closed.
 func clip() -> VideoStreamPlayer:
 	return _clip
 
@@ -338,6 +278,7 @@ func _page_dots() -> HBoxContainer:
 	return dots
 
 
+## Every page is a text column on the left and its clip on the right.
 func _body() -> MarginContainer:
 	var body: MarginContainer = MarginContainer.new()
 	body.name = "HowToPlayBody"
@@ -349,17 +290,17 @@ func _body() -> MarginContainer:
 	var columns: HBoxContainer = HBoxContainer.new()
 	columns.name = "Page_%d" % _page
 	columns.add_theme_constant_override("separation", _px(COLUMN_GAP))
+	var clip_key: String = DODGE_CLIP
 	match _page:
 		0:
 			_basics_page(columns)
 		1:
 			_powerups_page(columns)
-		2:
-			_lives_page(columns)
-		3:
-			_score_page(columns)
+			clip_key = WeaponIcons.weapon_key(_weapon)
 		_:
-			_tips_page(columns)
+			_armory_page(columns)
+			clip_key = ARMORY_CLIP
+	columns.add_child(_clip_frame(clip_key))
 	body.add_child(columns)
 	UiTheme.let_drags_scroll(body)
 	return body
@@ -367,43 +308,20 @@ func _body() -> MarginContainer:
 
 func _basics_page(columns: HBoxContainer) -> void:
 	var left: VBoxContainer = _column(columns, "Stay alive")
-	_paragraph(
-		left,
-		(
-			"Steer a small ship around an arena that keeps filling with red dots. "
-			+ "Touch one and you lose a life."
-		)
-	)
-	_paragraph(left, "You never shoot. Fly into a weapon orb and its weapon fires by itself.")
-	_paragraph(
-		left, "Stay alive, chain kills for score, and spend the Points each run pays on upgrades."
-	)
-	var right: VBoxContainer = _column(columns, "Steering · pick one under Steer")
-	right.add_child(
-		_card(
-			UiTheme.ICON_TOUCH,
-			"Touch",
-			"Put a finger down anywhere and drag. A joystick appears under it; the ship follows."
-		)
-	)
-	right.add_child(
+	_paragraph(left, "Steer through the red dots. Touch one and you lose a life.")
+	_paragraph(left, "You never shoot: fly into a weapon orb and it fires by itself.")
+	left.add_child(_card(UiTheme.ICON_TOUCH, "Touch", "Drag anywhere; the ship follows."))
+	left.add_child(
 		_card(
 			UiTheme.ICON_TILT,
 			"Tilt",
-			(
-				"Tilt the phone to steer. Settings → Controls sets the level: each run start, "
-				+ "or your Calibrate angle for every run."
-			)
+			"Tilt the phone. Settings → Controls sets the level: each run, or your Calibrate angle."
 		)
-	)
-	_hint(
-		right,
-		"Armory → Handling tunes top speed, tilt sensitivity and stick size, with a live preview."
 	)
 
 
 func _powerups_page(columns: HBoxContainer) -> void:
-	var left: VBoxContainer = _column(columns, "Fly into an orb to fire it", POWERUP_COLUMN_WIDTH)
+	var left: VBoxContainer = _column(columns, "Fly into an orb to fire it")
 	_paragraph(
 		left,
 		(
@@ -433,96 +351,30 @@ func _powerups_page(columns: HBoxContainer) -> void:
 	left.add_child(weapon_name)
 	var line: Label = _paragraph(left, WEAPON_LINES[_weapon])
 	line.name = "WeaponLine"
-	var frame: AspectRatioContainer = AspectRatioContainer.new()
-	frame.name = "ClipFrame"
-	frame.ratio = CLIP_ASPECT
-	frame.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	frame.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	frame.alignment_vertical = AspectRatioContainer.ALIGNMENT_BEGIN
-	_clip = VideoStreamPlayer.new()
-	_clip.name = "Clip"
-	_clip.stream = load(CLIP_PATH % WeaponIcons.weapon_key(_weapon)) as VideoStream
-	_clip.expand = true
-	_clip.loop = true
-	_clip.autoplay = true
-	_clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	frame.add_child(_clip)
-	columns.add_child(frame)
 
 
-func _lives_page(columns: HBoxContainer) -> void:
-	var left: VBoxContainer = _column(columns, "Lives")
-	_paragraph(
-		left, "Touching a red dot costs a life, unless you're shielded or the dot is frozen."
-	)
+func _armory_page(columns: HBoxContainer) -> void:
+	var left: VBoxContainer = _column(columns, "Spend your Points")
+	left.name = "ArmoryList"
 	_paragraph(
 		left,
-		(
-			"You start with one life. The Extra Life boost and the Revenant ship add more, "
-			+ "up to three."
-		)
+		"Every run pays Points: more the longer you survive and the more you destroy. Coins add more."
 	)
-	_paragraph(left, "Losing a life that isn't your last gives you a short shield to get clear.")
-	_hint(left, "Everything red is dangerous. Tougher dots join as your score climbs.")
-	var right: VBoxContainer = _column(columns, "Enemies", 0, ENEMY_COLUMN_RATIO)
-	right.name = "EnemyList"
-	right.add_theme_constant_override("separation", _px(STACK_GAP))
-	for enemy: Array in ENEMIES:
-		right.add_child(_enemy_row(str(enemy[0]), str(enemy[1]), str(enemy[2])))
+	for tab: Array in ARMORY_LINES:
+		var row: VBoxContainer = VBoxContainer.new()
+		row.add_theme_constant_override("separation", _px(LINE_GAP))
+		var tab_name: Label = UiTheme.text(str(tab[0]), "StrongText")
+		tab_name.add_theme_color_override("font_color", UiTheme.ION_TEXT)
+		row.add_child(tab_name)
+		var line: Label = _paragraph(row, str(tab[1]))
+		line.theme_type_variation = "HintText"
+		left.add_child(row)
 
 
-func _score_page(columns: HBoxContainer) -> void:
-	var score: VBoxContainer = _column(columns, "Score")
-	_paragraph(score, "Kills score points, times your multiplier.")
-	_paragraph(
-		score,
-		(
-			"Chains: a kill within about a second and a half of the last keeps it going. "
-			+ "Every eight kills adds +1×, up to 50×."
-		)
-	)
-	_paragraph(score, "Close calls: brush past a dot without touching it for a big bonus.")
-	var modes: VBoxContainer = _column(columns, "Modes")
-	if _options != null:
-		for config: GameOptionsManager.ModeConfig in _options.modes:
-			modes.add_child(_mode_row(config))
-	var points: VBoxContainer = _column(columns, "Points & the Armory")
-	_paragraph(
-		points,
-		(
-			"Every run pays Points: more the longer you survive and the more you destroy. "
-			+ "Coins in the arena add more."
-		)
-	)
-	_paragraph(
-		points,
-		(
-			"Spend them in the Armory: weapon upgrades and keystones, seven ships, "
-			+ "arena themes, handling and boosts."
-		)
-	)
-
-
-func _tips_page(columns: HBoxContainer) -> void:
-	var left: VBoxContainer = _column(columns, "Tips")
-	for i: int in range(TIPS.size()):
-		left.add_child(_card(UiTheme.ICON_CHECK, "", TIPS[i]))
-	var right: VBoxContainer = _column(columns, "Achievements")
-	_paragraph(right, "Achievements pay Points too. The menu shows the next one to go for.")
-	_paragraph(right, "Open this guide again any time from How to play on the menu.")
-
-
-## A titled, scrolling column: `width` base px wide, or else a `ratio` share of the page.
-## Returns the column's content stack.
-func _column(
-	columns: HBoxContainer, heading: String, width: int = 0, ratio: float = 1.0
-) -> VBoxContainer:
+## The text column: 320 wide, titled, scrolling. Returns its content stack.
+func _column(columns: HBoxContainer, heading: String) -> VBoxContainer:
 	var column: VBoxContainer = VBoxContainer.new()
-	if width > 0:
-		column.custom_minimum_size.x = _px(width)
-	else:
-		column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		column.size_flags_stretch_ratio = ratio
+	column.custom_minimum_size.x = _px(TEXT_COLUMN_WIDTH)
 	column.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_theme_constant_override("separation", _px(STACK_GAP))
 	var label: Label = UiTheme.caps(heading)
@@ -531,17 +383,32 @@ func _column(
 	var content: VBoxContainer = VBoxContainer.new()
 	content.add_theme_constant_override("separation", _px(PARAGRAPH_GAP))
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	column.add_child(_scroll(content))
-	columns.add_child(column)
-	return content
-
-
-func _scroll(content: Control) -> ScrollContainer:
 	var scroll: ScrollContainer = ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.add_child(content)
-	return scroll
+	column.add_child(scroll)
+	columns.add_child(column)
+	return content
+
+
+## The page's clip, looping at 16:9 in the room right of the text column.
+func _clip_frame(key: String) -> AspectRatioContainer:
+	var frame: AspectRatioContainer = AspectRatioContainer.new()
+	frame.name = "ClipFrame"
+	frame.ratio = CLIP_ASPECT
+	frame.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	frame.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	frame.alignment_vertical = AspectRatioContainer.ALIGNMENT_BEGIN
+	_clip = VideoStreamPlayer.new()
+	_clip.name = "Clip"
+	_clip.stream = load(CLIP_PATH % key) as VideoStream
+	_clip.expand = true
+	_clip.loop = true
+	_clip.autoplay = true
+	_clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.add_child(_clip)
+	return frame
 
 
 func _paragraph(parent: Control, content: String) -> Label:
@@ -552,12 +419,7 @@ func _paragraph(parent: Control, content: String) -> Label:
 	return label
 
 
-func _hint(parent: Control, content: String) -> void:
-	var label: Label = _paragraph(parent, content)
-	label.theme_type_variation = "HintText"
-
-
-## A card: an optional glyph, an optional bold name, and a wrapped line.
+## A card: a glyph, a bold name, and a wrapped line.
 func _card(glyph: String, card_name: String, line: String) -> PanelContainer:
 	var card: PanelContainer = PanelContainer.new()
 	card.add_theme_stylebox_override(
@@ -574,57 +436,17 @@ func _card(glyph: String, card_name: String, line: String) -> PanelContainer:
 	icon.texture = UiTheme.svg_texture(glyph, _ui_scale)
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
 	icon.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	icon.modulate = UiTheme.ION_TEXT if glyph != UiTheme.ICON_CHECK else Color.WHITE
+	icon.modulate = UiTheme.ION_TEXT
 	row.add_child(icon)
 	var text: VBoxContainer = VBoxContainer.new()
 	text.add_theme_constant_override("separation", _px(LINE_GAP))
 	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	if not card_name.is_empty():
-		text.add_child(UiTheme.text(card_name, "StrongText"))
-	_paragraph(text, line)
+	text.add_child(UiTheme.text(card_name, "StrongText"))
+	var hint: Label = _paragraph(text, line)
+	hint.theme_type_variation = "HintText"
 	row.add_child(text)
 	card.add_child(row)
 	return card
-
-
-func _enemy_row(enemy_name: String, does: String, handle: String) -> HBoxContainer:
-	var row: HBoxContainer = HBoxContainer.new()
-	row.add_theme_constant_override("separation", _px(ENEMY_GAP))
-	var dot: TextureRect = TextureRect.new()
-	dot.texture = UiTheme.svg_texture(ENEMY_DOT, _ui_scale)
-	dot.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
-	dot.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	row.add_child(dot)
-	var text: VBoxContainer = VBoxContainer.new()
-	text.add_theme_constant_override("separation", _px(LINE_GAP))
-	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	text.add_child(UiTheme.text(enemy_name, "StrongText"))
-	_paragraph(text, does)
-	var tip: Label = _paragraph(text, handle)
-	tip.theme_type_variation = "HintText"
-	tip.add_theme_color_override("font_color", UiTheme.ION_TEXT)
-	row.add_child(text)
-	return row
-
-
-func _mode_row(config: GameOptionsManager.ModeConfig) -> HBoxContainer:
-	var row: HBoxContainer = HBoxContainer.new()
-	row.add_theme_constant_override("separation", _px(CARD_GAP))
-	var bar: Panel = Panel.new()
-	bar.custom_minimum_size = Vector2(_px(BAR_WIDTH), _px(BAR_HEIGHT))
-	bar.add_theme_stylebox_override(
-		"panel", UiTheme.flat(config.color, Color.TRANSPARENT, _px(BAR_RADIUS))
-	)
-	bar.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	row.add_child(bar)
-	var text: VBoxContainer = VBoxContainer.new()
-	text.add_theme_constant_override("separation", _px(LINE_GAP))
-	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	text.add_child(UiTheme.text(config.name, "StrongText"))
-	var line: Label = _paragraph(text, MODE_LINES[config.id])
-	line.theme_type_variation = "HintText"
-	row.add_child(text)
-	return row
 
 
 func _button(button_name: String, variation: String, label: String) -> Button:

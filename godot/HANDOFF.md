@@ -8,11 +8,13 @@ Rewritten at every module stop. Written for a session with zero context.
 merged.** Branches: `staging` (local, fast-forwarded to `origin/main` 7b20a5b; the remote
 `staging` is still at `fdb3188`) → `add-onboarding` (this work, worktree `../dread-flock-staging`,
 `main` merged in). The public guide (perilpoint.newzenith.ph/how-to-play) is now in the game:
-`ui/how_to_play_screen.gd`, five pages (The basics, Power-ups with the site's seven clips as
-Theora in `assets/how_to_play/`, Lives & enemies, Score & Points, Tips). A first launch opens it
+`ui/how_to_play_screen.gd`, three pages since ruling R2 (The basics with a recorded run dodging
+red dots, Power-ups with the site's seven clips, The Armory with a recorded tab tour; Theora in
+`assets/how_to_play/`, the two recorded clips made by `tools/record_htp_clips.gd`). A first launch opens it
 (`GameSettings.how_to_play_seen`, saved on close); the menu's **How to play** button reopens it;
 Android back closes it; the attract swarm holds still under it. 896 tests green. 0.1.11 (code 12,
-`godot/build/peril-point-0.1.11-a55.apk`) is on the A55; next A55 build uses code 13. A55 frame
+`godot/build/peril-point-0.1.11-a55.apk`) went on the A55 with the five-page guide; R2 builds as
+0.1.12 (code 13). A55 frame
 time on Power-ups with a clip: mean 16.71 ms, p95 25.2. Since that build: "turn rate" → "top
 speed" in the guide's Handling hint. The worktree needed `godot/android/` copied from the main
 checkout (gitignored) and `godot/build/` made. Plan

@@ -205,7 +205,6 @@ func _ready() -> void:
 	_calibrate_screen.set_level_requested.connect(calibrate_gyro_from_screen)
 	_calibrate_screen.closed.connect(_on_calibrate_closed)
 	# DIVERGENCE(HTP R1): the How to play guide, from the menu and on a first launch.
-	_how_to_play.bind(options)
 	_menu.how_to_play_requested.connect(open_how_to_play)
 	_how_to_play.closed.connect(_on_how_to_play_closed)
 	# PORT: web/src/tilt-to-live/TiltGame.ts:160-178 (new TiltEntranceCinematic, its onFinish)

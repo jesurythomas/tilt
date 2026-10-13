@@ -1049,18 +1049,18 @@ On the A55 as 0.1.9 (code 10). Log and `dumpsys vibrator_manager` confirmed `usa
 - [x] A nuke, a close call and a death each buzz (user: "vibration works now as well").
 - [x] Settings → Vibration off then on: one short buzz. Off: no buzz in a run.
 
-## HTP R1 — the How to play guide (2026-10-13, branch `add-onboarding`)
+## HTP R1/R2 — the How to play guide (2026-10-13, branch `add-onboarding`)
 
-0.1.11 (code 12) from `add-onboarding` (main merged in, so it carries PR #10-#12), installed
-2026-10-13 16:04. Known: its basics page still says "turn rate" (fixed in source: "top speed"). Plan `docs/superpowers/plans/2026-10-13-add-onboarding.md`.
+0.1.12 (code 13) from `add-onboarding` (carries PR #10-#12). Three pages since R2. Plan
+`docs/superpowers/plans/2026-10-13-add-onboarding.md`.
 
-- [ ] Fresh install (or Settings → Reset is not enough: clear app data): the guide opens over the
-      menu on first launch. Close it; relaunch: the menu shows, no guide.
+- [ ] Clear app data (or fresh install): the guide opens over the menu on first launch. Close
+      it; relaunch: the menu shows, no guide.
 - [ ] The menu's **How to play** button (top, right of the wordmark) opens page 1; it does not
-      cover the title or the mode panel, and the menu is no smaller than before.
-- [ ] Next / Back walk the five pages; Got it on the last page closes; the chevron and the
-      Android back button close from any page.
-- [ ] Power-ups: each orb plays its clip, looping, smoothly; the name and line change with it.
-- [ ] Lives & enemies: the enemy list scrolls with a drag; every page's text is readable.
-- [ ] Frame rate while a clip plays: `tools/frametime.sh 20 htp` on the Power-ups page.
-
+      cover the title or the mode panel.
+- [ ] Next / Back walk the three pages; Got it on The Armory closes; the chevron and the Android
+      back button close from any page.
+- [ ] The basics: the clip shows the ship weaving through red dots, looping smoothly.
+- [ ] Power-ups: each orb plays its clip; the name and line change with it.
+- [ ] The Armory: the tour clip's text is readable; the tab list scrolls with a drag.
+- [ ] Frame rate while a clip plays: `tools/frametime.sh 20 htp`.

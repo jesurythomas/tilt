@@ -9,7 +9,6 @@ func _screen() -> HowToPlayScreen:
 	screen.theme = UiTheme.build(1.0)
 	screen.size = Vector2(844.0, 390.0)
 	add_child_autofree(screen)
-	screen.bind(GameOptionsManager.new())
 	return screen
 
 
@@ -94,33 +93,31 @@ func test_picking_an_orb_swaps_the_clip_and_the_lines() -> void:
 	assert_false((screen.find_child("Orb_nuke", true, false) as Button).button_pressed)
 
 
-func test_the_clip_goes_with_the_page() -> void:
+## HTP R2: every page plays its own clip; closing drops it.
+func test_every_page_plays_its_clip() -> void:
 	var screen: HowToPlayScreen = _screen()
-	screen.open(1)
-	assert_not_null(screen.clip())
-	_press(screen, "HowToPlayNextButton")
-	assert_null(screen.clip(), "no clip off the Power-ups page")
-	screen.open(1)
+	var want: Array[String] = [HowToPlayScreen.DODGE_CLIP, "nuke", HowToPlayScreen.ARMORY_CLIP]
+	for i: int in range(HowToPlayScreen.PAGES.size()):
+		screen.open(i)
+		assert_not_null(screen.clip(), "page %d has a clip" % i)
+		assert_eq(screen.clip().stream.resource_path, HowToPlayScreen.CLIP_PATH % want[i])
+		assert_true(screen.clip().loop)
 	screen.close()
 	assert_null(screen.clip(), "closing drops the clip")
 
 
-func test_the_enemy_list_holds_every_enemy() -> void:
+## HTP R2 (user: "we can remove 3 - 4 - 5"): three pages, the Armory last.
+func test_three_pages_end_on_the_armory() -> void:
+	assert_eq(HowToPlayScreen.PAGES, ["The basics", "Power-ups", "The Armory"] as Array[String])
 	var screen: HowToPlayScreen = _screen()
 	screen.open(2)
-	var list: Node = screen.find_child("EnemyList", true, false)
-	assert_eq(list.get_child_count(), HowToPlayScreen.ENEMIES.size())
-
-
-func test_the_modes_column_lists_every_mode() -> void:
-	var screen: HowToPlayScreen = _screen()
-	screen.open(3)
-	for config: GameOptionsManager.ModeConfig in GameOptionsManager.new().modes:
+	var list: Node = screen.find_child("ArmoryList", true, false)
+	for tab: String in ArmoryUI.TAB_LABELS:
 		var found: bool = false
-		for label: Node in screen.find_children("*", "Label", true, false):
-			if (label as Label).text == config.name:
+		for label: Node in list.find_children("*", "Label", true, false):
+			if (label as Label).text == tab:
 				found = true
-		assert_true(found, config.name)
+		assert_true(found, tab + " has a line")
 
 
 func test_every_target_meets_the_48_rule() -> void:
@@ -138,7 +135,6 @@ func test_every_page_fits_the_a55() -> void:
 	var screen: HowToPlayScreen = HowToPlayScreen.new()
 	add_child_autofree(screen)
 	screen.size = Vector2(2340.0, 1080.0)
-	screen.bind(GameOptionsManager.new())
 	screen.set_ui_scale(2.77, Vector2.ZERO)
 	for i: int in range(HowToPlayScreen.PAGES.size()):
 		screen.open(i)

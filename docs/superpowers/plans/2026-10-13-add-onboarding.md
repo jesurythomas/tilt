@@ -38,6 +38,22 @@ here C:\Users\Jesury\Downloads\assets we may need some other assets for how to p
 - **Frame cost:** runs gain no per-frame code. While the guide is open the menu's attract swarm
   does not simulate (the board is opaque); a clip decodes only on the Power-ups page.
 
+## Ruling HTP R2 (user 2026-10-13: "we can remove 3 - 4 - 5 , for 1 add in a gameplay asset where we are avoiding the red dots, add in another brief section for the armory. with assets ofc")
+
+- Pages are now **The basics**, **Power-ups**, **The Armory**. Lives & enemies, Score & Points
+  and Tips are gone (with the enemy table, modes column, tips, the enemy-ring SVG and `bind`).
+- Every page is a 320-wide text column plus a looping 16:9 clip.
+- The basics clip `dodge.ogv` (12 s, 640×360, 0.6 MB): a real Survival run recorded from the
+  game, steered by the attract mode's avoidance rule (wander, pushed off dots within 145 and the
+  walls), orbs cleared each frame, HUD hidden. The ship is never hit.
+- The Armory clip `armory.ogv` (19 s, 960×540 for legible text, 1.5 MB): a tour of Weapons
+  (Blackhole → Laser → Freeze), Ships (Arrow → Viper → Phantom), Arena, Handling and Boosts, on a
+  default save with 4,200 Points.
+- Both are made by `godot/tools/record_htp_clips.gd` (Movie Maker, throwaway `APPDATA`, header
+  has the command), then `ffmpeg -ss 8 -t 12` (dodge) / `-ss 4 -t 19` (armory) to Theora q 6.
+- The Armory page lists the five tabs (`ArmoryUI.TAB_LABELS`) with one line each from the site;
+  the old basics hint on Handling moved there.
+
 ## Tasks
 
 - [x] Clips re-encoded to Theora; `.ogv` loads as `VideoStream`; all seven are in the Android
@@ -62,6 +78,10 @@ here C:\Users\Jesury\Downloads\assets we may need some other assets for how to p
       reading taken in the same session to compare against.
 - [x] Copy fix after the A55 look: the basics hint said "turn rate"; HANDLING R1 renamed that
       slider Top speed. Fixed in source; 0.1.11 on the A55 still shows "turn rate".
+- [x] R2: three pages, dodge and Armory clips, tests updated (every page plays its clip; the
+      Armory page lists every tab). 895 tests green, gdformat and gdlint clean. Desktop
+      screenshots of all three pages checked.
+- [ ] R2 build: 0.1.12 (code 13) on the A55.
 - [ ] A55 pass by the user (`VERIFY-ME.md` §HTP R1). Then PR `add-onboarding` into `staging`.
 
 ## Open
