@@ -25,6 +25,8 @@
 #
 # Usage:  tools/run_tests.sh
 # Env:    GODOT  — override the engine path if it moves.
+#         The suite runs with its own empty user:// (a temp APPDATA / XDG_DATA_HOME),
+#         so parallel runs do not share save files.
 # Exits:  0 only if every test script was collected, every test passed, AND
 #         nothing leaked at exit.
 
@@ -63,7 +65,18 @@ fi
 # (CONVENTIONS §1.3), so the collection check below still catches it.
 "$GODOT" --headless --path "$REPO/godot" --import >/dev/null 2>&1
 
-output="$("$GODOT" --headless --render-thread safe --path "$REPO/godot" \
+# Each run gets its own user:// (Windows: %APPDATA%; Linux: $XDG_DATA_HOME). Two runs at
+# once (another worktree's suite, another session) shared the save files and flaked the
+# save tests (2026-10-13, test_armory_ui and test_main_scene). macOS is not isolated.
+user_root="$(mktemp -d)"
+trap 'rm -rf "$user_root"' EXIT
+user_root_native="$user_root"
+if command -v cygpath >/dev/null 2>&1; then
+	user_root_native="$(cygpath -w "$user_root")"
+fi
+
+output="$(APPDATA="$user_root_native" XDG_DATA_HOME="$user_root" \
+	"$GODOT" --headless --render-thread safe --path "$REPO/godot" \
 	-s addons/gut/gut_cmdln.gd -gdir=res://tests -gexit 2>&1)"
 gut_exit=$?
 

@@ -131,6 +131,10 @@ thread (`thread_model=2`, M11c P24, kept for the game) Godot drops a texture fre
 queued just before quit in about one run in six and reports a leaked `Image` —
 an engine shutdown race, not a game leak (`fix/exit-image-leak`, 2026-10-12).
 
+**Each run gets its own empty `user://`** (a temp `APPDATA` / `XDG_DATA_HOME`, removed
+on exit), so two suites at once (another worktree, another session) never share save
+files; shared, they flaked the save tests (2026-10-13). macOS runs are not isolated.
+
 When it reports `collected N of M`, find the culprit with:
 
 ```
