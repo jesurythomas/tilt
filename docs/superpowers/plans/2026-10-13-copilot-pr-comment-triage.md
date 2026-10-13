@@ -1,6 +1,6 @@
 # Copilot PR comment triage (PRs #1-#11)
 
-Branch `review/copilot-pr-comments`. User 2026-10-13: "check all comments left by copilot on all
+Branch `review/copilot-pr-comments`, merged by PR #12. User 2026-10-13: "check all comments left by copilot on all
 recent PRs - create an overall branch to verify if all the comments are correct and resolvable
 or are even necessary". Each comment was checked against `main` at `84ec5ac`.
 
@@ -39,7 +39,7 @@ Tally: 11 fixed or covered, 1 deferred, 7 moot (resolved by later commits).
 - [x] Fix the open ones; mutation-check the new tests (each fails with its fix removed, except
       the rescale test, as noted)
 - [x] 880 tests green, gdformat and gdlint clean, 0 SCRIPT ERROR
-- [ ] User: open a PR for this branch and merge; optionally reply on / resolve the Copilot threads
+- [x] PR #12 opened and merged (2026-10-13). Copilot threads not replied to (not asked)
 
 Frame cost: none per frame. The stick reset runs on a Settings change, the board redraw on Set level.
 

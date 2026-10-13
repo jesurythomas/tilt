@@ -4,12 +4,11 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**Latest (2026-10-13): Copilot PR comment triage, branch `review/copilot-pr-comments`, not
-merged.** User: "check all comments left by copilot on all recent PRs". 19 comments verified
+**Latest (2026-10-13): Copilot PR comment triage, merged into `main` by PR #12.** User: "check all comments left by copilot on all recent PRs". 19 comments verified
 (PRs #5-#11): 11 fixed, 1 deferred (#11 API-33 guard), 7 moot. Code fixes: a Stick position
 change releases a held stick; Set level from Settings redraws the Settings board. 880 tests
-green. Plan `docs/superpowers/plans/2026-10-13-copilot-pr-comment-triage.md`. Next: the user
-opens a PR for the branch and merges it; no A55 build needed (no new device behaviour to check
+green. Plan `docs/superpowers/plans/2026-10-13-copilot-pr-comment-triage.md`. Next: nothing in
+flight; ask the user what to pick up. No A55 build needed for this (no new device behaviour
 beyond VERIFY-ME §Handling's corrected wording).
 
 **Also (2026-10-13): BUG-101 R4, Pause → Keep tilt level, merged into `main` by PR #11
