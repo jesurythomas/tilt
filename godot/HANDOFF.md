@@ -8,7 +8,7 @@ Rewritten at every module stop. Written for a session with zero context.
 bad". The item buttons have no panel (empty styleboxes; the orb is 42 of the 48-unit target) and
 the dash gauge has no disc (track ring + fill on the playfield; the seconds carry the HUD's void
 outline). `dash.ogv` re-recorded. 0.1.21 (code 22, `godot/build/peril-point-0.1.21-a55.apk`, A55
-key) is built but NOT installed: the game was in the foreground on the A55 (someone playing), so it waits for the user (`adb -s RRCXB04L8EJ install -r godot/build/peril-point-0.1.21-a55.apk`, data kept); the A55 has 0.1.20. Next A55 build uses code 23. Everything below still holds.
+key) is on the A55 (user: "build it"; installed 2026-10-14 01:50 over 0.1.20, data kept, launched, booted with no SCRIPT ERROR). Next A55 build uses code 23. Everything below still holds.
 
 **Earlier (2026-10-14): dash, items (active abilities), and the play-screen rework, on branch
 `feat/dash-and-abilities` (from `feat/in-game-ads` at `31040da`, which holds `staging`), not
