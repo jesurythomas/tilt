@@ -63,6 +63,9 @@ var tilt_smoothing: float = 0.0
 # exactly once. calibrated_beta/gamma remain for apply_orientation() (§2.3).
 var _calibrated_gravity: Vector3 = Vector3.ZERO
 var _calibration_pending: bool = false
+# DIVERGENCE(BUG-101 R2): false for the Auto tilt level's capture at each run start, which
+# must not overwrite the level the player saved.
+var _persist_pending: bool = true
 
 var _raw_beta: float = 0.0
 var _raw_gamma: float = 0.0
@@ -133,9 +136,11 @@ func stop_listening() -> void:
 	tilt_vector = Vector2.ZERO
 
 
-## Zeroes the neutral pose at the current attitude.
+## Zeroes the neutral pose at the current attitude. `persist` false keeps the capture out of
+## CALIBRATION_PATH (DIVERGENCE(BUG-101 R2): the Auto tilt level).
 ## PORT: web/src/tilt-to-live/GyroscopeController.ts:109-123
-func calibrate_current_position() -> void:
+func calibrate_current_position(persist: bool = true) -> void:
+	_persist_pending = persist
 	# DIVERGENCE(M2.5 §5.3): GyroscopeController.ts:113-115 falls back to
 	# DEFAULT_CALIBRATED_BETA when no reading has arrived. On Android that
 	# branch is always taken from _ready(), because the sensor has not
@@ -156,6 +161,15 @@ func calibrate_current_position() -> void:
 	if _on_calibrated.is_valid():
 		_on_calibrated.call(calibrated_beta, calibrated_gamma)
 	tilt_vector = Vector2.ZERO
+
+
+## DIVERGENCE(BUG-101 R2): drops any pending or Auto capture and goes back to the saved
+## level (or, with none saved, to the first gravity sample).
+func restore_saved_calibration() -> void:
+	_calibration_pending = false
+	_persist_pending = true
+	_calibrated_gravity = Vector3.ZERO
+	_load_calibration()
 
 
 ## True while waiting for a gravity sample to calibrate against.
@@ -259,7 +273,9 @@ func apply_gravity(g: Vector3, screen_angle: int) -> void:
 		# I4: this is the actual capture point for a pending calibration; save
 		# here instead of in calibrate_current_position(), which fires before
 		# the gravity vector it is calibrating against has arrived.
-		save_calibration()
+		if _persist_pending:
+			save_calibration()
+		_persist_pending = true
 		tilt_vector = Vector2.ZERO
 		return
 

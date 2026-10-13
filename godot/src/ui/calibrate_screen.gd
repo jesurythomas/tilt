@@ -173,6 +173,9 @@ func _left_block() -> VBoxContainer:
 	block.name = "LeftBlock"
 	block.add_theme_constant_override("separation", _px(LEFT_GAP))
 	block.set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT)
+	# BUG-101 R3: grow both ways from the centre anchor. Built before it has a size, the block
+	# grew down only, and at the A55's scale Cancel fell off the bottom of the screen.
+	block.grow_vertical = Control.GROW_DIRECTION_BOTH
 	block.offset_left = _px(LEFT_LEFT) + _inset.x
 	block.custom_minimum_size.x = _px(LEFT_WIDTH)
 
@@ -186,8 +189,13 @@ func _left_block() -> VBoxContainer:
 	title.add_theme_font_override("font", UiTheme.archivo(UiTheme.TITLE_WIDTH))
 	title.add_theme_font_size_override("font_size", _px(TITLE_SIZE))
 	header.add_child(title)
-	var body: Label = UiTheme.text(
-		"Hold the phone the way you play. That angle becomes still.", "BodyText"
+	var body: Label = (
+		UiTheme
+		. text(
+			# DIVERGENCE(BUG-101 R2): Set level picks "All runs", so the board says so.
+			"Hold the phone the way you play. That angle becomes still for every run.",
+			"BodyText"
+		)
 	)
 	body.add_theme_font_size_override("font_size", _px(BODY_SIZE))
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

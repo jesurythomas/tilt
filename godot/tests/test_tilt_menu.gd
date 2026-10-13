@@ -60,12 +60,12 @@ func test_menu_exposes_its_controls() -> void:
 		"MenuArmoryButton",
 		"MenuMilestonesButton",
 		"MenuSettingsButton",
-		"MenuCalibrateButton",
 		"ModeCard_classic",
 		"ModeCard_gauntlet",
 		"ModeCard_code-red",
 	]:
 		assert_not_null(menu.find_child(node_name, true, false), node_name)
+	assert_null(menu.find_child("MenuCalibrateButton", true, false), "BUG-101 R3: removed")
 	var title: Label = menu.find_child("MenuTitle", true, false) as Label
 	assert_eq(title.text, "PERIL\nPOINT", "R6")
 
@@ -103,10 +103,8 @@ func test_nav_buttons_emit_their_requests() -> void:
 	watch_signals(menu)
 	(menu.find_child("MenuArmoryButton", true, false) as Button).pressed.emit()
 	(menu.find_child("MenuMilestonesButton", true, false) as Button).pressed.emit()
-	(menu.find_child("MenuCalibrateButton", true, false) as Button).pressed.emit()
 	assert_signal_emitted(menu, "armory_requested", "TiltMenu.ts:244-246")
 	assert_signal_emitted(menu, "all_goals_requested", "TiltMenu.ts:248-250")
-	assert_signal_emitted(menu, "calibrate_screen_requested", "R5")
 
 
 func test_stats_row_shows_the_balance_from_the_first_launch() -> void:
@@ -408,3 +406,46 @@ func test_touch_card_hint_follows_the_stick_position() -> void:
 	assert_eq(TiltMenu.touch_hint(ControlSettings.StickAnchor.DYNAMIC), "Drag anywhere")
 	assert_eq(TiltMenu.touch_hint(ControlSettings.StickAnchor.LEFT), "Stick left")
 	assert_eq(TiltMenu.touch_hint(ControlSettings.StickAnchor.RIGHT), "Stick right")
+
+
+## BUG-101 R2: Tilt level shows only under tilt, saves, tells GameRoot, and re-marks.
+func test_tilt_level_card_shows_only_for_tilt() -> void:
+	var menu: TiltMenu = _settings_open()
+	assert_null(menu.find_child("TiltLevelCard", true, false), "hidden for touch")
+	_settings.scheme = Types.ControlScheme.GYRO
+	menu.open_options_modal()
+	assert_not_null(menu.find_child("TiltLevelCard", true, false), "shown for tilt")
+	assert_true((menu.find_child("TiltLevelEachStart", true, false) as Button).button_pressed)
+
+
+func test_tilt_level_segments_save_and_signal() -> void:
+	_settings.scheme = Types.ControlScheme.GYRO
+	var menu: TiltMenu = _settings_open()
+	watch_signals(menu)
+	(menu.find_child("TiltLevelAllRuns", true, false) as Button).pressed.emit()
+	assert_eq(_settings.tilt_level, ControlSettings.TiltLevel.SAVED, "written")
+	assert_eq(ControlSettings.new().tilt_level, ControlSettings.TiltLevel.SAVED, "saved")
+	assert_signal_emitted(menu, "tilt_level_changed", "GameRoot applies it at once")
+	assert_true(
+		(menu.find_child("TiltLevelAllRuns", true, false) as Button).button_pressed,
+		"the re-render marks the choice"
+	)
+
+
+func test_tilt_level_hint_follows_the_level() -> void:
+	assert_eq(
+		TiltMenu.tilt_level_hint(ControlSettings.TiltLevel.AUTO),
+		"Levels to how you hold the phone as each run starts"
+	)
+	assert_eq(
+		TiltMenu.tilt_level_hint(ControlSettings.TiltLevel.SAVED),
+		"Your Calibrate level holds for every run"
+	)
+
+
+## BUG-101 R3 (user: "remove touch stick it selected isnt touch"): Touch stick shows only for
+## Touch on a phone.
+func test_touch_stick_card_shows_only_for_touch_on_a_phone() -> void:
+	assert_true(TiltMenu.shows_stick_card(Types.ControlScheme.MOUSE, true))
+	assert_false(TiltMenu.shows_stick_card(Types.ControlScheme.GYRO, true), "not under Tilt")
+	assert_false(TiltMenu.shows_stick_card(Types.ControlScheme.MOUSE, false), "not on desktop")

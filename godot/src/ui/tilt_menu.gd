@@ -33,6 +33,8 @@ signal scheme_chosen(scheme: Types.ControlScheme)
 signal readability_changed
 ## DIVERGENCE(ENH-302 R3): Settings' Stick position changed and was saved; GameRoot applies it.
 signal stick_anchor_changed
+## DIVERGENCE(BUG-101 R2): Settings' Tilt level changed and was saved; GameRoot applies it.
+signal tilt_level_changed
 ## Settings' Sound switch (R9, M11a Q2 ruling): GameRoot saves and applies it.
 signal sfx_toggled(is_on: bool)
 ## Settings' Music switch (R9, M11a Q2 ruling): GameRoot saves and applies it.
@@ -404,7 +406,6 @@ func _bind_events() -> void:
 	_find_button("MenuArmoryButton").pressed.connect(armory_requested.emit)
 	_find_button("MenuMilestonesButton").pressed.connect(all_goals_requested.emit)
 	_find_button("MenuSettingsButton").pressed.connect(open_options_modal)  # PORT: :252-254
-	_find_button("MenuCalibrateButton").pressed.connect(calibrate_screen_requested.emit)
 
 
 func _on_mode_card_pressed(mode: Types.GameMode) -> void:
@@ -521,6 +522,8 @@ func _next_teaser() -> Control:
 
 
 # DIVERGENCE(UI-SYSTEM): Main.dc.html — the Steer row (no TS counterpart; ruling R7).
+# DIVERGENCE(BUG-101 R3, user 2026-10-13: "remove the calibrate at the home page"): the
+# board's calibrate icon is gone; Calibrate tilt stays in Settings, Armory and Pause.
 func _steer_row(left: VBoxContainer) -> ControlPicker:
 	var row: HBoxContainer = HBoxContainer.new()
 	row.name = "SteerRow"
@@ -532,11 +535,6 @@ func _steer_row(left: VBoxContainer) -> ControlPicker:
 	var picker: ControlPicker = CONTROL_PICKER.instantiate() as ControlPicker
 	picker.custom_minimum_size.x = _px(PICKER_WIDTH)
 	row.add_child(picker)
-	var calibrate: Button = _button("MenuCalibrateButton", "IconButton", "")
-	calibrate.custom_minimum_size = Vector2.ONE * _px(UiTheme.TOUCH_TARGET)
-	calibrate.icon = UiTheme.svg_texture(UiTheme.ICON_CALIBRATE, _ui_scale)
-	calibrate.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	row.add_child(calibrate)
 	left.add_child(row)
 	picker.set_ui_scale(_ui_scale)
 	picker.scheme_chosen.connect(scheme_chosen.emit)
@@ -789,6 +787,13 @@ func _bind_options_events() -> void:
 	_find_options_button("StickRight").pressed.connect(
 		_on_stick_pressed.bind(ControlSettings.StickAnchor.RIGHT)
 	)
+	# DIVERGENCE(BUG-101 R2): only built while the scheme is tilt.
+	var level_each: Button = _find_options_button("TiltLevelEachStart")
+	if level_each != null:
+		level_each.pressed.connect(_on_tilt_level_pressed.bind(ControlSettings.TiltLevel.AUTO))
+		_find_options_button("TiltLevelAllRuns").pressed.connect(
+			_on_tilt_level_pressed.bind(ControlSettings.TiltLevel.SAVED)
+		)
 	# PORT-NOTE: the TS button calibrates in place (:485-497); the Settings board
 	# links to the Calibrate screen instead (rulings R4, R5).
 	var calibrate: Button = _find_options_button("SettingsCalibrateButton")
@@ -830,6 +835,14 @@ func _on_stick_pressed(anchor: ControlSettings.StickAnchor) -> void:
 	_settings.stick_anchor = anchor
 	_settings.save_settings()
 	stick_anchor_changed.emit()
+	open_options_modal()
+
+
+# DIVERGENCE(BUG-101 R2): saved here, as Stick position is; GameRoot moves the level.
+func _on_tilt_level_pressed(level: ControlSettings.TiltLevel) -> void:
+	_settings.tilt_level = level
+	_settings.save_settings()
+	tilt_level_changed.emit()
 	open_options_modal()
 
 
@@ -980,6 +993,7 @@ func _controls_column() -> VBoxContainer:
 	column.add_child(_stick_card())
 	# PORT: web/src/tilt-to-live/TiltMenu.ts:378 — only while the scheme is gyro
 	if _settings.scheme == Types.ControlScheme.GYRO:
+		column.add_child(_tilt_level_card())  # DIVERGENCE(BUG-101 R2)
 		var calibrate: Button = _button(
 			"SettingsCalibrateButton", "SecondaryButton", "Calibrate tilt"
 		)
@@ -1001,12 +1015,18 @@ static func touch_hint(anchor: ControlSettings.StickAnchor) -> String:
 	return "Drag anywhere"
 
 
+## DIVERGENCE(BUG-101 R3, user 2026-10-13: "remove touch stick it selected isnt touch"): the
+## Touch stick card shows only while Touch steers, on a phone (the stick exists only there).
+static func shows_stick_card(scheme: Types.ControlScheme, is_mobile: bool) -> bool:
+	return is_mobile and scheme == Types.ControlScheme.MOUSE
+
+
 # DIVERGENCE(ENH-302 R3, GitHub #4): Stick position, built as Screen shake's card. Phones
 # only: the stick exists only there (GameRoot._is_touch_stick_live).
 func _stick_card() -> PanelContainer:
 	var card: PanelContainer = _options_card()
 	card.name = "StickCard"
-	card.visible = OS.has_feature("mobile")
+	card.visible = shows_stick_card(_settings.scheme, OS.has_feature("mobile"))
 	var box: StyleBoxFlat = card.get_theme_stylebox("panel") as StyleBoxFlat
 	box.content_margin_top = _px(SHAKE_PAD_TOP)
 	box.content_margin_bottom = _px(SHAKE_PAD_BOTTOM)
@@ -1024,6 +1044,51 @@ func _stick_card() -> PanelContainer:
 	stack.add_child(segmented)
 	card.add_child(stack)
 	return card
+
+
+## DIVERGENCE(BUG-101 R2): the Tilt level card's hint for a level.
+static func tilt_level_hint(level: ControlSettings.TiltLevel) -> String:
+	if level == ControlSettings.TiltLevel.SAVED:
+		return "Your Calibrate level holds for every run"
+	return "Levels to how you hold the phone as each run starts"
+
+
+# DIVERGENCE(BUG-101 R2, user 2026-10-13: "auto-calibrate on start, or calibrate for all
+# runs"): Tilt level, built as Stick position's card.
+func _tilt_level_card() -> PanelContainer:
+	var card: PanelContainer = _options_card()
+	card.name = "TiltLevelCard"
+	var box: StyleBoxFlat = card.get_theme_stylebox("panel") as StyleBoxFlat
+	box.content_margin_top = _px(SHAKE_PAD_TOP)
+	box.content_margin_bottom = _px(SHAKE_PAD_BOTTOM)
+	var stack: VBoxContainer = VBoxContainer.new()
+	stack.add_theme_constant_override("separation", _px(SHAKE_GAP))
+	stack.add_child(_card_row("Tilt level", tilt_level_hint(_settings.tilt_level)))
+	var segmented: PanelContainer = PanelContainer.new()
+	segmented.theme_type_variation = "Segmented"
+	var row: HBoxContainer = HBoxContainer.new()
+	row.add_theme_constant_override("separation", _px(UiTheme.SEGMENT_PAD))
+	row.add_child(
+		_tilt_level_button("TiltLevelEachStart", "Each start", ControlSettings.TiltLevel.AUTO)
+	)
+	row.add_child(
+		_tilt_level_button("TiltLevelAllRuns", "All runs", ControlSettings.TiltLevel.SAVED)
+	)
+	segmented.add_child(row)
+	stack.add_child(segmented)
+	card.add_child(stack)
+	return card
+
+
+func _tilt_level_button(
+	button_name: String, label: String, level: ControlSettings.TiltLevel
+) -> Button:
+	var button: Button = _button(button_name, "SegmentButton", label)
+	button.toggle_mode = true
+	button.set_pressed_no_signal(_settings.tilt_level == level)
+	button.custom_minimum_size.y = _px(UiTheme.TOUCH_TARGET)
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	return button
 
 
 func _stick_button(

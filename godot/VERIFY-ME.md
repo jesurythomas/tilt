@@ -1017,3 +1017,21 @@ Touch, then the "Touch stick" row: Dynamic / Left / Right.
 - [ ] At 2.0× the preview ship moves faster but turns no sharper than at 0.5×.
 - [ ] Settings → Controls: the link reads "Speed & sensitivity: Armory › Handling" on one line.
 - [ ] In a run (touch or tilt), 2.0× gives a faster ship; turning feels the same as before.
+
+## BUG-101 — calibration sticks (2026-10-12)
+
+0.1.7 (code 8, R2) is on the A55 (installed 2026-10-13 14:24). 0.1.8 (code 9, R2 + R3) is built,
+`build/peril-point-0.1.8-a55.apk`; install it with `adb -s RRCXB04L8EJ install -r`.
+
+- [ ] Menu → Calibrate → hold an unusual angle → Set level → Play holding a *different* angle:
+      the ship rests at the angle set, not the one held at Play.
+- [ ] Same with Armory → Handling → Calibrate tilt.
+- [ ] Die → Retry while holding another angle: the calibration still holds.
+- [ ] Kill the app, relaunch, Play: the calibration from the last session still holds.
+- [ ] The 0:11 clip ("can't go to the right"): does it still happen on this build?
+- [ ] R2, Each start: Play and Retry each level to how the phone is held at the start.
+- [ ] R2, Set level on the Calibrate board flips Tilt level to All runs; switching back to
+      Each start and then to All runs still uses the level you set.
+- [ ] R3: the home page has no calibrate icon beside Steer.
+- [ ] R3: Settings → Calibrate tilt shows both Set level and Cancel on screen.
+- [ ] R3: Settings shows Touch stick only while Touch is selected.

@@ -185,6 +185,8 @@ func _ready() -> void:
 	_menu.all_goals_requested.connect(open_all_goals_modal)  # PORT: :195
 	_menu.scheme_chosen.connect(_on_menu_scheme_chosen)
 	_menu.stick_anchor_changed.connect(_apply_stick_anchor)  # DIVERGENCE(ENH-302 R3)
+	# DIVERGENCE(BUG-101 R2): back to the saved level; Auto re-levels at the next run start.
+	_menu.tilt_level_changed.connect(_tilt.restore_saved_calibration)
 	# The Settings modal (M11a ruling R9): readability and audio apply at once.
 	_menu.readability_changed.connect(apply_readability)
 	_menu.sfx_toggled.connect(set_sfx_enabled)
@@ -219,9 +221,10 @@ func _ready() -> void:
 	# PORT-NOTE: updateCursor (:1480) — no pointer on Android (M11a R16).
 	_bind_menu_layers()
 	GameEvents.phase_changed.emit(Types.GamePhase.MENU)
-	# DIVERGENCE(M2.5 §5.3): this requests calibration; TiltInput now waits for
-	# a real gravity sample rather than falling back to a hardcoded pose.
-	_tilt.calibrate_current_position()
+	# PORT-NOTE(BUG-101): no boot calibration, as in the TS. TiltInput loads the
+	# saved pose; with none it takes the first gravity sample. Calibrating here
+	# armed a capture that the run's first poll took, so the pose at Play
+	# replaced the one the player set. Auto levels in _begin_cinematic (R2).
 	Log.info(
 		(
 			"boot: bounds=%s arena_scale=%f"
@@ -471,8 +474,8 @@ func set_control_scheme(scheme: Types.ControlScheme) -> void:
 
 	# PORT: the sensor transition at game_state_machine.gd:125-128.
 	if scheme == Types.ControlScheme.GYRO:
+		# PORT-NOTE(BUG-101): no recalibration; Auto levels in _begin_cinematic (R2).
 		_tilt.start_listening()
-		_tilt.calibrate_current_position()
 	else:
 		_tilt.stop_listening()
 
@@ -514,11 +517,8 @@ func launch_run(mode: Types.GameMode) -> void:
 	# PORT: web/src/tilt-to-live/TiltGame.ts:1490-1491 (idempotent after Play)
 	_goals_hud.set_menu_mode(false)
 	_menu.hide_menu()
-	# PORT-NOTE: unlike restart_run(), launchRun/resetRun never recalibrate the
-	# gyro (TS :1486-1494, :1547-1557) — a fix from the M11a exit review (I-1):
-	# calibrating here silently overwrote whatever pose the player just set on
-	# the Calibrate board (R4/R5), since Play always follows it back to the
-	# menu. The gyro keeps whatever calibration Calibrate/Pause last set.
+	# PORT-NOTE: launchRun/resetRun never recalibrate (TS :1486-1494, :1547-1557;
+	# M11a I-1). Only the Auto tilt level does, in _begin_cinematic (BUG-101 R2).
 	_bind_run_layers()
 	_begin_cinematic()
 
@@ -613,8 +613,8 @@ func is_paused() -> bool:
 
 ## restart → startCinematic: a fresh run behind a fresh cold open (M11b R10).
 ## PORT: web/src/tilt-to-live/TiltGame.ts:1519-1530
+# PORT-NOTE(BUG-101): restart() never recalibrates (TS :1519-1521); Auto does (R2).
 func restart_run() -> void:
-	_tilt.calibrate_current_position()
 	_state.restart()
 	_goals_hud.set_menu_mode(false)  # PORT: web/src/tilt-to-live/TiltGame.ts:1524
 	_begin_cinematic()
@@ -624,6 +624,9 @@ func restart_run() -> void:
 ## PORT: web/src/tilt-to-live/TiltGame.ts:1525-1529
 func _begin_cinematic() -> void:
 	_joystick.reset()
+	# DIVERGENCE(BUG-101 R2): Auto takes the pose at the run's first poll, unsaved.
+	if settings.levels_each_run():
+		_tilt.calibrate_current_position(false)
 	_run_controller.reset_run(_bounds)
 	# PORT-NOTE(M10 final review F-2): the machine's mode follows the run's
 	# captured mode (R4), so _state.restart() never passes a stale mode.
@@ -666,7 +669,12 @@ func calibrate_gyro() -> bool:
 	var success: bool = _tilt.request_permission_and_start()
 	if success:
 		_tilt.calibrate_current_position()
-		_goals_hud.show_message_toast("TILT CALIBRATED", "Neutral Angle Zeroed ✓")  # PORT: :2335
+		# BUG-101: capture the pose now. Nothing polls in the menu, so Armory's
+		# Calibrate tilt otherwise left the capture to the run's first poll.
+		_tilt.poll()
+		settings.tilt_level = ControlSettings.TiltLevel.SAVED  # DIVERGENCE(BUG-101 R2)
+		settings.save_settings()
+		_goals_hud.show_message_toast("TILT CALIBRATED", "Kept for every run ✓")  # :2335, R2
 	else:
 		_goals_hud.show_message_toast("GYRO SENSOR", "Sensor Unavailable or Blocked")  # PORT: :2337
 	return success

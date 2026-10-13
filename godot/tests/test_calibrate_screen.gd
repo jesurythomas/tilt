@@ -55,3 +55,20 @@ func test_every_target_meets_the_48_rule() -> void:
 	for node_name: String in ["SetLevelButton", "CancelButton"]:
 		var b: Button = screen.find_child(node_name, true, false) as Button
 		assert_true(b.size.y >= 48.0, node_name)
+
+
+## BUG-101 R3 (user: "i only see set level but not the button below it"): at the A55's size the
+## left block grew down from the centre and pushed Cancel off the screen.
+func test_both_buttons_fit_on_the_a55() -> void:
+	var screen: CalibrateScreen = CalibrateScreen.new()
+	add_child_autofree(screen)
+	screen.size = Vector2(2340.0, 1080.0)
+	screen.bind(TiltInput.new())
+	screen.set_ui_scale(2.77, Vector2.ZERO)
+	screen.open()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var bounds: Rect2 = screen.get_global_rect()
+	for node_name: String in ["SetLevelButton", "CancelButton"]:
+		var b: Button = screen.find_child(node_name, true, false) as Button
+		assert_true(bounds.encloses(b.get_global_rect()), node_name + " is on screen")

@@ -491,7 +491,8 @@ func test_calibrate_reports_through_a_message_toast() -> void:
 	var subtitle: Label = root.find_child("ToastSubtitle", true, false) as Label
 	# PORT: web/src/tilt-to-live/TiltGame.ts:2335, :2337
 	assert_eq(title.text, "TILT CALIBRATED" if ok else "GYRO SENSOR")
-	assert_eq(subtitle.text, "Neutral Angle Zeroed ✓" if ok else "Sensor Unavailable or Blocked")
+	# DIVERGENCE(BUG-101 R2): the subtitle says the level is kept.
+	assert_eq(subtitle.text, "Kept for every run ✓" if ok else "Sensor Unavailable or Blocked")
 
 
 func test_run_over_lists_the_runs_milestones_and_opens_the_screen() -> void:
@@ -915,11 +916,14 @@ func test_settings_switches_apply_at_once() -> void:
 	assert_false(GameOptionsManager.new().settings.sfx_enabled, "and saved")
 
 
-func test_the_menu_calibrate_icon_opens_the_screen_and_set_level_calibrates() -> void:
+func test_settings_calibrate_opens_the_screen_and_set_level_calibrates() -> void:
+	# BUG-101 R3: the home page's calibrate icon is gone; Settings' Calibrate tilt opens it.
 	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
 	add_child_autofree(root)
 	await get_tree().process_frame
-	(root.find_child("MenuCalibrateButton", true, false) as Button).pressed.emit()
+	root.set_control_scheme(Types.ControlScheme.GYRO)
+	root._menu.open_options_modal()
+	(root.find_child("SettingsCalibrateButton", true, false) as Button).pressed.emit()
 	var screen: CalibrateScreen = root.find_child("Calibrate", true, false) as CalibrateScreen
 	assert_true(screen.is_open(), "R5")
 	(screen.find_child("SetLevelButton", true, false) as Button).pressed.emit()
@@ -1019,6 +1023,44 @@ func test_launch_run_does_not_recalibrate_the_gyro() -> void:
 	)
 
 
+func test_boot_keeps_the_saved_calibration() -> void:
+	# BUG-101: boot armed a capture that the run's first poll took, so a
+	# calibration set on an earlier launch became the pose at Play.
+	SaveStore.save_dict(
+		TiltInput.CALIBRATION_PATH, {"beta": 0.0, "gamma": 0.0, "gravity": [2.0, -8.0, -5.7]}
+	)
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	assert_false(root._tilt.is_calibration_pending(), "boot must not re-arm a calibration")
+	assert_eq(root._tilt._calibrated_gravity, Vector3(2.0, -8.0, -5.7), "the saved pose stays")
+
+
+func test_retry_does_not_recalibrate_the_gyro() -> void:
+	# BUG-101: TiltGame.ts restart() (:1519-1521) never recalibrates.
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	root._tilt.start_listening()
+	root._tilt.calibrate_current_position()
+	root._tilt.apply_gravity(Vector3(2.0, -8.0, -5.7), 90)
+	root.launch_run(root.options.settings.mode)
+	root.restart_run()
+	assert_false(root._tilt.is_calibration_pending(), "Retry must not re-arm a calibration")
+
+
+func test_choosing_tilt_does_not_recalibrate_the_gyro() -> void:
+	# BUG-101: the menu Steer picker armed a capture that Play then took.
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	root._tilt.start_listening()
+	root._tilt.calibrate_current_position()
+	root._tilt.apply_gravity(Vector3(2.0, -8.0, -5.7), 90)
+	root.set_control_scheme(Types.ControlScheme.GYRO)
+	assert_false(root._tilt.is_calibration_pending(), "choosing tilt must not re-arm a calibration")
+
+
 func test_a_run_clips_the_play_layers_to_the_arena() -> void:
 	# M11c review: blast rings and pushed grid lines drew into the margin.
 	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
@@ -1066,3 +1108,69 @@ func test_boot_applies_the_saved_vibration_choice() -> void:
 	await get_tree().process_frame
 	assert_false(Haptics.enabled, "the choice is honoured from the first frame")
 	Haptics.enabled = true
+
+
+## BUG-101 R2: under Auto, a run start arms a capture that is not saved.
+func test_auto_tilt_level_levels_at_each_run_start_without_saving() -> void:
+	SaveStore.save_dict(
+		TiltInput.CALIBRATION_PATH, {"beta": 0.0, "gamma": 0.0, "gravity": [2.0, -8.0, -5.7]}
+	)
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	root.settings.tilt_level = ControlSettings.TiltLevel.AUTO
+	root.set_control_scheme(Types.ControlScheme.GYRO)
+	root._tilt.start_listening()
+	root.launch_run(root.options.settings.mode)
+	assert_true(root._tilt.is_calibration_pending(), "Play arms a capture")
+	root._tilt.apply_gravity(Vector3(-3.0, -7.0, -6.0), 90)
+	assert_eq(root._tilt._calibrated_gravity, Vector3(-3.0, -7.0, -6.0).normalized(), "taken")
+	assert_eq(
+		TiltInput.new()._calibrated_gravity, Vector3(2.0, -8.0, -5.7), "the saved level is kept"
+	)
+	root.restart_run()
+	assert_true(root._tilt.is_calibration_pending(), "Retry arms a capture too")
+
+
+## BUG-101 R2: under All runs, no run start recalibrates.
+func test_saved_tilt_level_keeps_the_level_across_runs() -> void:
+	SaveStore.save_dict(
+		TiltInput.CALIBRATION_PATH, {"beta": 0.0, "gamma": 0.0, "gravity": [2.0, -8.0, -5.7]}
+	)
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	root.settings.tilt_level = ControlSettings.TiltLevel.SAVED
+	root.set_control_scheme(Types.ControlScheme.GYRO)
+	root.launch_run(root.options.settings.mode)
+	assert_false(root._tilt.is_calibration_pending(), "Play keeps the level")
+	root.restart_run()
+	assert_false(root._tilt.is_calibration_pending(), "Retry keeps the level")
+	assert_eq(root._tilt._calibrated_gravity, Vector3(2.0, -8.0, -5.7))
+
+
+## BUG-101 R2: a level the player sets is kept for every run.
+func test_setting_a_level_picks_all_runs() -> void:
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	root._tilt.is_supported = true  # the test host has no sensor
+	assert_true(root.calibrate_gyro())
+	assert_eq(root.settings.tilt_level, ControlSettings.TiltLevel.SAVED)
+	assert_eq(ControlSettings.new().tilt_level, ControlSettings.TiltLevel.SAVED, "saved")
+
+
+## BUG-101 R2: switching to All runs drops the last Auto capture for the saved level.
+func test_choosing_all_runs_restores_the_saved_level() -> void:
+	SaveStore.save_dict(
+		TiltInput.CALIBRATION_PATH, {"beta": 0.0, "gamma": 0.0, "gravity": [2.0, -8.0, -5.7]}
+	)
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	root._tilt.start_listening()
+	root._tilt.calibrate_current_position(false)
+	root._tilt.apply_gravity(Vector3(-3.0, -7.0, -6.0), 90)
+	root.settings.tilt_level = ControlSettings.TiltLevel.SAVED
+	root._menu.tilt_level_changed.emit()
+	assert_eq(root._tilt._calibrated_gravity, Vector3(2.0, -8.0, -5.7))

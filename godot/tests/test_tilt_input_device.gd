@@ -130,3 +130,18 @@ func test_calibration_round_trips_through_the_user_file() -> void:
 	assert_almost_eq(reloaded.calibrated_gamma, -3.25, 0.0001, "gamma survives a reload")
 	assert_false(reloaded.is_calibration_pending(), "the gravity vector survives a reload")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(TiltInput.CALIBRATION_PATH))
+
+
+## BUG-101 R2: an Auto capture is used but not saved; restore goes back to the saved level.
+func test_an_unsaved_capture_keeps_the_saved_level() -> void:
+	_tilt.calibrate_current_position()
+	_tilt.apply_gravity(Vector3(2.0, -8.0, -5.7), 90)
+	_tilt.calibrate_current_position(false)
+	_tilt.apply_gravity(Vector3(-3.0, -7.0, -6.0), 90)
+	assert_eq(_tilt._calibrated_gravity, Vector3(-3.0, -7.0, -6.0).normalized(), "in use")
+	assert_eq(
+		TiltInput.new()._calibrated_gravity, Vector3(2.0, -8.0, -5.7).normalized(), "not saved"
+	)
+	_tilt.restore_saved_calibration()
+	assert_eq(_tilt._calibrated_gravity, Vector3(2.0, -8.0, -5.7).normalized(), "restored")
+	assert_false(_tilt.is_calibration_pending())
