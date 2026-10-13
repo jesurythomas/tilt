@@ -144,13 +144,17 @@ ruling is its own roadmap item (Play Billing) and is not built here.
       the game adds no per-frame code; the SDK's own threads are unmeasured (§ADS Part A).)*
 - [x] 8. Docs: `HANDOFF.md`, `VERIFY-ME.md` §ADS (Part A: the A55 checks; Part B: the user's
       AdMob and Play Console steps), the roadmap's Week 2 ticks, `tools/README.md`.
-- [ ] 9. The user's A55 pass (§ADS Part A) and AdMob setup (Part B); merge.
+- [ ] 9. The user's A55 pass (§ADS Part A) and AdMob setup (Part B); merge. *(User: "rebuild
+      it". Rebuilt as 0.1.15 (code 16, same code as 0.1.14), installed on the unlocked A55
+      2026-10-13 22:10 with data kept, launched: consent in ~2 s, `can_request_ads=true
+      privacy_options_required=false`, no load failure; menu frame time mean 16.66 ms, p95 25.1.
+      The rest of Part A is the user's.)*
 
 ## Open
 
 - **Package name.** The preset builds `com.jtg.perilpoint`; the A55's Play Store copy is
   `ph.newzenith.perilpoint`. The AdMob app must be registered under the package that ships.
-- **APK size.** 82.3 MB (0.1.10) → 95 MB (0.1.14, A55 key): the SDK, Kotlin and coroutines add
+- **APK size.** 82.3 MB (0.1.10) → 95 MB (0.1.14 and 0.1.15, A55 key): the SDK, Kotlin and coroutines add
   ~9 MB of dex, the rest is HTP's clips. Godot's gradle build does not minify; R8 could shrink
   the dex, but needs keep rules for Godot and the plugin. Not done.
 - **Next feature:** the ₱15 Remove ads purchase (Play Billing, roadmap Week 2). It should make

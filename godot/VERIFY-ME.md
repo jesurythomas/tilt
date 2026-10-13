@@ -1067,9 +1067,9 @@ On the A55 as 0.1.9 (code 10). Log and `dumpsys vibrator_manager` confirmed `usa
 
 ## ADS R1-R4 — AdMob interstitials at the Run over (2026-10-13, branch `feat/in-game-ads`)
 
-Plan `docs/superpowers/plans/2026-10-13-in-game-ads.md`. 0.1.14 (code 15,
-`godot/build/peril-point-0.1.14-a55.apk`, A55 key) was installed on the A55 2026-10-13 19:32
-over 0.1.13, data kept. The phone was locked, so nothing ran on it. Every ad unit is Google's
+Plan `docs/superpowers/plans/2026-10-13-in-game-ads.md`. 0.1.15 (code 16,
+`godot/build/peril-point-0.1.15-a55.apk`, A55 key; the same code as 0.1.14) was installed on the
+A55 2026-10-13 22:10 over 0.1.14, data kept, and launched (first Part A check below). Every ad unit is Google's
 **test** unit until you do Part B: ads carry a "Test Ad" label and earn nothing.
 
 Checked on the emulator (Pixel_10, Play Store image), 2026-10-13:
@@ -1080,10 +1080,12 @@ Checked on the emulator (Pixel_10, Play Store image), 2026-10-13:
   test ad; after ✕ the cold open (Retry) or the menu (Menu) followed.
 - Default settings, fresh save: no form (not EEA), and a 3-second first run retried with no ad.
 
-### Part A — on the A55 (0.1.14)
+### Part A — on the A55 (0.1.15)
 
-- [ ] Launch; `adb -s RRCXB04L8EJ logcat -d | grep "ads:"` shows
+- [x] Launch; `adb -s RRCXB04L8EJ logcat -d | grep "ads:"` shows
       `ads: consent can_request_ads=true privacy_options_required=false` (no form outside the EEA).
+      *(Seen 2026-10-13 22:10, ~2 s after boot; UMP wrote `IABTCF_gdprApplies=0`; no load
+      failure logged. Menu frame time: mean 16.66 ms, p95 25.1.)*
 - [ ] Play at least 3 runs of 20 s or more, over 3 minutes or more. Then Retry or Menu on the
       Run over shows one test interstitial; ✕ continues to the run or the menu. The game is
       silent under the ad and its sound comes back.
@@ -1094,8 +1096,9 @@ Checked on the emulator (Pixel_10, Play Store image), 2026-10-13:
       runs before it.
 - [ ] Optional, the EEA form on the A55: put `ads/debug_geography=1` under `[peril]` in
       `project.godot` (uncommitted), build with `tools/release.sh` (it restores `project.godot`
-      after the export), launch, and copy the hash from the logcat line
-      `addTestDeviceHashedId("…")` into `ads/test_device_hashed_id`; build again. UMP applies a
+      after the export), and put the A55's hash in
+      `ads/test_device_hashed_id="9A0837A109CE8195013D1AF3E32EC41B"` (from its logcat line
+      `addTestDeviceHashedId("…")`). UMP applies a
       debug geography only to a test device.
 
 ### Part B — AdMob and Play Console (you do this once, before real ads)
@@ -1110,9 +1113,10 @@ Checked on the emulator (Pixel_10, Play Store image), 2026-10-13:
 
    ads/android_app_id="ca-app-pub-XXXXXXXX~YYYYYYYY"
    ads/android_interstitial_id="ca-app-pub-XXXXXXXX/ZZZZZZZZ"
-   ads/test_device_hashed_id="<the A55's hash, so your own phone gets test ads>"
+   ads/test_device_hashed_id="9A0837A109CE8195013D1AF3E32EC41B"
    ```
-   Also add the A55 under AdMob → Settings → Test devices. Clicking real ads on your own phone
+   That is the A55's hash, so your own phone keeps getting test ads. Also add the A55 under
+   AdMob → Settings → Test devices. Clicking real ads on your own phone
    can get the account suspended.
 4. AdMob → Privacy & messaging → **European regulations** (GDPR) message for this app: create
    and publish it (the form the game shows in the EEA, UK and Switzerland). Optionally the US

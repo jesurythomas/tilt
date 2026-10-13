@@ -24,8 +24,11 @@ device check; never commit it on. Facade in Telemetry's shape: `Ads` autoload
 924 tests green (`test_ads.gd`, `test_ad_break.gd`), nothing leaked, gdformat and gdlint clean,
 0 SCRIPT ERROR headless. Emulator (Pixel_10, Play Store image): the EEA consent form, the
 privacy options form, test interstitials on Retry and Menu with the action after ✕, and no ad
-on a short first run, all seen. 0.1.14 (code 15) is installed on the A55 but was not run (the
-phone was locked); next A55 build uses code 16. Surprises: a static factory that called its own
+on a short first run, all seen. 0.1.15 (code 16, same code as 0.1.14, `godot/build/peril-point-0.1.15-a55.apk`)
+is on the A55, installed 2026-10-13 22:10 with data kept, and launched: consent answered in ~2 s,
+`can_request_ads=true privacy_options_required=false` (GDPR does not apply in PH), no load
+failure; menu frame time mean 16.66 ms, p95 25.1. The A55's ads hash is
+`9A0837A109CE8195013D1AF3E32EC41B`. Next A55 build uses code 17. Surprises: a static factory that called its own
 class's `new()` from an autoload kept every script alive at exit (306 leaked instances; fixed by
 building the backend in `Ads._ready`); a SceneTreeTimer bound into its own signal is a leaking
 cycle. The APK grew to 95 MB (the SDK's dex is ~9 MB; no R8). Next: the user's A55 pass
