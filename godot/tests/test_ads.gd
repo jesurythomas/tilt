@@ -109,7 +109,10 @@ func test_pacing_starts_over_after_an_ad() -> void:
 func test_start_gathers_consent_once_with_the_config() -> void:
 	Ads.start()
 	Ads.start()
-	assert_eq(_rec.calls, ["consent  0"] as Array[String])
+	var expected: String = (
+		"consent %s %d" % [AdsConfig.test_device_hashed_id(), AdsConfig.debug_geography()]
+	)
+	assert_eq(_rec.calls, [expected] as Array[String])
 
 
 func test_consent_loads_the_interstitial_and_tells_settings() -> void:

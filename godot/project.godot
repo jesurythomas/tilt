@@ -55,6 +55,10 @@ sensors/enable_accelerometer=true
 sensors/enable_gravity=true
 pointing/emulate_mouse_from_touch=true
 
+[peril]
+
+ads/test_device_hashed_id="9A0837A109CE8195013D1AF3E32EC41B"
+
 [physics]
 
 common/physics_ticks_per_second=120
