@@ -8,7 +8,7 @@ Rewritten at every module stop. Written for a session with zero context.
 open.** User: "vibration isnt working". Godot's `vibrate_handheld` tags pulses `usage: TOUCH`;
 the A55 has touch-feedback vibration off, so Android dropped every pulse. `Haptics` now calls
 the Android Vibrator as media (`JavaClassWrapper`, `AndroidRuntime`); verified on the A55
-(`usage: MEDIA`, `finished`). Switching Vibration on buzzes once. 871 tests green. 0.1.9
+(`usage: MEDIA`, `finished`) and by the user ("vibration works now as well"). Switching Vibration on buzzes once. 871 tests green. 0.1.9
 (code 10) is on the A55; next A55 build uses code 11. Plan
 `docs/superpowers/plans/2026-10-13-fix-haptics-media-vibration.md`.
 

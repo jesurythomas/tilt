@@ -1039,5 +1039,5 @@ Touch, then the "Touch stick" row: Dynamic / Left / Right.
 
 On the A55 as 0.1.9 (code 10). Log and `dumpsys vibrator_manager` confirmed `usage: MEDIA` plays.
 
-- [ ] A nuke, a close call and a death each buzz (touch-feedback vibration may stay off).
+- [x] A nuke, a close call and a death each buzz (user: "vibration works now as well").
 - [ ] Settings → Vibration off then on: one short buzz. Off: no buzz in a run.
