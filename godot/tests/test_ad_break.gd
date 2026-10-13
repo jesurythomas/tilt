@@ -26,6 +26,7 @@ func _remove_saves() -> void:
 		GoalManager.CUMULATIVE_SAVE_PATH,
 		ScoreManager.BEST_SCORE_PATH,
 		TiltInput.CALIBRATION_PATH,
+		Ads.SAVE_PATH,
 	]:
 		_remove(path)
 		_remove(SaveStore.corrupt_path_for(path))
@@ -83,7 +84,7 @@ func test_launch_gathers_consent_after_the_first_frame() -> void:
 
 func test_a_death_counts_for_the_pacing() -> void:
 	var root: GameRoot = await _boot_to_run_over()
-	assert_eq(Ads.pacing.runs_since_ad, 1)
+	assert_eq(Ads.pacing.games_since_ad, 1)
 	assert_not_null(root)
 
 

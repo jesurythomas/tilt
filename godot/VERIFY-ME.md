@@ -1086,11 +1086,13 @@ Checked on the emulator (Pixel_10, Play Store image), 2026-10-13:
       `ads: consent can_request_ads=true privacy_options_required=false` (no form outside the EEA).
       *(Seen 2026-10-13 22:10, ~2 s after boot; UMP wrote `IABTCF_gdprApplies=0`; no load
       failure logged. Menu frame time: mean 16.66 ms, p95 25.1.)*
-- [ ] Play at least 3 runs of 20 s or more, over 3 minutes or more. Then Retry or Menu on the
-      Run over shows one test interstitial; ✕ continues to the run or the menu. The game is
-      silent under the ad and its sound comes back.
-- [ ] No ad: after a run under 20 s, in a launch's first 3 minutes, from Pause's Restart run or
-      Quit to menu, or with the phone in flight mode (Retry and Menu act at once).
+- [ ] (ADS R5) Play 5-10 games, or 5 minutes of run time, whichever comes first; the count
+      carries across launches. Then Retry or Menu on the Run over shows one test interstitial;
+      ✕ continues to the run or the menu. The game is silent under the ad and its sound comes
+      back. *(The every-break build 0.1.17 showed two on 2026-10-14 00:11 and 00:11:56; each
+      opened in ~50 ms and the game had focus after ✕.)*
+- [ ] No ad: after a run under 20 s, from Pause's Restart run or Quit to menu, or with the phone
+      in flight mode (Retry and Menu act at once).
 - [ ] Frame time in a run: `tools/frametime.sh 20 ads`. HTP's Power-ups page read mean 16.71 ms,
       p95 25.2 on 0.1.11; the ads build adds no per-frame game code, so a run should match the
       runs before it.

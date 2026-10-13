@@ -1,5 +1,5 @@
 ## ads.gd
-## PORTS: nothing — new file (rulings ADS R1-R4, docs/superpowers/plans/2026-10-13-in-game-ads.md)
+## PORTS: nothing — new file (rulings ADS R1-R5, docs/superpowers/plans/2026-10-13-in-game-ads.md)
 # PORT-NOTE: no `class_name`, against CONVENTIONS §2. An autoload script cannot
 # carry one (same as Telemetry, Haptics, Log and GameEvents).
 extends Node
@@ -14,13 +14,15 @@ signal consent_changed
 
 ## DIVERGENCE(ADS R2): seconds an ad may take to open before the break goes on without it.
 const OPEN_TIMEOUT_SECONDS: float = 4.0
+## DIVERGENCE(ADS R5): the pacing's counts, kept across launches.
+const SAVE_PATH: String = "user://peril_point_ads.json"
 
 ## Where ad calls go: the PerilAds plugin on Android, else the null backend.
 var backend: AdsBackend = null
 ## When the break may show an ad.
 var pacing: AdPacing = null
-## Seconds on a monotonic clock. A Callable so tests can move time.
-var clock: Callable = _ticks_seconds
+## Draws each pacing gap. Tests seed it.
+var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 ## True once consent allows ad requests.
 var can_request_ads: bool = false
 ## True when UMP asks for a privacy options entry point (Settings → Ad privacy).
@@ -47,6 +49,7 @@ func _ready() -> void:
 		set_backend(AndroidAdsBackend.new(Engine.get_singleton(AndroidAdsBackend.SINGLETON)))
 	else:
 		set_backend(AdsBackend.new())
+	rng.randomize()
 	reset_session()
 
 
@@ -68,10 +71,11 @@ func set_backend(next: AdsBackend) -> void:
 	backend.interstitial_failed_to_show.connect(_finish_break)
 
 
-## Forgets consent, the loaded ad and any break, and starts the pacing over, as at launch.
+## Forgets consent, the loaded ad and any break, and reloads the pacing's save, as at launch.
 func reset_session() -> void:
 	_restore_sound()
-	pacing = AdPacing.new(_now())
+	pacing = AdPacing.new(rng)
+	pacing.load_dict(SaveStore.load_dict(SAVE_PATH))
 	can_request_ads = false
 	is_privacy_options_required = false
 	is_ad_loaded = false
@@ -93,14 +97,15 @@ func start() -> void:
 ## A run ended after `seconds`: counts it for the pacing and makes sure an ad is on its way.
 func note_run_end(seconds: float, was_first_run: bool) -> void:
 	pacing.note_run_end(seconds, was_first_run)
+	_save_pacing()
 	_request_load()
 
 
-## True when a break now would show an ad: consent, a loaded ad, and the pacing (ADS R2).
+## True when a break now would show an ad: consent, a loaded ad, and the pacing (ADS R5).
 func is_break_due() -> bool:
 	if not can_request_ads or not is_ad_loaded:
 		return false
-	return AdsConfig.is_every_break() or pacing.is_due(_now())
+	return AdsConfig.is_every_break() or pacing.is_due()
 
 
 ## DIVERGENCE(ADS R2): the ad break. Shows an interstitial when one is due and runs `action`
@@ -161,7 +166,8 @@ func _on_interstitial_failed_to_load() -> void:
 
 func _on_interstitial_opened() -> void:
 	_is_awaiting_open = false
-	pacing.note_ad_shown(_now())
+	pacing.note_ad_shown()
+	_save_pacing()
 	Log.info("ads: interstitial opened")
 
 
@@ -195,10 +201,5 @@ func _restore_sound() -> void:
 		AudioServer.set_bus_mute(0, _was_master_muted)
 
 
-func _now() -> float:
-	var seconds: float = clock.call()
-	return seconds
-
-
-func _ticks_seconds() -> float:
-	return Time.get_ticks_msec() / 1000.0
+func _save_pacing() -> void:
+	SaveStore.save_dict(SAVE_PATH, pacing.to_dict())

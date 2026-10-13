@@ -100,6 +100,22 @@ ruling is its own roadmap item (Play Billing) and is not built here.
   `AdsBackend` for desktop, headless and tests, and `AndroidAdsBackend`, the only file that
   names the plugin. No sim class calls `Ads`; GameRoot does.
 
+## Ruling ADS R5 — pacing by games or play time (user, 2026-10-14)
+
+User: "Can we run this after every 5-10 games at random or total ingame time e.g. actually
+playing a mode". Replaces R2's 3 runs and 180 wall-clock seconds; the rest of R2 stands.
+- **Due when either holds**, whichever comes first: `games_since_ad` ≥ a gap drawn at random
+  from `MIN_GAMES_PER_AD` = 5 to `MAX_GAMES_PER_AD` = 10 (drawn again after each ad), or
+  `play_seconds_since_ad` ≥ `PLAY_SECONDS_PER_AD` = 300 (run time from `GameStats.survival_time`,
+  not menus). My call on the 5 minutes: about 7 runs of 40 s.
+- **Kept from R2/MVP R1:** never after the player's first run ever, never right after a run
+  under 20 s (the ad waits for the next longer run), consent and a loaded ad required.
+- **A game** is a run that reaches the Run over; Pause's Restart and Quit count neither a game
+  nor its time (they are not breaks either).
+- **Saved across launches** (my call): `user://peril_point_ads.json` holds the two counts and the
+  drawn gap (`Ads.SAVE_PATH`, written through `SaveStore` at each run end and each opened ad).
+  Without it, players whose sessions are 3-4 games would never see an ad.
+
 ## Tasks
 
 - [x] 1. Plan (this file); branch. Commit.
@@ -144,6 +160,11 @@ ruling is its own roadmap item (Play Billing) and is not built here.
       the game adds no per-frame code; the SDK's own threads are unmeasured (§ADS Part A).)*
 - [x] 8. Docs: `HANDOFF.md`, `VERIFY-ME.md` §ADS (Part A: the A55 checks; Part B: the user's
       AdMob and Play Console steps), the roadmap's Week 2 ticks, `tools/README.md`.
+- [x] 10. ADS R5: `AdPacing` by games or play time, saved; `Ads.clock` removed (no wall
+      clock left). *(Done 2026-10-14: 70/70 scripts, nothing leaked; gdformat, gdlint clean.)*
+- [ ] 11. Rewarded ad on the Run over: "Watch ad · 3× coins" (user, 2026-10-14). Ruling ADS R6.
+- [ ] 12. Raise prices of weapon upgrades, ships, arenas and boosts (user, 2026-10-14). Ruling
+      ADS R7.
 - [ ] 9. The user's A55 pass (§ADS Part A) and AdMob setup (Part B); merge. *(User: "rebuild
       it". Rebuilt as 0.1.15 (code 16, same code as 0.1.14), installed on the unlocked A55
       2026-10-13 22:10 with data kept, launched: consent in ~2 s, `can_request_ads=true
