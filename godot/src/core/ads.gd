@@ -32,15 +32,21 @@ var _is_started: bool = false
 var _is_loading: bool = false
 ## The break's action, held while its ad opens and shows.
 var _pending: Callable = Callable()
-## The watchdog of the ad now opening; null once it opened or the break ended.
-var _open_timer: SceneTreeTimer = null
+## True from `show` until the ad opens or the break ends; the watchdog acts only then.
+var _is_awaiting_open: bool = false
+## Numbers each break, so a watchdog left over from an earlier one does nothing.
+var _break_serial: int = 0
 var _is_muting: bool = false
 var _was_master_muted: bool = false
 
 
 func _ready() -> void:
-	var android: AndroidAdsBackend = AndroidAdsBackend.create()
-	set_backend(android if android != null else AdsBackend.new())
+	# Built here, not by a static factory on AndroidAdsBackend: a static func that calls its own
+	# class's new() kept every script (GUT's too) alive at exit, which tools/run_tests.sh fails on.
+	if Engine.has_singleton(AndroidAdsBackend.SINGLETON):
+		set_backend(AndroidAdsBackend.new(Engine.get_singleton(AndroidAdsBackend.SINGLETON)))
+	else:
+		set_backend(AdsBackend.new())
 	reset_session()
 
 
@@ -72,7 +78,8 @@ func reset_session() -> void:
 	_is_started = false
 	_is_loading = false
 	_pending = Callable()
-	_open_timer = null
+	_is_awaiting_open = false
+	_break_serial += 1
 
 
 ## Gathers consent, once per launch. GameRoot calls it after the first frame.
@@ -108,9 +115,12 @@ func ad_break(action: Callable) -> void:
 	_pending = action
 	is_ad_loaded = false
 	_mute_sound()
-	var timer: SceneTreeTimer = get_tree().create_timer(OPEN_TIMEOUT_SECONDS)
-	timer.timeout.connect(_on_open_timeout.bind(timer))
-	_open_timer = timer
+	_break_serial += 1
+	_is_awaiting_open = true
+	# Bound to a number, not the timer: a timer bound into its own signal is a cycle that leaks.
+	get_tree().create_timer(OPEN_TIMEOUT_SECONDS).timeout.connect(
+		_on_open_timeout.bind(_break_serial)
+	)
 	backend.show_interstitial()
 
 
@@ -149,18 +159,18 @@ func _on_interstitial_failed_to_load() -> void:
 
 
 func _on_interstitial_opened() -> void:
-	_open_timer = null
+	_is_awaiting_open = false
 	pacing.note_ad_shown(_now())
 
 
-func _on_open_timeout(timer: SceneTreeTimer) -> void:
-	if timer == _open_timer:
+func _on_open_timeout(serial: int) -> void:
+	if serial == _break_serial and _is_awaiting_open:
 		_finish_break()
 
 
 ## The ad closed or failed, or never opened: sound back, the action runs once, the next ad loads.
 func _finish_break() -> void:
-	_open_timer = null
+	_is_awaiting_open = false
 	var action: Callable = _pending
 	_pending = Callable()
 	_restore_sound()

@@ -113,12 +113,13 @@ func test_start_gathers_consent_once_with_the_config() -> void:
 
 
 func test_consent_loads_the_interstitial_and_tells_settings() -> void:
-	watch_signals(Ads)
+	Ads.consent_changed.connect(_count_action)
 	Ads.start()
 	_rec.consent_finished.emit(true, true)
+	Ads.consent_changed.disconnect(_count_action)
 	assert_true(Ads.can_request_ads)
 	assert_true(Ads.is_privacy_options_required)
-	assert_signal_emitted(Ads, "consent_changed")
+	assert_eq(_actions, 1, "consent_changed")
 	assert_eq(_rec.count("load " + AdsConfig.interstitial_id()), 1)
 
 
@@ -260,5 +261,5 @@ func test_config_uses_a_set_id_and_falls_back_to_googles_test_id() -> void:
 
 
 func test_off_android_the_autoload_runs_on_the_null_backend() -> void:
-	assert_null(AndroidAdsBackend.create())
+	assert_false(Engine.has_singleton(AndroidAdsBackend.SINGLETON))
 	assert_false(_previous is AndroidAdsBackend)

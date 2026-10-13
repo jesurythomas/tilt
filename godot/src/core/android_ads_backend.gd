@@ -21,13 +21,6 @@ func _init(plugin: Object) -> void:
 	_plugin.connect("interstitial_failed_to_show", _on_interstitial_failed_to_show)
 
 
-## The plugin's backend on Android, else null.
-static func create() -> AndroidAdsBackend:
-	if not Engine.has_singleton(SINGLETON):
-		return null
-	return AndroidAdsBackend.new(Engine.get_singleton(SINGLETON))
-
-
 # PORT-NOTE: the plugin is a JNI singleton with no script class, so its Java methods are
 # reached by name, as haptics.gd reaches the Android Vibrator.
 func gather_consent(test_device_hashed_id: String, debug_geography: int) -> void:

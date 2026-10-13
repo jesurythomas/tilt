@@ -116,10 +116,21 @@ ruling is its own roadmap item (Play Billing) and is not built here.
       HTP's clips. minSdk stays 29, as before.)*
 - [x] 4. `AdsConfig`, `AdPacing`, `AdsBackend`, `AndroidAdsBackend`, `Ads` autoload;
       `tests/recording_ads_backend.gd`, `tests/test_ads.gd`.
-- [ ] 5. GameRoot: the break on Retry/Menu from the Run over, `Ads.note_run_end` beside
+- [x] 5. GameRoot: the break on Retry/Menu from the Run over, `Ads.note_run_end` beside
       `Telemetry.run_end`, `Ads.start()`; Settings "Ad privacy" row. Tests in
-      `test_ads.gd` / `test_main_scene.gd` / `test_tilt_menu.gd`.
-- [ ] 6. Full suite, gdformat, gdlint, headless SCRIPT ERROR count.
+      `test_ads.gd` (21) and `test_ad_break.gd` (8: Retry and Menu wait for the ad, a double
+      tap restarts once, Pause's Restart/Quit are immediate, no ad means no wait, the Settings
+      row appears when consent asks and calls the form). The Reset card's button styling moved
+      into `TiltMenu._card_button`, shared with Manage.
+- [x] 6. Full suite, gdformat, gdlint, headless SCRIPT ERROR count. *(2026-10-13: `OK: 70/70
+      scripts collected, all tests passed, nothing leaked` (924 tests, 20,512 asserts; `main` is
+      895); gdformat 131 files unchanged; gdlint clean; headless `--quit-after 240` SCRIPT ERROR
+      0. Two leaks found on the way, both mine, both fixed: (1) the watchdog bound its
+      SceneTreeTimer into the timer's own signal, a RefCounted cycle; it binds a serial number
+      now. (2) A static `AndroidAdsBackend.create()` that called `AndroidAdsBackend.new()`, run
+      from the autoload, kept every script alive at exit (306 ObjectDB instances, GUT's runner
+      included); bisected over worktrees: the autoload with an empty `_ready` was clean, the
+      factory call alone leaked. `Ads._ready` builds the backend itself now.)*
 - [ ] 7. A55: 0.1.14 (code 15) with the A55 key; a temporary test build (every_break, debug
       EEA) shows the consent form and a test interstitial at Menu/Retry, the action runs after
       the close, sound returns; logcat clean. Frame time in a run (`tools/frametime.sh`).
