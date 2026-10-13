@@ -130,6 +130,14 @@ Baseline before any change (desktop, `bench/bench_sim.gd` headless, 3 runs): a f
   a run with the HUD showing dashes and both items firing.
 - The Armory page lists the Abilities tab; its clip is re-recorded with the new tab.
 
+## Ruling DASH R5 — the clock
+
+- The dash runs on the game's clock, as every timer does (power-up durations, the HUD's
+  SHIELD countdown, survival time): the sim steps at `Tuning.GAME_SPEED` = 0.75
+  (TiltGame.ts:35). So the 20 s cooldown and 2 s shield are game seconds, the same unit the
+  Armory shows for power-ups ("6.0s"); on a stopwatch they are 26.7 s and 2.7 s. Making them
+  wall-clock is one division by GAME_SPEED in `AbilitySystem.reset`, if the user wants it.
+
 ## Tasks
 
 1. [x] Save data: dash ranks, item unlocks and loadout, costs, buy/equip (ProgressionManager);
@@ -148,10 +156,12 @@ Baseline before any change (desktop, `bench/bench_sim.gd` headless, 3 runs): a f
    (`_render_abilities_tab`, `test_armory_abilities.gd` 9 tests, `bench/shot_armory.gd`. The
    sixth tab overflowed the header at 844 px by ~5 px with a 4-digit balance: Armory tabs now
    pad 8 a side (`UiTheme.TAB_BUTTON_PAD_X`), and a 1,234,567 balance fits at 844 and the A55.)
-6. [ ] How to play page + clips; tests.
+6. [x] How to play page + clips; tests. (Page 3 "Dash and items"; `dash.ogv` 12 s 960×540
+   Theora q4 1.6 MB, `HTP_CLIP=dash`; `armory.ogv` re-recorded with the Abilities step, 24 s,
+   q6 1.9 MB (`ffmpeg -ss 6 -t 24`); dash clip `ffmpeg -ss 8 -t 12 ... -q:v 4`.)
 7. [ ] Verify: suite, gdformat/gdlint, 0 SCRIPT ERROR headless, benches vs baseline, A55
    build; HANDOFF, VERIFY-ME, PORT-PROGRESS.
 
 ## Status
 
-- Task 1 done: `dash`, `unlockedItems`, `equippedItems` in the save, cleaned on load. Tasks 2-5 done. Next: Task 6 (How to play page and clips).
+- Task 1 done: `dash`, `unlockedItems`, `equippedItems` in the save, cleaned on load. Tasks 2-6 done. Next: Task 7 (verify, docs, A55 build).

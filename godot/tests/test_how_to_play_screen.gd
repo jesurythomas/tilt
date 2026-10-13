@@ -96,7 +96,12 @@ func test_picking_an_orb_swaps_the_clip_and_the_lines() -> void:
 ## HTP R2: every page plays its own clip; closing drops it.
 func test_every_page_plays_its_clip() -> void:
 	var screen: HowToPlayScreen = _screen()
-	var want: Array[String] = [HowToPlayScreen.DODGE_CLIP, "nuke", HowToPlayScreen.ARMORY_CLIP]
+	var want: Array[String] = [
+		HowToPlayScreen.DODGE_CLIP,
+		"nuke",
+		HowToPlayScreen.DASH_CLIP,
+		HowToPlayScreen.ARMORY_CLIP,
+	]
 	for i: int in range(HowToPlayScreen.PAGES.size()):
 		screen.open(i)
 		assert_not_null(screen.clip(), "page %d has a clip" % i)
@@ -106,11 +111,15 @@ func test_every_page_plays_its_clip() -> void:
 	assert_null(screen.clip(), "closing drops the clip")
 
 
-## HTP R2 (user: "we can remove 3 - 4 - 5"): three pages, the Armory last.
-func test_three_pages_end_on_the_armory() -> void:
-	assert_eq(HowToPlayScreen.PAGES, ["The basics", "Power-ups", "The Armory"] as Array[String])
+## HTP R2 (user: "we can remove 3 - 4 - 5"), HTP R3 (Dash and items): four pages, the
+## Armory last, listing every tab.
+func test_four_pages_end_on_the_armory() -> void:
+	assert_eq(
+		HowToPlayScreen.PAGES,
+		["The basics", "Power-ups", "Dash and items", "The Armory"] as Array[String]
+	)
 	var screen: HowToPlayScreen = _screen()
-	screen.open(2)
+	screen.open(3)
 	var list: Node = screen.find_child("ArmoryList", true, false)
 	for tab: String in ArmoryUI.TAB_LABELS:
 		var found: bool = false
@@ -146,3 +155,18 @@ func test_every_page_fits_the_a55() -> void:
 		]:
 			var c: Control = screen.find_child(node_name, true, false) as Control
 			assert_true(bounds.encloses(c.get_global_rect()), "page %d: %s" % [i, node_name])
+
+
+## HTP R3: the Dash and items page tells the gesture, the shield, the cooldown and the items.
+func test_the_dash_page_explains_the_dash_and_the_items() -> void:
+	var screen: HowToPlayScreen = _screen()
+	screen.open(2)
+	assert_eq(_title(screen), "Dash and items")
+	var text: String = ""
+	for label: Node in screen.find_child("DashList", true, false).find_children(
+		"*", "Label", true, false
+	):
+		text += (label as Label).text + " "
+	for words: String in ["Double-tap", "shielded for 2 s", "20 s", "Dash", "Items", "once a run"]:
+		assert_true(text.contains(words), words)
+	assert_true(ResourceLoader.exists(HowToPlayScreen.CLIP_PATH % HowToPlayScreen.DASH_CLIP))
