@@ -418,6 +418,7 @@ func test_default_settings_match_the_typescript() -> void:
 	got.erase(GameOptionsManager.FIRST_RUN_KEY)  # DIVERGENCE(MVP R5): no TS counterpart
 	got.erase(GameOptionsManager.SHARE_USAGE_KEY)  # DIVERGENCE(MVP R6): no TS counterpart
 	got.erase(GameOptionsManager.HAPTICS_KEY)  # DIVERGENCE(MVP Week 1): no TS counterpart
+	got.erase(GameOptionsManager.HOW_TO_PLAY_KEY)  # DIVERGENCE(HTP R1): no TS counterpart
 	got["showGridlines"] = false  # the one divergent default, asserted above
 	_assert_dict_numbers_equal(got, want, "default_settings")
 

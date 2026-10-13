@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource type="Script" path="res://src/core/game_root.gd" id="1"]
 [ext_resource type="Script" path="res://src/render/grid_layer.gd" id="2"]
@@ -13,6 +13,7 @@
 [ext_resource type="Script" path="res://src/ui/tilt_menu.gd" id="12"]
 [ext_resource type="Script" path="res://src/ui/calibrate_screen.gd" id="13"]
 [ext_resource type="Script" path="res://src/ui/entrance_cinematic.gd" id="14"]
+[ext_resource type="Script" path="res://src/ui/how_to_play_screen.gd" id="15"]
 
 [node name="GameRoot" type="Node2D"]
 script = ExtResource("1")
@@ -217,3 +218,14 @@ script = ExtResource("14")
 
 [node name="Armory" parent="CanvasLayer" instance=ExtResource("8")]
 unique_name_in_owner = true
+
+[node name="HowToPlay" type="Control" parent="CanvasLayer"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("15")

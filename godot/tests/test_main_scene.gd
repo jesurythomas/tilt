@@ -659,6 +659,7 @@ func test_the_backdrop_steps_only_in_the_menu() -> void:
 	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
 	add_child_autofree(root)
 	await get_tree().process_frame
+	root._how_to_play.close()  # HTP R1: a first launch opens the guide, which holds the swarm
 	var before: float = root._backdrop.elapsed
 	await get_tree().physics_frame
 	await get_tree().physics_frame
@@ -1255,3 +1256,75 @@ func test_pause_keep_tilt_switch() -> void:
 	root.set_control_scheme(Types.ControlScheme.MOUSE)
 	root._hud.set_pause_panel_visible(true)
 	assert_false(keep.is_visible_in_tree(), "hidden under touch")
+
+
+## DIVERGENCE(HTP R1): a first launch opens How to play; closing it is saved, so the next
+## launch goes straight to the menu.
+func test_a_first_launch_opens_how_to_play_once() -> void:
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	assert_true(root._how_to_play.is_open(), "no save: the guide opens over the menu")
+	assert_true(root.is_in_menu())
+	(root._how_to_play.find_child("HowToPlayCloseButton", true, false) as Button).pressed.emit()
+	assert_false(root._how_to_play.is_open())
+	assert_true(root.options.settings.how_to_play_seen)
+	SaveStore.flush()
+	var again: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(again)
+	await get_tree().process_frame
+	assert_false(again._how_to_play.is_open(), "seen: the next launch shows the menu")
+
+
+## DIVERGENCE(HTP R1): the menu's How to play button opens the guide at its first page.
+func test_the_menu_button_opens_how_to_play() -> void:
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	root._how_to_play.close()
+	var button: Button = root._menu.find_child("MenuHowToPlayButton", true, false) as Button
+	assert_not_null(button)
+	button.pressed.emit()
+	assert_true(root._how_to_play.is_open())
+	assert_eq(root._how_to_play.page(), 0)
+
+
+## DIVERGENCE(HTP R1): the How to play button sits clear of the mode panel and the title
+## block at the A55's size, so the menu's fit (UI R7) is unchanged.
+func test_the_how_to_play_button_clears_the_menu_on_the_a55() -> void:
+	var menu: TiltMenu = TiltMenu.new()
+	add_child_autofree(menu)
+	menu.size = Vector2(2340.0, 1080.0)
+	menu.bind(
+		GameOptionsManager.new(),
+		ProgressionManager.new(),
+		GoalManager.new(),
+		ScoreManager.new(),
+		ControlSettings.new()
+	)
+	menu.set_ui_scale(2.77, Vector2.ZERO)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var button: Control = menu.find_child("MenuHowToPlayButton", true, false) as Control
+	var rect: Rect2 = button.get_global_rect()
+	assert_true(menu.get_global_rect().encloses(rect), "on screen")
+	for other: String in ["ModePanel", "TitleBlock", "LeftBlock"]:
+		var c: Control = menu.find_child(other, true, false) as Control
+		assert_false(rect.intersects(c.get_global_rect()), "clear of " + other)
+	assert_eq(menu.fit_factor(), 1.0, "the menu keeps the device scale")
+
+
+## DIVERGENCE(HTP R1): the opaque guide hides the attract swarm, so it does not simulate.
+func test_the_attract_swarm_holds_still_under_how_to_play() -> void:
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	root.open_how_to_play()
+	var held: float = root._backdrop.elapsed
+	await get_tree().process_frame
+	await get_tree().process_frame
+	assert_eq(root._backdrop.elapsed, held, "no backdrop step under the guide")
+	root._how_to_play.close()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	assert_gt(root._backdrop.elapsed, held, "the swarm moves again on the menu")

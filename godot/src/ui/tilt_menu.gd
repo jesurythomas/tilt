@@ -39,6 +39,8 @@ signal tilt_level_changed
 signal sfx_toggled(is_on: bool)
 ## Settings' Music switch (R9, M11a Q2 ruling): GameRoot saves and applies it.
 signal music_toggled(is_on: bool)
+## DIVERGENCE(HTP R1): the How to play button; GameRoot opens the guide.
+signal how_to_play_requested
 ## The reset confirm was accepted. PORT: web/src/tilt-to-live/TiltMenu.ts:510
 signal reset_confirmed
 ## DIVERGENCE(M11a I-2): no TS counterpart. Settings has no DOM re-render to
@@ -272,6 +274,7 @@ func render() -> void:
 	var title_block: VBoxContainer = _title_block()
 	_menu_container.add_child(title_block)
 	_menu_container.add_child(_mode_panel(current_mode))
+	_menu_container.add_child(_how_to_play_button())
 	var left: VBoxContainer = VBoxContainer.new()
 	left.name = "LeftBlock"
 	left.add_theme_constant_override("separation", _px(LEFT_GAP))
@@ -406,6 +409,7 @@ func _bind_events() -> void:
 	_find_button("MenuArmoryButton").pressed.connect(armory_requested.emit)
 	_find_button("MenuMilestonesButton").pressed.connect(all_goals_requested.emit)
 	_find_button("MenuSettingsButton").pressed.connect(open_options_modal)  # PORT: :252-254
+	_find_button("MenuHowToPlayButton").pressed.connect(how_to_play_requested.emit)
 
 
 func _on_mode_card_pressed(mode: Types.GameMode) -> void:
@@ -519,6 +523,21 @@ func _next_teaser() -> Control:
 	)
 	card.add_child(teaser)
 	return card
+
+
+## DIVERGENCE(HTP R1): How to play, top right of the open area left of the mode panel, level
+## with the wordmark, so neither the title block nor the left column grows (UI R7's fit).
+func _how_to_play_button() -> Button:
+	var button: Button = UiTheme.nav_button(
+		"MenuHowToPlayButton", "How to play", HowToPlayScreen.ICON_HELP
+	)
+	UiTheme.scale_nav_button(button, _ui_scale)
+	button.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	button.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	button.offset_right = -(_px(PANEL_WIDTH) + _px(TITLE_LEFT))
+	button.offset_left = button.offset_right - button.custom_minimum_size.x
+	button.offset_top = _px(TITLE_TOP) + _inset.y
+	return button
 
 
 # DIVERGENCE(UI-SYSTEM): Main.dc.html — the Steer row (no TS counterpart; ruling R7).
