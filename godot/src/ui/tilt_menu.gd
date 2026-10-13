@@ -882,6 +882,8 @@ func _on_vibration_toggled(is_on: bool) -> void:
 	_options.settings.haptics_enabled = is_on
 	_options.save()
 	Haptics.enabled = is_on
+	if is_on:
+		Haptics.preview()  # DIVERGENCE(HAPTICS R1)
 	open_options_modal()
 
 

@@ -54,3 +54,18 @@ func test_disabled_is_silent() -> void:
 	GameEvents.life_lost.emit(0)
 	GameEvents.close_call.emit()
 	assert_eq(_calls.size(), 0)
+
+
+## HAPTICS R1: switching Vibration on gives one short buzz; off, nothing.
+func test_preview_pulses_once_and_respects_the_switch() -> void:
+	Haptics.preview()
+	assert_eq(_calls.size(), 1)
+	assert_lt(_calls[0], Haptics.NUKE_MS, "a short buzz")
+	Haptics.enabled = false
+	Haptics.preview()
+	assert_eq(_calls.size(), 1, "silent when off")
+
+
+## HAPTICS R1: off Android the motor stays Godot's vibrate_handheld.
+func test_off_android_keeps_vibrate_handheld() -> void:
+	assert_true(_previous == Input.vibrate_handheld)

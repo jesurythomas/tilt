@@ -351,9 +351,9 @@ Facts from execution (not in the brief):
       than 0.28 (same class as the skin note — the theme is always passed in
       a live run).
 - [ ] **Handling:** drag the Top speed slider (named Turn rate until HANDLING R1) — the
-      pill updates live and the preview ship on the right moves faster; Deadzone likewise grows the
-      amber ring. Drag a finger inside the preview box: the ship chases it.
-      Reset restores 1.0× / 4px. Play a run: the steering change is felt
+      pill updates live and the preview ship on the right moves faster (Deadzone left the UI
+      in M8.5). Drag a finger inside the preview box: the ship chases it.
+      Reset restores Top speed 1.0×, Tilt sensitivity and Stick size. Play a run: the speed change is felt
       (tuning is read by PlayerShip every frame).
 - [ ] **Boosts:** buy Extra Life (4,000) → a run starts with 2 lives.
 - [ ] **Purchases persist across a restart:** kill the app from recents,
@@ -443,7 +443,7 @@ tick M8's section only through this one (spec §7). Build and install per
 - [ ] Ships: cards scroll sideways; Hitbox/Turn meters differ per ship; Equip/Buy work.
 - [ ] Arena: themes and enemies rows scroll sideways; tapping a card buys or equips it; the arena changes in a run.
 - [ ] Nested scrolls (Task 6 review): a sideways drag that **starts on a card** scrolls its row (Ships, Arena themes, enemies) instead of being eaten as a tap; a vertical drag starting on a row still scrolls the tab body.
-- [ ] Handling: Top speed and Tilt sensitivity sliders; the preview ship responds to tilt; **Calibrate tilt** re-zeroes; Reset restores both.
+- [ ] Handling: Top speed, Tilt sensitivity and Stick size sliders; the preview ship chases a finger dragged in its box (it takes no tilt); **Calibrate tilt** re-zeroes; Reset restores all three.
 - [ ] Boosts: 2×N cards with pips; cost buttons; "Max" when maxed.
 
 **Findings** (fill in; one line each: screen — what differs from the board)
@@ -1020,25 +1020,38 @@ Touch, then the "Touch stick" row: Dynamic / Left / Right.
 
 ## BUG-101 — calibration sticks (2026-10-12)
 
+Passed on the A55, 0.1.10 (user 2026-10-13: "tick phone checks. they are working now.").
+
 0.1.8 (code 9, R1-R3) is on the A55, installed 2026-10-13 14:39 (`build/peril-point-0.1.8-a55.apk`).
 
-- [ ] Menu → Calibrate → hold an unusual angle → Set level → Play holding a *different* angle:
+- [x] Menu → Calibrate → hold an unusual angle → Set level → Play holding a *different* angle:
       the ship rests at the angle set, not the one held at Play.
-- [ ] Same with Armory → Handling → Calibrate tilt.
-- [ ] Die → Retry while holding another angle: the calibration still holds.
-- [ ] Kill the app, relaunch, Play: the calibration from the last session still holds.
-- [ ] The 0:11 clip ("can't go to the right"): does it still happen on this build?
-- [ ] R2, Each start: Play and Retry each level to how the phone is held at the start.
-- [ ] R2, Set level on the Calibrate board flips Tilt level to All runs; switching back to
+- [x] Same with Armory → Handling → Calibrate tilt.
+- [x] Die → Retry while holding another angle: the calibration still holds.
+- [x] Kill the app, relaunch, Play: the calibration from the last session still holds.
+- [x] The 0:11 clip ("can't go to the right"): does it still happen on this build?
+- [x] R2, Each start: Play and Retry each level to how the phone is held at the start.
+- [x] R2, Set level on the Calibrate board flips Tilt level to All runs; switching back to
       Each start and then to All runs still uses the level you set.
-- [ ] R3: the home page has no calibrate icon beside Steer.
-- [ ] R3: Settings → Calibrate tilt shows both Set level and Cancel on screen.
-- [ ] R3: Settings shows Touch stick only while Touch is selected.
+- [x] R3: the home page has no calibrate icon beside Steer.
+- [x] R3: Settings → Calibrate tilt shows both Set level and Cancel on screen.
+- [x] R3: Settings shows Touch stick only while Touch is selected.
+- [x] R4 (0.1.10): Pause shows Keep tilt level under Tilt only, and the sheet still fits.
+- [x] R4: Keep tilt level off → Resume levels to how you hold the phone; on → Resume and the
+      next runs keep the level you were playing with.
+
+## HAPTICS R1 — vibration as media (2026-10-13)
+
+Passed on the A55, 0.1.10 (user 2026-10-13: "tick phone checks. they are working now.").
+
+On the A55 as 0.1.9 (code 10). Log and `dumpsys vibrator_manager` confirmed `usage: MEDIA` plays.
+
+- [x] A nuke, a close call and a death each buzz (user: "vibration works now as well").
+- [x] Settings → Vibration off then on: one short buzz. Off: no buzz in a run.
 
 ## HTP R1 — the How to play guide (2026-10-13, branch `add-onboarding`)
 
-Not on the A55 yet (it holds 0.1.8 for BUG-101). Build from `add-onboarding` once PR #10 is in
-`staging`, code 10. Plan `docs/superpowers/plans/2026-10-13-add-onboarding.md`.
+0.1.11 (code 12) from `add-onboarding` (main merged in, so it carries PR #10-#12). Plan `docs/superpowers/plans/2026-10-13-add-onboarding.md`.
 
 - [ ] Fresh install (or Settings → Reset is not enough: clear app data): the guide opens over the
       menu on first launch. Close it; relaunch: the menu shows, no guide.

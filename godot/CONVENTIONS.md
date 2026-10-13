@@ -119,7 +119,7 @@ GUT printed `All tests passed!` and exited **0** while that spec never ran.
 
 GUT's exit code *is* trustworthy for ordinary assertion failures (a failing
 `assert` gives exit 1, also verified). The gap is collection only, so
-`run_tests.sh` adds exactly one check GUT lacks: **the number of scripts GUT
+`run_tests.sh` adds a collection check GUT lacks: **the number of scripts GUT
 reports must equal the number of `test_*.gd` files on disk.** It also fails an
 empty suite and a run that produces no summary.
 
@@ -130,6 +130,10 @@ suite runs with `--render-thread safe`: under the project's Separate render
 thread (`thread_model=2`, M11c P24, kept for the game) Godot drops a texture free
 queued just before quit in about one run in six and reports a leaked `Image` —
 an engine shutdown race, not a game leak (`fix/exit-image-leak`, 2026-10-12).
+
+**Each run gets its own empty `user://`** (a temp `APPDATA` / `XDG_DATA_HOME`, removed
+on exit), so two suites at once (another worktree, another session) never share save
+files; shared, they flaked the save tests (2026-10-13). macOS runs are not isolated.
 
 When it reports `collected N of M`, find the culprit with:
 

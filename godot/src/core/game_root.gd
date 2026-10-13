@@ -6,8 +6,8 @@
 ##        per spec §5.1 and §5.4
 # PORT-NOTE: as audio_bank.gd — GameRoot dispatches to every subsystem, and
 # M11a's Calibrate wiring pushed its public method count past gdlint's
-# default max-public-methods (20). The How to play wiring (HTP R1) took it past
-# max-file-lines (1000), as in tilt_menu.gd.
+# default max-public-methods (20). BUG-101 R4's tilt level and the How to play wiring
+# (HTP R1) pushed it past max-file-lines (1000), as tilt_menu.gd and armory_ui.gd are.
 class_name GameRoot
 extends Node2D
 ## Owns every subsystem, reproduces resizeCanvas() and drives frame order.
@@ -187,9 +187,9 @@ func _ready() -> void:
 	_menu.armory_requested.connect(open_armory.bind(""))
 	_menu.all_goals_requested.connect(open_all_goals_modal)  # PORT: :195
 	_menu.scheme_chosen.connect(_on_menu_scheme_chosen)
-	_menu.stick_anchor_changed.connect(_apply_stick_anchor)  # DIVERGENCE(ENH-302 R3)
-	# DIVERGENCE(BUG-101 R2): back to the saved level; Auto re-levels at the next run start.
-	_menu.tilt_level_changed.connect(_tilt.restore_saved_calibration)
+	_menu.stick_anchor_changed.connect(_on_stick_anchor_changed)  # DIVERGENCE(ENH-302 R3)
+	# DIVERGENCE(BUG-101 R2, R4): Settings wrote the level; All runs keeps the one in use.
+	_menu.tilt_level_changed.connect(func() -> void: set_tilt_level(settings.tilt_level))
 	# The Settings modal (M11a ruling R9): readability and audio apply at once.
 	_menu.readability_changed.connect(apply_readability)
 	_menu.sfx_toggled.connect(set_sfx_enabled)
@@ -570,6 +570,13 @@ func _apply_stick_anchor() -> void:
 	_joystick.apply_anchor(settings.stick_anchor, _bounds)
 
 
+## Settings' Stick position, mid-run from Pause: a finger that held the old stick must not
+## keep steering, or skip the fixed stick's grab zone, after Resume (Copilot, PR #6).
+func _on_stick_anchor_changed() -> void:
+	_joystick.reset()
+	_apply_stick_anchor()
+
+
 ## True while the menu is up. PORT: web/src/tilt-to-live/TiltGame.ts:42 (phase === 'menu')
 func is_in_menu() -> bool:
 	return _state.phase == Types.GamePhase.MENU
@@ -578,6 +585,19 @@ func is_in_menu() -> bool:
 ## Toggles the paused phase. Delegates to the ported state machine.
 func toggle_pause() -> void:
 	_state.toggle_pause()
+	# DIVERGENCE(BUG-101 R4, user: "toggle off -> recalibrates when play /resume is pressed"):
+	# under Each start, Resume levels to the pose held, unsaved, as Play does.
+	if _state.phase == Types.GamePhase.PLAYING and settings.levels_each_run():
+		_tilt.calibrate_current_position(false)
+
+
+## DIVERGENCE(BUG-101 R2, R4): Settings' Tilt level and Pause's Keep tilt level. All runs
+## keeps the level in use; Each start levels again at the next Play or Resume.
+func set_tilt_level(level: ControlSettings.TiltLevel) -> void:
+	settings.tilt_level = level
+	settings.save_settings()
+	if level == ControlSettings.TiltLevel.SAVED:
+		_tilt.keep_current_level()
 
 
 ## toggle_pause plus the pause sheet; set_pause_panel_visible(true) refreshes the
@@ -687,6 +707,9 @@ func calibrate_gyro() -> bool:
 		_tilt.poll()
 		settings.tilt_level = ControlSettings.TiltLevel.SAVED  # DIVERGENCE(BUG-101 R2)
 		settings.save_settings()
+		# Set level from Settings: the board under the Calibrate screen shows All runs on close.
+		if _menu.is_options_open():
+			_menu.open_options_modal()
 		_goals_hud.show_message_toast("TILT CALIBRATED", "Kept for every run ✓")  # :2335, R2
 	else:
 		_goals_hud.show_message_toast("GYRO SENSOR", "Sensor Unavailable or Blocked")  # PORT: :2337

@@ -18,8 +18,9 @@ func _sheet(size: Vector2, scale: float) -> PauseSheet:
 	return sheet
 
 
-func _assert_fits(size: Vector2, scale: float) -> void:
+func _assert_fits(size: Vector2, scale: float, tilt: bool = false) -> void:
 	var sheet: PauseSheet = _sheet(size, scale)
+	sheet.set_calibrate_shown(tilt)  # BUG-101 R4: tilt adds the Keep tilt level row
 	await get_tree().process_frame
 	await get_tree().process_frame
 	var bounds: Rect2 = sheet.get_global_rect()
@@ -47,6 +48,7 @@ func test_sheet_carries_the_board_controls() -> void:
 		"CalibrateButton",
 		"SoundSwitch",
 		"MusicSwitch",
+		"KeepTiltSwitch",
 		"PauseArmoryButton",
 		"PauseSettingsButton",
 	]:
@@ -113,3 +115,18 @@ func test_every_nav_button_carries_its_glyph() -> void:
 	assert_not_null((over.find_child("RestartButton", true, false) as Button).icon, "Retry ↻")
 	var trophy: TextureRect = over.find_child("AchievementsTrophy", true, false) as TextureRect
 	assert_not_null(trophy.texture, "the Run over's achievements header has the trophy")
+
+
+## BUG-101 R4: the Keep tilt level row still fits, on the board frame and the A55.
+func test_layout_with_the_tilt_row_fits() -> void:
+	await _assert_fits(Vector2(844, 390), 1.0, true)
+	await _assert_fits(Vector2(2340, 1080), 1080.0 / 390.0, true)
+
+
+func test_keep_tilt_mirrors_without_emitting() -> void:
+	var sheet: PauseSheet = _sheet(Vector2(844, 390), 1.0)
+	var keep: CheckButton = sheet.find_child("KeepTiltSwitch", true, false) as CheckButton
+	watch_signals(keep)
+	sheet.set_keep_tilt(true)
+	assert_true(keep.button_pressed)
+	assert_signal_not_emitted(keep, "toggled")
