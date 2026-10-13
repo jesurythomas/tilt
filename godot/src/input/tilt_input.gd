@@ -163,13 +163,12 @@ func calibrate_current_position(persist: bool = true) -> void:
 	tilt_vector = Vector2.ZERO
 
 
-## DIVERGENCE(BUG-101 R2): drops any pending or Auto capture and goes back to the saved
-## level (or, with none saved, to the first gravity sample).
-func restore_saved_calibration() -> void:
-	_calibration_pending = false
+## DIVERGENCE(BUG-101 R4): saves the level in use, an Auto capture included, as the kept
+## level. A capture still pending is saved when the next poll takes it.
+func keep_current_level() -> void:
 	_persist_pending = true
-	_calibrated_gravity = Vector3.ZERO
-	_load_calibration()
+	if not _calibration_pending and _calibrated_gravity != Vector3.ZERO:
+		save_calibration()
 
 
 ## True while waiting for a gravity sample to calibrate against.

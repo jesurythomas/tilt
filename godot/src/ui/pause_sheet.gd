@@ -39,6 +39,9 @@ var _picker: ControlPicker = null
 var _calibrate: Button = null
 var _sound: CheckButton = null
 var _music: CheckButton = null
+## DIVERGENCE(BUG-101 R4): Keep tilt level, and the divider above it; shown under tilt only.
+var _keep_tilt: CheckButton = null
+var _keep_tilt_rule: Control = null
 var _bottom: HBoxContainer = null
 var _armory: Button = null
 var _settings: Button = null
@@ -70,7 +73,7 @@ func set_ui_scale(scale: float) -> void:
 		row.add_theme_constant_override("separation", UiTheme.px(ROW_GAP, scale))
 	_calibrate.custom_minimum_size = Vector2.ONE * UiTheme.TOUCH_TARGET * scale
 	_calibrate.icon = UiTheme.svg_texture(UiTheme.ICON_CALIBRATE, scale)
-	for switch: CheckButton in [_sound, _music]:
+	for switch: CheckButton in [_sound, _music, _keep_tilt]:
 		switch.custom_minimum_size.y = SWITCH_ROW * scale
 	_picker.set_ui_scale(scale)
 
@@ -89,8 +92,16 @@ static func stats_text(score: int, time_text: String, mode_name: String) -> Stri
 
 
 ## PORT: web/src/tilt-to-live/TiltGame.ts:2239-2244 — calibrate only for gyro.
+## DIVERGENCE(BUG-101 R4): Keep tilt level follows it.
 func set_calibrate_shown(shown: bool) -> void:
 	_calibrate.visible = shown
+	_keep_tilt.visible = shown
+	_keep_tilt_rule.visible = shown
+
+
+## DIVERGENCE(BUG-101 R4): mirrors the saved tilt level (on = All runs) without writing it.
+func set_keep_tilt(is_on: bool) -> void:
+	_keep_tilt.set_pressed_no_signal(is_on)
 
 
 ## Mirrors the saved switches without writing them. PORT: web/src/tilt-to-live/TiltGame.ts:1626-1630
@@ -145,6 +156,12 @@ func _build() -> void:
 	switches.add_child(UiTheme.hairline(false, UiTheme.COLOR_RAISED))
 	_music = _switch("MusicSwitch", "Music")
 	switches.add_child(_music)
+	# DIVERGENCE(BUG-101 R4, user 2026-10-13: "make tilt every run on the pause menu
+	# toggle-able"): on keeps the tilt level for every run; off levels at Play and Resume.
+	_keep_tilt_rule = UiTheme.hairline(false, UiTheme.COLOR_RAISED)
+	switches.add_child(_keep_tilt_rule)
+	_keep_tilt = _switch("KeepTiltSwitch", "Keep tilt level")
+	switches.add_child(_keep_tilt)
 	_right.add_child(switches)
 	var fill: Control = Control.new()
 	fill.size_flags_vertical = Control.SIZE_EXPAND_FILL
