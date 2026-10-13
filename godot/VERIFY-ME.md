@@ -1020,8 +1020,7 @@ Touch, then the "Touch stick" row: Dynamic / Left / Right.
 
 ## BUG-101 — calibration sticks (2026-10-12)
 
-0.1.7 (code 8, R2) is on the A55 (installed 2026-10-13 14:24). 0.1.8 (code 9, R2 + R3) is built,
-`build/peril-point-0.1.8-a55.apk`; install it with `adb -s RRCXB04L8EJ install -r`.
+0.1.8 (code 9, R1-R3) is on the A55, installed 2026-10-13 14:39 (`build/peril-point-0.1.8-a55.apk`).
 
 - [ ] Menu → Calibrate → hold an unusual angle → Set level → Play holding a *different* angle:
       the ship rests at the angle set, not the one held at Play.

@@ -64,8 +64,8 @@ My calls, made without asking (standing instruction "always proceed"):
       checked by screenshot. Next A55 build uses code 9. Frame cost: no per-frame code added (one
       branch at run start, one Settings card).
 - [x] R3: 869 tests green (the Calibrate fit test failed first), gdformat and gdlint clean,
-      0 SCRIPT ERROR headless. 0.1.8 (code 9) built (`build/peril-point-0.1.8-a55.apk`), not
-      installed: the user was mid-run. Next A55 build uses code 10.
+      0 SCRIPT ERROR headless. 0.1.8 (code 9) on the A55 2026-10-13 14:39
+      (`build/peril-point-0.1.8-a55.apk`). Next A55 build uses code 10.
 - [x] User: "once all green - commit - push - PR - merge". Merged into `main` by its PR.
 - [ ] A55 pass by the user (`VERIFY-ME.md` §BUG-101) on 0.1.8. `calibrate_gyro`'s forced poll reads the real
       sensor and is not reachable headless. Then PR and merge.
