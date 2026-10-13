@@ -1034,3 +1034,10 @@ Touch, then the "Touch stick" row: Dynamic / Left / Right.
 - [ ] R3: the home page has no calibrate icon beside Steer.
 - [ ] R3: Settings → Calibrate tilt shows both Set level and Cancel on screen.
 - [ ] R3: Settings shows Touch stick only while Touch is selected.
+
+## HAPTICS R1 — vibration as media (2026-10-13)
+
+On the A55 as 0.1.9 (code 10). Log and `dumpsys vibrator_manager` confirmed `usage: MEDIA` plays.
+
+- [ ] A nuke, a close call and a death each buzz (touch-feedback vibration may stay off).
+- [ ] Settings → Vibration off then on: one short buzz. Off: no buzz in a run.
