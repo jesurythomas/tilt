@@ -162,6 +162,10 @@ func test_default_data_matches_the_typescript() -> void:
 		var record: Dictionary = ts_perks[weapon]
 		for key: String in added[weapon]:
 			record[key] = false
+	# DIVERGENCE(DASH R4, ITEM R1): the dash ranks and the item lists, empty in a fresh save.
+	expected["dash"] = {"cooldown": 0.0, "shield": 0.0}
+	expected["unlockedItems"] = []
+	expected["equippedItems"] = []
 	_assert_dict_numbers_equal(_pm.data.to_dict(), expected, "default_data")
 
 
