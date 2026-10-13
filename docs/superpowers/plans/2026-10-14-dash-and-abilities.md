@@ -100,6 +100,12 @@ Baseline before any change (desktop, `bench/bench_sim.gd` headless, 3 runs): a f
   or Unequip. With both slots full, Equip is disabled and the slots line says to unequip one.
 - `open("abilities")` (and the alias `items`) opens it.
 
+## Ruling ITEM R2 addendum — the header
+
+- Six tabs and a large balance overflowed the board's 844-px header; the Armory's tab buttons
+  pad 8 px a side instead of the board's 12 (`UiTheme.TAB_BUTTON_PAD_X`). Seen, not ours: the
+  weapon list clips "Blackhole" to "Blackho" next to a two-digit rank ("9/15").
+
 ## Ruling HUD R1 — the score leaves the top centre
 
 - The score, its multiplier chip and BEST move into the left column at the top-left corner:
@@ -138,11 +144,14 @@ Baseline before any change (desktop, `bench/bench_sim.gd` headless, 3 runs): a f
 4. [x] HUD R1 + R2 (`AbilityBar`); screenshot `bench/shot_hud.gd`; tests. (Score block in
    `LeftColumn/ScoreBlock/ScoreRow`; `src/ui/ability_bar.gd`; `test_ability_bar.gd` 8 tests;
    `build/shots/hud_{now,ready,cooldown,left}.png`. Bar update 1.3 µs/frame desktop.)
-5. [ ] Armory Abilities tab, glyphs (`dash`, `dashCooldown`); screenshot; tests.
+5. [x] Armory Abilities tab, glyphs (`dash`, `dashCooldown`); screenshot; tests.
+   (`_render_abilities_tab`, `test_armory_abilities.gd` 9 tests, `bench/shot_armory.gd`. The
+   sixth tab overflowed the header at 844 px by ~5 px with a 4-digit balance: Armory tabs now
+   pad 8 a side (`UiTheme.TAB_BUTTON_PAD_X`), and a 1,234,567 balance fits at 844 and the A55.)
 6. [ ] How to play page + clips; tests.
 7. [ ] Verify: suite, gdformat/gdlint, 0 SCRIPT ERROR headless, benches vs baseline, A55
    build; HANDOFF, VERIFY-ME, PORT-PROGRESS.
 
 ## Status
 
-- Task 1 done: `dash`, `unlockedItems`, `equippedItems` in the save, cleaned on load. Tasks 2-4 done. Next: Task 5 (Armory Abilities tab).
+- Task 1 done: `dash`, `unlockedItems`, `equippedItems` in the save, cleaned on load. Tasks 2-5 done. Next: Task 6 (How to play page and clips).

@@ -113,6 +113,9 @@ const PIP_HEIGHT: int = 5
 const PIP_GAP: int = 4
 const BUTTON_PAD_X: int = 14  # Segmented button padding 0 14px
 const TAB_PAD_X: int = 12  # ArmoryWeapons.dc.html — tab and list-row padding 0 12px
+## DIVERGENCE(ITEM R2): the Armory's tabs pad 8 a side (TAB_PAD_X's 12 on the board), so a
+## sixth tab (Abilities) and a seven-digit balance still fit the header at 844 px.
+const TAB_BUTTON_PAD_X: int = 8
 const CHIP_PAD_Y: int = 4
 const CHIP_PAD_X: int = 8
 const SHEET_PAD: int = 24  # DIVERGENCE(UI-SYSTEM): Pause.dc.html — padding 24
@@ -666,9 +669,9 @@ static func _build_buttons(theme: Theme, scale: float) -> void:
 		sans(Weight.MEDIUM),
 		label_size,
 		TEXT_FAINT,
-		padded(flat(none, none, r), px(TAB_PAD_X, scale), 0.0),
-		padded(flat(COLOR_RAISED, none, r), px(TAB_PAD_X, scale), 0.0),
-		padded(flat(none, none, r), px(TAB_PAD_X, scale), 0.0)
+		padded(flat(none, none, r), px(TAB_BUTTON_PAD_X, scale), 0.0),
+		padded(flat(COLOR_RAISED, none, r), px(TAB_BUTTON_PAD_X, scale), 0.0),
+		padded(flat(none, none, r), px(TAB_BUTTON_PAD_X, scale), 0.0)
 	)
 	# DIVERGENCE(UI-SYSTEM): System.dc.html — Segmented (selected raised + line_strong, r 4)
 	# DIVERGENCE(UI R11): the selected segment is ion (fill, border, glyph) and semibold,

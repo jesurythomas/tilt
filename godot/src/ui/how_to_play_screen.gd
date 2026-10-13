@@ -72,6 +72,8 @@ const ARMORY_LINES: Array[Array] = [
 	["Arena", "Themes for the arena and skins for the enemies."],
 	["Handling", "Top speed, tilt sensitivity and stick size, with a live preview."],
 	["Boosts", "Extra Life, a smaller hitbox, slower enemies, and score or Points multipliers."],
+	# DIVERGENCE(HTP R3): the sixth tab (ITEM R2).
+	["Abilities", "A faster, longer dash, and items: power-ups you fire once a run."],
 ]
 ## DIVERGENCE(HTP R1): a question mark in a ring, for the menu's How to play button.
 const ICON_HELP: String = (
