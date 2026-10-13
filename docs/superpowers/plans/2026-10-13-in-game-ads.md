@@ -153,6 +153,15 @@ check them and a retune is one number. The Armory's keystone cards read the pric
 - **Unchanged:** run payout, coin value, milestone rewards, the starting 500 points (still one
   rank-1 perk at 500), the removed-keystone refund (ECON R4's own table). Owned items stay owned.
 
+## Ruling ADS R8 — weapon upgrades at 4× (user, 2026-10-14)
+
+User, after seeing 0.1.18's Armory: "The upgrades still seem cheap". My call: **weapon ranks and
+keystones** go to `ProgressionManager.UPGRADE_PRICE_SCALE` = 4 times their table figure (ranks
+1,000 / 1,600 / 2,600 / 4,000 / 6,400; keystones 10,000-20,000); ships, arena and boosts stay at
+R7's 2× (the user named upgrades). With the 3× ad a mid player (≈970 points a run, ≈2,900 with
+the ad) buys a first rank in about one plain run and a keystone in 3-7 ad runs. Retune: one
+number.
+
 ## Tasks
 
 - [x] 1. Plan (this file); branch. Commit.
@@ -207,6 +216,8 @@ check them and a retune is one number. The Armory's keystone cards read the pric
       times `PRICE_SCALE`; parity tests compare the TS figure times it. 70/70 scripts, nothing
       leaked; every Armory layout check passed with the longer prices. The weapon header's
       invested figure sums the scaled prices, default ranks included, as it did before.)*
+- [x] 13. ADS R8: `UPGRADE_PRICE_SCALE` = 4 in `get_perk_cost`. *(Done 2026-10-14: the upgrade
+      price tests read it; 70/70 scripts, nothing leaked; gdformat, gdlint clean.)*
 - [ ] 9. The user's A55 pass (§ADS Part A) and AdMob setup (Part B); merge. *(User: "rebuild
       it". Rebuilt as 0.1.15 (code 16, same code as 0.1.14), installed on the unlocked A55
       2026-10-13 22:10 with data kept, launched: consent in ~2 s, `can_request_ads=true

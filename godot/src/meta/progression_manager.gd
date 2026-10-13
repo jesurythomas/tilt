@@ -71,9 +71,13 @@ const POINTS_MULTIPLIER_COSTS: Array[int] = [1200, 2400, 4200, 7000]
 
 ## DIVERGENCE(ADS R7, user 2026-10-14: "make the weapon upgrades more expensive to incentive
 ## clicking the ads as well as the ships, arena and boosts"): every Armory price is its table's
-## figure times this, read through the cost getters and the catalogs, so the tables keep their
-## ECON R2 / TS figures. The Run over's rewarded ad triples a run's points (ADS R6).
+## figure times this (weapon upgrades: UPGRADE_PRICE_SCALE), read through the cost getters and
+## the catalogs, so the tables keep their ECON R2 / TS figures. The Run over's rewarded ad
+## triples a run's points (ADS R6).
 const PRICE_SCALE: int = 2
+## DIVERGENCE(ADS R8, user 2026-10-14: "The upgrades still seem cheap"): weapon rank and
+## keystone prices are their table's figure times this, not PRICE_SCALE.
+const UPGRADE_PRICE_SCALE: int = 4
 
 ## DIVERGENCE(ECON R2): perk rank prices, ×1.6 a rank (TS 300/600/1100/1800/2800, :558).
 const PERK_COSTS: Array[int] = [250, 400, 650, 1000, 1600]
@@ -289,10 +293,10 @@ static func run_payout(seconds_alive: float, kills: int, mode_multiplier: float)
 func get_perk_cost(current_rank: int, is_keystone: bool = false, keystone_key: String = "") -> int:
 	if is_keystone:
 		if Tuning.KEYSTONE_COSTS.has(keystone_key):  # PORT: :556
-			return Tuning.KEYSTONE_COSTS[keystone_key] * PRICE_SCALE  # DIVERGENCE(ADS R7)
-		return 2500 * PRICE_SCALE
-	# DIVERGENCE(ECON R2, ADS R7)
-	return PERK_COSTS[mini(current_rank, PERK_COSTS.size() - 1)] * PRICE_SCALE
+			return Tuning.KEYSTONE_COSTS[keystone_key] * UPGRADE_PRICE_SCALE  # DIVERGENCE(ADS R8)
+		return 2500 * UPGRADE_PRICE_SCALE
+	# DIVERGENCE(ECON R2, ADS R8)
+	return PERK_COSTS[mini(current_rank, PERK_COSTS.size() - 1)] * UPGRADE_PRICE_SCALE
 
 
 ## PORT: web/src/tilt-to-live/ProgressionManager.ts:562-578

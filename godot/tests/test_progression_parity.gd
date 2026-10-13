@@ -272,23 +272,25 @@ func test_arena_theme_catalog_matches_the_typescript() -> void:
 
 func test_perk_cost_curve_keeps_the_typescript_shape() -> void:
 	# DIVERGENCE(ECON R2): the prices are the plan's; the shape (one price per rank,
-	# clamped past the last) is the TS's. ADS R7: charged at PRICE_SCALE times the table.
+	# clamped past the last) is the TS's. ADS R8: charged at UPGRADE_PRICE_SCALE times the table.
 	var curve: Array = _fixture["perk_cost_curve"]
 	var last: int = ProgressionManager.PERK_COSTS.size() - 1
 	for entry: Dictionary in curve:
 		var rank: int = SaveStore.read_int(entry, "rank", -1)
 		var want: int = ProgressionManager.PERK_COSTS[mini(rank, last)]
-		assert_eq(_pm.get_perk_cost(rank), want * ProgressionManager.PRICE_SCALE, "rank %d" % rank)
+		assert_eq(
+			_pm.get_perk_cost(rank), want * ProgressionManager.UPGRADE_PRICE_SCALE, "rank %d" % rank
+		)
 
 
 func test_keystone_costs_through_get_perk_cost_match_the_typescript() -> void:
 	var costs: Array = _fixture["keystone_costs"]
 	for entry: Dictionary in costs:
 		var key: String = SaveStore.read_string(entry, "key", "")
-		# ADS R7: Armory prices are PRICE_SCALE times the TS figure
+		# ADS R8: Armory prices are UPGRADE_PRICE_SCALE times the TS figure
 		assert_eq(
 			_pm.get_perk_cost(0, true, key),
-			SaveStore.read_int(entry, "cost", -1) * ProgressionManager.PRICE_SCALE,
+			SaveStore.read_int(entry, "cost", -1) * ProgressionManager.UPGRADE_PRICE_SCALE,
 			"keystone %s" % key
 		)
 
@@ -352,12 +354,12 @@ func _ladder_cost(value: Variant) -> int:
 func test_invested_points_and_multipliers_at_defaults_match_the_typescript() -> void:
 	var invested: Dictionary = _fixture["invested_points_at_defaults"]
 	# DIVERGENCE(ECON R2): the same default ranks priced on the new curve, times
-	# PRICE_SCALE (ADS R7).
+	# UPGRADE_PRICE_SCALE (ADS R8).
 	var econ: Dictionary[String, int] = {
 		"blackhole": 4250, "nuke": 250, "shield": 0, "missiles": 3900, "laser": 650
 	}
 	for weapon: String in invested.keys():
-		var want: int = econ.get(weapon, 0) * ProgressionManager.PRICE_SCALE
+		var want: int = econ.get(weapon, 0) * ProgressionManager.UPGRADE_PRICE_SCALE
 		assert_eq(_pm.get_weapon_invested_points(weapon), want, "invested %s" % weapon)
 	var m: Dictionary = _fixture["multipliers_at_defaults"]
 	assert_eq(_pm.get_starting_lives(), SaveStore.read_int(m, "startingLives", -1))

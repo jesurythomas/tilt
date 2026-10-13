@@ -18,14 +18,15 @@ claim_reward`, the extra through `ProgressionManager.add_points_bonus`, no Point
 once a run; a rewarded view resets the interstitial pacing; HudController ignores Retry while an
 ad is on its way. R7 (user: "make the weapon upgrades more expensive ... ships, arena and
 boosts"): `ProgressionManager.PRICE_SCALE` = 2 doubles every Armory price where it is read; the
-tables keep their figures. The A55 log showed "Invalid polygon data, triangulation failed" up to
+tables keep their figures. R8 (user: "The upgrades still seem cheap"): weapon ranks and
+keystones use `UPGRADE_PRICE_SCALE` = 4 instead. The A55 log showed "Invalid polygon data, triangulation failed" up to
 60/s in Gauntlet: a stripe clipping a wall's corner leaves a sub-pixel sliver (442 of 3.5 M
 pieces in a sweep); the maze now draws each (convex) piece as a fan (`EntityLayer.fan_indices`).
 `peril/ads/test_device_hashed_id` = the A55's hash is committed (UMP debug device, SDK test
 device). Tests: 70/70 scripts, nothing leaked, gdformat/gdlint clean, 0 SCRIPT ERROR headless.
-0.1.18 (code 19, `godot/build/peril-point-0.1.18-a55.apk`, no test switches) is on the A55,
-installed 2026-10-14 00:44, data kept; it booted with `can_request_ads=true` and read mean
-16.67 ms, p95 25.0 on screen. Next A55 build uses code 20. Next: the user's A55 pass
+0.1.18 (code 19) ran on the A55 2026-10-14 00:44: a rewarded ad opened, earned and closed;
+mean 16.67 ms, p95 25.0 on screen. 0.1.19 (code 20, `godot/build/peril-point-0.1.19-a55.apk`, no
+test switches, R8 prices) is the build for the user's pass. Next A55 build uses code 21. Next: the user's A55 pass
 (`VERIFY-ME.md` §ADS Part A, incl. the R6 rewarded check and the stripe check), AdMob setup
 (Part B, now with a rewarded unit), merge; then Remove ads (Play Billing).
 

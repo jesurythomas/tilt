@@ -1102,7 +1102,9 @@ Checked on the emulator (Pixel_10, Play Store image), 2026-10-13:
       closed 2 s later. Still to see: the figure counting up to 3× and the button going.)*
 - [ ] (ADS R7) Armory prices are double what they were (e.g. a rank-1 upgrade 500, Solar 1,200);
       what you own stays owned. *(Screenshot 00:48: Blackhole Radius rank 3 at 1,300, Event
-      Horizon at 6,000; the cost buttons fit.)*
+      Horizon at 6,000; the cost buttons fit.)* ADS R8 (user: "The upgrades still seem cheap"):
+      weapon ranks and keystones are now 4× (Radius rank 3 at 2,600, Event Horizon at 12,000);
+      ships, arena and boosts stay 2×.
 - [ ] (Stripe fix) Play Gauntlet to its Run over, then
       `adb -s RRCXB04L8EJ logcat -d | grep -c "triangulation failed"` prints 0 (0.1.17 logged up
       to 60 a second there).

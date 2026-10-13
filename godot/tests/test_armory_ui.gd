@@ -278,8 +278,8 @@ func test_selecting_a_weapon_rerenders_its_detail() -> void:
 	assert_not_null(_armory.find_child("Keystone_crossBeam", true, false))
 	assert_eq(
 		_label("InvestedValue").text,
-		UiTheme.group_digits((250 + 400) * ProgressionManager.PRICE_SCALE),
-		"laser.length = 2 → 250 + 400 (ECON R2), times PRICE_SCALE (ADS R7)"
+		UiTheme.group_digits((250 + 400) * ProgressionManager.UPGRADE_PRICE_SCALE),
+		"laser.length = 2 → 250 + 400 (ECON R2), times UPGRADE_PRICE_SCALE (ADS R8)"
 	)
 
 
@@ -289,8 +289,10 @@ func test_track_readout_shows_current_and_next_value() -> void:
 	assert_eq(_value_text("TrackValue_duration"), "6.3s → 6.8s")
 	assert_eq(
 		_button("Track_duration").text,
-		UiTheme.group_digits(ProgressionManager.PERK_COSTS[3] * ProgressionManager.PRICE_SCALE),
-		"rank 3 costs PERK_COSTS[3] (ECON R2) × PRICE_SCALE (ADS R7)"
+		UiTheme.group_digits(
+			ProgressionManager.PERK_COSTS[3] * ProgressionManager.UPGRADE_PRICE_SCALE
+		),
+		"rank 3 costs PERK_COSTS[3] (ECON R2) × UPGRADE_PRICE_SCALE (ADS R8)"
 	)
 	assert_false(_button("Track_duration").disabled)
 
@@ -300,7 +302,9 @@ func test_buying_a_track_rank_charges_saves_and_emits() -> void:
 	watch_signals(_armory)
 	_button("Track_duration").pressed.emit()
 	assert_eq(_progression.data.perks.blackhole.duration, 4)
-	var balance: int = 7331 - ProgressionManager.PERK_COSTS[3] * ProgressionManager.PRICE_SCALE
+	var balance: int = (
+		7331 - ProgressionManager.PERK_COSTS[3] * ProgressionManager.UPGRADE_PRICE_SCALE
+	)
 	assert_eq(_progression.data.points, balance)
 	assert_signal_emitted(_armory, "state_changed")
 	assert_eq(_label("BalanceLabel").text, UiTheme.group_digits(balance), "re-rendered (:1164)")
@@ -325,7 +329,7 @@ func test_unaffordable_track_is_disabled() -> void:
 	assert_true(_button("Track_radius").disabled)
 	assert_eq(
 		_button("Track_radius").text,
-		UiTheme.group_digits(650 * ProgressionManager.PRICE_SCALE),
+		UiTheme.group_digits(650 * ProgressionManager.UPGRADE_PRICE_SCALE),
 		"the plain price, disabled (user 2026-09-28; ADS R7)"
 	)
 	watch_signals(_armory)
@@ -334,17 +338,18 @@ func test_unaffordable_track_is_disabled() -> void:
 
 
 func test_keystone_shows_its_keystone_cost_and_unlocks() -> void:
+	_progression.data.points = 20000  # ADS R8: crossBeam costs more than the 7331 save
 	_open_weapons("laser")
 	var btn: Button = _button("Keystone_crossBeam")
 	assert_eq(
 		btn.text,
-		UiTheme.group_digits(3500 * ProgressionManager.PRICE_SCALE),
-		"KEYSTONE_COSTS.crossBeam (:507) × PRICE_SCALE (ADS R7)"
+		UiTheme.group_digits(3500 * ProgressionManager.UPGRADE_PRICE_SCALE),
+		"KEYSTONE_COSTS.crossBeam (:507) × UPGRADE_PRICE_SCALE (ADS R8)"
 	)
 	watch_signals(_armory)
 	btn.pressed.emit()
 	assert_true(_progression.data.perks.laser.cross_beam)
-	assert_eq(_progression.data.points, 7331 - 3500 * ProgressionManager.PRICE_SCALE)
+	assert_eq(_progression.data.points, 20000 - 3500 * ProgressionManager.UPGRADE_PRICE_SCALE)
 	assert_signal_emitted(_armory, "state_changed")
 	assert_true(_button("Keystone_crossBeam").disabled)
 	assert_eq(_button("Keystone_crossBeam").text, "Unlocked ✓")
@@ -432,9 +437,9 @@ func test_purchases_log_upgrade_buy() -> void:
 	_armory.open("ships")
 	_browse("Ship", "solar")
 	_button("BuyShip_solar").pressed.emit()
-	# ADS R7: every price is PRICE_SCALE times its figure.
+	# ADS R7/R8: a ship is PRICE_SCALE times its figure, a rank UPGRADE_PRICE_SCALE times.
 	var ship_cost: int = 600 * ProgressionManager.PRICE_SCALE
-	var perk_cost: int = ProgressionManager.PERK_COSTS[3] * ProgressionManager.PRICE_SCALE
+	var perk_cost: int = ProgressionManager.PERK_COSTS[3] * ProgressionManager.UPGRADE_PRICE_SCALE
 	assert_eq(
 		rec.last_params("upgrade_buy"),
 		{
@@ -732,11 +737,11 @@ func test_every_weapon_lists_three_keystone_cards() -> void:
 
 
 func test_can_buy_dot_marks_weapons_with_an_affordable_upgrade() -> void:
-	_progression.data.points = 300 * ProgressionManager.PRICE_SCALE
+	_progression.data.points = 300 * ProgressionManager.UPGRADE_PRICE_SCALE
 	_open_weapons()
 	assert_true(
 		(_armory.find_child("CanBuy_lightning", true, false) as Control).visible,
-		"250 × PRICE_SCALE (ADS R7)"
+		"250 × UPGRADE_PRICE_SCALE (ADS R8)"
 	)
 	_progression.data.points = 100
 	_armory.render()
