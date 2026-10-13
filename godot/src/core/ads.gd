@@ -121,6 +121,7 @@ func ad_break(action: Callable) -> void:
 	get_tree().create_timer(OPEN_TIMEOUT_SECONDS).timeout.connect(
 		_on_open_timeout.bind(_break_serial)
 	)
+	Log.info("ads: break shows an interstitial")
 	backend.show_interstitial()
 
 
@@ -161,10 +162,12 @@ func _on_interstitial_failed_to_load() -> void:
 func _on_interstitial_opened() -> void:
 	_is_awaiting_open = false
 	pacing.note_ad_shown(_now())
+	Log.info("ads: interstitial opened")
 
 
 func _on_open_timeout(serial: int) -> void:
 	if serial == _break_serial and _is_awaiting_open:
+		Log.info("ads: interstitial did not open in time; the break goes on")
 		_finish_break()
 
 
@@ -176,6 +179,7 @@ func _finish_break() -> void:
 	_restore_sound()
 	_request_load()
 	if action.is_valid():
+		Log.info("ads: break over")
 		action.call()
 
 
