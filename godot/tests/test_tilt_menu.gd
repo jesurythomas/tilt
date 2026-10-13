@@ -326,6 +326,21 @@ func test_vibration_switch_saves_and_applies() -> void:
 	Haptics.enabled = true
 
 
+## HAPTICS R1 (Copilot, PR #10): the switch turning on buzzes once through Haptics; off, never.
+func test_vibration_switch_on_previews_one_pulse() -> void:
+	var pulses: Array[int] = []
+	var previous: Callable = Haptics.vibrate
+	Haptics.vibrate = func(ms: int) -> void: pulses.append(ms)
+	var menu: TiltMenu = _settings_open()
+	(menu.find_child("VibrationSwitch", true, false) as CheckButton).toggled.emit(false)
+	var when_off: int = pulses.size()
+	(menu.find_child("VibrationSwitch", true, false) as CheckButton).toggled.emit(true)
+	Haptics.vibrate = previous
+	Haptics.enabled = true
+	assert_eq(when_off, 0, "off: no buzz")
+	assert_eq(pulses, [Haptics.PREVIEW_MS] as Array[int], "on: one short buzz")
+
+
 ## User report 2026-09-29 (Settings overflowed once Vibration and usage sharing were added,
 ## and the last rows could not be scrolled to): the board scrolls, and every row is reachable.
 func _a55_settings() -> TiltMenu:

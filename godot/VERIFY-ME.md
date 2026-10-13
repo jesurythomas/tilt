@@ -351,9 +351,9 @@ Facts from execution (not in the brief):
       than 0.28 (same class as the skin note — the theme is always passed in
       a live run).
 - [ ] **Handling:** drag the Top speed slider (named Turn rate until HANDLING R1) — the
-      pill updates live and the preview ship on the right moves faster; Deadzone likewise grows the
-      amber ring. Drag a finger inside the preview box: the ship chases it.
-      Reset restores 1.0× / 4px. Play a run: the steering change is felt
+      pill updates live and the preview ship on the right moves faster (Deadzone left the UI
+      in M8.5). Drag a finger inside the preview box: the ship chases it.
+      Reset restores Top speed 1.0×, Tilt sensitivity and Stick size. Play a run: the speed change is felt
       (tuning is read by PlayerShip every frame).
 - [ ] **Boosts:** buy Extra Life (4,000) → a run starts with 2 lives.
 - [ ] **Purchases persist across a restart:** kill the app from recents,
@@ -443,7 +443,7 @@ tick M8's section only through this one (spec §7). Build and install per
 - [ ] Ships: cards scroll sideways; Hitbox/Turn meters differ per ship; Equip/Buy work.
 - [ ] Arena: themes and enemies rows scroll sideways; tapping a card buys or equips it; the arena changes in a run.
 - [ ] Nested scrolls (Task 6 review): a sideways drag that **starts on a card** scrolls its row (Ships, Arena themes, enemies) instead of being eaten as a tap; a vertical drag starting on a row still scrolls the tab body.
-- [ ] Handling: Top speed and Tilt sensitivity sliders; the preview ship responds to tilt; **Calibrate tilt** re-zeroes; Reset restores both.
+- [ ] Handling: Top speed, Tilt sensitivity and Stick size sliders; the preview ship chases a finger dragged in its box (it takes no tilt); **Calibrate tilt** re-zeroes; Reset restores all three.
 - [ ] Boosts: 2×N cards with pips; cost buttons; "Max" when maxed.
 
 **Findings** (fill in; one line each: screen — what differs from the board)

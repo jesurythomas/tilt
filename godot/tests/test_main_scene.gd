@@ -1160,6 +1160,43 @@ func test_setting_a_level_picks_all_runs() -> void:
 	assert_eq(ControlSettings.new().tilt_level, ControlSettings.TiltLevel.SAVED, "saved")
 
 
+## BUG-101 R2 (Copilot, PR #9): Set level from Settings redraws the board under the
+## Calibrate screen, so closing it shows All runs, not a stale Each start.
+func test_set_level_from_settings_refreshes_the_board() -> void:
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	root._tilt.is_supported = true  # the test host has no sensor
+	root.set_control_scheme(Types.ControlScheme.GYRO)
+	root.set_tilt_level(ControlSettings.TiltLevel.AUTO)
+	root._menu.open_options_modal()
+	var each: Button = root._menu.find_child("TiltLevelEachStart", true, false) as Button
+	assert_true(each.button_pressed, "Each start before")
+	(root._menu.find_child("SettingsCalibrateButton", true, false) as Button).pressed.emit()
+	root._calibrate_screen.set_level_requested.emit()
+	assert_eq(root.settings.tilt_level, ControlSettings.TiltLevel.SAVED, "Set level saved")
+	var all_runs: Button = root._menu.find_child("TiltLevelAllRuns", true, false) as Button
+	assert_true(all_runs.button_pressed, "All runs after Set level")
+	assert_true(root._menu.is_options_open(), "Settings stays open")
+
+
+## ENH-302 R3 (Copilot, PR #6): changing Stick position drops the finger that held the old
+## stick, so it neither keeps steering nor skips the fixed stick's grab zone.
+func test_stick_position_change_releases_the_held_stick() -> void:
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	root._joystick.on_touch(0, Vector2(400.0, 300.0))
+	root._joystick.on_drag(0, Vector2(500.0, 300.0))
+	assert_true(root._joystick.is_active, "held")
+	assert_ne(root._joystick.vector, Vector2.ZERO, "steering")
+	root.settings.stick_anchor = ControlSettings.StickAnchor.LEFT
+	root._menu.stick_anchor_changed.emit()
+	assert_false(root._joystick.is_active, "the old finger is let go")
+	assert_eq(root._joystick.vector, Vector2.ZERO, "no stale steering")
+	assert_true(root._joystick.is_anchored, "the new position applies")
+
+
 ## BUG-101 R4: switching to All runs keeps the level in use (the last Auto capture).
 func test_choosing_all_runs_keeps_the_level_in_use() -> void:
 	SaveStore.save_dict(

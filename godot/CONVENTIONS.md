@@ -119,7 +119,7 @@ GUT printed `All tests passed!` and exited **0** while that spec never ran.
 
 GUT's exit code *is* trustworthy for ordinary assertion failures (a failing
 `assert` gives exit 1, also verified). The gap is collection only, so
-`run_tests.sh` adds exactly one check GUT lacks: **the number of scripts GUT
+`run_tests.sh` adds a collection check GUT lacks: **the number of scripts GUT
 reports must equal the number of `test_*.gd` files on disk.** It also fails an
 empty suite and a run that produces no summary.
 
