@@ -916,11 +916,14 @@ func test_settings_switches_apply_at_once() -> void:
 	assert_false(GameOptionsManager.new().settings.sfx_enabled, "and saved")
 
 
-func test_the_menu_calibrate_icon_opens_the_screen_and_set_level_calibrates() -> void:
+func test_settings_calibrate_opens_the_screen_and_set_level_calibrates() -> void:
+	# BUG-101 R3: the home page's calibrate icon is gone; Settings' Calibrate tilt opens it.
 	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
 	add_child_autofree(root)
 	await get_tree().process_frame
-	(root.find_child("MenuCalibrateButton", true, false) as Button).pressed.emit()
+	root.set_control_scheme(Types.ControlScheme.GYRO)
+	root._menu.open_options_modal()
+	(root.find_child("SettingsCalibrateButton", true, false) as Button).pressed.emit()
 	var screen: CalibrateScreen = root.find_child("Calibrate", true, false) as CalibrateScreen
 	assert_true(screen.is_open(), "R5")
 	(screen.find_child("SetLevelButton", true, false) as Button).pressed.emit()

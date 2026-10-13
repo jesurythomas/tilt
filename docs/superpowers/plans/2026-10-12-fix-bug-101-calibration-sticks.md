@@ -42,7 +42,17 @@ My calls, made without asking (standing instruction "always proceed"):
   Auto capture; Auto re-levels at the next run start anyway).
 - "Rename it" read as: name the two choices clearly. If it meant renaming "Calibrate", ask.
 
-## Tasks
+## Ruling BUG-101 R3 (user 2026-10-13, three asks)
+
+- "remove the calibrate at the home page": the Steer row's calibrate icon (`MenuCalibrateButton`)
+  is gone. Calibrate tilt stays in Settings → Controls (under Tilt), Armory → Handling and Pause.
+- "the calibrate title screen seems broken. i only see set level but not the button below it":
+  `CalibrateScreen`'s left block was anchored `PRESET_CENTER_LEFT` before it had a size, so it
+  grew down from the centre and Cancel fell off the A55's screen (the M11c finding at
+  `calibrate_screen.gd:175`). It now grows both ways (`GROW_DIRECTION_BOTH`).
+- "remove touch stick it selected isnt touch": Settings' Touch stick card shows only while
+  Touch steers, on a phone (`TiltMenu.shows_stick_card`).
+
 
 - [x] Failing tests (`test_main_scene.gd`): boot keeps the saved calibration; Retry and choosing
       tilt do not re-arm. 3 failed before the fix.
@@ -53,7 +63,11 @@ My calls, made without asking (standing instruction "always proceed"):
       0.1.7 (code 8) on the A55 2026-10-13 14:24 (`build/peril-point-0.1.7-a55.apk`), Settings card
       checked by screenshot. Next A55 build uses code 9. Frame cost: no per-frame code added (one
       branch at run start, one Settings card).
-- [ ] A55 pass by the user (`VERIFY-ME.md` §BUG-101). `calibrate_gyro`'s forced poll reads the real
+- [x] R3: 869 tests green (the Calibrate fit test failed first), gdformat and gdlint clean,
+      0 SCRIPT ERROR headless. 0.1.8 (code 9) built (`build/peril-point-0.1.8-a55.apk`), not
+      installed: the user was mid-run. Next A55 build uses code 10.
+- [x] User: "once all green - commit - push - PR - merge". Merged into `main` by its PR.
+- [ ] A55 pass by the user (`VERIFY-ME.md` §BUG-101) on 0.1.8. `calibrate_gyro`'s forced poll reads the real
       sensor and is not reachable headless. Then PR and merge.
 
 ## Open (not part of this fix)

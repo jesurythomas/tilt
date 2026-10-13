@@ -173,6 +173,9 @@ func _left_block() -> VBoxContainer:
 	block.name = "LeftBlock"
 	block.add_theme_constant_override("separation", _px(LEFT_GAP))
 	block.set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT)
+	# BUG-101 R3: grow both ways from the centre anchor. Built before it has a size, the block
+	# grew down only, and at the A55's scale Cancel fell off the bottom of the screen.
+	block.grow_vertical = Control.GROW_DIRECTION_BOTH
 	block.offset_left = _px(LEFT_LEFT) + _inset.x
 	block.custom_minimum_size.x = _px(LEFT_WIDTH)
 

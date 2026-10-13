@@ -406,7 +406,6 @@ func _bind_events() -> void:
 	_find_button("MenuArmoryButton").pressed.connect(armory_requested.emit)
 	_find_button("MenuMilestonesButton").pressed.connect(all_goals_requested.emit)
 	_find_button("MenuSettingsButton").pressed.connect(open_options_modal)  # PORT: :252-254
-	_find_button("MenuCalibrateButton").pressed.connect(calibrate_screen_requested.emit)
 
 
 func _on_mode_card_pressed(mode: Types.GameMode) -> void:
@@ -523,6 +522,8 @@ func _next_teaser() -> Control:
 
 
 # DIVERGENCE(UI-SYSTEM): Main.dc.html — the Steer row (no TS counterpart; ruling R7).
+# DIVERGENCE(BUG-101 R3, user 2026-10-13: "remove the calibrate at the home page"): the
+# board's calibrate icon is gone; Calibrate tilt stays in Settings, Armory and Pause.
 func _steer_row(left: VBoxContainer) -> ControlPicker:
 	var row: HBoxContainer = HBoxContainer.new()
 	row.name = "SteerRow"
@@ -534,11 +535,6 @@ func _steer_row(left: VBoxContainer) -> ControlPicker:
 	var picker: ControlPicker = CONTROL_PICKER.instantiate() as ControlPicker
 	picker.custom_minimum_size.x = _px(PICKER_WIDTH)
 	row.add_child(picker)
-	var calibrate: Button = _button("MenuCalibrateButton", "IconButton", "")
-	calibrate.custom_minimum_size = Vector2.ONE * _px(UiTheme.TOUCH_TARGET)
-	calibrate.icon = UiTheme.svg_texture(UiTheme.ICON_CALIBRATE, _ui_scale)
-	calibrate.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	row.add_child(calibrate)
 	left.add_child(row)
 	picker.set_ui_scale(_ui_scale)
 	picker.scheme_chosen.connect(scheme_chosen.emit)
@@ -1019,12 +1015,18 @@ static func touch_hint(anchor: ControlSettings.StickAnchor) -> String:
 	return "Drag anywhere"
 
 
+## DIVERGENCE(BUG-101 R3, user 2026-10-13: "remove touch stick it selected isnt touch"): the
+## Touch stick card shows only while Touch steers, on a phone (the stick exists only there).
+static func shows_stick_card(scheme: Types.ControlScheme, is_mobile: bool) -> bool:
+	return is_mobile and scheme == Types.ControlScheme.MOUSE
+
+
 # DIVERGENCE(ENH-302 R3, GitHub #4): Stick position, built as Screen shake's card. Phones
 # only: the stick exists only there (GameRoot._is_touch_stick_live).
 func _stick_card() -> PanelContainer:
 	var card: PanelContainer = _options_card()
 	card.name = "StickCard"
-	card.visible = OS.has_feature("mobile")
+	card.visible = shows_stick_card(_settings.scheme, OS.has_feature("mobile"))
 	var box: StyleBoxFlat = card.get_theme_stylebox("panel") as StyleBoxFlat
 	box.content_margin_top = _px(SHAKE_PAD_TOP)
 	box.content_margin_bottom = _px(SHAKE_PAD_BOTTOM)

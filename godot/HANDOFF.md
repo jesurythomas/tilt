@@ -4,8 +4,12 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**Latest (2026-10-12): BUG-101, calibration sticks, on branch `fix/bug-101-calibration-sticks`,
-not merged.** User: the tilt calibration set on the home screen was replaced in game by the pose
+**Latest (2026-10-13): BUG-101, calibration sticks, merged into `main` by its PR** (R1-R3).
+R3: the home page's calibrate icon is removed; the Calibrate screen's Cancel no longer falls off
+the A55 (left block grows both ways); Settings shows Touch stick only under Touch. 869 tests
+green. 0.1.8 (code 9) is built (`build/peril-point-0.1.8-a55.apk`) but **not installed** (the
+user was mid-run); the A55 has 0.1.7. Next A55 build uses code 10. Next: install 0.1.8 when the
+user says, then their A55 pass (`VERIFY-ME.md` §BUG-101). Earlier in this fix (R1): User: the tilt calibration set on the home screen was replaced in game by the pose
 at Play. Cause: `calibrate_current_position()` only arms a capture that the next `poll()` takes,
 and nothing polls in the menu, so the run's first poll took it. The port armed one at boot, on
 Retry and on choosing tilt (none in the TS), and Armory's Calibrate tilt armed one from the menu.
@@ -15,8 +19,7 @@ Then ruling R2 (user 2026-10-13: "give 2 options, auto-calibrate on start, or ca
 runs"): Settings → Controls → **Tilt level**, Each start (default, levels at Play/Retry without
 saving) / All runs (the saved level); any Set level picks All runs. 867 tests green. Version is
 0.1.7 (code 8); the A55 has it (`build/peril-point-0.1.7-a55.apk`, installed 2026-10-13 14:24),
-so the next A55 build uses code 9. Next: the user's A55 pass (`VERIFY-ME.md` §BUG-101), then PR
-and merge. Seen, not fixed: the calibrate toast draws under the menu's PERIL POINT title.
+so the next A55 build used code 9 (0.1.8, above). Seen, not fixed: the calibrate toast draws under the menu's PERIL POINT title.
 Open: a user clip of the ship that "can't go to the right": a fresh launch straight into a tilt
 run, so the boot calibration took the pose at Play; the ship does reach right once. Likely the
 same bug; re-test on this build (plan §Open).
