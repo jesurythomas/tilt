@@ -131,12 +131,32 @@ ruling is its own roadmap item (Play Billing) and is not built here.
       from the autoload, kept every script alive at exit (306 ObjectDB instances, GUT's runner
       included); bisected over worktrees: the autoload with an empty `_ready` was clean, the
       factory call alone leaked. `Ads._ready` builds the backend itself now.)*
-- [ ] 7. A55: 0.1.14 (code 15) with the A55 key; a temporary test build (every_break, debug
-      EEA) shows the consent form and a test interstitial at Menu/Retry, the action runs after
-      the close, sound returns; logcat clean. Frame time in a run (`tools/frametime.sh`).
-- [ ] 8. Docs: `HANDOFF.md`, `VERIFY-ME.md` §ADS (the user's AdMob/Play Console steps), the
-      roadmap's Week 2 ticks. Commit.
+- [x] 7. Device. *(2026-10-13: the A55 was locked with a PIN (`deviceLocked=1`), so the
+      checks ran on the emulator (Pixel_10, Play Store image, a test device by default) with
+      debug APKs. Test build (`every_break`, `debug_geography=1`, uncommitted, restored after the
+      export): the UMP form over the first-launch guide; Consent → `can_request_ads=true
+      privacy_options_required=true`; Settings showed Ad privacy · Manage; Manage opened the
+      privacy options form and Do not consent re-reported `can_request_ads=true`; Retry and Menu
+      each showed Google's interstitial test ad (`AdActivity` resumed) and, after ✕, the cold
+      open / the menu. Default build, fresh save: no form, `privacy_options_required=false`, and
+      a 3 s first run retried with no ad. Then 0.1.14 (code 15, A55 key, 95 MB) was installed on
+      the locked A55 over 0.1.13, data kept; not launched. Frame time not measured on a device:
+      the game adds no per-frame code; the SDK's own threads are unmeasured (§ADS Part A).)*
+- [x] 8. Docs: `HANDOFF.md`, `VERIFY-ME.md` §ADS (Part A: the A55 checks; Part B: the user's
+      AdMob and Play Console steps), the roadmap's Week 2 ticks, `tools/README.md`.
+- [ ] 9. The user's A55 pass (§ADS Part A) and AdMob setup (Part B); merge.
 
 ## Open
 
-- (filled in as the work goes)
+- **Package name.** The preset builds `com.jtg.perilpoint`; the A55's Play Store copy is
+  `ph.newzenith.perilpoint`. The AdMob app must be registered under the package that ships.
+- **APK size.** 82.3 MB (0.1.10) → 95 MB (0.1.14, A55 key): the SDK, Kotlin and coroutines add
+  ~9 MB of dex, the rest is HTP's clips. Godot's gradle build does not minify; R8 could shrink
+  the dex, but needs keep rules for Godot and the plugin. Not done.
+- **Next feature:** the ₱15 Remove ads purchase (Play Billing, roadmap Week 2). It should make
+  `Ads.is_break_due()` false for a buyer and skip the load; consent can still run.
+- **Pacing numbers** (20 s, 3 runs, 180 s) are my calls under MVP R1; retune from AdMob's
+  sessions and the closed test's retention.
+- Seen on the emulator: on the first launch, UMP's first log line came ~73 s after Godot's
+  (11:22:40 → 11:23:53). Cause not looked into (the emulator runs the arm64 build by
+  translation); check the gap in the A55's logcat.

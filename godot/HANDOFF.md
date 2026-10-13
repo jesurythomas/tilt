@@ -4,6 +4,35 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
+**Latest (2026-10-13): in-game ads (rulings ADS R1-R4), on branch `feat/in-game-ads`, not
+merged.** User: "We need to implement in-game ads - create a plan and push through with the
+plan". Plan `docs/superpowers/plans/2026-10-13-in-game-ads.md` (MVP R1's ad half). AdMob
+interstitials at one break, leaving the Run over by Retry or Menu (`GameRoot.restart_run` /
+`return_to_menu` call `Ads.ad_break` when the phase is GAME_OVER; Pause's Restart/Quit do not),
+paced by `AdPacing`: not after the first run ever, not after a run under 20 s, at most one per 3
+runs and 3 minutes (from launch too), never waiting on a load; a 4 s watchdog; the Master bus is
+muted under the ad. UMP consent at every launch (`Ads.start()`, deferred from `GameRoot._ready`);
+Settings → Data → **Ad privacy · Manage** when UMP requires it. Our own small Android v2 plugin
+`PerilAds` (Java, `android/peril-ads/`, built by `tools/build_ads_plugin.sh` into
+`godot/addons/peril_ads/bin/*.aar`, committed) on Google Mobile Ads 25.5.0 + UMP 4.0.0; the
+export plugin `godot/addons/peril_ads/` adds the AAR, the SDKs and the manifest app ID. IDs live
+in project settings via `AdsConfig` (`peril/ads/*`); unset = Google's **test** IDs, so every ad
+is a test ad until the user does `VERIFY-ME.md` §ADS Part B (AdMob app, unit, GDPR message,
+app-ads.txt, Play Console declarations). `peril/ads/every_break=true` skips the pacing for a
+device check; never commit it on. Facade in Telemetry's shape: `Ads` autoload
+(`src/core/ads.gd`), null `AdsBackend`, `AndroidAdsBackend` (the only file naming the plugin).
+924 tests green (`test_ads.gd`, `test_ad_break.gd`), nothing leaked, gdformat and gdlint clean,
+0 SCRIPT ERROR headless. Emulator (Pixel_10, Play Store image): the EEA consent form, the
+privacy options form, test interstitials on Retry and Menu with the action after ✕, and no ad
+on a short first run, all seen. 0.1.14 (code 15) is installed on the A55 but was not run (the
+phone was locked); next A55 build uses code 16. Surprises: a static factory that called its own
+class's `new()` from an autoload kept every script alive at exit (306 leaked instances; fixed by
+building the backend in `Ads._ready`); a SceneTreeTimer bound into its own signal is a leaking
+cycle. The APK grew to 95 MB (the SDK's dex is ~9 MB; no R8). Next: the user's A55 pass
+(`VERIFY-ME.md` §ADS Part A) and AdMob setup (Part B), decide the package name question there,
+merge; then the ₱15 Remove ads purchase (Play Billing, roadmap Week 2), which turns the break
+off.
+
 **Latest (2026-10-13): the How to play guide (rulings HTP R1/R2), merged into `main` from
 `staging`.** Branches: `add-onboarding` (worktree `../dread-flock-staging`) → `staging` → `main`
 by PR; `staging` is kept. The public guide (perilpoint.newzenith.ph/how-to-play) is in the game:

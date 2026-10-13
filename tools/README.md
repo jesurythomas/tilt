@@ -8,6 +8,7 @@ where a script reads them.
 |---|---|
 | `run_tests.sh` | Runs the GUT suite headless. It fails if any test script didn't parse; GUT alone would silently skip those. |
 | `release.sh` | Builds the signed release APK, `godot/build/peril-point-<version>.apk`. See its header for the keystore env file. |
+| `build_ads_plugin.sh` | Builds the PerilAds Android plugin (`android/peril-ads`) and copies its AARs to `godot/addons/peril_ads/bin/`. Needs Godot's Android build template installed. |
 | `frametime.sh <secs> <label>` | Device frame-time percentiles from SurfaceFlinger (`dumpsys gfxinfo` sees no Godot frames). |
 | `bake-audio/` | Node scripts that run the web prototype's `TiltAudio.ts` and bake the game's sound effects and music to WAV. |
 | `parity/` | Dumps constants, goals and progression tables from the TypeScript, for the GDScript parity tests. |

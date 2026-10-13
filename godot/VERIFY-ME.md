@@ -1064,3 +1064,64 @@ On the A55 as 0.1.9 (code 10). Log and `dumpsys vibrator_manager` confirmed `usa
 - [ ] Power-ups: each orb plays its clip; the name and line change with it.
 - [ ] The Armory: the tour clip's text is readable; the tab list scrolls with a drag.
 - [ ] Frame rate while a clip plays: `tools/frametime.sh 20 htp`.
+
+## ADS R1-R4 — AdMob interstitials at the Run over (2026-10-13, branch `feat/in-game-ads`)
+
+Plan `docs/superpowers/plans/2026-10-13-in-game-ads.md`. 0.1.14 (code 15,
+`godot/build/peril-point-0.1.14-a55.apk`, A55 key) was installed on the A55 2026-10-13 19:32
+over 0.1.13, data kept. The phone was locked, so nothing ran on it. Every ad unit is Google's
+**test** unit until you do Part B: ads carry a "Test Ad" label and earn nothing.
+
+Checked on the emulator (Pixel_10, Play Store image), 2026-10-13:
+- With `ads/debug_geography=1` (EEA): the UMP consent form opened over the first-launch guide;
+  Consent → `ads: consent can_request_ads=true privacy_options_required=true`; Settings → Data
+  showed **Ad privacy · Manage**, which opened the privacy options form.
+- With `ads/every_break=true`: Retry and Menu on the Run over each showed Google's interstitial
+  test ad; after ✕ the cold open (Retry) or the menu (Menu) followed.
+- Default settings, fresh save: no form (not EEA), and a 3-second first run retried with no ad.
+
+### Part A — on the A55 (0.1.14)
+
+- [ ] Launch; `adb -s RRCXB04L8EJ logcat -d | grep "ads:"` shows
+      `ads: consent can_request_ads=true privacy_options_required=false` (no form outside the EEA).
+- [ ] Play at least 3 runs of 20 s or more, over 3 minutes or more. Then Retry or Menu on the
+      Run over shows one test interstitial; ✕ continues to the run or the menu. The game is
+      silent under the ad and its sound comes back.
+- [ ] No ad: after a run under 20 s, in a launch's first 3 minutes, from Pause's Restart run or
+      Quit to menu, or with the phone in flight mode (Retry and Menu act at once).
+- [ ] Frame time in a run: `tools/frametime.sh 20 ads`. HTP's Power-ups page read mean 16.71 ms,
+      p95 25.2 on 0.1.11; the ads build adds no per-frame game code, so a run should match the
+      runs before it.
+- [ ] Optional, the EEA form on the A55: put `ads/debug_geography=1` under `[peril]` in
+      `project.godot` (uncommitted), build with `tools/release.sh` (it restores `project.godot`
+      after the export), launch, and copy the hash from the logcat line
+      `addTestDeviceHashedId("…")` into `ads/test_device_hashed_id`; build again. UMP applies a
+      debug geography only to a test device.
+
+### Part B — AdMob and Play Console (you do this once, before real ads)
+
+1. **Which package ships?** The preset builds `com.jtg.perilpoint`; the A55's Play Store copy is
+   `ph.newzenith.perilpoint`. Register the AdMob app under the package that will be on Play.
+2. admob.google.com → Apps → Add app → Android, linked to the Play listing → copy the **app
+   ID** (`ca-app-pub-…~…`). Ad units → Interstitial → copy the **unit ID** (`ca-app-pub-…/…`).
+3. Put both in `godot/project.godot` and commit:
+   ```
+   [peril]
+
+   ads/android_app_id="ca-app-pub-XXXXXXXX~YYYYYYYY"
+   ads/android_interstitial_id="ca-app-pub-XXXXXXXX/ZZZZZZZZ"
+   ads/test_device_hashed_id="<the A55's hash, so your own phone gets test ads>"
+   ```
+   Also add the A55 under AdMob → Settings → Test devices. Clicking real ads on your own phone
+   can get the account suspended.
+4. AdMob → Privacy & messaging → **European regulations** (GDPR) message for this app: create
+   and publish it (the form the game shows in the EEA, UK and Switzerland). Optionally the US
+   states message.
+5. **app-ads.txt:** AdMob → Apps → app-ads.txt gives one line; host it at
+   `https://perilpoint.newzenith.ph/app-ads.txt` (the developer website in the Play listing).
+6. Play Console → App content: **Ads** = yes. **Data safety**: the Google Mobile Ads SDK
+   collects device or other IDs (advertising ID), approximate location (IP), app interactions
+   and diagnostics for advertising and fraud prevention, shared with Google (follow Google's
+   "AdMob data disclosure" page). **Advertising ID**: yes, used for advertising (the SDK adds
+   `com.google.android.gms.permission.AD_ID`). **Target audience**: 13+, so no Families rules.
+7. Never commit `ads/every_break=true`.
