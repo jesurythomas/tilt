@@ -85,6 +85,8 @@ var _router: InputRouter = null
 var _touch: TouchInput = null
 var _tilt: TiltInput = null
 var _joystick: FloatingJoystick = null
+## DIVERGENCE(DASH R1): the dash gesture.
+var _double_tap: DoubleTap = DoubleTap.new()
 ## The HUD's ui_scale, kept for re-sizing the stick when Stick size changes (TOUCH R1).
 var _ui_scale: float = 1.0
 var _state: GameStateMachine = null
@@ -261,6 +263,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	# M11a final review: the menu backdrop is autopiloted and takes no player
 	# input (TiltGame.ts:1650-1830); skip the joystick so a backdrop tap does
 	# not draw it over the menu.
+	# DIVERGENCE(DASH R1): every touch also feeds the double tap, before the stick takes it.
+	if _state.phase == Types.GamePhase.PLAYING:
+		_feed_dash_gesture(event)
 	if _is_touch_stick_live():
 		if event is InputEventScreenTouch:
 			var touch: InputEventScreenTouch = event
@@ -315,6 +320,13 @@ func _unhandled_input(event: InputEvent) -> void:
 					close_armory()
 				elif _state.phase == Types.GamePhase.PLAYING or is_paused():
 					_toggle_pause_with_sheet()
+				return
+			# DIVERGENCE(DASH R1, ITEM R1): desktop — Shift dashes, 1 and 2 fire the items.
+			if armory_key.keycode == KEY_SHIFT:
+				request_dash()
+				return
+			if armory_key.keycode == KEY_1 or armory_key.keycode == KEY_2:
+				use_item(0 if armory_key.keycode == KEY_1 else 1)
 				return
 
 	if event is InputEventKey:
@@ -586,6 +598,45 @@ func _apply_stick_anchor() -> void:
 	_joystick.apply_anchor(settings.stick_anchor, _bounds)
 
 
+## DIVERGENCE(DASH R1): asks the run for a dash (a double tap, Shift, a double-click). Only a
+## live run takes it.
+func request_dash() -> void:
+	if _state.phase == Types.GamePhase.PLAYING:
+		_run_controller.abilities.request_dash()
+
+
+## DIVERGENCE(ITEM R1): asks the run to fire item `slot` (its HUD button, or 1 and 2).
+func use_item(slot: int) -> void:
+	if _state.phase == Types.GamePhase.PLAYING:
+		_run_controller.abilities.request_item(slot)
+
+
+# DIVERGENCE(DASH R1): touches go to the double tap (clock in seconds); a real mouse's
+# double-click dashes too. Mouse events emulated from touches (device −1) are skipped, so a
+# phone's double tap is counted once.
+func _feed_dash_gesture(event: InputEvent) -> void:
+	var now: float = Time.get_ticks_msec() / 1000.0
+	if event is InputEventScreenTouch:
+		var touch: InputEventScreenTouch = event
+		if touch.pressed:
+			if _double_tap.press(touch.index, touch.position, now):
+				request_dash()
+		else:
+			_double_tap.release(touch.index, touch.position, now)
+	elif event is InputEventScreenDrag:
+		var drag: InputEventScreenDrag = event
+		_double_tap.drag(drag.index, drag.position)
+	elif event is InputEventMouseButton:
+		var click: InputEventMouseButton = event
+		if (
+			click.double_click
+			and click.pressed
+			and click.button_index == MOUSE_BUTTON_LEFT
+			and click.device != InputEvent.DEVICE_ID_EMULATION
+		):
+			request_dash()
+
+
 ## Settings' Stick position, mid-run from Pause: a finger that held the old stick must not
 ## keep steering, or skip the fixed stick's grab zone, after Resume (Copilot, PR #6).
 func _on_stick_anchor_changed() -> void:
@@ -681,6 +732,7 @@ func _restart_run_now() -> void:
 ## PORT: web/src/tilt-to-live/TiltGame.ts:1525-1529
 func _begin_cinematic() -> void:
 	_joystick.reset()
+	_double_tap.reset()  # DIVERGENCE(DASH R1)
 	# DIVERGENCE(BUG-101 R2): Auto takes the pose at the run's first poll, unsaved.
 	if settings.levels_each_run():
 		_tilt.calibrate_current_position(false)
@@ -994,6 +1046,7 @@ func resize_canvas() -> void:
 	# inset by arena_origin so it stays inside the safe area (spec §8 M8).
 	var ui_scale: float = HudController.ui_scale_for(viewport)
 	_ui_scale = ui_scale
+	_double_tap.scale = ui_scale  # DIVERGENCE(DASH R1)
 	_joystick.set_size(ui_scale, settings.stick_size)  # DIVERGENCE(TOUCH R1)
 	_apply_stick_anchor()
 	_armory.set_ui_scale(ui_scale, arena_origin)

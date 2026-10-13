@@ -131,8 +131,10 @@ Baseline before any change (desktop, `bench/bench_sim.gd` headless, 3 runs): a f
 2. [x] `AbilitySystem` (dash + item slots) in the run; `GauntletMaze.blocks`; tests.
    (`src/sim/ability_system.gd`, `test_abilities.gd` 17 tests; `GameEvents.dash_activated`,
    Haptics `DASH_MS` 25. Sim bench full tick 68-69 µs vs 70-73 µs before: no cost.)
-3. [ ] Input: `DoubleTap`, GameRoot wiring (gesture, Shift, double-click, 1/2, item use);
-   `GameEvents.dash_activated`, Haptics; tests.
+3. [x] Input: `DoubleTap`, GameRoot wiring (gesture, Shift, double-click, 1/2, item use);
+   `GameEvents.dash_activated`, Haptics; tests. (`src/input/double_tap.gd`,
+   `GameRoot.request_dash/use_item`, `test_double_tap.gd` 12 tests. Input-only, no per-frame
+   cost.)
 4. [ ] HUD R1 + R2 (`AbilityBar`); screenshot `bench/shot_hud.gd`; tests.
 5. [ ] Armory Abilities tab, glyphs (`dash`, `dashCooldown`); screenshot; tests.
 6. [ ] How to play page + clips; tests.
@@ -141,4 +143,4 @@ Baseline before any change (desktop, `bench/bench_sim.gd` headless, 3 runs): a f
 
 ## Status
 
-- Task 1 done: `dash`, `unlockedItems`, `equippedItems` in the save, cleaned on load. Task 2 done. Next: Task 3.
+- Task 1 done: `dash`, `unlockedItems`, `equippedItems` in the save, cleaned on load. Tasks 2-3 done. Next: Task 4 (HUD).
