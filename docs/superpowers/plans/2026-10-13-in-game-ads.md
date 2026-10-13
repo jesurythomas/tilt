@@ -218,6 +218,8 @@ number.
       invested figure sums the scaled prices, default ranks included, as it did before.)*
 - [x] 13. ADS R8: `UPGRADE_PRICE_SCALE` = 4 in `get_perk_cost`. *(Done 2026-10-14: the upgrade
       price tests read it; 70/70 scripts, nothing leaked; gdformat, gdlint clean.)*
+- [x] 14. Push, PR into `staging`, merge (user, 2026-10-14: "commit push create pr and merge to
+      staging for now"). `main` waits for task 9.
 - [ ] 9. The user's A55 pass (§ADS Part A) and AdMob setup (Part B); merge. *(User: "rebuild
       it". Rebuilt as 0.1.15 (code 16, same code as 0.1.14), installed on the unlocked A55
       2026-10-13 22:10 with data kept, launched: consent in ~2 s, `can_request_ads=true

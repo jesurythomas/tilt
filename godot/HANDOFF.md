@@ -5,7 +5,8 @@ Rewritten at every module stop. Written for a session with zero context.
 ## State
 
 **Latest (2026-10-14): ads round 2 — pacing by games, a 3× rewarded ad, dearer Armory (ADS
-R5-R7), and a Gauntlet stripe fix; branch `feat/in-game-ads`, not merged.** Plan
+R5-R8), and a Gauntlet stripe fix; merged into `staging` from `feat/in-game-ads` (user:
+"commit push create pr and merge to staging for now"), not yet in `main`.** Plan
 `docs/superpowers/plans/2026-10-13-in-game-ads.md` (rulings and tasks 10-12). R5 (user: "after
 every 5-10 games at random or total ingame time"): an interstitial is due after a random 5-10
 games or 300 s of run time, whichever first, never after the first run ever or a run under 20 s;
@@ -28,7 +29,7 @@ device). Tests: 70/70 scripts, nothing leaked, gdformat/gdlint clean, 0 SCRIPT E
 mean 16.67 ms, p95 25.0 on screen. 0.1.19 (code 20, `godot/build/peril-point-0.1.19-a55.apk`, no
 test switches, R8 prices) is the build for the user's pass. Next A55 build uses code 21. Next: the user's A55 pass
 (`VERIFY-ME.md` §ADS Part A, incl. the R6 rewarded check and the stripe check), AdMob setup
-(Part B, now with a rewarded unit), merge; then Remove ads (Play Billing).
+(Part B, now with a rewarded unit), then `staging` → `main`; then Remove ads (Play Billing).
 
 **Earlier (2026-10-13): in-game ads (rulings ADS R1-R4), on branch `feat/in-game-ads`, not
 merged.** User: "We need to implement in-game ads - create a plan and push through with the
