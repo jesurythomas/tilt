@@ -36,7 +36,11 @@ installed 2026-10-14 00:07, data kept: the EEA form showed over the menu, a choi
 (`CONSENT_SIGNAL_SUFFICIENT`), and the game logged `can_request_ads=true
 privacy_options_required=true`. The A55 now carries that EEA test build and its stored consent;
 the form will not show again by itself (Settings → Ad privacy · Manage reopens the choices).
-Next A55 build uses code 18; a build from HEAD drops the EEA geography. Surprises: a static factory that called its own
+User: "now how do i simulate the ads?" — 0.1.17 (code 18,
+`godot/build/peril-point-0.1.17-a55-ads-test.apk`) was built with `ads/every_break=true` and
+`ads/debug_geography=1`, both uncommitted, and installed on the A55 2026-10-14 00:10, data kept:
+every Retry or Menu on the Run over shows a test interstitial. Next A55 build uses code 19; a
+build from HEAD drops both switches and brings back the real pacing. Surprises: a static factory that called its own
 class's `new()` from an autoload kept every script alive at exit (306 leaked instances; fixed by
 building the backend in `Ads._ready`); a SceneTreeTimer bound into its own signal is a leaking
 cycle. The APK grew to 95 MB (the SDK's dex is ~9 MB; no R8). Next: the user's A55 pass
