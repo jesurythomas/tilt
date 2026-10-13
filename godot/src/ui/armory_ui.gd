@@ -76,7 +76,6 @@ const STARTING_WEAPON_IDS: Dictionary[int, String] = {
 	Types.WeaponType.SHIELD: "shield",
 }
 const TRACK_PIPS: int = 5  # PORT: web/src/tilt-to-live/ArmoryUI.ts:454
-const DEFAULT_KEYSTONE_COST: int = 2500  # PORT: web/src/tilt-to-live/ArmoryUI.ts:507
 ## Shell header. DIVERGENCE(UI-SYSTEM): ArmoryWeapons.dc.html — 64 px tall
 ## (padding 8/28/8/24 around 48 px targets), gap 12, tabs gap 2, Play 92×48,
 ## the space between the points figure and its unit.
@@ -516,7 +515,7 @@ func _weapon_has_affordable(w: WeaponConfig, weapon_data: Dictionary, points: in
 		if rank < track.max_rank and points >= progression.get_perk_cost(rank, false):
 			return true
 	for k: WeaponKeystone in w.keystones:
-		var cost: int = Tuning.KEYSTONE_COSTS.get(k.key, DEFAULT_KEYSTONE_COST)
+		var cost: int = progression.get_perk_cost(0, true, k.key)  # ADS R7: the price charged
 		if not SaveStore.read_bool(weapon_data, k.key, false) and points >= cost:
 			return true
 	return false
@@ -746,8 +745,8 @@ func _keystone_card(
 	selected: WeaponConfig, k: WeaponKeystone, weapon_data: Dictionary, points: int
 ) -> PanelContainer:
 	var is_unlocked: bool = SaveStore.read_bool(weapon_data, k.key, false)  # PORT: :504
-	# KEYSTONE_COSTS is the same table get_perk_cost() charges from (:505-507)
-	var cost: int = Tuning.KEYSTONE_COSTS.get(k.key, DEFAULT_KEYSTONE_COST)
+	# PORT: :505-507 read KEYSTONE_COSTS; get_perk_cost() charges it with ADS R7's scale.
+	var cost: int = progression.get_perk_cost(0, true, k.key)
 	var can_afford: bool = points >= cost and not is_unlocked
 	var is_locked: bool = not is_unlocked and not can_afford  # Ruling L
 

@@ -26,6 +26,7 @@ Log="*res://src/core/log.gd"
 GameEvents="*res://src/core/game_events.gd"
 Telemetry="*res://src/core/telemetry.gd"
 Haptics="*res://src/core/haptics.gd"
+Ads="*res://src/core/ads.gd"
 
 [debug]
 
@@ -44,11 +45,19 @@ gdscript/warnings/unsafe_void_return=2
 window/size/viewport_width=1280
 window/size/viewport_height=720
 
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/peril_ads/plugin.cfg")
+
 [input_devices]
 
 sensors/enable_accelerometer=true
 sensors/enable_gravity=true
 pointing/emulate_mouse_from_touch=true
+
+[peril]
+
+ads/test_device_hashed_id="9A0837A109CE8195013D1AF3E32EC41B"
 
 [physics]
 

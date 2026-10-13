@@ -30,6 +30,8 @@ const MAX_INSET_RATIO: float = 0.04
 # own proportionality; the formula itself is unchanged. Provisional — the
 # final value is measured on the A55 in the M2.5 device pass.
 const MAX_ARENA_SCALE: float = 1.75
+## DIVERGENCE(ADS R6): the Run over's rewarded ad makes the run's points this many times over.
+const AD_REWARD_MULTIPLIER: int = 3
 
 # DIVERGENCE(mobile-scale): no TypeScript counterpart. The single arena scale
 # drives ranges, formation spacing and speeds as well as entity size, and on
@@ -91,6 +93,8 @@ var _backdrop: MenuBackdrop = null
 var _bounds: Vector2 = Vector2.ZERO
 ## DIVERGENCE(M11c P1): render-time measurement is switched on once, not per frame.
 var _perf_measuring: bool = false
+## DIVERGENCE(ADS R6): true from "Watch ad · 3× points" until its ad is done.
+var _is_watching_reward: bool = false
 
 @onready var _grid_layer: GridLayer = %GridLayer
 @onready var _entity_layer: EntityLayer = %EntityLayer
@@ -211,6 +215,11 @@ func _ready() -> void:
 	_cinematic.bind(_audio, _player, _swarm, _grid, _particles, _weapons, _on_cinematic_finished)
 	_cinematic.skip_requested.connect(skip_cinematic)
 	GameEvents.run_ended.connect(_on_run_ended)
+	# DIVERGENCE(ADS R3): consent at every launch, after this frame; a change redraws Settings.
+	Ads.consent_changed.connect(_on_ads_consent_changed)
+	# DIVERGENCE(ADS R6): the Run over offers a rewarded ad while one is ready.
+	Ads.rewarded_changed.connect(_refresh_reward_offer)
+	Ads.start.call_deferred()
 
 	resize_canvas()
 	get_viewport().size_changed.connect(resize_canvas)
@@ -537,6 +546,14 @@ func launch_run(mode: Types.GameMode) -> void:
 func return_to_menu() -> void:
 	if _state.phase == Types.GamePhase.MENU:
 		return
+	# DIVERGENCE(ADS R2): Menu from the Run over is the ad break; the menu opens after the ad.
+	if _state.phase == Types.GamePhase.GAME_OVER:
+		Ads.ad_break(_return_to_menu_now)
+		return
+	_return_to_menu_now()
+
+
+func _return_to_menu_now() -> void:
 	_state.return_to_menu()
 	# PORT: web/src/tilt-to-live/TiltGame.ts:1504-1506 — after the phase flip, as written.
 	# PORT-NOTE: were a cold open playing, its onFinish would set PLAYING (:169) under
@@ -647,6 +664,14 @@ func is_paused() -> bool:
 ## PORT: web/src/tilt-to-live/TiltGame.ts:1519-1530
 # PORT-NOTE(BUG-101): restart() never recalibrates (TS :1519-1521); Auto does (R2).
 func restart_run() -> void:
+	# DIVERGENCE(ADS R2): Retry from the Run over is the ad break; the run starts after the ad.
+	if _state.phase == Types.GamePhase.GAME_OVER:
+		Ads.ad_break(_restart_run_now)
+		return
+	_restart_run_now()
+
+
+func _restart_run_now() -> void:
 	_state.restart()
 	_goals_hud.set_menu_mode(false)  # PORT: web/src/tilt-to-live/TiltGame.ts:1524
 	_begin_cinematic()
@@ -719,6 +744,49 @@ func calibrate_gyro() -> bool:
 func open_calibrate_screen() -> void:
 	_tilt.request_permission_and_start()
 	_calibrate_screen.open()
+
+
+## DIVERGENCE(ADS R3): Settings shows its Ad privacy row only when UMP asks for one.
+func _on_ads_consent_changed() -> void:
+	if _menu.is_options_open():
+		_menu.open_options_modal()
+
+
+## DIVERGENCE(ADS R6): true while the Run over may offer "Watch ad · 3× points": a rewarded ad
+## is ready and this run has points it has not yet multiplied.
+func is_reward_offered() -> bool:
+	return (
+		_state.phase == Types.GamePhase.GAME_OVER
+		and Ads.is_reward_ready()
+		and _run_controller.can_claim_reward()
+	)
+
+
+## DIVERGENCE(ADS R6): the Run over's "Watch ad · 3× points": the rewarded ad, then the run's
+## points times AD_REWARD_MULTIPLIER if the player earned it.
+func watch_reward_ad() -> void:
+	if not is_reward_offered():
+		return
+	_is_watching_reward = true
+	Ads.show_rewarded(_grant_ad_reward, _on_reward_ad_done)
+	_refresh_reward_offer()
+
+
+func _grant_ad_reward() -> void:
+	if _run_controller.claim_reward(AD_REWARD_MULTIPLIER) > 0:
+		_hud.show_reward_bonus(_run_controller.points_credited_this_run)
+	_refresh_reward_offer()
+
+
+func _on_reward_ad_done() -> void:
+	_is_watching_reward = false
+	_refresh_reward_offer()
+
+
+## The offer shows while it stands, and stays (greyed) while its ad is on its way.
+func _refresh_reward_offer() -> void:
+	var is_waiting: bool = _is_watching_reward and not _run_controller.is_reward_claimed
+	_hud.set_reward_offer(is_reward_offered() or is_waiting, is_waiting)
 
 
 ## DIVERGENCE(HTP R1): opens the How to play guide at its first page.
@@ -952,7 +1020,9 @@ func _on_run_ended(_final_score: int, stats: Types.GameStats) -> void:
 		_run_controller.max_lives,
 		_scores.is_new_best
 	)
+	Ads.note_run_end(stats.survival_time, _run_controller.is_first_run)  # DIVERGENCE(ADS R2)
 	_state.phase = Types.GamePhase.GAME_OVER
+	_refresh_reward_offer()  # DIVERGENCE(ADS R6)
 	_effect_layer.set_banner_shown(false)
 	_goals_hud.render()  # PORT: web/src/tilt-to-live/TiltGame.ts:2146
 	_menu.render()  # PORT: web/src/tilt-to-live/TiltGame.ts:2147

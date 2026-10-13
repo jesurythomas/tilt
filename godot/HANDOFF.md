@@ -4,6 +4,77 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
+**Latest (2026-10-14): ads round 2 — pacing by games, a 3× rewarded ad, dearer Armory (ADS
+R5-R8), and a Gauntlet stripe fix; merged into `staging` from `feat/in-game-ads` (user:
+"commit push create pr and merge to staging for now"), not yet in `main`.** Plan
+`docs/superpowers/plans/2026-10-13-in-game-ads.md` (rulings and tasks 10-12). R5 (user: "after
+every 5-10 games at random or total ingame time"): an interstitial is due after a random 5-10
+games or 300 s of run time, whichever first, never after the first run ever or a run under 20 s;
+the counts are saved in `user://peril_point_ads.json` (`Ads.SAVE_PATH`) across launches;
+`Ads.clock` is gone. R6 (user: "watch ads button for 3x the coins"): the Run over's
+`WatchAdButton` "Watch ad · 3× points" (under Points earned) shows a rewarded ad
+(`PerilAds.loadRewarded/showRewarded`, AARs rebuilt; test unit 5224354917, real one goes in
+`peril/ads/android_rewarded_id`); earning it makes the run's points 3× (`RunController.
+claim_reward`, the extra through `ProgressionManager.add_points_bonus`, no Points Multiplier),
+once a run; a rewarded view resets the interstitial pacing; HudController ignores Retry while an
+ad is on its way. R7 (user: "make the weapon upgrades more expensive ... ships, arena and
+boosts"): `ProgressionManager.PRICE_SCALE` = 2 doubles every Armory price where it is read; the
+tables keep their figures. R8 (user: "The upgrades still seem cheap"): weapon ranks and
+keystones use `UPGRADE_PRICE_SCALE` = 4 instead. The A55 log showed "Invalid polygon data, triangulation failed" up to
+60/s in Gauntlet: a stripe clipping a wall's corner leaves a sub-pixel sliver (442 of 3.5 M
+pieces in a sweep); the maze now draws each (convex) piece as a fan (`EntityLayer.fan_indices`).
+`peril/ads/test_device_hashed_id` = the A55's hash is committed (UMP debug device, SDK test
+device). Tests: 70/70 scripts, nothing leaked, gdformat/gdlint clean, 0 SCRIPT ERROR headless.
+0.1.18 (code 19) ran on the A55 2026-10-14 00:44: a rewarded ad opened, earned and closed;
+mean 16.67 ms, p95 25.0 on screen. 0.1.19 (code 20, `godot/build/peril-point-0.1.19-a55.apk`, no
+test switches, R8 prices) is the build for the user's pass. Next A55 build uses code 21. Next: the user's A55 pass
+(`VERIFY-ME.md` §ADS Part A, incl. the R6 rewarded check and the stripe check), AdMob setup
+(Part B, now with a rewarded unit), then `staging` → `main`; then Remove ads (Play Billing).
+
+**Earlier (2026-10-13): in-game ads (rulings ADS R1-R4), on branch `feat/in-game-ads`, not
+merged.** User: "We need to implement in-game ads - create a plan and push through with the
+plan". Plan `docs/superpowers/plans/2026-10-13-in-game-ads.md` (MVP R1's ad half). AdMob
+interstitials at one break, leaving the Run over by Retry or Menu (`GameRoot.restart_run` /
+`return_to_menu` call `Ads.ad_break` when the phase is GAME_OVER; Pause's Restart/Quit do not),
+paced by `AdPacing`: not after the first run ever, not after a run under 20 s, at most one per 3
+runs and 3 minutes (from launch too), never waiting on a load; a 4 s watchdog; the Master bus is
+muted under the ad. UMP consent at every launch (`Ads.start()`, deferred from `GameRoot._ready`);
+Settings → Data → **Ad privacy · Manage** when UMP requires it. Our own small Android v2 plugin
+`PerilAds` (Java, `android/peril-ads/`, built by `tools/build_ads_plugin.sh` into
+`godot/addons/peril_ads/bin/*.aar`, committed) on Google Mobile Ads 25.5.0 + UMP 4.0.0; the
+export plugin `godot/addons/peril_ads/` adds the AAR, the SDKs and the manifest app ID. IDs live
+in project settings via `AdsConfig` (`peril/ads/*`); unset = Google's **test** IDs, so every ad
+is a test ad until the user does `VERIFY-ME.md` §ADS Part B (AdMob app, unit, GDPR message,
+app-ads.txt, Play Console declarations). `peril/ads/every_break=true` skips the pacing for a
+device check; never commit it on. Facade in Telemetry's shape: `Ads` autoload
+(`src/core/ads.gd`), null `AdsBackend`, `AndroidAdsBackend` (the only file naming the plugin).
+924 tests green (`test_ads.gd`, `test_ad_break.gd`), nothing leaked, gdformat and gdlint clean,
+0 SCRIPT ERROR headless. Emulator (Pixel_10, Play Store image): the EEA consent form, the
+privacy options form, test interstitials on Retry and Menu with the action after ✕, and no ad
+on a short first run, all seen. 0.1.15 (code 16, same code as 0.1.14, `godot/build/peril-point-0.1.15-a55.apk`)
+is on the A55, installed 2026-10-13 22:10 with data kept, and launched: consent answered in ~2 s,
+`can_request_ads=true privacy_options_required=false` (GDPR does not apply in PH), no load
+failure; menu frame time mean 16.66 ms, p95 25.1. The A55's ads hash is
+`9A0837A109CE8195013D1AF3E32EC41B`, now committed as `peril/ads/test_device_hashed_id` (UMP debug
+device and SDK test device). User: "rebuild it i do not see the consent" — outside the EEA/UK/CH
+UMP shows no form, by design. 0.1.16 (code 17, `godot/build/peril-point-0.1.16-a55-eea.apk`)
+was built with `ads/debug_geography=1` uncommitted (release.sh restored project.godot) and
+installed 2026-10-14 00:07, data kept: the EEA form showed over the menu, a choice was tapped
+(`CONSENT_SIGNAL_SUFFICIENT`), and the game logged `can_request_ads=true
+privacy_options_required=true`. The A55 now carries that EEA test build and its stored consent;
+the form will not show again by itself (Settings → Ad privacy · Manage reopens the choices).
+User: "now how do i simulate the ads?" — 0.1.17 (code 18,
+`godot/build/peril-point-0.1.17-a55-ads-test.apk`) was built with `ads/every_break=true` and
+`ads/debug_geography=1`, both uncommitted, and installed on the A55 2026-10-14 00:10, data kept:
+every Retry or Menu on the Run over shows a test interstitial. Next A55 build uses code 19; a
+build from HEAD drops both switches and brings back the real pacing. Surprises: a static factory that called its own
+class's `new()` from an autoload kept every script alive at exit (306 leaked instances; fixed by
+building the backend in `Ads._ready`); a SceneTreeTimer bound into its own signal is a leaking
+cycle. The APK grew to 95 MB (the SDK's dex is ~9 MB; no R8). Next: the user's A55 pass
+(`VERIFY-ME.md` §ADS Part A) and AdMob setup (Part B), decide the package name question there,
+merge; then the ₱15 Remove ads purchase (Play Billing, roadmap Week 2), which turns the break
+off.
+
 **Latest (2026-10-13): the How to play guide (rulings HTP R1/R2), merged into `main` from
 `staging`.** Branches: `add-onboarding` (worktree `../dread-flock-staging`) → `staging` → `main`
 by PR; `staging` is kept. The public guide (perilpoint.newzenith.ph/how-to-play) is in the game:

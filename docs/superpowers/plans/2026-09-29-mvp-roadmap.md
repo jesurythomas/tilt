@@ -102,9 +102,13 @@ opted-in testers, before production.
   dev key so it installs over the release. Look into the > 20 ms frames. ~1 day.
 
 ### Week 2 — monetization and leaderboards
-- [ ] **AdMob interstitial** (Godot 4 Android plugin), with the cap in MVP R1. 2–3 days.
+- [x] **AdMob interstitial** (Godot 4 Android plugin), with the cap in MVP R1. 2–3 days.
+  *(Code-complete 2026-10-13 on `feat/in-game-ads`, rulings ADS R1-R4 in
+  `docs/superpowers/plans/2026-10-13-in-game-ads.md`: our own `PerilAds` plugin, test IDs until
+  the AdMob app exists; A55 pass and AdMob setup pending, `VERIFY-ME.md` §ADS.)*
 - [ ] **Play Billing** "Remove ads · ₱15" plus "Restore purchase" in Settings. 2–3 days.
-- [ ] **UMP consent.** ~1 day.
+- [x] **UMP consent.** ~1 day. *(Done with the interstitial, ADS R3: form at launch when
+  required, Settings → Ad privacy; the GDPR message itself is published in AdMob, §ADS Part B.)*
 - [ ] **Play Games leaderboards (MVP R2).** 3–5 days, after the app exists in Play Console
   with its signing key registered.
 - [ ] *(if approved)* **Clickable power-ups (MVP R3).** 3–5 days; +0.5–1 day for the

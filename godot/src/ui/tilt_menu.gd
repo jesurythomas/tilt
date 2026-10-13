@@ -819,6 +819,10 @@ func _bind_options_events() -> void:
 	if calibrate != null:
 		calibrate.pressed.connect(calibrate_screen_requested.emit)
 	_find_options_button("ArmoryLink").pressed.connect(_on_armory_link_pressed)
+	# DIVERGENCE(ADS R3): only built while UMP asks for a privacy options entry point.
+	var ad_privacy: Button = _find_options_button("AdPrivacyButton")
+	if ad_privacy != null:
+		ad_privacy.pressed.connect(Ads.show_privacy_options)
 	# PORT: web/src/tilt-to-live/TiltMenu.ts:506-521 (window.confirm → ResetConfirm)
 	_find_options_button("ResetButton").pressed.connect(_reset_confirm.show)
 	_find_confirm_button("ResetConfirmButton").pressed.connect(reset_confirmed.emit)
@@ -1278,28 +1282,49 @@ func _audio_column() -> VBoxContainer:
 	column.add_child(
 		_switch_card("UsageSwitch", "Share anonymous usage data", "", s.share_usage_data)
 	)
+	# DIVERGENCE(ADS R3): UMP's privacy options entry point, only when UMP asks for one.
+	if Ads.is_privacy_options_required:
+		column.add_child(
+			_button_card(
+				"Ad privacy",
+				"Choose how ads use your data.",
+				_card_button("AdPrivacyButton", "Manage")
+			)
+		)
+	# PORT: :400 (label) and :403 (button); the hint is the board's (R6)
+	column.add_child(
+		_button_card("Reset progress", "Cannot be undone.", _card_button("ResetButton", "Reset"))
+	)
+	return column
+
+
+# A Data card: a label and hint beside one quiet button.
+func _button_card(label: String, hint: String, button: Button) -> PanelContainer:
 	var card: PanelContainer = _options_card()
-	# PORT: :400 (label); the hint is the board's (R6)
-	var row: HBoxContainer = _card_row("Reset progress", "Cannot be undone.")
-	var reset: Button = _button("ResetButton", "SecondaryButton", "Reset")  # PORT: :403
-	reset.custom_minimum_size.y = _px(UiTheme.TOUCH_TARGET)
-	reset.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	# DIVERGENCE(UI-SYSTEM): Settings.dc.html — Reset: line_strong 1px, r 4, muted 13
-	var reset_box: StyleBoxFlat = UiTheme.padded(
+	var row: HBoxContainer = _card_row(label, hint)
+	row.add_child(button)
+	card.add_child(row)
+	return card
+
+
+# DIVERGENCE(UI-SYSTEM): Settings.dc.html — Reset: line_strong 1px, r 4, muted 13. Ad privacy's
+# Manage (ADS R3) wears the same.
+func _card_button(button_name: String, label: String) -> Button:
+	var button: Button = _button(button_name, "SecondaryButton", label)
+	button.custom_minimum_size.y = _px(UiTheme.TOUCH_TARGET)
+	button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var box: StyleBoxFlat = UiTheme.padded(
 		UiTheme.flat(Color.TRANSPARENT, UiTheme.COLOR_LINE_STRONG, _px(RESET_RADIUS)),
 		_px(UiTheme.BUTTON_PAD_X),
 		0.0
 	)
-	reset.add_theme_stylebox_override("normal", reset_box)
-	reset.add_theme_stylebox_override("hover", reset_box)
-	reset.add_theme_font_override("font", UiTheme.sans(UiTheme.Weight.REGULAR))
-	reset.add_theme_font_size_override("font_size", _px(RESET_FONT))
-	reset.add_theme_color_override("font_color", UiTheme.COLOR_TEXT_MUTED)
-	reset.add_theme_color_override("font_hover_color", UiTheme.COLOR_TEXT_MUTED)
-	row.add_child(reset)
-	card.add_child(row)
-	column.add_child(card)
-	return column
+	button.add_theme_stylebox_override("normal", box)
+	button.add_theme_stylebox_override("hover", box)
+	button.add_theme_font_override("font", UiTheme.sans(UiTheme.Weight.REGULAR))
+	button.add_theme_font_size_override("font_size", _px(RESET_FONT))
+	button.add_theme_color_override("font_color", UiTheme.COLOR_TEXT_MUTED)
+	button.add_theme_color_override("font_hover_color", UiTheme.COLOR_TEXT_MUTED)
+	return button
 
 
 # DIVERGENCE(UI-SYSTEM): Settings.dc.html — switch card: panel, line 1px, r 6,

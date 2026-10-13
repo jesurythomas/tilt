@@ -178,7 +178,9 @@ func test_ship_catalog_matches_the_typescript() -> void:
 		assert_eq(ship.id, SaveStore.read_string(want, "id", ""), tag)
 		assert_eq(ship.name, SaveStore.read_string(want, "name", ""), tag)
 		assert_eq(ship.trait_text, SaveStore.read_string(want, "trait", ""), tag)
-		assert_eq(ship.price, SaveStore.read_int(want, "price", -1), tag)
+		# ADS R7: Armory prices are PRICE_SCALE times the TS figure
+		var ship_price: int = SaveStore.read_int(want, "price", -1)
+		assert_eq(ship.price, ship_price * ProgressionManager.PRICE_SCALE, tag)
 		assert_eq(ship.description, SaveStore.read_string(want, "description", ""), tag)
 		assert_eq(ship.hitbox, SaveStore.read_string(want, "hitbox", ""), tag)
 		assert_eq(ship.turn, SaveStore.read_string(want, "turn", ""), tag)
@@ -224,7 +226,9 @@ func test_enemy_skin_catalog_matches_the_typescript() -> void:
 		var tag: String = "skin[%d]" % i
 		assert_eq(skin.id, SaveStore.read_string(want, "id", ""), tag)
 		assert_eq(skin.name, SaveStore.read_string(want, "name", ""), tag)
-		assert_eq(skin.price, SaveStore.read_int(want, "price", -1), tag)
+		# ADS R7: Armory prices are PRICE_SCALE times the TS figure
+		var skin_price: int = SaveStore.read_int(want, "price", -1)
+		assert_eq(skin.price, skin_price * ProgressionManager.PRICE_SCALE, tag)
 		assert_eq(skin.description, SaveStore.read_string(want, "description", ""), tag)
 		_assert_color(skin.glow_color, SaveStore.read_string(want, "glowColor", ""), tag + " glow")
 		var gradient: Array[String] = SaveStore.read_string_array(want, "bodyGradient")
@@ -249,7 +253,9 @@ func test_arena_theme_catalog_matches_the_typescript() -> void:
 		var tag: String = "arena[%d]" % i
 		assert_eq(arena.id, SaveStore.read_string(want, "id", ""), tag)
 		assert_eq(arena.name, SaveStore.read_string(want, "name", ""), tag)
-		assert_eq(arena.price, SaveStore.read_int(want, "price", -1), tag)
+		# ADS R7: Armory prices are PRICE_SCALE times the TS figure
+		var arena_price: int = SaveStore.read_int(want, "price", -1)
+		assert_eq(arena.price, arena_price * ProgressionManager.PRICE_SCALE, tag)
 		assert_eq(arena.description, SaveStore.read_string(want, "description", ""), tag)
 		var gradient: Array[String] = SaveStore.read_string_array(want, "bgGradient")
 		assert_eq(arena.bg_gradient.size(), 3, tag)
@@ -266,32 +272,35 @@ func test_arena_theme_catalog_matches_the_typescript() -> void:
 
 func test_perk_cost_curve_keeps_the_typescript_shape() -> void:
 	# DIVERGENCE(ECON R2): the prices are the plan's; the shape (one price per rank,
-	# clamped past the last) is the TS's.
+	# clamped past the last) is the TS's. ADS R8: charged at UPGRADE_PRICE_SCALE times the table.
 	var curve: Array = _fixture["perk_cost_curve"]
 	var last: int = ProgressionManager.PERK_COSTS.size() - 1
 	for entry: Dictionary in curve:
 		var rank: int = SaveStore.read_int(entry, "rank", -1)
 		var want: int = ProgressionManager.PERK_COSTS[mini(rank, last)]
-		assert_eq(_pm.get_perk_cost(rank), want, "rank %d" % rank)
+		assert_eq(
+			_pm.get_perk_cost(rank), want * ProgressionManager.UPGRADE_PRICE_SCALE, "rank %d" % rank
+		)
 
 
 func test_keystone_costs_through_get_perk_cost_match_the_typescript() -> void:
 	var costs: Array = _fixture["keystone_costs"]
 	for entry: Dictionary in costs:
 		var key: String = SaveStore.read_string(entry, "key", "")
+		# ADS R8: Armory prices are UPGRADE_PRICE_SCALE times the TS figure
 		assert_eq(
 			_pm.get_perk_cost(0, true, key),
-			SaveStore.read_int(entry, "cost", -1),
+			SaveStore.read_int(entry, "cost", -1) * ProgressionManager.UPGRADE_PRICE_SCALE,
 			"keystone %s" % key
 		)
 
 
 ## DIVERGENCE(ECON R2): the ladder lengths (where each turns null) are the TS's; the
-## prices are the plan's.
+## prices are the plan's, charged at PRICE_SCALE times the table (ADS R7).
 func _econ_cost(ts_entry: Variant, ladder: Array[int], rank: int) -> int:
 	if _ladder_cost(ts_entry) == Types.ABSENT:
 		return Types.ABSENT
-	return ladder[rank]
+	return ladder[rank] * ProgressionManager.PRICE_SCALE
 
 
 func test_purchasable_ladders_match_the_typescript() -> void:
@@ -344,12 +353,13 @@ func _ladder_cost(value: Variant) -> int:
 
 func test_invested_points_and_multipliers_at_defaults_match_the_typescript() -> void:
 	var invested: Dictionary = _fixture["invested_points_at_defaults"]
-	# DIVERGENCE(ECON R2): the same default ranks priced on the new curve.
+	# DIVERGENCE(ECON R2): the same default ranks priced on the new curve, times
+	# UPGRADE_PRICE_SCALE (ADS R8).
 	var econ: Dictionary[String, int] = {
 		"blackhole": 4250, "nuke": 250, "shield": 0, "missiles": 3900, "laser": 650
 	}
 	for weapon: String in invested.keys():
-		var want: int = econ.get(weapon, 0)
+		var want: int = econ.get(weapon, 0) * ProgressionManager.UPGRADE_PRICE_SCALE
 		assert_eq(_pm.get_weapon_invested_points(weapon), want, "invested %s" % weapon)
 	var m: Dictionary = _fixture["multipliers_at_defaults"]
 	assert_eq(_pm.get_starting_lives(), SaveStore.read_int(m, "startingLives", -1))

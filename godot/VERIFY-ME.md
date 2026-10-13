@@ -1064,3 +1064,91 @@ On the A55 as 0.1.9 (code 10). Log and `dumpsys vibrator_manager` confirmed `usa
 - [ ] Power-ups: each orb plays its clip; the name and line change with it.
 - [ ] The Armory: the tour clip's text is readable; the tab list scrolls with a drag.
 - [ ] Frame rate while a clip plays: `tools/frametime.sh 20 htp`.
+
+## ADS R1-R4 — AdMob interstitials at the Run over (2026-10-13, branch `feat/in-game-ads`)
+
+Plan `docs/superpowers/plans/2026-10-13-in-game-ads.md`. 0.1.15 (code 16,
+`godot/build/peril-point-0.1.15-a55.apk`, A55 key; the same code as 0.1.14) was installed on the
+A55 2026-10-13 22:10 over 0.1.14, data kept, and launched (first Part A check below). Every ad unit is Google's
+**test** unit until you do Part B: ads carry a "Test Ad" label and earn nothing.
+
+Checked on the emulator (Pixel_10, Play Store image), 2026-10-13:
+- With `ads/debug_geography=1` (EEA): the UMP consent form opened over the first-launch guide;
+  Consent → `ads: consent can_request_ads=true privacy_options_required=true`; Settings → Data
+  showed **Ad privacy · Manage**, which opened the privacy options form.
+- With `ads/every_break=true`: Retry and Menu on the Run over each showed Google's interstitial
+  test ad; after ✕ the cold open (Retry) or the menu (Menu) followed.
+- Default settings, fresh save: no form (not EEA), and a 3-second first run retried with no ad.
+
+### Part A — on the A55 (0.1.15)
+
+- [x] Launch; `adb -s RRCXB04L8EJ logcat -d | grep "ads:"` shows
+      `ads: consent can_request_ads=true privacy_options_required=false` (no form outside the EEA).
+      *(Seen 2026-10-13 22:10, ~2 s after boot; UMP wrote `IABTCF_gdprApplies=0`; no load
+      failure logged. Menu frame time: mean 16.66 ms, p95 25.1.)*
+- [ ] (ADS R5) Play 5-10 games, or 5 minutes of run time, whichever comes first; the count
+      carries across launches. Then Retry or Menu on the Run over shows one test interstitial;
+      ✕ continues to the run or the menu. The game is silent under the ad and its sound comes
+      back. *(The every-break build 0.1.17 showed two on 2026-10-14 00:11 and 00:11:56; each
+      opened in ~50 ms and the game had focus after ✕.)*
+- [ ] No ad: after a run under 20 s, from Pause's Restart run or Quit to menu, or with the phone
+      in flight mode (Retry and Menu act at once).
+- [ ] (ADS R6) The Run over shows **Watch ad · 3× points** (play glyph, under Points earned) a
+      few seconds after launch. Tap it: a test rewarded ad plays, the game is silent; watch it to
+      the end and close it. The earned figure counts up to 3× and the button goes; the Armory
+      balance has the extra. Close one early instead: no extra, and the button returns when the
+      next ad loads. Retry right after a rewarded ad shows no interstitial. *(0.1.18 on the A55,
+      2026-10-14 00:48: the rewarded ad opened 70 ms after the tap, `ads: reward earned` 8 s in,
+      closed 2 s later. Still to see: the figure counting up to 3× and the button going.)*
+- [ ] (ADS R7) Armory prices are double what they were (e.g. a rank-1 upgrade 500, Solar 1,200);
+      what you own stays owned. *(Screenshot 00:48: Blackhole Radius rank 3 at 1,300, Event
+      Horizon at 6,000; the cost buttons fit.)* ADS R8 (user: "The upgrades still seem cheap"):
+      weapon ranks and keystones are now 4× (Radius rank 3 at 2,600, Event Horizon at 12,000);
+      ships, arena and boosts stay 2×.
+- [ ] (Stripe fix) Play Gauntlet to its Run over, then
+      `adb -s RRCXB04L8EJ logcat -d | grep -c "triangulation failed"` prints 0 (0.1.17 logged up
+      to 60 a second there).
+- [ ] Frame time in a run: `tools/frametime.sh 20 ads`. HTP's Power-ups page read mean 16.71 ms,
+      p95 25.2 on 0.1.11; the ads build adds no per-frame game code, so a run should match the
+      runs before it.
+- [x] Optional, the EEA form on the A55: put `ads/debug_geography=1` under `[peril]` in
+      `project.godot` (uncommitted), build with `tools/release.sh` (it restores `project.godot`
+      after the export), and put the A55's hash in
+      `ads/test_device_hashed_id="9A0837A109CE8195013D1AF3E32EC41B"` (from its logcat line
+      `addTestDeviceHashedId("…")`). *(Done 2026-10-14 00:07, 0.1.16 code 17,
+      `godot/build/peril-point-0.1.16-a55-eea.apk`; the hash is now committed. The form showed
+      over the menu; a choice was tapped; `can_request_ads=true privacy_options_required=true`.
+      Left for you: Settings → Data → Ad privacy · Manage opens the privacy options form.)* UMP applies a
+      debug geography only to a test device.
+
+### Part B — AdMob and Play Console (you do this once, before real ads)
+
+1. **Which package ships?** The preset builds `com.jtg.perilpoint`; the A55's Play Store copy is
+   `ph.newzenith.perilpoint`. Register the AdMob app under the package that will be on Play.
+2. admob.google.com → Apps → Add app → Android, linked to the Play listing → copy the **app
+   ID** (`ca-app-pub-…~…`). Ad units → Interstitial → copy the **unit ID** (`ca-app-pub-…/…`).
+   Ad units → Rewarded → copy its **unit ID** too (ADS R6; the game grants its own reward, so
+   the unit's reward amount and type do not matter).
+3. Put them in `godot/project.godot` and commit:
+   ```
+   [peril]
+
+   ads/android_app_id="ca-app-pub-XXXXXXXX~YYYYYYYY"
+   ads/android_interstitial_id="ca-app-pub-XXXXXXXX/ZZZZZZZZ"
+   ads/android_rewarded_id="ca-app-pub-XXXXXXXX/WWWWWWWW"
+   ads/test_device_hashed_id="9A0837A109CE8195013D1AF3E32EC41B"
+   ```
+   That is the A55's hash, so your own phone keeps getting test ads. Also add the A55 under
+   AdMob → Settings → Test devices. Clicking real ads on your own phone
+   can get the account suspended.
+4. AdMob → Privacy & messaging → **European regulations** (GDPR) message for this app: create
+   and publish it (the form the game shows in the EEA, UK and Switzerland). Optionally the US
+   states message.
+5. **app-ads.txt:** AdMob → Apps → app-ads.txt gives one line; host it at
+   `https://perilpoint.newzenith.ph/app-ads.txt` (the developer website in the Play listing).
+6. Play Console → App content: **Ads** = yes. **Data safety**: the Google Mobile Ads SDK
+   collects device or other IDs (advertising ID), approximate location (IP), app interactions
+   and diagnostics for advertising and fraud prevention, shared with Google (follow Google's
+   "AdMob data disclosure" page). **Advertising ID**: yes, used for advertising (the SDK adds
+   `com.google.android.gms.permission.AD_ID`). **Target audience**: 13+, so no Families rules.
+7. Never commit `ads/every_break=true`.

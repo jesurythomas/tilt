@@ -498,6 +498,66 @@ func test_stripe_polygons_stay_inside_the_segment() -> void:
 	)
 
 
+## Found 2026-10-14 on the A55: "Invalid polygon data, triangulation failed" in Gauntlet, every
+## frame on a frozen Run over. A stroke that just clips a wall's corner leaves a sub-pixel
+## sliver that draw_colored_polygon's triangulation rejects; the maze now fans each piece.
+func test_stripe_pieces_are_convex_so_a_fan_draws_each_one() -> void:
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.seed = 11
+	for _i: int in range(300):
+		var height: float = 22.0 * rng.randf_range(1.0, 1.75)
+		var pieces: Array[PackedVector2Array] = EntityLayer.stripe_polygons(
+			rng.randf_range(20.0, 1800.0), height, rng.randf_range(0.0, 400.0)
+		)
+		for piece: PackedVector2Array in pieces:
+			assert_true(_is_convex(piece), "a stroke clipped to a rectangle: %s" % piece)
+			var fan: PackedInt32Array = EntityLayer.fan_indices(piece.size())
+			assert_almost_eq(_fan_area(piece, fan), absf(_signed_area(piece)), 0.01)
+
+
+func test_a_corner_clip_leaves_a_sub_pixel_sliver() -> void:
+	var smallest: float = INF
+	for piece: PackedVector2Array in EntityLayer.stripe_polygons(
+		475.171936035156, 27.5, 305.236358642578
+	):
+		smallest = minf(smallest, absf(_signed_area(piece)))
+	assert_lt(smallest, 0.01, "the A55 case: a 3-point sliver at the segment's right edge")
+
+
+func test_fan_indices_fan_from_the_first_point() -> void:
+	assert_eq(EntityLayer.fan_indices(3), PackedInt32Array([0, 1, 2]))
+	assert_eq(EntityLayer.fan_indices(5), PackedInt32Array([0, 1, 2, 0, 2, 3, 0, 3, 4]))
+
+
+func _signed_area(piece: PackedVector2Array) -> float:
+	var twice: float = 0.0
+	for i: int in range(piece.size()):
+		twice += piece[i].cross(piece[(i + 1) % piece.size()])
+	return twice * 0.5
+
+
+func _fan_area(piece: PackedVector2Array, fan: PackedInt32Array) -> float:
+	var total: float = 0.0
+	for t: int in range(0, fan.size(), 3):
+		var a: Vector2 = piece[fan[t]]
+		total += absf((piece[fan[t + 1]] - a).cross(piece[fan[t + 2]] - a)) * 0.5
+	return total
+
+
+func _is_convex(piece: PackedVector2Array) -> bool:
+	var turn: float = 0.0
+	for i: int in range(piece.size()):
+		var a: Vector2 = piece[i]
+		var b: Vector2 = piece[(i + 1) % piece.size()]
+		var cross: float = (b - a).cross(piece[(i + 2) % piece.size()] - b)
+		if absf(cross) < 0.001:
+			continue
+		if turn != 0.0 and signf(cross) != signf(turn):
+			return false
+		turn = cross
+	return true
+
+
 func test_stripe_polygons_match_a_brute_force_per_stroke_clip() -> void:
 	# Reference: the pre-F-1 approach, clipping every stroke individually.
 	var cases: Array[Vector3] = [
