@@ -114,7 +114,7 @@ ruling is its own roadmap item (Play Billing) and is not built here.
       holds PerilAdsPlugin, MobileAds, InterstitialAd and UserMessagingPlatform. APK 99.2 MB vs
       0.1.10's 82.3 MB: dex 5.1 → 14.4 MB (the SDK, with Kotlin and coroutines), the rest is
       HTP's clips. minSdk stays 29, as before.)*
-- [ ] 4. `AdsConfig`, `AdPacing`, `AdsBackend`, `AndroidAdsBackend`, `Ads` autoload;
+- [x] 4. `AdsConfig`, `AdPacing`, `AdsBackend`, `AndroidAdsBackend`, `Ads` autoload;
       `tests/recording_ads_backend.gd`, `tests/test_ads.gd`.
 - [ ] 5. GameRoot: the break on Retry/Menu from the Run over, `Ads.note_run_end` beside
       `Telemetry.run_end`, `Ads.start()`; Settings "Ad privacy" row. Tests in

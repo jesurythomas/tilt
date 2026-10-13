@@ -1,0 +1,190 @@
+## ads.gd
+## PORTS: nothing — new file (rulings ADS R1-R4, docs/superpowers/plans/2026-10-13-in-game-ads.md)
+# PORT-NOTE: no `class_name`, against CONVENTIONS §2. An autoload script cannot
+# carry one (same as Telemetry, Haptics, Log and GameEvents).
+extends Node
+## Interstitial ads at the one ad break, and the consent they need. Autoloaded as `Ads`.
+##
+## The break is leaving the Run over: GameRoot routes Retry and Menu through `ad_break`. No sim
+## class calls this; GameRoot does, as it does Telemetry. Swapping the ad vendor means
+## replacing `backend`; nothing else in the game names one.
+
+## Consent was gathered or changed; Settings shows or hides its Ad privacy row.
+signal consent_changed
+
+## DIVERGENCE(ADS R2): seconds an ad may take to open before the break goes on without it.
+const OPEN_TIMEOUT_SECONDS: float = 4.0
+
+## Where ad calls go: the PerilAds plugin on Android, else the null backend.
+var backend: AdsBackend = null
+## When the break may show an ad.
+var pacing: AdPacing = null
+## Seconds on a monotonic clock. A Callable so tests can move time.
+var clock: Callable = _ticks_seconds
+## True once consent allows ad requests.
+var can_request_ads: bool = false
+## True when UMP asks for a privacy options entry point (Settings → Ad privacy).
+var is_privacy_options_required: bool = false
+## True while a loaded interstitial waits for a break.
+var is_ad_loaded: bool = false
+
+var _is_started: bool = false
+var _is_loading: bool = false
+## The break's action, held while its ad opens and shows.
+var _pending: Callable = Callable()
+## The watchdog of the ad now opening; null once it opened or the break ended.
+var _open_timer: SceneTreeTimer = null
+var _is_muting: bool = false
+var _was_master_muted: bool = false
+
+
+func _ready() -> void:
+	var android: AndroidAdsBackend = AndroidAdsBackend.create()
+	set_backend(android if android != null else AdsBackend.new())
+	reset_session()
+
+
+## Swaps the backend (tests use a recording one) and listens to it.
+func set_backend(next: AdsBackend) -> void:
+	if backend != null:
+		backend.consent_finished.disconnect(_on_consent_finished)
+		backend.interstitial_loaded.disconnect(_on_interstitial_loaded)
+		backend.interstitial_failed_to_load.disconnect(_on_interstitial_failed_to_load)
+		backend.interstitial_opened.disconnect(_on_interstitial_opened)
+		backend.interstitial_closed.disconnect(_finish_break)
+		backend.interstitial_failed_to_show.disconnect(_finish_break)
+	backend = next
+	backend.consent_finished.connect(_on_consent_finished)
+	backend.interstitial_loaded.connect(_on_interstitial_loaded)
+	backend.interstitial_failed_to_load.connect(_on_interstitial_failed_to_load)
+	backend.interstitial_opened.connect(_on_interstitial_opened)
+	backend.interstitial_closed.connect(_finish_break)
+	backend.interstitial_failed_to_show.connect(_finish_break)
+
+
+## Forgets consent, the loaded ad and any break, and starts the pacing over, as at launch.
+func reset_session() -> void:
+	_restore_sound()
+	pacing = AdPacing.new(_now())
+	can_request_ads = false
+	is_privacy_options_required = false
+	is_ad_loaded = false
+	_is_started = false
+	_is_loading = false
+	_pending = Callable()
+	_open_timer = null
+
+
+## Gathers consent, once per launch. GameRoot calls it after the first frame.
+func start() -> void:
+	if _is_started:
+		return
+	_is_started = true
+	backend.gather_consent(AdsConfig.test_device_hashed_id(), AdsConfig.debug_geography())
+
+
+## A run ended after `seconds`: counts it for the pacing and makes sure an ad is on its way.
+func note_run_end(seconds: float, was_first_run: bool) -> void:
+	pacing.note_run_end(seconds, was_first_run)
+	_request_load()
+
+
+## True when a break now would show an ad: consent, a loaded ad, and the pacing (ADS R2).
+func is_break_due() -> bool:
+	if not can_request_ads or not is_ad_loaded:
+		return false
+	return AdsConfig.is_every_break() or pacing.is_due(_now())
+
+
+## DIVERGENCE(ADS R2): the ad break. Shows an interstitial when one is due and runs `action`
+## when it closes (or fails, or has not opened after OPEN_TIMEOUT_SECONDS); otherwise runs
+## `action` at once. A break while another one's ad is opening is dropped.
+func ad_break(action: Callable) -> void:
+	if _pending.is_valid():
+		return
+	if not is_break_due():
+		action.call()
+		return
+	_pending = action
+	is_ad_loaded = false
+	_mute_sound()
+	var timer: SceneTreeTimer = get_tree().create_timer(OPEN_TIMEOUT_SECONDS)
+	timer.timeout.connect(_on_open_timeout.bind(timer))
+	_open_timer = timer
+	backend.show_interstitial()
+
+
+## True while a break waits on its ad.
+func is_break_pending() -> bool:
+	return _pending.is_valid()
+
+
+## Settings → Ad privacy · Manage: UMP's privacy options form.
+func show_privacy_options() -> void:
+	backend.show_privacy_options()
+
+
+func _request_load() -> void:
+	if not can_request_ads or is_ad_loaded or _is_loading or _pending.is_valid():
+		return
+	_is_loading = true
+	backend.load_interstitial(AdsConfig.interstitial_id())
+
+
+func _on_consent_finished(can_request: bool, is_privacy_required: bool) -> void:
+	can_request_ads = can_request
+	is_privacy_options_required = is_privacy_required
+	consent_changed.emit()
+	_request_load()
+
+
+func _on_interstitial_loaded() -> void:
+	_is_loading = false
+	is_ad_loaded = true
+
+
+func _on_interstitial_failed_to_load() -> void:
+	_is_loading = false
+	is_ad_loaded = false
+
+
+func _on_interstitial_opened() -> void:
+	_open_timer = null
+	pacing.note_ad_shown(_now())
+
+
+func _on_open_timeout(timer: SceneTreeTimer) -> void:
+	if timer == _open_timer:
+		_finish_break()
+
+
+## The ad closed or failed, or never opened: sound back, the action runs once, the next ad loads.
+func _finish_break() -> void:
+	_open_timer = null
+	var action: Callable = _pending
+	_pending = Callable()
+	_restore_sound()
+	_request_load()
+	if action.is_valid():
+		action.call()
+
+
+func _mute_sound() -> void:
+	_was_master_muted = AudioServer.is_bus_mute(0)
+	_is_muting = true
+	AudioServer.set_bus_mute(0, true)
+
+
+func _restore_sound() -> void:
+	if _is_muting:
+		_is_muting = false
+		AudioServer.set_bus_mute(0, _was_master_muted)
+
+
+func _now() -> float:
+	var seconds: float = clock.call()
+	return seconds
+
+
+func _ticks_seconds() -> float:
+	return Time.get_ticks_msec() / 1000.0

@@ -26,6 +26,7 @@ Log="*res://src/core/log.gd"
 GameEvents="*res://src/core/game_events.gd"
 Telemetry="*res://src/core/telemetry.gd"
 Haptics="*res://src/core/haptics.gd"
+Ads="*res://src/core/ads.gd"
 
 [debug]
 
