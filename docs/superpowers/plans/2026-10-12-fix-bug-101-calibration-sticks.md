@@ -54,6 +54,22 @@ My calls, made without asking (standing instruction "always proceed"):
   Touch steers, on a phone (`TiltMenu.shows_stick_card`).
 
 
+## Ruling BUG-101 R4 (user 2026-10-13: "make tilt every run on the pause menu toggle-able, toggled on -> keep on every run -> toggle off -> recalibrates when play /resume is pressed")
+
+Branch `feat/pause-keep-tilt-level` (PR #11), stacked on `fix/haptics-media-vibration` (PR #10)
+so the version codes stay in order.
+- Pause sheet: switch **Keep tilt level** (`KeepTiltSwitch`) under Music, shown with the
+  calibrate icon (tilt only). On = All runs, off = Each start; it mirrors the saved level.
+- Each start now also levels on **Resume** (`GameRoot.toggle_pause` back to PLAYING), unsaved,
+  as Play and Retry do.
+- My call: switching to All runs (Pause or Settings) **keeps the level in use**
+  (`TiltInput.keep_current_level`), so turning it on mid-run never jumps to an older level. This
+  replaces R2's `restore_saved_calibration`.
+- `GameRoot.set_tilt_level` is the one writer; `game_root.gd` now disables gdlint's
+  max-file-lines, as `tilt_menu.gd` and `armory_ui.gd` do.
+
+## Tasks
+
 - [x] Failing tests (`test_main_scene.gd`): boot keeps the saved calibration; Retry and choosing
       tilt do not re-arm. 3 failed before the fix.
 - [x] Fix in `game_root.gd`. 857 tests green, gdformat and gdlint clean.
@@ -67,8 +83,11 @@ My calls, made without asking (standing instruction "always proceed"):
       0 SCRIPT ERROR headless. 0.1.8 (code 9) on the A55 2026-10-13 14:39
       (`build/peril-point-0.1.8-a55.apk`). Next A55 build uses code 10.
 - [x] User: "once all green - commit - push - PR - merge". Merged into `main` by its PR.
-- [ ] A55 pass by the user (`VERIFY-ME.md` §BUG-101) on 0.1.8. `calibrate_gyro`'s forced poll reads the real
-      sensor and is not reachable headless. Then PR and merge.
+- [x] R4: 876 tests green (Pause fits with the new row on the board frame and the A55),
+      gdformat and gdlint clean, 0 SCRIPT ERROR headless. 0.1.10 (code 11) on the A55
+      2026-10-13 14:55 (`build/peril-point-0.1.10-a55.apk`). Next A55 build uses code 12.
+- [ ] A55 pass by the user (`VERIFY-ME.md` §BUG-101) on 0.1.10. `calibrate_gyro`'s forced poll
+      reads the real sensor and is not reachable headless.
 
 ## Open (not part of this fix)
 

@@ -4,6 +4,13 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
+**Latest (2026-10-13): BUG-101 R4, Pause → Keep tilt level, branch `feat/pause-keep-tilt-level`
+(PR #11, stacked on PR #10).** User: "make tilt every run on the pause menu toggle-able, toggled
+on -> keep on every run -> toggle off -> recalibrates when play /resume is pressed". Pause has a
+Keep tilt level switch (tilt only); off = Each start, which now also levels on Resume; on = All
+runs, keeping the level in use. 876 tests green. 0.1.10 (code 11) is on the A55; next A55 build
+uses code 12. Next: merge PR #10, then PR #11; the user's A55 pass (`VERIFY-ME.md` §BUG-101 R4).
+
 **Latest (2026-10-13): HAPTICS R1, vibration fixed, branch `fix/haptics-media-vibration`, PR
 open.** User: "vibration isnt working". Godot's `vibrate_handheld` tags pulses `usage: TOUCH`;
 the A55 has touch-feedback vibration off, so Android dropped every pulse. `Haptics` now calls
