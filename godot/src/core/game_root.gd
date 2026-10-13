@@ -596,6 +596,8 @@ func _is_touch_stick_live() -> bool:
 ## set_size, since the corner centre depends on the radius.
 func _apply_stick_anchor() -> void:
 	_joystick.apply_anchor(settings.stick_anchor, _bounds)
+	# DIVERGENCE(HUD R2): the ability bar keeps clear of a stick anchored bottom right.
+	_hud.set_ability_side(settings.stick_anchor == ControlSettings.StickAnchor.RIGHT)
 
 
 ## DIVERGENCE(DASH R1): asks the run for a dash (a double tap, Shift, a double-click). Only a

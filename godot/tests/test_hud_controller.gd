@@ -261,19 +261,19 @@ func test_weapon_timer_hidden_without_a_timed_weapon() -> void:
 	assert_false(HudController.weapon_timer_for(player, none).is_shown, "TiltGame.ts:2212-2213")
 
 
-## Builds a HUD with main.tscn's in-run nodes (Frame, ScoreBlock, LeftColumn/LivesRow,
-## LeftColumn/ToastSlot, PauseButton, WeaponTimer), unbound from any run.
+## Builds a HUD with main.tscn's in-run nodes (Frame, LeftColumn/ScoreBlock,
+## LeftColumn/LivesRow, LeftColumn/ToastSlot, PauseButton, WeaponTimer), unbound from any run.
 func _make_hud() -> HudController:
 	var hud: HudController = HudController.new()
 	var frame: Panel = Panel.new()
 	frame.name = "Frame"
 	hud.add_child(frame)
-	var score_block: VBoxContainer = VBoxContainer.new()
-	score_block.name = "ScoreBlock"
-	frame.add_child(score_block)
 	var left: VBoxContainer = VBoxContainer.new()
 	left.name = "LeftColumn"
 	frame.add_child(left)
+	var score_block: VBoxContainer = VBoxContainer.new()
+	score_block.name = "ScoreBlock"
+	left.add_child(score_block)
 	var lives: HBoxContainer = HBoxContainer.new()
 	lives.name = "LivesRow"
 	left.add_child(lives)

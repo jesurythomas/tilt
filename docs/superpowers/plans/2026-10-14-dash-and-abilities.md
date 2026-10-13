@@ -135,7 +135,9 @@ Baseline before any change (desktop, `bench/bench_sim.gd` headless, 3 runs): a f
    `GameEvents.dash_activated`, Haptics; tests. (`src/input/double_tap.gd`,
    `GameRoot.request_dash/use_item`, `test_double_tap.gd` 12 tests. Input-only, no per-frame
    cost.)
-4. [ ] HUD R1 + R2 (`AbilityBar`); screenshot `bench/shot_hud.gd`; tests.
+4. [x] HUD R1 + R2 (`AbilityBar`); screenshot `bench/shot_hud.gd`; tests. (Score block in
+   `LeftColumn/ScoreBlock/ScoreRow`; `src/ui/ability_bar.gd`; `test_ability_bar.gd` 8 tests;
+   `build/shots/hud_{now,ready,cooldown,left}.png`. Bar update 1.3 µs/frame desktop.)
 5. [ ] Armory Abilities tab, glyphs (`dash`, `dashCooldown`); screenshot; tests.
 6. [ ] How to play page + clips; tests.
 7. [ ] Verify: suite, gdformat/gdlint, 0 SCRIPT ERROR headless, benches vs baseline, A55
@@ -143,4 +145,4 @@ Baseline before any change (desktop, `bench/bench_sim.gd` headless, 3 runs): a f
 
 ## Status
 
-- Task 1 done: `dash`, `unlockedItems`, `equippedItems` in the save, cleaned on load. Tasks 2-3 done. Next: Task 4 (HUD).
+- Task 1 done: `dash`, `unlockedItems`, `equippedItems` in the save, cleaned on load. Tasks 2-4 done. Next: Task 5 (Armory Abilities tab).

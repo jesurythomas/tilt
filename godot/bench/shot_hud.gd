@@ -1,6 +1,8 @@
 ## shot_hud.gd — DASH R4: the live HUD over a run, at the A55's aspect, for layout review.
 ## Plays the real game (main.tscn, a Survival run), packs dots under the top centre, sets a
-## big score and multiplier, and screenshots the window. Windowed; not in the suite:
+## big score and multiplier, equips two items, and screenshots the window. SHOT_STATE=cooldown
+## shows the dash cooling and the second item used; STICK=right anchors the stick bottom right.
+## Windowed; not in the suite:
 ##   APPDATA="$(cygpath -w "$(mktemp -d)")" "$GODOT" --path godot --render-thread safe \
 ##       --resolution 1560x720 -s res://bench/shot_hud.gd
 ## Writes godot/build/shots/hud_$SHOT_NAME.png (default hud_now.png).
@@ -22,6 +24,18 @@ func _run() -> void:
 	var guide: Object = _root.get("_how_to_play")
 	if guide.call("is_open"):
 		guide.call("close")
+	var options: Object = _root.get("options")
+	var settings: Object = options.get("settings")
+	settings.set("first_run_done", true)
+	var progression: Object = _root.get("progression")
+	var data: Object = progression.get("data")
+	data.set("points", 100000)
+	progression.call("buy_item", "blackhole")
+	progression.call("buy_item", "nuke")
+	if OS.get_environment("STICK") == "right":
+		var controls: Object = _root.get("settings")
+		controls.set("stick_anchor", 2)
+		_root.call("_apply_stick_anchor")
 	_root.call("launch_run", Types.GameMode.CLASSIC)
 	for i: int in range(5):
 		await process_frame
@@ -58,6 +72,11 @@ func _prepare() -> void:
 		swarm.call("spawn_seeker", bounds, x, y)
 	var scores: Object = rc.get("scores")
 	var stats: Object = scores.get("stats")
+	if OS.get_environment("SHOT_STATE") == "cooldown":
+		var abilities: Object = rc.get("abilities")
+		abilities.set("dash_cooldown_left", 12.3)
+		var used: Array = abilities.get("item_used")
+		used[1] = true
 	stats.set("score", 184200)
 	stats.set("multiplier", 12)
 	get_root().get_node("GameEvents").emit_signal("score_changed", 184200, 12, 96500)
