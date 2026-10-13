@@ -132,7 +132,7 @@ func test_calibration_round_trips_through_the_user_file() -> void:
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(TiltInput.CALIBRATION_PATH))
 
 
-## BUG-101 R2: an Auto capture is used but not saved; restore goes back to the saved level.
+## BUG-101 R2: an Auto capture is used but not saved. R4: keeping it saves the level in use.
 func test_an_unsaved_capture_keeps_the_saved_level() -> void:
 	_tilt.calibrate_current_position()
 	_tilt.apply_gravity(Vector3(2.0, -8.0, -5.7), 90)
@@ -142,6 +142,13 @@ func test_an_unsaved_capture_keeps_the_saved_level() -> void:
 	assert_eq(
 		TiltInput.new()._calibrated_gravity, Vector3(2.0, -8.0, -5.7).normalized(), "not saved"
 	)
-	_tilt.restore_saved_calibration()
-	assert_eq(_tilt._calibrated_gravity, Vector3(2.0, -8.0, -5.7).normalized(), "restored")
-	assert_false(_tilt.is_calibration_pending())
+	_tilt.keep_current_level()
+	assert_eq(TiltInput.new()._calibrated_gravity, Vector3(-3.0, -7.0, -6.0).normalized(), "kept")
+
+
+## BUG-101 R4: keeping while an Auto capture is pending saves that capture when it lands.
+func test_keeping_a_pending_capture_saves_it_when_taken() -> void:
+	_tilt.calibrate_current_position(false)
+	_tilt.keep_current_level()
+	_tilt.apply_gravity(Vector3(-3.0, -7.0, -6.0), 90)
+	assert_eq(TiltInput.new()._calibrated_gravity, Vector3(-3.0, -7.0, -6.0).normalized())

@@ -216,6 +216,9 @@ func _ready() -> void:
 	var music: CheckButton = find_child("MusicSwitch", true, false) as CheckButton
 	if music != null:
 		music.toggled.connect(_on_music_toggled)
+	var keep_tilt: CheckButton = find_child("KeepTiltSwitch", true, false) as CheckButton
+	if keep_tilt != null:
+		keep_tilt.toggled.connect(_on_keep_tilt_toggled)  # DIVERGENCE(BUG-101 R4)
 
 	_resume_button = find_child("ResumeButton", true, false) as Button
 	if _resume_button != null:
@@ -749,6 +752,7 @@ func _refresh_pause_sheet() -> void:
 	_pause_sheet.set_switches(
 		root.options.settings.sfx_enabled, root.options.settings.music_enabled
 	)
+	_pause_sheet.set_keep_tilt(root.settings.tilt_level == ControlSettings.TiltLevel.SAVED)
 
 
 ## Restart run (Pause.dc.html; interface spec §5 — backed by GameRoot.restart_run()).
@@ -765,6 +769,7 @@ func _on_calibrate_pressed() -> void:
 	var root: GameRoot = get_tree().get_first_node_in_group("game_root") as GameRoot
 	if root != null:
 		root.calibrate_gyro()
+		_refresh_pause_sheet()  # BUG-101 R4: a set level turns Keep tilt level on
 
 
 ## PORT: web/src/tilt-to-live/TiltGame.ts:1396-1403
@@ -779,6 +784,15 @@ func _on_music_toggled(is_on: bool) -> void:
 	var root: GameRoot = get_tree().get_first_node_in_group("game_root") as GameRoot
 	if root != null:
 		root.set_music_enabled(is_on)
+
+
+## DIVERGENCE(BUG-101 R4): Pause's Keep tilt level. On: All runs; off: Each start.
+func _on_keep_tilt_toggled(is_on: bool) -> void:
+	var root: GameRoot = get_tree().get_first_node_in_group("game_root") as GameRoot
+	if root != null:
+		root.set_tilt_level(
+			ControlSettings.TiltLevel.SAVED if is_on else ControlSettings.TiltLevel.AUTO
+		)
 
 
 func _on_scheme_chosen(scheme: Types.ControlScheme) -> void:

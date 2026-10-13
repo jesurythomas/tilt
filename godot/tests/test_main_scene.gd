@@ -1160,8 +1160,8 @@ func test_setting_a_level_picks_all_runs() -> void:
 	assert_eq(ControlSettings.new().tilt_level, ControlSettings.TiltLevel.SAVED, "saved")
 
 
-## BUG-101 R2: switching to All runs drops the last Auto capture for the saved level.
-func test_choosing_all_runs_restores_the_saved_level() -> void:
+## BUG-101 R4: switching to All runs keeps the level in use (the last Auto capture).
+func test_choosing_all_runs_keeps_the_level_in_use() -> void:
 	SaveStore.save_dict(
 		TiltInput.CALIBRATION_PATH, {"beta": 0.0, "gamma": 0.0, "gravity": [2.0, -8.0, -5.7]}
 	)
@@ -1173,4 +1173,48 @@ func test_choosing_all_runs_restores_the_saved_level() -> void:
 	root._tilt.apply_gravity(Vector3(-3.0, -7.0, -6.0), 90)
 	root.settings.tilt_level = ControlSettings.TiltLevel.SAVED
 	root._menu.tilt_level_changed.emit()
-	assert_eq(root._tilt._calibrated_gravity, Vector3(2.0, -8.0, -5.7))
+	assert_eq(TiltInput.new()._calibrated_gravity, Vector3(-3.0, -7.0, -6.0).normalized(), "saved")
+
+
+## BUG-101 R4 (user: "toggle off -> recalibrates when play /resume is pressed"): under Each
+## start, Resume levels again, unsaved; under All runs it does not.
+func test_resume_levels_again_only_under_each_start() -> void:
+	var root: GameRoot = await _boot_into_run()
+	root.set_control_scheme(Types.ControlScheme.GYRO)
+	root._tilt.start_listening()
+	root.set_tilt_level(ControlSettings.TiltLevel.AUTO)
+	root.toggle_pause()
+	assert_false(root._tilt.is_calibration_pending(), "pausing does not level")
+	root.toggle_pause()
+	assert_true(root._tilt.is_calibration_pending(), "Resume levels under Each start")
+	root._tilt.apply_gravity(Vector3(-3.0, -7.0, -6.0), 90)
+	root.set_tilt_level(ControlSettings.TiltLevel.SAVED)
+	root.toggle_pause()
+	root.toggle_pause()
+	assert_false(root._tilt.is_calibration_pending(), "Resume keeps the level under All runs")
+
+
+## BUG-101 R4: Pause's Keep tilt level switch shows under tilt, mirrors and writes the level.
+func test_pause_keep_tilt_switch() -> void:
+	var root: GameRoot = await _boot_into_run()
+	root.set_control_scheme(Types.ControlScheme.GYRO)
+	root._tilt.start_listening()
+	root._tilt.calibrate_current_position(false)
+	root._tilt.apply_gravity(Vector3(-3.0, -7.0, -6.0), 90)
+	root._toggle_pause_with_sheet()
+	var keep: CheckButton = root.find_child("KeepTiltSwitch", true, false) as CheckButton
+	assert_true(keep.is_visible_in_tree(), "shown under tilt")
+	assert_false(keep.button_pressed, "Each start is the default")
+	keep.toggled.emit(true)
+	assert_eq(root.settings.tilt_level, ControlSettings.TiltLevel.SAVED, "on: All runs")
+	assert_eq(ControlSettings.new().tilt_level, ControlSettings.TiltLevel.SAVED, "saved")
+	assert_eq(
+		TiltInput.new()._calibrated_gravity,
+		Vector3(-3.0, -7.0, -6.0).normalized(),
+		"the level in use is kept"
+	)
+	keep.toggled.emit(false)
+	assert_eq(root.settings.tilt_level, ControlSettings.TiltLevel.AUTO, "off: Each start")
+	root.set_control_scheme(Types.ControlScheme.MOUSE)
+	root._hud.set_pause_panel_visible(true)
+	assert_false(keep.is_visible_in_tree(), "hidden under touch")

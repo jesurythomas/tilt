@@ -1,11 +1,13 @@
 # gdlint:ignore=max-public-methods
+# gdlint:disable=max-file-lines
 ## game_root.gd
 ## PORTS: web/src/tilt-to-live/TiltGame.ts:1822-1853 (loop), 1855-2083 (update),
 ##        2259-2318 (render dispatch), 2419-2439 (resizeCanvas)
 ##        per spec §5.1 and §5.4
 # PORT-NOTE: as audio_bank.gd — GameRoot dispatches to every subsystem, and
 # M11a's Calibrate wiring pushed its public method count past gdlint's
-# default max-public-methods (20).
+# default max-public-methods (20). BUG-101 R4's tilt level pushed it past
+# max-file-lines (1000), as tilt_menu.gd and armory_ui.gd are.
 class_name GameRoot
 extends Node2D
 ## Owns every subsystem, reproduces resizeCanvas() and drives frame order.
@@ -185,8 +187,8 @@ func _ready() -> void:
 	_menu.all_goals_requested.connect(open_all_goals_modal)  # PORT: :195
 	_menu.scheme_chosen.connect(_on_menu_scheme_chosen)
 	_menu.stick_anchor_changed.connect(_apply_stick_anchor)  # DIVERGENCE(ENH-302 R3)
-	# DIVERGENCE(BUG-101 R2): back to the saved level; Auto re-levels at the next run start.
-	_menu.tilt_level_changed.connect(_tilt.restore_saved_calibration)
+	# DIVERGENCE(BUG-101 R2, R4): Settings wrote the level; All runs keeps the one in use.
+	_menu.tilt_level_changed.connect(func() -> void: set_tilt_level(settings.tilt_level))
 	# The Settings modal (M11a ruling R9): readability and audio apply at once.
 	_menu.readability_changed.connect(apply_readability)
 	_menu.sfx_toggled.connect(set_sfx_enabled)
@@ -567,6 +569,19 @@ func is_in_menu() -> bool:
 ## Toggles the paused phase. Delegates to the ported state machine.
 func toggle_pause() -> void:
 	_state.toggle_pause()
+	# DIVERGENCE(BUG-101 R4, user: "toggle off -> recalibrates when play /resume is pressed"):
+	# under Each start, Resume levels to the pose held, unsaved, as Play does.
+	if _state.phase == Types.GamePhase.PLAYING and settings.levels_each_run():
+		_tilt.calibrate_current_position(false)
+
+
+## DIVERGENCE(BUG-101 R2, R4): Settings' Tilt level and Pause's Keep tilt level. All runs
+## keeps the level in use; Each start levels again at the next Play or Resume.
+func set_tilt_level(level: ControlSettings.TiltLevel) -> void:
+	settings.tilt_level = level
+	settings.save_settings()
+	if level == ControlSettings.TiltLevel.SAVED:
+		_tilt.keep_current_level()
 
 
 ## toggle_pause plus the pause sheet; set_pause_panel_visible(true) refreshes the

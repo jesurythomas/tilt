@@ -1034,6 +1034,9 @@ Touch, then the "Touch stick" row: Dynamic / Left / Right.
 - [ ] R3: the home page has no calibrate icon beside Steer.
 - [ ] R3: Settings → Calibrate tilt shows both Set level and Cancel on screen.
 - [ ] R3: Settings shows Touch stick only while Touch is selected.
+- [ ] R4 (0.1.10): Pause shows Keep tilt level under Tilt only, and the sheet still fits.
+- [ ] R4: Keep tilt level off → Resume levels to how you hold the phone; on → Resume and the
+      next runs keep the level you were playing with.
 
 ## HAPTICS R1 — vibration as media (2026-10-13)
 

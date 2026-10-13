@@ -4,8 +4,16 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**Latest (2026-10-13): HAPTICS R1, vibration fixed, branch `fix/haptics-media-vibration`, PR
-open.** User: "vibration isnt working". Godot's `vibrate_handheld` tags pulses `usage: TOUCH`;
+**Latest (2026-10-13): BUG-101 R4, Pause → Keep tilt level, merged into `main` by PR #11
+(after HAPTICS R1, PR #10).** User: "merge them all -- they all pass". User: "make tilt every run on the pause menu toggle-able, toggled
+on -> keep on every run -> toggle off -> recalibrates when play /resume is pressed". Pause has a
+Keep tilt level switch (tilt only); off = Each start, which now also levels on Resume; on = All
+runs, keeping the level in use. 876 tests green. 0.1.10 (code 11) is on the A55; next A55 build
+uses code 12. Next: nothing in flight; ask the user what to pick up. Unticked device checks stay
+in `VERIFY-ME.md` §BUG-101 and §HAPTICS R1. Seen, not fixed: the calibrate toast draws under the
+menu's PERIL POINT title.
+
+**Also (2026-10-13): HAPTICS R1, vibration fixed, merged into `main` by PR #10.** User: "vibration isnt working". Godot's `vibrate_handheld` tags pulses `usage: TOUCH`;
 the A55 has touch-feedback vibration off, so Android dropped every pulse. `Haptics` now calls
 the Android Vibrator as media (`JavaClassWrapper`, `AndroidRuntime`); verified on the A55
 (`usage: MEDIA`, `finished`) and by the user ("vibration works now as well"). Switching Vibration on buzzes once. 871 tests green. 0.1.9
