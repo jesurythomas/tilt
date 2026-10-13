@@ -1034,3 +1034,19 @@ Touch, then the "Touch stick" row: Dynamic / Left / Right.
 - [ ] R3: the home page has no calibrate icon beside Steer.
 - [ ] R3: Settings → Calibrate tilt shows both Set level and Cancel on screen.
 - [ ] R3: Settings shows Touch stick only while Touch is selected.
+
+## HTP R1 — the How to play guide (2026-10-13, branch `add-onboarding`)
+
+Not on the A55 yet (it holds 0.1.8 for BUG-101). Build from `add-onboarding` once PR #10 is in
+`staging`, code 10. Plan `docs/superpowers/plans/2026-10-13-add-onboarding.md`.
+
+- [ ] Fresh install (or Settings → Reset is not enough: clear app data): the guide opens over the
+      menu on first launch. Close it; relaunch: the menu shows, no guide.
+- [ ] The menu's **How to play** button (top, right of the wordmark) opens page 1; it does not
+      cover the title or the mode panel, and the menu is no smaller than before.
+- [ ] Next / Back walk the five pages; Got it on the last page closes; the chevron and the
+      Android back button close from any page.
+- [ ] Power-ups: each orb plays its clip, looping, smoothly; the name and line change with it.
+- [ ] Lives & enemies: the enemy list scrolls with a drag; every page's text is readable.
+- [ ] Frame rate while a clip plays: `tools/frametime.sh 20 htp` on the Power-ups page.
+

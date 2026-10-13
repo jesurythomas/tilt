@@ -1,11 +1,13 @@
 # gdlint:ignore=max-public-methods
+# gdlint:disable=max-file-lines
 ## game_root.gd
 ## PORTS: web/src/tilt-to-live/TiltGame.ts:1822-1853 (loop), 1855-2083 (update),
 ##        2259-2318 (render dispatch), 2419-2439 (resizeCanvas)
 ##        per spec §5.1 and §5.4
 # PORT-NOTE: as audio_bank.gd — GameRoot dispatches to every subsystem, and
 # M11a's Calibrate wiring pushed its public method count past gdlint's
-# default max-public-methods (20).
+# default max-public-methods (20). The How to play wiring (HTP R1) took it past
+# max-file-lines (1000), as in tilt_menu.gd.
 class_name GameRoot
 extends Node2D
 ## Owns every subsystem, reproduces resizeCanvas() and drives frame order.
@@ -101,6 +103,7 @@ var _perf_measuring: bool = false
 @onready var _toast_slot: Control = %ToastSlot
 @onready var _menu: TiltMenu = %Menu
 @onready var _calibrate_screen: CalibrateScreen = %Calibrate
+@onready var _how_to_play: HowToPlayScreen = %HowToPlay  # DIVERGENCE(HTP R1)
 @onready var _cinematic: EntranceCinematic = %ColdOpen
 
 
@@ -201,6 +204,10 @@ func _ready() -> void:
 	_menu.calibrate_screen_requested.connect(open_calibrate_screen)
 	_calibrate_screen.set_level_requested.connect(calibrate_gyro_from_screen)
 	_calibrate_screen.closed.connect(_on_calibrate_closed)
+	# DIVERGENCE(HTP R1): the How to play guide, from the menu and on a first launch.
+	_how_to_play.bind(options)
+	_menu.how_to_play_requested.connect(open_how_to_play)
+	_how_to_play.closed.connect(_on_how_to_play_closed)
 	# PORT: web/src/tilt-to-live/TiltGame.ts:160-178 (new TiltEntranceCinematic, its onFinish)
 	_cinematic.bind(_audio, _player, _swarm, _grid, _particles, _weapons, _on_cinematic_finished)
 	_cinematic.skip_requested.connect(skip_cinematic)
@@ -221,6 +228,8 @@ func _ready() -> void:
 	# PORT-NOTE: updateCursor (:1480) — no pointer on Android (M11a R16).
 	_bind_menu_layers()
 	GameEvents.phase_changed.emit(Types.GamePhase.MENU)
+	if not options.settings.how_to_play_seen:
+		open_how_to_play()  # DIVERGENCE(HTP R1): a first launch opens the guide
 	# PORT-NOTE(BUG-101): no boot calibration, as in the TS. TiltInput loads the
 	# saved pose; with none it takes the first gravity sample. Calibrating here
 	# armed a capture that the run's first poll took, so the pose at Play
@@ -339,9 +348,11 @@ func _physics_phase(delta: float) -> void:
 			_particles.update(delta)
 			_cinematic.update(delta, _bounds.x, _bounds.y)
 		Types.GamePhase.MENU:
-			var pt_menu: int = PerfProbe.now()
-			_update_menu(delta)
-			PerfProbe.add("s_menu", pt_menu)
+			# DIVERGENCE(HTP R1): the opaque guide hides the attract swarm, so it holds still.
+			if not _how_to_play.is_open():
+				var pt_menu: int = PerfProbe.now()
+				_update_menu(delta)
+				PerfProbe.add("s_menu", pt_menu)
 		_:
 			pass
 
@@ -587,7 +598,9 @@ func pause_on_focus_loss() -> void:
 ## sheet; in a run it pauses, and resumes from the pause sheet like Escape does;
 ## skips the cold open. Returns false only on a bare menu, where back leaves the app.
 func go_back() -> bool:
-	if _menu.is_options_open():
+	if _how_to_play.is_open():
+		_how_to_play.close()  # DIVERGENCE(HTP R1): the guide sits over everything
+	elif _menu.is_options_open():
 		_menu.close_options_modal()  # also drops the reset confirm
 	elif _calibrate_screen.is_open():
 		_calibrate_screen.close()
@@ -684,6 +697,19 @@ func calibrate_gyro() -> bool:
 func open_calibrate_screen() -> void:
 	_tilt.request_permission_and_start()
 	_calibrate_screen.open()
+
+
+## DIVERGENCE(HTP R1): opens the How to play guide at its first page.
+func open_how_to_play() -> void:
+	_how_to_play.open()
+
+
+## DIVERGENCE(HTP R1): however the guide closes, it has been seen; it stops opening by itself.
+func _on_how_to_play_closed() -> void:
+	if options.settings.how_to_play_seen:
+		return
+	options.settings.how_to_play_seen = true
+	options.save()
 
 
 ## Set level: the TS calibrateGyro and its toast (TiltGame.ts:2331-2341).
@@ -884,6 +910,7 @@ func resize_canvas() -> void:
 	_goals_hud.set_ui_scale(ui_scale, arena_origin)
 	_menu.set_ui_scale(ui_scale, arena_origin)
 	_calibrate_screen.set_ui_scale(ui_scale, arena_origin)
+	_how_to_play.set_ui_scale(ui_scale, arena_origin)  # DIVERGENCE(HTP R1)
 	_cinematic.set_ui_scale(ui_scale)
 	_effect_layer.set_ui_scale(ui_scale)
 

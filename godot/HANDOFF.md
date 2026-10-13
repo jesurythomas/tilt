@@ -4,6 +4,18 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
+**Latest (2026-10-13): `add-onboarding`, the How to play guide (ruling HTP R1), committed, not
+merged.** Branches: `staging` (from `main` at `fdb3188`, pushed) → `add-onboarding` (this work,
+worktree `../dread-flock-staging`). `staging` lacks PR #10 (vibration as media). The public guide
+(perilpoint.newzenith.ph/how-to-play) is now in the game: `ui/how_to_play_screen.gd`, five pages
+(The basics, Power-ups with the site's seven clips as Theora in `assets/how_to_play/`, Lives &
+enemies, Score & Points, Tips). A first launch opens it (`GameSettings.how_to_play_seen`, saved
+on close); the menu's **How to play** button reopens it; Android back closes it; the attract
+swarm holds still under it. 885 tests green, gdformat and gdlint clean, 0 SCRIPT ERROR headless.
+Plan `docs/superpowers/plans/2026-10-13-add-onboarding.md`. Next: build for the A55 once PR #10
+is in `staging` (code 10), the user's pass (`VERIFY-ME.md` §HTP R1), then PR into `staging`.
+Open: 2 of 21 suite runs flaked on save read-back tests (plan §Open).
+
 **Latest (2026-10-13): BUG-101, calibration sticks, merged into `main` by its PR** (R1-R3).
 R3: the home page's calibrate icon is removed; the Calibrate screen's Cancel no longer falls off
 the A55 (left block grows both ways); Settings shows Touch stick only under Touch. 869 tests
