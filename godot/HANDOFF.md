@@ -7,8 +7,10 @@ Rewritten at every module stop. Written for a session with zero context.
 **Latest (2026-10-13): Copilot PR comment triage, merged into `main` by PR #12.** User: "check all comments left by copilot on all recent PRs". 19 comments verified
 (PRs #5-#11): 11 fixed, 1 deferred (#11 API-33 guard), 7 moot. Code fixes: a Stick position
 change releases a held stick; Set level from Settings redraws the Settings board. 880 tests
-green. Plan `docs/superpowers/plans/2026-10-13-copilot-pr-comment-triage.md`. Next: nothing in
-flight; ask the user what to pick up. No A55 build needed for this (no new device behaviour
+green. Plan `docs/superpowers/plans/2026-10-13-copilot-pr-comment-triage.md`. Then
+`fix/test-run-own-user-dir`: `tools/run_tests.sh` runs each suite with its own temp `user://`
+(two suites at once both 880/880; shared, they flaked save tests). Copilot threads on PRs
+#5-#11 answered and resolved. Next: nothing in flight; ask the user what to pick up. No A55 build needed for this (no new device behaviour
 beyond VERIFY-ME §Handling's corrected wording).
 
 **Also (2026-10-13): BUG-101 R4, Pause → Keep tilt level, merged into `main` by PR #11

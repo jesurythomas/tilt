@@ -45,5 +45,6 @@ Frame cost: none per frame. The stick reset runs on a Settings change, the board
 
 Found while verifying: two runs of `tools/run_tests.sh` at once (here, another session's suite in
 the `dread-flock-staging` worktree) share `user://` and flake save tests (`test_armory_ui`
-enemy skin, `test_main_scene` tilt level). Not a code bug. Isolate a run with
-`APPDATA=<empty dir> tools/run_tests.sh`; that run gave 880/880.
+enemy skin, `test_main_scene` tilt level). Not a code bug. Fixed after PR #12 on
+`fix/test-run-own-user-dir`: `run_tests.sh` gives each run its own temp `user://`; two suites
+run at once both gave 880/880.
