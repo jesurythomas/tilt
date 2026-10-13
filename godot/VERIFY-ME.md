@@ -1188,8 +1188,9 @@ dashes fired). Frame time in that run: mean 16.66 ms, p95 25.00, p99 25.23, 7.7 
       centre (the mode card at the start still fades by ~3 s, as before).
 - [ ] (HUD R3, 0.1.21, on the A55 since 01:50) No panel behind the item orbs or the gauge: the orbs and the ring sit on
       the playfield; the cooldown seconds stay readable over dots.
-- [ ] (HUD R2) The gauge and item buttons sit bottom right; with Settings → Stick position
-      Right they move bottom left. With the Touch stick, a thumb that lands on an item button
+- [ ] (HUD R2, R4 in 0.1.22) The gauge and item buttons sit bottom right; only with Touch and
+      Settings → Stick position Right do they move bottom left. Under Tilt they stay bottom
+      right whatever Stick position says; switching the scheme from Pause moves them at once. With the Touch stick, a thumb that lands on an item button
       fires the item instead of steering — say if that gets in the way.
 - [ ] (HTP R3) How to play: page 3 "Dash and items" plays a clip of a dash and both items
       firing; The Armory's list has Abilities and its clip ends on the Abilities tab.

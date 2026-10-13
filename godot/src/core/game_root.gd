@@ -513,6 +513,7 @@ func set_control_scheme(scheme: Types.ControlScheme) -> void:
 	# A half-held input from the previous scheme must not leak into the new one.
 	_router.clear_movement_keys()
 	_joystick.reset()
+	_place_ability_bar()  # DIVERGENCE(HUD R4): the bar's side follows the scheme too
 
 
 ## Pause's Settings opens the menu's options modal over the paused run.
@@ -596,8 +597,27 @@ func _is_touch_stick_live() -> bool:
 ## set_size, since the corner centre depends on the radius.
 func _apply_stick_anchor() -> void:
 	_joystick.apply_anchor(settings.stick_anchor, _bounds)
-	# DIVERGENCE(HUD R2): the ability bar keeps clear of a stick anchored bottom right.
-	_hud.set_ability_side(settings.stick_anchor == ControlSettings.StickAnchor.RIGHT)
+	_place_ability_bar()
+
+
+## DIVERGENCE(HUD R4, user 2026-10-14: "it should also be on the right when tilt is selected. on
+## touch, when the joystick is stickied to the right show it on the left, else right"): true
+## only for the Touch stick (the TOUCH scheme on a phone) anchored bottom right.
+static func is_ability_bar_left(
+	scheme: Types.ControlScheme, anchor: ControlSettings.StickAnchor, is_mobile: bool
+) -> bool:
+	return (
+		is_mobile
+		and scheme == Types.ControlScheme.MOUSE
+		and anchor == ControlSettings.StickAnchor.RIGHT
+	)
+
+
+# DIVERGENCE(HUD R2, R4): the ability bar keeps clear of a stick anchored bottom right.
+func _place_ability_bar() -> void:
+	_hud.set_ability_side(
+		is_ability_bar_left(_router.control_scheme, settings.stick_anchor, OS.has_feature("mobile"))
+	)
 
 
 ## DIVERGENCE(DASH R1): asks the run for a dash (a double tap, Shift, a double-click). Only a

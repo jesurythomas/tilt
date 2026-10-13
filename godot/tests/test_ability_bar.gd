@@ -89,12 +89,10 @@ func test_the_hud_places_the_bar_and_the_score() -> void:
 	var bar: AbilityBar = hud.ability_bar()
 	assert_not_null(bar)
 	assert_eq(bar.anchor_left, 1.0, "bottom right by default")
-	root.settings.stick_anchor = ControlSettings.StickAnchor.RIGHT
-	root._apply_stick_anchor()
+	hud.set_ability_side(true)
 	assert_eq(bar.anchor_left, 0.0, "bottom left beside a right stick")
 	assert_true(bar.is_on_left())
-	root.settings.stick_anchor = ControlSettings.StickAnchor.LEFT
-	root._apply_stick_anchor()
+	hud.set_ability_side(false)
 	assert_eq(bar.anchor_left, 1.0)
 	var score_block: Control = hud.find_child("ScoreBlock", true, false) as Control
 	assert_eq(str(score_block.get_parent().name), "LeftColumn", "HUD R1: off the top centre")
@@ -110,3 +108,29 @@ func test_the_bar_shows_in_a_run_not_on_the_menu() -> void:
 	assert_true(bar.visible)
 	root.return_to_menu()
 	assert_false(bar.visible)
+
+
+## HUD R4 (user: "it should also be on the right when tilt is selected. on touch, when the
+## joystick is stickied to the right show it on the left, else right").
+func test_only_a_right_anchored_touch_stick_moves_the_bar_left() -> void:
+	var touch: Types.ControlScheme = Types.ControlScheme.MOUSE
+	var tilt: Types.ControlScheme = Types.ControlScheme.GYRO
+	var right: ControlSettings.StickAnchor = ControlSettings.StickAnchor.RIGHT
+	assert_true(GameRoot.is_ability_bar_left(touch, right, true), "touch, stick right: left")
+	assert_false(GameRoot.is_ability_bar_left(tilt, right, true), "tilt: right, whatever the stick")
+	for anchor: ControlSettings.StickAnchor in [
+		ControlSettings.StickAnchor.LEFT, ControlSettings.StickAnchor.DYNAMIC
+	]:
+		assert_false(GameRoot.is_ability_bar_left(touch, anchor, true), "touch, %d: right" % anchor)
+	assert_false(GameRoot.is_ability_bar_left(touch, right, false), "no stick off a phone")
+
+
+func test_switching_to_tilt_puts_the_bar_back_on_the_right() -> void:
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	var bar: AbilityBar = root._hud.ability_bar()
+	root.settings.stick_anchor = ControlSettings.StickAnchor.RIGHT
+	root._hud.set_ability_side(true)
+	root.set_control_scheme(Types.ControlScheme.GYRO)
+	assert_false(bar.is_on_left(), "tilt: right")

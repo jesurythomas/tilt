@@ -4,11 +4,17 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**Latest (2026-10-14, later): HUD R3.** User: "having the background on abilities/items seem
+**Latest (2026-10-14, later still): HUD R4.** User: "it should also be on the right when tilt
+is selected. on touch, when the jostick is stickied to the right show it on the left, else
+right". The ability bar is bottom left only for the Touch stick anchored Right
+(`GameRoot.is_ability_bar_left`, re-applied on a scheme change); tilt keeps it bottom right.
+0.1.22 (code 23, `godot/build/peril-point-0.1.22-a55.apk`, A55 key) is on the A55, installed 2026-10-14 02:00 over 0.1.21, data kept (the phone was locked, so not launched). Suite 1012/1012 green. Next A55 build uses code 24.
+
+**Earlier (2026-10-14): HUD R3.** User: "having the background on abilities/items seem
 bad". The item buttons have no panel (empty styleboxes; the orb is 42 of the 48-unit target) and
 the dash gauge has no disc (track ring + fill on the playfield; the seconds carry the HUD's void
 outline). `dash.ogv` re-recorded. 0.1.21 (code 22, `godot/build/peril-point-0.1.21-a55.apk`, A55
-key) is on the A55 (user: "build it"; installed 2026-10-14 01:50 over 0.1.20, data kept, launched, booted with no SCRIPT ERROR). Next A55 build uses code 23. Everything below still holds.
+key) is on the A55 (user: "build it"; installed 2026-10-14 01:50 over 0.1.20, data kept, launched, booted with no SCRIPT ERROR). Everything below still holds.
 
 **Earlier (2026-10-14): dash, items (active abilities), and the play-screen rework, on branch
 `feat/dash-and-abilities` (from `feat/in-game-ads` at `31040da`, which holds `staging`), not

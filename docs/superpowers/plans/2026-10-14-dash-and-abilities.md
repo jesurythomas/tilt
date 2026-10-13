@@ -131,6 +131,13 @@ Baseline before any change (desktop, `bench/bench_sim.gd` headless, 3 runs): a f
   (`UiTheme.OVER_PLAY_OUTLINE`) so dots behind them do not show through. `dash.ogv` re-recorded
   to match.
 
+## Ruling HUD R4 — the bar's side follows the scheme (user 2026-10-14: "it should also be on the right when tilt is selected. on touch, when the jostick is stickied to the right show it on the left, else right")
+
+- HUD R2 moved the bar left whenever Stick position was Right, even under tilt. Now it is
+  bottom left only for the Touch stick (the TOUCH scheme on a phone) anchored Right
+  (`GameRoot.is_ability_bar_left`); tilt, a Left or Dynamic stick, and desktop keep it bottom
+  right, as the How to play clip shows. A scheme change re-places it (`set_control_scheme`).
+
 ## Ruling HTP R3 — the guide
 
 - A fourth page, **Dash and items**, before The Armory: a Dash card and an Items card with the
@@ -175,6 +182,7 @@ Baseline before any change (desktop, `bench/bench_sim.gd` headless, 3 runs): a f
 
 ## Status
 
+- HUD R4 done: the bar's side follows the scheme; 0.1.22 (code 23) built.
 - HUD R3 done (after the first A55 build): panels gone from the item buttons and the gauge;
   0.1.21 (code 22) built.
 - All 7 tasks done (2026-10-14). Next: the user's A55 pass (VERIFY-ME §DASH / ITEM / HUD /
