@@ -30,8 +30,10 @@ set."
 - [x] Failing tests (`test_main_scene.gd`): boot keeps the saved calibration; Retry and choosing
       tilt do not re-arm. 3 failed before the fix.
 - [x] Fix in `game_root.gd`. 857 tests green, gdformat and gdlint clean.
-- [ ] A55 pass (`VERIFY-ME.md` §BUG-101). `calibrate_gyro`'s forced poll reads the real sensor and
-      is not reachable headless.
+- [x] A55 build: 0.1.6 (code 7), `build/peril-point-0.1.6-a55.apk` (A55 key), installed on the A55
+      2026-10-13 12:10 and launched. The next A55 build uses code 8.
+- [ ] A55 pass by the user (`VERIFY-ME.md` §BUG-101). `calibrate_gyro`'s forced poll reads the real
+      sensor and is not reachable headless. Then PR and merge.
 
 ## Open (not part of this fix)
 
