@@ -1098,6 +1098,11 @@ Checked on the emulator (Pixel_10, Play Store image), 2026-10-13:
       the end and close it. The earned figure counts up to 3× and the button goes; the Armory
       balance has the extra. Close one early instead: no extra, and the button returns when the
       next ad loads. Retry right after a rewarded ad shows no interstitial.
+- [ ] (ADS R7) Armory prices are double what they were (e.g. a rank-1 upgrade 500, Solar 1,200);
+      what you own stays owned.
+- [ ] (Stripe fix) Play Gauntlet to its Run over, then
+      `adb -s RRCXB04L8EJ logcat -d | grep -c "triangulation failed"` prints 0 (0.1.17 logged up
+      to 60 a second there).
 - [ ] Frame time in a run: `tools/frametime.sh 20 ads`. HTP's Power-ups page read mean 16.71 ms,
       p95 25.2 on 0.1.11; the ads build adds no per-frame game code, so a run should match the
       runs before it.

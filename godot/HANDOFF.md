@@ -4,7 +4,32 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**Latest (2026-10-13): in-game ads (rulings ADS R1-R4), on branch `feat/in-game-ads`, not
+**Latest (2026-10-14): ads round 2 — pacing by games, a 3× rewarded ad, dearer Armory (ADS
+R5-R7), and a Gauntlet stripe fix; branch `feat/in-game-ads`, not merged.** Plan
+`docs/superpowers/plans/2026-10-13-in-game-ads.md` (rulings and tasks 10-12). R5 (user: "after
+every 5-10 games at random or total ingame time"): an interstitial is due after a random 5-10
+games or 300 s of run time, whichever first, never after the first run ever or a run under 20 s;
+the counts are saved in `user://peril_point_ads.json` (`Ads.SAVE_PATH`) across launches;
+`Ads.clock` is gone. R6 (user: "watch ads button for 3x the coins"): the Run over's
+`WatchAdButton` "Watch ad · 3× points" (under Points earned) shows a rewarded ad
+(`PerilAds.loadRewarded/showRewarded`, AARs rebuilt; test unit 5224354917, real one goes in
+`peril/ads/android_rewarded_id`); earning it makes the run's points 3× (`RunController.
+claim_reward`, the extra through `ProgressionManager.add_points_bonus`, no Points Multiplier),
+once a run; a rewarded view resets the interstitial pacing; HudController ignores Retry while an
+ad is on its way. R7 (user: "make the weapon upgrades more expensive ... ships, arena and
+boosts"): `ProgressionManager.PRICE_SCALE` = 2 doubles every Armory price where it is read; the
+tables keep their figures. The A55 log showed "Invalid polygon data, triangulation failed" up to
+60/s in Gauntlet: a stripe clipping a wall's corner leaves a sub-pixel sliver (442 of 3.5 M
+pieces in a sweep); the maze now draws each (convex) piece as a fan (`EntityLayer.fan_indices`).
+`peril/ads/test_device_hashed_id` = the A55's hash is committed (UMP debug device, SDK test
+device). Tests: 70/70 scripts, nothing leaked, gdformat/gdlint clean, 0 SCRIPT ERROR headless.
+0.1.18 (code 19, `godot/build/peril-point-0.1.18-a55.apk`, no test switches) is on the A55,
+installed 2026-10-14 00:44, data kept; it booted with `can_request_ads=true` and read mean
+16.67 ms, p95 25.0 on screen. Next A55 build uses code 20. Next: the user's A55 pass
+(`VERIFY-ME.md` §ADS Part A, incl. the R6 rewarded check and the stripe check), AdMob setup
+(Part B, now with a rewarded unit), merge; then Remove ads (Play Billing).
+
+**Earlier (2026-10-13): in-game ads (rulings ADS R1-R4), on branch `feat/in-game-ads`, not
 merged.** User: "We need to implement in-game ads - create a plan and push through with the
 plan". Plan `docs/superpowers/plans/2026-10-13-in-game-ads.md` (MVP R1's ad half). AdMob
 interstitials at one break, leaving the Run over by Retry or Menu (`GameRoot.restart_run` /
