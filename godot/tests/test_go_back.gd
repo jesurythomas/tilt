@@ -23,7 +23,19 @@ func _boot_into_run() -> GameRoot:
 
 func test_back_on_a_bare_menu_is_not_handled_so_the_app_may_quit() -> void:
 	var root: GameRoot = await _boot()
+	if root._how_to_play.is_open():
+		root._how_to_play.close()  # HTP R1: a first launch opens the guide over the menu
 	assert_false(root.go_back(), "nothing to close on the menu")
+
+
+## DIVERGENCE(HTP R1): the guide sits over the menu; back closes it first.
+func test_back_closes_how_to_play() -> void:
+	var root: GameRoot = await _boot()
+	root.open_how_to_play()
+	root._menu.open_options_modal()
+	assert_true(root.go_back())
+	assert_false(root._how_to_play.is_open())
+	assert_true(root._menu.is_options_open(), "Settings beneath stays up")
 
 
 func test_back_closes_settings_over_the_menu() -> void:
