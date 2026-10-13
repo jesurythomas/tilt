@@ -186,8 +186,13 @@ func _left_block() -> VBoxContainer:
 	title.add_theme_font_override("font", UiTheme.archivo(UiTheme.TITLE_WIDTH))
 	title.add_theme_font_size_override("font_size", _px(TITLE_SIZE))
 	header.add_child(title)
-	var body: Label = UiTheme.text(
-		"Hold the phone the way you play. That angle becomes still.", "BodyText"
+	var body: Label = (
+		UiTheme
+		. text(
+			# DIVERGENCE(BUG-101 R2): Set level picks "All runs", so the board says so.
+			"Hold the phone the way you play. That angle becomes still for every run.",
+			"BodyText"
+		)
 	)
 	body.add_theme_font_size_override("font_size", _px(BODY_SIZE))
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

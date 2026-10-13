@@ -14,6 +14,10 @@ extends RefCounted
 ## DIVERGENCE(ENH-302 R1, GitHub #4): where the touch stick sits. DYNAMIC floats under the
 ## finger (M2.5 §8.1); LEFT and RIGHT fix it in that bottom corner of the playfield.
 enum StickAnchor { DYNAMIC, LEFT, RIGHT }
+## DIVERGENCE(BUG-101 R2, user 2026-10-13: "auto-calibrate on start, or calibrate for all
+## runs"): AUTO levels tilt to the pose held as each run starts; SAVED keeps the level set on
+## the Calibrate board for every run. Setting a level picks SAVED.
+enum TiltLevel { AUTO, SAVED }
 
 ## Where the settings are persisted.
 const SETTINGS_PATH: String = "user://peril_point_settings.json"
@@ -40,11 +44,18 @@ var tilt_smoothing: float = 0.0
 var stick_size: float = 1.0
 ## DIVERGENCE(ENH-302 R1): where the touch stick sits.
 var stick_anchor: StickAnchor = StickAnchor.DYNAMIC
+## DIVERGENCE(BUG-101 R2): when the tilt level is taken.
+var tilt_level: TiltLevel = TiltLevel.AUTO
 
 
 func _init() -> void:
 	scheme = Types.ControlScheme.GYRO if OS.has_feature("mobile") else Types.ControlScheme.MOUSE
 	_load_settings()
+
+
+## DIVERGENCE(BUG-101 R2): true when tilt steers and levels to the pose at each run start.
+func levels_each_run() -> bool:
+	return scheme == Types.ControlScheme.GYRO and tilt_level == TiltLevel.AUTO
 
 
 ## Persists the current settings to SETTINGS_PATH as JSON.
@@ -59,6 +70,7 @@ func save_settings() -> void:
 				"tilt_smoothing": tilt_smoothing,
 				"stick_size": stick_size,
 				"stick_anchor": int(stick_anchor),
+				"tilt_level": int(tilt_level),
 			}
 		)
 	)
@@ -93,3 +105,8 @@ func _load_settings() -> void:
 		stick_anchor = anchor
 	else:
 		Log.warn("control settings carry an unknown stick anchor %d; keeping default" % anchor)
+	var level: int = SaveStore.read_int(data, "tilt_level", int(tilt_level))
+	if level >= TiltLevel.AUTO and level <= TiltLevel.SAVED:
+		tilt_level = level
+	else:
+		Log.warn("control settings carry an unknown tilt level %d; keeping default" % level)

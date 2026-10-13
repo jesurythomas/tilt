@@ -33,6 +33,8 @@ signal scheme_chosen(scheme: Types.ControlScheme)
 signal readability_changed
 ## DIVERGENCE(ENH-302 R3): Settings' Stick position changed and was saved; GameRoot applies it.
 signal stick_anchor_changed
+## DIVERGENCE(BUG-101 R2): Settings' Tilt level changed and was saved; GameRoot applies it.
+signal tilt_level_changed
 ## Settings' Sound switch (R9, M11a Q2 ruling): GameRoot saves and applies it.
 signal sfx_toggled(is_on: bool)
 ## Settings' Music switch (R9, M11a Q2 ruling): GameRoot saves and applies it.
@@ -789,6 +791,13 @@ func _bind_options_events() -> void:
 	_find_options_button("StickRight").pressed.connect(
 		_on_stick_pressed.bind(ControlSettings.StickAnchor.RIGHT)
 	)
+	# DIVERGENCE(BUG-101 R2): only built while the scheme is tilt.
+	var level_each: Button = _find_options_button("TiltLevelEachStart")
+	if level_each != null:
+		level_each.pressed.connect(_on_tilt_level_pressed.bind(ControlSettings.TiltLevel.AUTO))
+		_find_options_button("TiltLevelAllRuns").pressed.connect(
+			_on_tilt_level_pressed.bind(ControlSettings.TiltLevel.SAVED)
+		)
 	# PORT-NOTE: the TS button calibrates in place (:485-497); the Settings board
 	# links to the Calibrate screen instead (rulings R4, R5).
 	var calibrate: Button = _find_options_button("SettingsCalibrateButton")
@@ -830,6 +839,14 @@ func _on_stick_pressed(anchor: ControlSettings.StickAnchor) -> void:
 	_settings.stick_anchor = anchor
 	_settings.save_settings()
 	stick_anchor_changed.emit()
+	open_options_modal()
+
+
+# DIVERGENCE(BUG-101 R2): saved here, as Stick position is; GameRoot moves the level.
+func _on_tilt_level_pressed(level: ControlSettings.TiltLevel) -> void:
+	_settings.tilt_level = level
+	_settings.save_settings()
+	tilt_level_changed.emit()
 	open_options_modal()
 
 
@@ -980,6 +997,7 @@ func _controls_column() -> VBoxContainer:
 	column.add_child(_stick_card())
 	# PORT: web/src/tilt-to-live/TiltMenu.ts:378 — only while the scheme is gyro
 	if _settings.scheme == Types.ControlScheme.GYRO:
+		column.add_child(_tilt_level_card())  # DIVERGENCE(BUG-101 R2)
 		var calibrate: Button = _button(
 			"SettingsCalibrateButton", "SecondaryButton", "Calibrate tilt"
 		)
@@ -1024,6 +1042,51 @@ func _stick_card() -> PanelContainer:
 	stack.add_child(segmented)
 	card.add_child(stack)
 	return card
+
+
+## DIVERGENCE(BUG-101 R2): the Tilt level card's hint for a level.
+static func tilt_level_hint(level: ControlSettings.TiltLevel) -> String:
+	if level == ControlSettings.TiltLevel.SAVED:
+		return "Your Calibrate level holds for every run"
+	return "Levels to how you hold the phone as each run starts"
+
+
+# DIVERGENCE(BUG-101 R2, user 2026-10-13: "auto-calibrate on start, or calibrate for all
+# runs"): Tilt level, built as Stick position's card.
+func _tilt_level_card() -> PanelContainer:
+	var card: PanelContainer = _options_card()
+	card.name = "TiltLevelCard"
+	var box: StyleBoxFlat = card.get_theme_stylebox("panel") as StyleBoxFlat
+	box.content_margin_top = _px(SHAKE_PAD_TOP)
+	box.content_margin_bottom = _px(SHAKE_PAD_BOTTOM)
+	var stack: VBoxContainer = VBoxContainer.new()
+	stack.add_theme_constant_override("separation", _px(SHAKE_GAP))
+	stack.add_child(_card_row("Tilt level", tilt_level_hint(_settings.tilt_level)))
+	var segmented: PanelContainer = PanelContainer.new()
+	segmented.theme_type_variation = "Segmented"
+	var row: HBoxContainer = HBoxContainer.new()
+	row.add_theme_constant_override("separation", _px(UiTheme.SEGMENT_PAD))
+	row.add_child(
+		_tilt_level_button("TiltLevelEachStart", "Each start", ControlSettings.TiltLevel.AUTO)
+	)
+	row.add_child(
+		_tilt_level_button("TiltLevelAllRuns", "All runs", ControlSettings.TiltLevel.SAVED)
+	)
+	segmented.add_child(row)
+	stack.add_child(segmented)
+	card.add_child(stack)
+	return card
+
+
+func _tilt_level_button(
+	button_name: String, label: String, level: ControlSettings.TiltLevel
+) -> Button:
+	var button: Button = _button(button_name, "SegmentButton", label)
+	button.toggle_mode = true
+	button.set_pressed_no_signal(_settings.tilt_level == level)
+	button.custom_minimum_size.y = _px(UiTheme.TOUCH_TARGET)
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	return button
 
 
 func _stick_button(

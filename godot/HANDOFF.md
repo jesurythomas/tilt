@@ -11,9 +11,12 @@ and nothing polls in the menu, so the run's first poll took it. The port armed o
 Retry and on choosing tilt (none in the TS), and Armory's Calibrate tilt armed one from the menu.
 Fixed in `game_root.gd`: those three calls are gone and `calibrate_gyro` polls at once. 857 tests
 green, gdformat and gdlint clean. Plan `docs/superpowers/plans/2026-10-12-fix-bug-101-calibration-sticks.md`.
-Version is 0.1.6 (code 7); the A55 has it (`build/peril-point-0.1.6-a55.apk`, A55 key, installed
-2026-10-13 12:10), so the next A55 build uses code 8. Next: the user's A55 pass (`VERIFY-ME.md`
-§BUG-101), then PR and merge.
+Then ruling R2 (user 2026-10-13: "give 2 options, auto-calibrate on start, or calibrate for all
+runs"): Settings → Controls → **Tilt level**, Each start (default, levels at Play/Retry without
+saving) / All runs (the saved level); any Set level picks All runs. 867 tests green. Version is
+0.1.7 (code 8); the A55 has it (`build/peril-point-0.1.7-a55.apk`, installed 2026-10-13 14:24),
+so the next A55 build uses code 9. Next: the user's A55 pass (`VERIFY-ME.md` §BUG-101), then PR
+and merge. Seen, not fixed: the calibrate toast draws under the menu's PERIL POINT title.
 Open: a user clip of the ship that "can't go to the right": a fresh launch straight into a tilt
 run, so the boot calibration took the pose at Play; the ship does reach right once. Likely the
 same bug; re-test on this build (plan §Open).

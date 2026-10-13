@@ -408,3 +408,38 @@ func test_touch_card_hint_follows_the_stick_position() -> void:
 	assert_eq(TiltMenu.touch_hint(ControlSettings.StickAnchor.DYNAMIC), "Drag anywhere")
 	assert_eq(TiltMenu.touch_hint(ControlSettings.StickAnchor.LEFT), "Stick left")
 	assert_eq(TiltMenu.touch_hint(ControlSettings.StickAnchor.RIGHT), "Stick right")
+
+
+## BUG-101 R2: Tilt level shows only under tilt, saves, tells GameRoot, and re-marks.
+func test_tilt_level_card_shows_only_for_tilt() -> void:
+	var menu: TiltMenu = _settings_open()
+	assert_null(menu.find_child("TiltLevelCard", true, false), "hidden for touch")
+	_settings.scheme = Types.ControlScheme.GYRO
+	menu.open_options_modal()
+	assert_not_null(menu.find_child("TiltLevelCard", true, false), "shown for tilt")
+	assert_true((menu.find_child("TiltLevelEachStart", true, false) as Button).button_pressed)
+
+
+func test_tilt_level_segments_save_and_signal() -> void:
+	_settings.scheme = Types.ControlScheme.GYRO
+	var menu: TiltMenu = _settings_open()
+	watch_signals(menu)
+	(menu.find_child("TiltLevelAllRuns", true, false) as Button).pressed.emit()
+	assert_eq(_settings.tilt_level, ControlSettings.TiltLevel.SAVED, "written")
+	assert_eq(ControlSettings.new().tilt_level, ControlSettings.TiltLevel.SAVED, "saved")
+	assert_signal_emitted(menu, "tilt_level_changed", "GameRoot applies it at once")
+	assert_true(
+		(menu.find_child("TiltLevelAllRuns", true, false) as Button).button_pressed,
+		"the re-render marks the choice"
+	)
+
+
+func test_tilt_level_hint_follows_the_level() -> void:
+	assert_eq(
+		TiltMenu.tilt_level_hint(ControlSettings.TiltLevel.AUTO),
+		"Levels to how you hold the phone as each run starts"
+	)
+	assert_eq(
+		TiltMenu.tilt_level_hint(ControlSettings.TiltLevel.SAVED),
+		"Your Calibrate level holds for every run"
+	)

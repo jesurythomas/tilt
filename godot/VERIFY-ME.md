@@ -1020,7 +1020,8 @@ Touch, then the "Touch stick" row: Dynamic / Left / Right.
 
 ## BUG-101 — calibration sticks (2026-10-12)
 
-On the A55 as 0.1.6 (code 7), installed 2026-10-13 12:10 (`build/peril-point-0.1.6-a55.apk`).
+On the A55 as 0.1.7 (code 8), installed 2026-10-13 14:24 (`build/peril-point-0.1.7-a55.apk`),
+with R2 (Settings → Controls → Tilt level: Each start / All runs).
 
 - [ ] Menu → Calibrate → hold an unusual angle → Set level → Play holding a *different* angle:
       the ship rests at the angle set, not the one held at Play.
@@ -1028,3 +1029,6 @@ On the A55 as 0.1.6 (code 7), installed 2026-10-13 12:10 (`build/peril-point-0.1
 - [ ] Die → Retry while holding another angle: the calibration still holds.
 - [ ] Kill the app, relaunch, Play: the calibration from the last session still holds.
 - [ ] The 0:11 clip ("can't go to the right"): does it still happen on this build?
+- [ ] R2, Each start: Play and Retry each level to how the phone is held at the start.
+- [ ] R2, Set level on the Calibrate board flips Tilt level to All runs; switching back to
+      Each start and then to All runs still uses the level you set.

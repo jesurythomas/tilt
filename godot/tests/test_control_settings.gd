@@ -147,3 +147,20 @@ func test_an_unknown_stick_anchor_keeps_dynamic() -> void:
 		ControlSettings.StickAnchor.DYNAMIC,
 		"a hand-edited value cannot hide the stick"
 	)
+
+
+## BUG-101 R2: Auto is the default; the choice survives a reload.
+func test_tilt_level_defaults_to_auto_and_survives_a_reload() -> void:
+	var settings: ControlSettings = ControlSettings.new()
+	assert_eq(settings.tilt_level, ControlSettings.TiltLevel.AUTO)
+	settings.tilt_level = ControlSettings.TiltLevel.SAVED
+	settings.save_settings()
+	assert_eq(ControlSettings.new().tilt_level, ControlSettings.TiltLevel.SAVED)
+
+
+func test_an_unknown_tilt_level_keeps_auto() -> void:
+	var file: FileAccess = FileAccess.open(ControlSettings.SETTINGS_PATH, FileAccess.WRITE)
+	assert_not_null(file, "test fixture is writable")
+	file.store_string('{"tilt_level": 5}')
+	file.close()
+	assert_eq(ControlSettings.new().tilt_level, ControlSettings.TiltLevel.AUTO)
