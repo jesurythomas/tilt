@@ -85,6 +85,8 @@ const _NO_SATS: Array[PerilEnemy] = []
 ## DIVERGENCE(M11c N4): true draws the enemies through PerilEnemyDrawer (C++, same
 ## draw calls in the same order); false forces the GDScript reference loop.
 static var use_native_draw: bool = true
+## Fan triangle indices by vertex count (fan_indices).
+static var _fan_cache: Dictionary[int, PackedInt32Array] = {}
 
 
 ## DIVERGENCE(M11c P13): the two baked sprites of one default-dot look. Each is
@@ -383,7 +385,11 @@ func _draw_maze() -> void:
 			draw_rect(rect, MAZE_BODY)
 			var shift: Transform2D = Transform2D(0.0, origin)
 			for stripe: PackedVector2Array in stripe_polygons(seg.width, row.height, _elapsed):
-				draw_colored_polygon(shift * stripe, MAZE_STRIPE)
+				# DIVERGENCE(found 2026-10-14 on the A55): a fan, not draw_colored_polygon, whose
+				# triangulation failed on the zero-area slivers a clip leaves at some offsets
+				# ("Invalid polygon data", every frame on a frozen Run over). Each piece is a
+				# stroke clipped to its wall, so convex, and a sliver's fan draws nothing.
+				_fill(shift * stripe, fan_indices(stripe.size()), MAZE_STRIPE)
 			draw_rect(rect, MAZE_EDGE, false, 2.0)  # PORT: web/src/tilt-to-live/GauntletMaze.ts:338-339
 			# PORT: web/src/tilt-to-live/GauntletMaze.ts:343-347
 			draw_line(
@@ -1300,6 +1306,16 @@ func _draw_dashed_arc(
 	_dash_cache[key] = points
 	if not points.is_empty():
 		draw_multiline(points, color, width)
+
+
+## Triangle indices fanning a convex polygon of `count` points from its first point.
+static func fan_indices(count: int) -> PackedInt32Array:
+	if not _fan_cache.has(count):
+		var indices: PackedInt32Array = PackedInt32Array()
+		for i: int in range(1, count - 1):
+			indices.append_array([0, i, i + 1])
+		_fan_cache[count] = indices
+	return _fan_cache[count]
 
 
 ## DIVERGENCE(M11c P18): draw_colored_polygon with known triangles (pixel-identical,
