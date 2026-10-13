@@ -103,7 +103,7 @@ ruling is its own roadmap item (Play Billing) and is not built here.
 ## Tasks
 
 - [x] 1. Plan (this file); branch. Commit.
-- [ ] 2. `android/peril-ads/` Java plugin + `tools/build_ads_plugin.sh`; both AARs built and
+- [x] 2. `android/peril-ads/` Java plugin + `tools/build_ads_plugin.sh`; both AARs built and
       committed under `godot/addons/peril_ads/bin/`.
 - [ ] 3. Export plugin (`godot/addons/peril_ads/`), enabled in `project.godot`; preset
       internet + network state. Check an exported APK's manifest: APPLICATION_ID, the

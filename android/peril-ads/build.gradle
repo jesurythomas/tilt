@@ -1,0 +1,27 @@
+// The PerilAds Godot Android plugin (ruling ADS R1). Build with tools/build_ads_plugin.sh,
+// which copies the two AARs into godot/addons/peril_ads/bin/. The SDKs are compileOnly: an AAR
+// file carries no dependencies, so godot/addons/peril_ads/peril_ads_plugin.gd hands the same
+// coordinates to the game's gradle build. Keep the versions in step with that file.
+plugins {
+    id 'com.android.library' version '8.6.1'
+}
+
+android {
+    namespace 'com.jtg.perilpoint.ads'
+    compileSdk 36
+
+    defaultConfig {
+        minSdk 24
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    compileOnly 'org.godotengine:godot:4.7.2.stable'
+    compileOnly 'com.google.android.gms:play-services-ads:25.5.0'
+    compileOnly 'com.google.android.ump:user-messaging-platform:4.0.0'
+}
