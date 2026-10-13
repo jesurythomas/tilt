@@ -1051,7 +1051,8 @@ On the A55 as 0.1.9 (code 10). Log and `dumpsys vibrator_manager` confirmed `usa
 
 ## HTP R1 — the How to play guide (2026-10-13, branch `add-onboarding`)
 
-0.1.11 (code 12) from `add-onboarding` (main merged in, so it carries PR #10-#12). Plan `docs/superpowers/plans/2026-10-13-add-onboarding.md`.
+0.1.11 (code 12) from `add-onboarding` (main merged in, so it carries PR #10-#12), installed
+2026-10-13 16:04. Known: its basics page still says "turn rate" (fixed in source: "top speed"). Plan `docs/superpowers/plans/2026-10-13-add-onboarding.md`.
 
 - [ ] Fresh install (or Settings → Reset is not enough: clear app data): the guide opens over the
       menu on first launch. Close it; relaunch: the menu shows, no guide.

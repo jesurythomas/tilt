@@ -398,7 +398,7 @@ func _basics_page(columns: HBoxContainer) -> void:
 	)
 	_hint(
 		right,
-		"Armory → Handling tunes turn rate, tilt sensitivity and stick size, with a live preview."
+		"Armory → Handling tunes top speed, tilt sensitivity and stick size, with a live preview."
 	)
 
 

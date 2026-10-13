@@ -52,15 +52,22 @@ here C:\Users\Jesury\Downloads\assets we may need some other assets for how to p
       parity test drops the new key.
 - [x] 885 tests green (68/68 scripts), gdformat and gdlint clean, 0 SCRIPT ERROR headless.
       Screenshots of all five pages at 1170×540 (half the A55) checked by eye.
-- [ ] A55 pass by the user (`VERIFY-ME.md` §HTP R1). Not installed: the A55 carries 0.1.8 for
-      the BUG-101 pass, and this branch lacks PR #10's vibration fix. Build it after #10 merges
-      into `staging` (or rebase), with code 10.
-- [ ] Frame cost on the A55 while a clip plays (`tools/frametime.sh 20 htp`): desktop
-      `TIME_PROCESS` was too noisy to separate (6-14 ms on the bare menu itself).
+- [x] User: "build it". `origin/main` (PR #10-#12 and the per-run `user://` fix) merged in;
+      local `staging` fast-forwarded to it (not pushed). 896 tests green. 0.1.11 (code 12,
+      `godot/build/peril-point-0.1.11-a55.apk`, A55 key, 84 MB) installed on the A55 2026-10-13
+      16:04 over 0.1.10, data kept: the guide opened on first launch; Next/Back step one page;
+      Power-ups opens on Nuke with its clip playing. Next A55 build uses code 13.
+- [x] Frame cost on the A55, Power-ups page with a clip playing (`tools/frametime.sh 20`):
+      mean 16.71 ms, p50 16.67, p95 25.20, p99 33.34, >20 ms 13.3% (n=1216). No bare-menu
+      reading taken in the same session to compare against.
+- [x] Copy fix after the A55 look: the basics hint said "turn rate"; HANDLING R1 renamed that
+      slider Top speed. Fixed in source; 0.1.11 on the A55 still shows "turn rate".
+- [ ] A55 pass by the user (`VERIFY-ME.md` §HTP R1). Then PR `add-onboarding` into `staging`.
 
 ## Open
 
-- **Two flaky suite runs.** Of 21 full runs with this change, runs 1 and 4 of the first batch failed
+- **Two flaky suite runs** (likely explained: `main`'s `67e8be9` found that two suites running at
+  once share `user://` and flake save tests; it gives each run its own. Merged in; 896 green). Of 21 full runs with this change, runs 1 and 4 of the first batch failed
   2-3 save read-back tests that never touch the guide (`test_auto_tilt_level_...`,
   `test_choosing_all_runs_restores_the_saved_level`, `test_picking_a_card_saves_the_mode_and_rerenders`,
   `test_reset_confirm_removes_progress_and_keeps_controls`); the next 14 passed, and the

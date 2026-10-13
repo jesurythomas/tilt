@@ -4,17 +4,20 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**Latest (2026-10-13): `add-onboarding`, the How to play guide (ruling HTP R1), committed, not
-merged.** Branches: `staging` (from `main` at `fdb3188`, pushed) → `add-onboarding` (this work,
-worktree `../dread-flock-staging`). `staging` lacks PR #10 (vibration as media). The public guide
-(perilpoint.newzenith.ph/how-to-play) is now in the game: `ui/how_to_play_screen.gd`, five pages
-(The basics, Power-ups with the site's seven clips as Theora in `assets/how_to_play/`, Lives &
-enemies, Score & Points, Tips). A first launch opens it (`GameSettings.how_to_play_seen`, saved
-on close); the menu's **How to play** button reopens it; Android back closes it; the attract
-swarm holds still under it. 885 tests green, gdformat and gdlint clean, 0 SCRIPT ERROR headless.
-Plan `docs/superpowers/plans/2026-10-13-add-onboarding.md`. Next: build for the A55 once PR #10
-is in `staging` (code 10), the user's pass (`VERIFY-ME.md` §HTP R1), then PR into `staging`.
-Open: 2 of 21 suite runs flaked on save read-back tests (plan §Open).
+**Latest (2026-10-13): `add-onboarding`, the How to play guide (ruling HTP R1), on the A55, not
+merged.** Branches: `staging` (local, fast-forwarded to `origin/main` 7b20a5b; the remote
+`staging` is still at `fdb3188`) → `add-onboarding` (this work, worktree `../dread-flock-staging`,
+`main` merged in). The public guide (perilpoint.newzenith.ph/how-to-play) is now in the game:
+`ui/how_to_play_screen.gd`, five pages (The basics, Power-ups with the site's seven clips as
+Theora in `assets/how_to_play/`, Lives & enemies, Score & Points, Tips). A first launch opens it
+(`GameSettings.how_to_play_seen`, saved on close); the menu's **How to play** button reopens it;
+Android back closes it; the attract swarm holds still under it. 896 tests green. 0.1.11 (code 12,
+`godot/build/peril-point-0.1.11-a55.apk`) is on the A55; next A55 build uses code 13. A55 frame
+time on Power-ups with a clip: mean 16.71 ms, p95 25.2. Since that build: "turn rate" → "top
+speed" in the guide's Handling hint. The worktree needed `godot/android/` copied from the main
+checkout (gitignored) and `godot/build/` made. Plan
+`docs/superpowers/plans/2026-10-13-add-onboarding.md`. Next: the user's A55 pass (`VERIFY-ME.md`
+§HTP R1), then PR `add-onboarding` into `staging`.
 
 **Latest (2026-10-13): Copilot PR comment triage, merged into `main` by PR #12.** User: "check all comments left by copilot on all recent PRs". 19 comments verified
 (PRs #5-#11): 11 fixed, 1 deferred (#11 API-33 guard), 7 moot. Code fixes: a Stick position
