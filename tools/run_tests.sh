@@ -11,16 +11,16 @@
 # "All tests passed!" and exits 0 while a spec was never executed.
 #
 # GUT's exit code IS trustworthy for ordinary assertion failures (verified: a
-# failing assert yields exit 1). The gap is collection only. So this wrapper
-# adds exactly one check GUT lacks: the number of scripts GUT reports running
-# must equal the number of test scripts on disk.
+# failing assert yields exit 1). The gap is collection only. So this wrapper's
+# collection check is: the number of scripts GUT reports running must equal the
+# number of test scripts on disk.
 #
 # It also fails a run that leaks at exit ("... leaked at exit"), which GUT never
 # reports. The suite runs with the render thread set to Safe: the project's
 # Separate render thread (thread_model=2, M11c P24, kept for the game's frame
 # rate) can drop a texture free queued just before quit, which Godot reports as
 # a leaked Image and texture RID in about one run in six (fix/exit-image-leak,
-# 2026-10-12: 10 of 59 runs on Separate, 0 of 15 on Safe). That is an engine
+# 2026-10-12: 13 of 85 runs on Separate, 0 of 15 on Safe). That is an engine
 # shutdown race, not a leak in the game; without it, any leak the gate sees is real.
 #
 # Usage:  tools/run_tests.sh
@@ -83,7 +83,7 @@ elif [[ "$reported" -ne "$expected" ]]; then
 	echo "FAIL: GUT collected $reported of $expected test scripts." >&2
 	echo "      A script was silently skipped, almost certainly a parse error." >&2
 	echo "      Find the culprit with:" >&2
-	echo "        \"\$GODOT\" --headless --path godot --check-only -s tests/<file>.gd" >&2
+	printf '        %q --headless --path %q --check-only -s tests/<file>.gd\n' "$GODOT" "$REPO/godot" >&2
 	status=1
 fi
 
@@ -94,7 +94,7 @@ fi
 
 if printf '%s\n' "$output" | grep -q 'leaked at exit'; then
 	echo "FAIL: the run leaked at exit (lines above). Name the leaked objects with:" >&2
-	echo "        \"\$GODOT\" --headless --verbose --render-thread safe --path godot \\" >&2
+	printf '        %q --headless --verbose --render-thread safe --path %q %s\n' "$GODOT" "$REPO/godot" '\' >&2
 	echo "          -s addons/gut/gut_cmdln.gd -gdir=res://tests -gexit" >&2
 	status=1
 fi

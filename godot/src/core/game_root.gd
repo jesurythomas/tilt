@@ -186,7 +186,7 @@ func _ready() -> void:
 	_menu.armory_requested.connect(open_armory.bind(""))
 	_menu.all_goals_requested.connect(open_all_goals_modal)  # PORT: :195
 	_menu.scheme_chosen.connect(_on_menu_scheme_chosen)
-	_menu.stick_anchor_changed.connect(_apply_stick_anchor)  # DIVERGENCE(ENH-302 R3)
+	_menu.stick_anchor_changed.connect(_on_stick_anchor_changed)  # DIVERGENCE(ENH-302 R3)
 	# DIVERGENCE(BUG-101 R2, R4): Settings wrote the level; All runs keeps the one in use.
 	_menu.tilt_level_changed.connect(func() -> void: set_tilt_level(settings.tilt_level))
 	# The Settings modal (M11a ruling R9): readability and audio apply at once.
@@ -561,6 +561,13 @@ func _apply_stick_anchor() -> void:
 	_joystick.apply_anchor(settings.stick_anchor, _bounds)
 
 
+## Settings' Stick position, mid-run from Pause: a finger that held the old stick must not
+## keep steering, or skip the fixed stick's grab zone, after Resume (Copilot, PR #6).
+func _on_stick_anchor_changed() -> void:
+	_joystick.reset()
+	_apply_stick_anchor()
+
+
 ## True while the menu is up. PORT: web/src/tilt-to-live/TiltGame.ts:42 (phase === 'menu')
 func is_in_menu() -> bool:
 	return _state.phase == Types.GamePhase.MENU
@@ -689,6 +696,9 @@ func calibrate_gyro() -> bool:
 		_tilt.poll()
 		settings.tilt_level = ControlSettings.TiltLevel.SAVED  # DIVERGENCE(BUG-101 R2)
 		settings.save_settings()
+		# Set level from Settings: the board under the Calibrate screen shows All runs on close.
+		if _menu.is_options_open():
+			_menu.open_options_modal()
 		_goals_hud.show_message_toast("TILT CALIBRATED", "Kept for every run ✓")  # :2335, R2
 	else:
 		_goals_hud.show_message_toast("GYRO SENSOR", "Sensor Unavailable or Blocked")  # PORT: :2337

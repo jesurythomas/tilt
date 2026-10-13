@@ -133,6 +133,33 @@ func test_a_big_score_fits_the_a55() -> void:
 	await _assert_big_score_fits(Vector2(2340, 1080), 1080.0 / 390.0)
 
 
+## RUNOVER R2 (Copilot, PR #7): HudController rescales a sheet already showing a score
+## (hud_controller.gd set_ui_scale); the digits still fit after the new layout.
+func test_a_shown_big_score_fits_after_a_rescale() -> void:
+	var sheet: RunOverSheet = _sheet(Vector2(844, 390), 1.0)
+	var result: RunOverSheet.RunResult = _result()
+	result.score = 99_999_999_999_999
+	sheet.show_result(result)
+	await get_tree().process_frame
+	var scale: float = 1080.0 / 390.0
+	var host: Control = sheet.get_parent() as Control
+	host.size = Vector2(2340, 1080)
+	host.theme = UiTheme.build(scale)
+	sheet.set_ui_scale(scale)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var score: Label = _label(sheet, "FinalScoreLabel")
+	var font_px: int = score.get_theme_font_size("font_size")
+	var width: float = (
+		score
+		. get_theme_font("font")
+		. get_string_size(score.text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_px)
+		. x
+	)
+	assert_gt(font_px, 0)
+	assert_lte(width, score.size.x + 0.5, "the digits fit the label after the rescale")
+
+
 func test_a_short_score_keeps_the_board_size() -> void:
 	var sheet: RunOverSheet = _sheet(Vector2(844, 390), 1.0)
 	sheet.show_result(_result())

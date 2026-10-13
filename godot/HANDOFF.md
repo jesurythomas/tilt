@@ -4,7 +4,15 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**Latest (2026-10-13): BUG-101 R4, Pause → Keep tilt level, merged into `main` by PR #11
+**Latest (2026-10-13): Copilot PR comment triage, branch `review/copilot-pr-comments`, not
+merged.** User: "check all comments left by copilot on all recent PRs". 19 comments verified
+(PRs #5-#11): 11 fixed, 1 deferred (#11 API-33 guard), 7 moot. Code fixes: a Stick position
+change releases a held stick; Set level from Settings redraws the Settings board. 880 tests
+green. Plan `docs/superpowers/plans/2026-10-13-copilot-pr-comment-triage.md`. Next: the user
+opens a PR for the branch and merges it; no A55 build needed (no new device behaviour to check
+beyond VERIFY-ME §Handling's corrected wording).
+
+**Also (2026-10-13): BUG-101 R4, Pause → Keep tilt level, merged into `main` by PR #11
 (after HAPTICS R1, PR #10).** User: "merge them all -- they all pass". User: "make tilt every run on the pause menu toggle-able, toggled
 on -> keep on every run -> toggle off -> recalibrates when play /resume is pressed". Pause has a
 Keep tilt level switch (tilt only); off = Each start, which now also levels on Resume; on = All
@@ -68,7 +76,8 @@ radius and returns home on release, and it shows faintly at rest (`IDLE_ALPHA` 0
 R1-R5 in `docs/superpowers/plans/2026-10-12-enh-302-joystick-position.md`. A55: pass 1 (0.1.4)
 "a bit scuffed" (drift, too small) → R5; pass 2 (0.1.5) "feels better", and the user asked to
 merge. The A55 has `build/peril-point-0.1.5-a55.apk` (0.1.5 code 6, A55 key), so the next A55
-build must use code 7. The four tunables are provisional; retune on request.
+build must use code 7. The five tunables (`GRAB_FRACTION`, `ANCHOR_INSET`, `ANCHORED_SCALE`, `ANCHOR_LEASH`,
+`IDLE_ALPHA`) are provisional; retune on request.
 
 **Also (2026-10-12): `fix/exit-image-leak`, merged (PR #5)** — the suite sometimes printed "Image /
 texture RID leaked at exit" yet passed. Cause: the Separate render thread (`thread_model=2`,
@@ -77,9 +86,8 @@ P24) drops a texture free queued just before quit, an engine race (0 of 25 runs 
 that leaks at exit (CONVENTIONS §1.3). The game keeps Separate. Plan
 `docs/superpowers/plans/2026-10-12-fix-exit-image-leak.md`.
 
-Next: nothing in flight. Ask the user what to pick up; the Run over big score has no width cap
-(11+ digits push Retry/Menu/Armory off the sheet, not ticketed), and Open question 1 (R7/I3,
-lifetime goals double-count a run) below still waits for a ruling.
+Next: nothing in flight. Open question 1 (R7/I3, lifetime goals double-count a run) below
+still waits for a ruling. (The Run over big score noted here was fixed by RUNOVER R2, above.)
 
 **Latest (2026-10-12): ENH-301, power-ups and coins at a glance, is done: R2 confirmed on the A55**
 on branch `ENH-301-powerup-coin-glance` (67/67 test scripts, 831 tests green, gdformat and
@@ -97,8 +105,8 @@ arm64 debug APK by translation (`--export-debug "Android" build/peril-point-debu
 has this build (`build/peril-point-0.1.3-a55.apk`, 0.1.3 code 4, A55 key, installed 2026-10-12
 18:26), so the next A55 build must use code 5. A55: confirmed ("power ups look good now", "the enhancement for powerups are
 confirmed"). Merged into `main` through PR #3. Next: ENH-302 (joystick position, GitHub #4);
-brainstorm it with the user first, its open questions are in the issue. Found 2026-10-12, not ticketed: the Run over big score
-(`FinalScoreLabel`) has no width cap; 11+ digits push Retry/Menu/Armory off the sheet.
+brainstorm it with the user first, its open questions are in the issue. Found 2026-10-12: the Run over big score had no width cap; fixed
+by RUNOVER R2 (above).
 
 **Latest (2026-09-29): the Settings overflow is fixed** (831 tests green, gdformat and gdlint
 clean, 0 SCRIPT ERROR headless; A55 pass pending, `VERIFY-ME.md` §Settings scroll). User: "fix the
