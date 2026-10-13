@@ -81,8 +81,13 @@ here C:\Users\Jesury\Downloads\assets we may need some other assets for how to p
 - [x] R2: three pages, dodge and Armory clips, tests updated (every page plays its clip; the
       Armory page lists every tab). 895 tests green, gdformat and gdlint clean. Desktop
       screenshots of all three pages checked.
-- [ ] R2 build: 0.1.12 (code 13) on the A55.
-- [ ] A55 pass by the user (`VERIFY-ME.md` §HTP R1). Then PR `add-onboarding` into `staging`.
+- [x] R2 build: 0.1.12 (code 13) on the A55.
+- [x] User: "rebuild it please". 0.1.13 (code 14, `godot/build/peril-point-0.1.13-a55.apk`, same
+      content as 0.1.12) installed on the A55 2026-10-13 18:18, data kept. Next A55 build: code 15.
+- [x] User: "merge to staging -> create PR from staging to main -> merge (do not delete
+      staging)". `add-onboarding` merged into `staging`, PR `staging` → `main` merged; `staging`
+      kept.
+- [ ] A55 pass by the user (`VERIFY-ME.md` §HTP R1/R2), now on `main`.
 
 ## Open
 
