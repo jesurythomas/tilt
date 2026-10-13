@@ -148,7 +148,12 @@ ruling is its own roadmap item (Play Billing) and is not built here.
       it". Rebuilt as 0.1.15 (code 16, same code as 0.1.14), installed on the unlocked A55
       2026-10-13 22:10 with data kept, launched: consent in ~2 s, `can_request_ads=true
       privacy_options_required=false`, no load failure; menu frame time mean 16.66 ms, p95 25.1.
-      The rest of Part A is the user's.)*
+      The rest of Part A is the user's. User: "rebuild it i do not see the consent". Ruling,
+      mine: no change to who sees the form. UMP shows it only where GDPR applies (EEA/UK/CH);
+      PH gets none, as ADS R3 intends. To show it on the A55, its hash is committed as
+      `peril/ads/test_device_hashed_id` and 0.1.16 (code 17) was built with
+      `ads/debug_geography=1` uncommitted; the EEA form showed on the A55 2026-10-14 00:07 and a
+      choice gave `can_request_ads=true privacy_options_required=true`.)*
 
 ## Open
 

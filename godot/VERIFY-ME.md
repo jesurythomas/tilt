@@ -1094,11 +1094,14 @@ Checked on the emulator (Pixel_10, Play Store image), 2026-10-13:
 - [ ] Frame time in a run: `tools/frametime.sh 20 ads`. HTP's Power-ups page read mean 16.71 ms,
       p95 25.2 on 0.1.11; the ads build adds no per-frame game code, so a run should match the
       runs before it.
-- [ ] Optional, the EEA form on the A55: put `ads/debug_geography=1` under `[peril]` in
+- [x] Optional, the EEA form on the A55: put `ads/debug_geography=1` under `[peril]` in
       `project.godot` (uncommitted), build with `tools/release.sh` (it restores `project.godot`
       after the export), and put the A55's hash in
       `ads/test_device_hashed_id="9A0837A109CE8195013D1AF3E32EC41B"` (from its logcat line
-      `addTestDeviceHashedId("…")`). UMP applies a
+      `addTestDeviceHashedId("…")`). *(Done 2026-10-14 00:07, 0.1.16 code 17,
+      `godot/build/peril-point-0.1.16-a55-eea.apk`; the hash is now committed. The form showed
+      over the menu; a choice was tapped; `can_request_ads=true privacy_options_required=true`.
+      Left for you: Settings → Data → Ad privacy · Manage opens the privacy options form.)* UMP applies a
       debug geography only to a test device.
 
 ### Part B — AdMob and Play Console (you do this once, before real ads)

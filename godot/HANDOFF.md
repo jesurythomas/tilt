@@ -28,7 +28,15 @@ on a short first run, all seen. 0.1.15 (code 16, same code as 0.1.14, `godot/bui
 is on the A55, installed 2026-10-13 22:10 with data kept, and launched: consent answered in ~2 s,
 `can_request_ads=true privacy_options_required=false` (GDPR does not apply in PH), no load
 failure; menu frame time mean 16.66 ms, p95 25.1. The A55's ads hash is
-`9A0837A109CE8195013D1AF3E32EC41B`. Next A55 build uses code 17. Surprises: a static factory that called its own
+`9A0837A109CE8195013D1AF3E32EC41B`, now committed as `peril/ads/test_device_hashed_id` (UMP debug
+device and SDK test device). User: "rebuild it i do not see the consent" — outside the EEA/UK/CH
+UMP shows no form, by design. 0.1.16 (code 17, `godot/build/peril-point-0.1.16-a55-eea.apk`)
+was built with `ads/debug_geography=1` uncommitted (release.sh restored project.godot) and
+installed 2026-10-14 00:07, data kept: the EEA form showed over the menu, a choice was tapped
+(`CONSENT_SIGNAL_SUFFICIENT`), and the game logged `can_request_ads=true
+privacy_options_required=true`. The A55 now carries that EEA test build and its stored consent;
+the form will not show again by itself (Settings → Ad privacy · Manage reopens the choices).
+Next A55 build uses code 18; a build from HEAD drops the EEA geography. Surprises: a static factory that called its own
 class's `new()` from an autoload kept every script alive at exit (306 leaked instances; fixed by
 building the backend in `Ads._ready`); a SceneTreeTimer bound into its own signal is a leaking
 cycle. The APK grew to 95 MB (the SDK's dex is ~9 MB; no R8). Next: the user's A55 pass
