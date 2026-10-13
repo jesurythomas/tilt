@@ -4,7 +4,45 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**Latest (2026-10-14): ads round 2 — pacing by games, a 3× rewarded ad, dearer Armory (ADS
+**Latest (2026-10-14): dash, items (active abilities), and the play-screen rework, on branch
+`feat/dash-and-abilities` (from `feat/in-game-ads` at `31040da`, which holds `staging`), not
+merged.** User: "1. Dash ... 2. Active abilities ... 3. ... hard to see the middle upper center
+due to the score and multiplier. 4. ... show the Dash cooldown and clickable items. 5. Update the
+how to ... Create a new branch for this". Plan `docs/superpowers/plans/2026-10-14-dash-and-abilities.md`
+(rulings DASH R1-R5, ITEM R1-R2, HUD R1-R2, HTP R3; all 7 tasks ticked). **Dash:** a double tap
+anywhere in a live run (`src/input/double_tap.gd`, Android's rule: a quick still tap, then a
+second press within 0.3 s and 100 units; any finger; GameRoot feeds it before the stick), or
+Shift / a real mouse double-click on desktop, asks `RunController.abilities`
+(`src/sim/ability_system.gd`) for a dash at the next tick: a 0.12 s burst a quarter of the arena
+along the ship's velocity (facing when still), stopped by the arena edge and Corridor walls
+(`GauntletMaze.blocks`), raising the shield to 2 s; the 20 s cooldown starts when the dash's own
+shield window ends; ready at every run start; a request while not ready is dropped. Upgrades in
+the save (`dash: {cooldown, shield}`): cooldown 20 → 15 s in 5 ranks, shield 2.0 → 5.0 s in 6,
+priced as weapon ranks. DASH R5: these are game seconds (the sim runs at `Tuning.GAME_SPEED`
+0.75, like every timer), ~27 s on a stopwatch — flip in `AbilitySystem.reset` if the user wants
+wall-clock. **Items:** each of the seven power-ups can be bought once (`ITEM_COSTS` × 2,
+2,400-4,000) and equipped in one of 2 slots (`unlockedItems`, `equippedItems`); in a run each
+equipped item fires once via its HUD button (or 1 / 2), as an orb pickup would (perks,
+milestones, the timer), and is back next run. **Armory:** a sixth tab, Abilities (dash rows +
+slots + item cards with buy / Equip / Unequip); the tab buttons pad 8 a side (was 12) so six
+tabs and a 7-digit balance fit the 844-px header. **HUD:** the score block moved into the left
+column (score 22 px with the chip beside it, BEST under it, then lives and toasts); a bottom-corner
+`AbilityBar` (`src/ui/ability_bar.gd`): the dash gauge (display only) and the item buttons,
+bottom left when Stick position is Right. **How to play:** page 3 "Dash and items" with a recorded
+clip (`assets/how_to_play/dash.ogv`), the Abilities line, and a re-recorded `armory.ogv`
+(`tools/record_htp_clips.gd`, `HTP_CLIP=dash`). `GameEvents.dash_activated` (Haptics: 25 ms).
+MVP R3 (clickable power-ups) is marked superseded in the roadmap. Review shots:
+`bench/shot_hud.gd`, `bench/shot_armory.gd`, `bench/shot_how_to_play.gd` (all windowed,
+`build/shots/`). Tests: 1010/1010, 75/75 scripts, nothing leaked; gdformat/gdlint clean;
+0 SCRIPT ERROR headless. Perf: desktop full run tick 68-69 µs vs 70-73 before; the bar's
+per-frame update 1.3 µs. **0.1.20 (code 21, `godot/build/peril-point-0.1.20-a55.apk`, A55 key)
+is on the A55** (installed 01:42, data kept); someone was playing it at once and dashed twice;
+frame time mean 16.66 ms, p95 25.0 (same as 0.1.18). Next A55 build uses code 22. Seen, not
+fixed: the Armory weapon list clips "Blackhole" beside a two-digit rank ("9/15"). Next: the
+user's A55 pass (`VERIFY-ME.md` §DASH / ITEM / HUD / HTP R3, and §ADS still open), then PR
+`feat/dash-and-abilities` → `staging`.
+
+**Earlier (2026-10-14): ads round 2 — pacing by games, a 3× rewarded ad, dearer Armory (ADS
 R5-R8), and a Gauntlet stripe fix; merged into `staging` from `feat/in-game-ads` (user:
 "commit push create pr and merge to staging for now"), not yet in `main`.** Plan
 `docs/superpowers/plans/2026-10-13-in-game-ads.md` (rulings and tasks 10-12). R5 (user: "after

@@ -159,9 +159,13 @@ Baseline before any change (desktop, `bench/bench_sim.gd` headless, 3 runs): a f
 6. [x] How to play page + clips; tests. (Page 3 "Dash and items"; `dash.ogv` 12 s 960×540
    Theora q4 1.6 MB, `HTP_CLIP=dash`; `armory.ogv` re-recorded with the Abilities step, 24 s,
    q6 1.9 MB (`ffmpeg -ss 6 -t 24`); dash clip `ffmpeg -ss 8 -t 12 ... -q:v 4`.)
-7. [ ] Verify: suite, gdformat/gdlint, 0 SCRIPT ERROR headless, benches vs baseline, A55
-   build; HANDOFF, VERIFY-ME, PORT-PROGRESS.
+7. [x] Verify: suite, gdformat/gdlint, 0 SCRIPT ERROR headless, benches vs baseline, A55
+   build; HANDOFF, VERIFY-ME, PORT-PROGRESS. (1010/1010 tests, 75/75 scripts, nothing
+   leaked; clean; 0 SCRIPT ERROR. 0.1.20 code 21 on the A55, data kept; live run 16.66 ms mean,
+   p95 25.0. PORT-PROGRESS untouched: no port module closes. VERIFY-ME §DASH / ITEM / HUD /
+   HTP R3 lists the device checks.)
 
 ## Status
 
-- Task 1 done: `dash`, `unlockedItems`, `equippedItems` in the save, cleaned on load. Tasks 2-6 done. Next: Task 7 (verify, docs, A55 build).
+- All 7 tasks done (2026-10-14). Next: the user's A55 pass (VERIFY-ME §DASH / ITEM / HUD /
+  HTP R3), then a PR from `feat/dash-and-abilities` to `staging`.
