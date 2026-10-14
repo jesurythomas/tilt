@@ -4,7 +4,48 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**Latest (2026-10-14, 13:35): Copilot's PR #12-#15 comments, on `review/copilot-pr-12-15`
+**Latest (2026-10-14, evening): the 0.1.26 store bundle from `staging`.** User: "From staging,
+create a new app bundle". Branch `chore/bundle-0.1.26` is `staging` (`5c61e75`, PR #17 merged)
+plus three console notes (this GCP project, the Play Games OAuth client, the Play app signing
+SHA-1 `ED:48:D2:DA:C9:F8:CF:0F:AE:EB:86:5C:DA:E0:3E:17:54:76:51:AB`), `release.sh`'s store
+package (`PERIL_AAB=1` now exports `ph.newzenith.perilpoint`, the Play listing's; APKs keep
+`com.jtg.perilpoint`; ruling PGS R6) and version 0.1.26, code 27. Built in a worktree, because
+the main tree held the user's uncommitted deletion of `godot/assets/icon/icon.png`:
+`godot/build/peril-point-0.1.26.aab` (42 MB, gitignored; a copy is in the main tree's
+`godot/build/`), jar verified. Inside: arm64 `libgodot_android` and `libperil`, the PerilAds
+plugin with **AdMob's test app ID** (real AdMob IDs are not set yet, VERIFY-ME §ADS Part B, so
+it serves only test ads), no Play Games. A fresh worktree's first export logs one `Cannot set
+object script` error; the second logs none, so export twice there. Not installed anywhere (an
+`.aab` goes through Play).
+
+**The Play upload key (2026-10-14).** Play rejected the first 0.1.26, signed with our interim
+`CN=Peril Point upload` key (`32:90:37:AE…`): the app's upload key is SHA-1
+`25:14:17:AE:C1:C8:F9:81:26:98:E9:1E:66:75:5C:6F:F7:6D:39:9A`. The user had it on Google Drive:
+`perilpoint-upload.jks` (PKCS12, alias `perilpoint-upload`, `CN=Peril Point, O=New Zenith, C=PH`,
+made 2026-10-11), now at `~/.android/perilpoint-upload.jks` with `~/.android/perilpoint-upload.env`
+(I never printed the password). `PERIL_AAB=1 tools/release.sh` now signs with it by default;
+APKs keep the dev key. The `peril-upload` key from `make-upload-key.sh` is not Play's and signs
+nothing that goes to Play. 0.1.26 was rebuilt with the Play key; against the rejected bundle
+only the per-export random `node_ids` in 20 scenes (and the pack's index of them) differ.
+**Next:** the user uploads `peril-point-0.1.26.aab` to a Play testing track (code 27 must be above
+every code Play has); the user merges this branch's PR; the next build uses code 28.
+
+**Parked (2026-10-14): Play Games leaderboards (MVP R2).** User: "We dont need to add
+leaderboards for now. We can add that in at a later date". Built (rulings PGS R1-R7, plan
+`docs/superpowers/plans/2026-10-14-play-games-leaderboards.md`); the code lives only on
+`feat/play-games`, PR #18 as a draft. To resume: rebase it on `staging`, then its VERIFY-ME
+§PGS.
+
+**Also (2026-10-14, 13:48): a Google Cloud project for Peril Point.** User: "create a new google
+cloud project for Peril Point". `peril-point-jtg` ("Peril Point", number 734361789228; ID
+`peril-point` was taken), owned by jtgadiane@gmail.com (user: "email is jtgadiane"), no
+organization, no billing; Games, Games Management and Drive APIs enabled for Play Games'
+OAuth consent screen, which the user set up in the console. gcloud: a separate
+configuration `peril-point` (account + project) — run gcloud with `--configuration=peril-point`;
+the `default` configuration (jg@blackcapitaltechnology.com, `garage-hub-jtg-8b1fe`) is untouched.
+It is the project for VERIFY-ME §Part B's Firebase step 2.
+
+**Earlier (2026-10-14, 13:35): Copilot's PR #12-#15 comments, on `review/copilot-pr-12-15`
 (from `staging` at `507e180`, where PR #16 is merged).** User: "copilot left some comments on the
 pervious prs. take a look at those comments and fix if needed". 13 comments: 11 fixed, 2 moot
 (merge-time wording on PR #14); PR #16 got no review (Copilot's quota). Triage
