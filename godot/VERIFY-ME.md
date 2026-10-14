@@ -1117,7 +1117,8 @@ Checked on the emulator (Pixel_10, Play Store image), 2026-10-13:
       play) after the tap, even if the rewarded ad was closed early or failed to show.
 - [ ] (ADS R14, Copilot PR #15) On a build with an ad due at every break (`peril/ads/every_break`),
       tap Retry: the Run over stays on screen until the ad covers it, never a blank arena; after
-      ✕ the run starts. *(Needs a build after 0.1.24; code 26 next.)*
+      ✕ the run starts. While it opens, Armory and the 3× offer stay shut. *(On the A55 as 0.1.25,
+      code 26, 2026-10-14 13:35.)*
 - [ ] (ADS R11, Copilot PR #15) On the EEA build: Settings → Data → Ad privacy · Manage, change
       the choice, close. Logcat shows a fresh `ads: consent …` line; the next Run over offers
       Watch ad only once a new rewarded ad has loaded (a few seconds); ads still show after.

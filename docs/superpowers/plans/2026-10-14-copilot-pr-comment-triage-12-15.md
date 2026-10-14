@@ -41,7 +41,9 @@ API-33 `VibrationAttributes` guard (needs a phone below Android 13).
 - [x] AARs rebuilt with `tools/build_ads_plugin.sh` (debug 12,051 B, release 11,453 B)
 - [x] PR #17 `review/copilot-pr-12-15` → `staging` opened 2026-10-14
 - [ ] The user merges PR #17
-- [ ] The next A55 build (code 26) carries R11/R14; VERIFY-ME §ADS has their rows
+- [x] User: "build it". 0.1.25 (code 26) on the A55 2026-10-14 13:35, data kept, launched with
+      0 SCRIPT ERROR; menu frame time mean 16.67 ms, p95 25.1 (0.1.24: 16.70, 25.1). VERIFY-ME
+      §ADS has the R11/R14 rows. Next A55 build: code 27
 
 Frame cost: none per frame. Every change runs on an ad callback, a consent change, a Retry tap
 or a run start. `bench_sim` headless: swarm.update 25.5 µs vs 24.7 on `staging`, death tick

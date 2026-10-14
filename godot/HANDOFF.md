@@ -4,7 +4,7 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**Latest (2026-10-14, evening): Copilot's PR #12-#15 comments, on `review/copilot-pr-12-15`
+**Latest (2026-10-14, 13:35): Copilot's PR #12-#15 comments, on `review/copilot-pr-12-15`
 (from `staging` at `507e180`, where PR #16 is merged).** User: "copilot left some comments on the
 pervious prs. take a look at those comments and fix if needed". 13 comments: 11 fixed, 2 moot
 (merge-time wording on PR #14); PR #16 got no review (Copilot's quota). Triage
@@ -17,8 +17,12 @@ opens); rulings in `docs/superpowers/plans/2026-10-13-in-game-ads.md`. Also: `ru
 fails closed without a temp `user://`; the guide's Tilt card names Tilt level / Each start /
 All runs / Calibrate tilt; doc fixes (the PR #12 tally, VERIFY-ME §HTP's build, the ads plan's
 pacing note). Suite 1032/1032, 75/75 scripts, nothing leaked; gdformat/gdlint clean; 0 SCRIPT
-ERROR. No per-frame cost (`bench_sim` within noise). Not on the A55 (next build code 26;
-VERIFY-ME §ADS R11/R14 rows). Then one review run over the repo (user: "do 1 run for an overall review of the repo"): 6 of 8 findings fixed on the same branch — Armory/Milestones held while Retry's ad opens, a 30 s give-up for an ad that never opened, the 3× offer hides at every show, its glint stops on the hidden sheet, the plugin keeps its ads when the privacy form fails, and a tilt level cut off by a stopped sensor waits again (BUG-101 R5); the dash-into-wall finding is DASH R2 by design, long old commit messages stay. Triage doc's last section. Suite 1037/1037. Next: PR #17 (`review/copilot-pr-12-15` → `staging`, open; the user merges it),
+ERROR. No per-frame cost (`bench_sim` within noise). User: "build it": 0.1.25 (code 26,
+`godot/build/peril-point-0.1.25-a55.apk`, A55 key) is on the A55, installed 2026-10-14 13:35
+over 0.1.24 (a finished run's Run over was open; its points were banked), data kept, launched:
+the save loaded (best 1,459,665, 1,826 points, 42/57), consent `can_request_ads=true` in ~3 s,
+0 SCRIPT ERROR; menu frame time mean 16.67 ms, p95 25.1 (0.1.24: 16.70, 25.1). Next A55 build
+uses code 27. VERIFY-ME §ADS has the R11/R14 rows. Then one review run over the repo (user: "do 1 run for an overall review of the repo"): 6 of 8 findings fixed on the same branch — Armory/Milestones held while Retry's ad opens, a 30 s give-up for an ad that never opened, the 3× offer hides at every show, its glint stops on the hidden sheet, the plugin keeps its ads when the privacy form fails, and a tilt level cut off by a stopped sensor waits again (BUG-101 R5); the dash-into-wall finding is DASH R2 by design, long old commit messages stay. Triage doc's last section. Suite 1037/1037. Next: PR #17 (`review/copilot-pr-12-15` → `staging`, open; the user merges it),
 then the user's A55 pass (BUG-101 R5, §ADS R9-R11/R14, §DASH).
 
 **Earlier (2026-10-14, afternoon, later): BUG-101 R5, still-phone tilt levels, on

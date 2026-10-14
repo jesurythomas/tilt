@@ -314,7 +314,8 @@ repo and include it in the fix if needed", 2026-10-14):**
       A55 yet: the next build is code 26; VERIFY-ME §ADS has the R11/R14 rows.)*
 - [x] 18. The review run's follow-ups to R10-R12, R14 (above). *(Done 2026-10-14: five tests,
       each failing with its fix removed; AARs rebuilt. Suite 1037/1037, 75/75 scripts, nothing
-      leaked; gdformat, gdlint clean over `src` and `tests`; 0 SCRIPT ERROR.)*
+      leaked; gdformat, gdlint clean over `src` and `tests`; 0 SCRIPT ERROR. 0.1.25 (code 26)
+      on the A55 2026-10-14 13:35; menu frame time mean 16.67 ms, p95 25.1, as 0.1.24.)*
 - [ ] 9. The user's A55 pass (§ADS Part A) and AdMob setup (Part B); merge. *(User: "rebuild
       it". Rebuilt as 0.1.15 (code 16, same code as 0.1.14), installed on the unlocked A55
       2026-10-13 22:10 with data kept, launched: consent in ~2 s, `can_request_ads=true
