@@ -45,8 +45,9 @@ Services, one board per mode, submitted at death, with a button on the menu and 
   mode board when the player is signed in, the score is above 0 and the board's ID is set.
   Nothing is queued while signed out (a board keeps each player's best; their next signed-in run
   posts). The local best stays one number for all modes.
-- **PGS R5 — buttons.** An icon-only podium button: on the menu's nav row before the gear (all
-  boards), and on the Run over's bottom row after Armory (the run's mode board, or all boards
+- **PGS R5 — buttons.** An icon-only podium button: on the menu's stats row after Achievements,
+  beside the Best it ranks (all boards; the nav row has no room, task 3), and on the Run over's
+  bottom row after Armory (the run's mode board, or all boards
   while that mode has no ID). Shown only when `PlayGames.is_available()`; held while
   `Ads.is_break_pending()`, as Armory and Achievements (ADS R14).
 - **PGS R6 — store package.** `PERIL_AAB=1 tools/release.sh` exports the Play listing's package
@@ -59,16 +60,32 @@ Services, one board per mode, submitted at death, with a button on the menu and 
 
 ## Tasks
 
-- [ ] 1. Plugin: `android/peril-games` (manifest, gradle, `PerilGamesPlugin.java`),
-  `tools/build_games_plugin.sh`, AARs built and committed.
-- [ ] 2. Godot: export plugin `addons/peril_games`, `GamesConfig`, `GamesBackend`,
-  `AndroidGamesBackend`, the `PlayGames` autoload; tests with a recording backend.
-- [ ] 3. Buttons: `UiTheme.ICON_LEADERBOARD`; menu and Run over buttons; GameRoot submits at
-  run end and opens boards; tests.
-- [ ] 4. `release.sh` store package (PGS R6).
-- [ ] 5. Checks: suite, gdformat/gdlint, `bench_sim`; a configured export's manifest read with
-  aapt2 (the APP_ID stays a string). VERIFY-ME §PGS for the user's console steps and the
-  device pass; HANDOFF; roadmap.
+- [x] 1. Plugin: `android/peril-games` (manifest, gradle, `PerilGamesPlugin.java`),
+  `tools/build_games_plugin.sh`, AARs built and committed. *(Compiles against 22.1.0, so the
+  API names are right. A Java `long` takes a GDScript int whole: Godot 4.7.2's
+  `java_class_wrapper.cpp` passes `ARG_TYPE_LONG` as `jlong`.)*
+- [x] 2. Godot: export plugin `addons/peril_games`, `GamesConfig`, `GamesBackend`,
+  `AndroidGamesBackend`, the `PlayGames` autoload; tests with a recording backend
+  (`test_play_games.gd`).
+- [x] 3. Buttons: `UiTheme.ICON_LEADERBOARD`; menu and Run over buttons; GameRoot submits at
+  run end and opens boards; tests (`test_play_games_flow.gd`, `test_tilt_menu.gd`,
+  `test_run_over_sheet.gd`). *(The menu's podium went to the stats row, not the nav row: a
+  fourth nav button made the row 355 px against the panel's 318 px at 844x390 and pushed
+  Settings off screen. In the stats row it overhangs a slot as tall as the stats, so the left
+  column keeps its size: measured equal with and without it.)*
+- [x] 4. `release.sh` store package (PGS R6). *(A check `.aab` carried `ph.newzenith.perilpoint`;
+  the preset came back to APK and `com.jtg.perilpoint`.)*
+- [x] 5. Checks, 2026-10-14: suite 1065/1065, 77/77 scripts, nothing leaked; gdformat/gdlint
+  clean; the new tests mutation-checked (no submit, no podium, no ADS R14 guard, no ask after a
+  failed launch check, an ask during the check: each fails a test). Exports: without a project
+  ID no Play Games classes and no manifest entries; with a stand-in ID (`734361789228`) the
+  plugin registers, the SDK is in (+361 KB) and aapt2 shows `APP_ID="734361789228"` as a string
+  (`versionCode=26` beside it is a bare integer). On the A55 that build (a sideload) initialized
+  the plugin, answered `games: signed_in=false` and ran; menu frame time mean 16.67 ms, p95
+  25.05 (0.1.25: 16.67, 25.11); 0.1.25 was put back. No per-frame code: the podiums are built
+  with their screens, the score goes once per death. VERIFY-ME §PGS.
+- [ ] 6. With the user's IDs (VERIFY-ME §PGS Part A): set them in `project.godot`, build an
+  `.aab` for internal testing, then the device pass (Part B).
 
 ## Open
 

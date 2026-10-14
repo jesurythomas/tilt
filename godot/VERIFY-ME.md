@@ -1221,3 +1221,48 @@ dashes fired). Frame time in that run: mean 16.66 ms, p95 25.00, p99 25.23, 7.7 
 - [ ] (HTP R3) How to play: page 3 "Dash and items" plays a clip of a dash and both items
       firing; The Armory's list has Abilities and its clip ends on the Abilities tab.
 - [ ] Frame time with a dash and an item firing: `tools/frametime.sh 20 dash`.
+
+## PGS R1-R7 — Play Games leaderboards (2026-10-14, branch `feat/play-games`)
+
+Plan `docs/superpowers/plans/2026-10-14-play-games-leaderboards.md`. Code-complete; nothing ships
+until `peril/games/project_id` is set (PGS R2), so 0.1.25 and every build before the IDs have
+no Play Games. Checked 2026-10-14 with a stand-in ID on the A55 (sideload, then 0.1.25 put
+back): the plugin initializes, the launch check answers `games: signed_in=false` (a sideload has
+the wrong package and key, as expected), no crash; menu frame time mean 16.67 ms, p95 25.05.
+
+### Part A — Play Console (you do this once)
+
+1. If not done yet: Google Cloud (project `peril-point-jtg`, as jtgadiane) → APIs & Services →
+   Credentials → Create credentials → OAuth client ID → **Android**, package
+   `ph.newzenith.perilpoint`, SHA-1 `ED:48:D2:DA:C9:F8:CF:0F:AE:EB:86:5C:DA:E0:3E:17:54:76:51:AB`
+   (the Play app signing key). Then Play Games Services → Setup and management →
+   **Configuration** → Add credential → Android → pick that client. Send me the **project ID**
+   (the digits under the game's name).
+2. **Leaderboards** → create three, named **Survival**, **Corridor**, **Overdrive**; Score
+   formatting Numeric, no decimals; Ordering **Larger is better**; no limits for now. Send me
+   each board's ID (`CgkI…`).
+3. **Testers** → add the Google account the A55 signs in to Play Games with. Until the Play
+   Games configuration is published, only testers can sign in.
+4. Later, before the closed test: Play Games Services → **Publish**.
+
+I then set, in `godot/project.godot`:
+```
+games/project_id="…"
+games/leaderboard_survival="CgkI…"
+games/leaderboard_corridor="CgkI…"
+games/leaderboard_overdrive="CgkI…"
+```
+and build an `.aab` (`PERIL_AAB=1 PERIL_KEYS=~/.android/peril-upload.env tools/release.sh`,
+package `ph.newzenith.perilpoint`, PGS R6) for you to upload to **internal testing**.
+
+### Part B — on the A55, from the internal-testing install
+
+- [ ] (PGS R3) Launch: Play Games' "Welcome" banner slides in without a tap.
+- [ ] (PGS R5) Menu: a podium button sits right of Achievements in the stats row (Best,
+      Points, Achievements); it opens every board.
+- [ ] (PGS R4) Die in a Survival run: the Run over's podium (after Menu and Armory) opens the
+      Survival board with that score. Same for Corridor and Overdrive.
+- [ ] (PGS R7) In a board, sign out from Play Games' own settings, come back, tap the podium:
+      Play Games asks to sign in, then opens the board.
+- [ ] Sideloaded `com.jtg.perilpoint` builds show the podium once the IDs are set, but cannot
+      sign in (PGS R6) — expected.
