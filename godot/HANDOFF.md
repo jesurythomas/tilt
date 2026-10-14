@@ -22,7 +22,11 @@ through Play). **Play rejected the upload** ("signed with the wrong key"): the a
 upload key has SHA-1 `25:14:17:AE:C1:C8:F9:81:26:98:E9:1E:66:75:5C:6F:F7:6D:39:9A`, which is none
 of this machine's keys (upload `32:90:37:AE…`, dev `67:3D:0C:8F…`, Godot debug `32:B2:72:54…`,
 Android debug `DC:F7:79:9A…`; a search of C: and the Debian WSL found no other keystore). So
-the user's first Play upload (0.1.3, code 4) was signed somewhere else. **Next:** the user
+the user's first Play upload (0.1.3, code 4) was signed somewhere else. The local 0.1.3 builds
+are no help: `peril-point-0.1.3.apk` is the dev key, `-a55.apk` Godot's debug key, and both are
+`com.jtg.perilpoint`, while Play's 0.1.3 is `ph.newzenith.perilpoint`, a package no build here
+had before 0.1.26 (git, Godot's `export_credentials.cfg` and step-quest's keys checked too).
+**Next:** the user
 signs with that key if they still have it (an env file for `PERIL_KEYS`, then rebuild), or asks
 Play for an upload key reset (Protected with Play → Play Store protection → Manage Play app
 signing → Request upload key reset) with `godot/build/upload_certificate.pem` (main tree,
