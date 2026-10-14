@@ -5,7 +5,8 @@ Rewritten at every module stop. Written for a session with zero context.
 ## State
 
 **Latest (2026-10-14, evening): Play Games leaderboards (MVP R2), on `feat/play-games`** (from
-`review/copilot-pr-12-15` at `1d62984`, i.e. on top of PR #17). User sent the PGS guide's "Step
+`review/copilot-pr-12-15` at `1d62984`; PR #17 is merged into `staging` at `5c61e75`, and the
+three note commits after it ride on this branch). User sent the PGS guide's "Step
 3: Modify your code" after the console setup. Plan
 `docs/superpowers/plans/2026-10-14-play-games-leaderboards.md`, rulings PGS R1-R7: our own
 `PerilGames` plugin (`android/peril-games`, `tools/build_games_plugin.sh`, AARs in
@@ -23,7 +24,7 @@ A55 with a stand-in ID (plugin up, `signed_in=false`, no crash, frame time uncha
 `ED:48:D2:DA:C9:F8:CF:0F:AE:EB:86:5C:DA:E0:3E:17:54:76:51:AB` (read off the A55's Play install).
 **Next:** the user's Play Console steps (VERIFY-ME §PGS Part A: project ID, three boards,
 testers), then set the IDs, build an `.aab` for internal testing (code 27+), and the device pass
-(Part B). Merge order: PR #17, then this branch.
+(Part B). This branch goes to `staging` by PR (the user merges).
 
 **Also (2026-10-14, 13:48): a Google Cloud project for Peril Point.** User: "create a new google
 cloud project for Peril Point". `peril-point-jtg` ("Peril Point", number 734361789228; ID
