@@ -1039,6 +1039,14 @@ Passed on the A55, 0.1.10 (user 2026-10-13: "tick phone checks. they are working
 - [x] R4 (0.1.10): Pause shows Keep tilt level under Tilt only, and the sheet still fits.
 - [x] R4: Keep tilt level off → Resume levels to how you hold the phone; on → Resume and the
       next runs keep the level you were playing with.
+- [ ] R5 (user: "now, it tilts at around 10-11"): with Keep tilt level **off**, press Play and
+      hold the phone as you play: the ship stays put until you tilt, run after run. Logcat
+      shows `tilt: level settled in … s; the first reading was … deg off it` once per start.
+- [ ] R5: Resume with Keep tilt level off: the ship holds still a moment, then steers level.
+- [ ] R5: the crosshair in Pause, then hold the phone as you play: Resume and later runs are
+      level (it turns Keep tilt level on, as before).
+- [ ] R5: Settings → Calibrate tilt → hold an angle → Set level: the next run is level at that
+      angle, even with a firm tap on Set level.
 
 ## HAPTICS R1 — vibration as media (2026-10-13)
 

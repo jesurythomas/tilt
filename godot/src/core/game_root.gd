@@ -359,6 +359,16 @@ func _physics_process(delta: float) -> void:
 
 ## The phase dispatch of _physics_process, split out so the probe can time it whole.
 func _physics_phase(delta: float) -> void:
+	# DIVERGENCE(BUG-101 R5): a settling level reads the sensor in every phase (the cold open,
+	# Pause, the menu); a run's tick under tilt reads it already.
+	if (
+		_tilt.is_settling()
+		and not (
+			_state.phase == Types.GamePhase.PLAYING
+			and _router.control_scheme == Types.ControlScheme.GYRO
+		)
+	):
+		_tilt.poll()
 	match _state.phase:
 		Types.GamePhase.PLAYING:
 			_update(delta * Tuning.GAME_SPEED)
@@ -676,8 +686,9 @@ func toggle_pause() -> void:
 	_state.toggle_pause()
 	# DIVERGENCE(BUG-101 R4, user: "toggle off -> recalibrates when play /resume is pressed"):
 	# under Each start, Resume levels to the pose held, unsaved, as Play does.
+	# DIVERGENCE(BUG-101 R5): once the phone holds still after the tap on Resume.
 	if _state.phase == Types.GamePhase.PLAYING and settings.levels_each_run():
-		_tilt.calibrate_current_position(false)
+		_tilt.settle_level(false)
 
 
 ## DIVERGENCE(BUG-101 R2, R4): Settings' Tilt level and Pause's Keep tilt level. All runs
@@ -755,9 +766,11 @@ func _restart_run_now() -> void:
 func _begin_cinematic() -> void:
 	_joystick.reset()
 	_double_tap.reset()  # DIVERGENCE(DASH R1)
-	# DIVERGENCE(BUG-101 R2): Auto takes the pose at the run's first poll, unsaved.
+	# DIVERGENCE(BUG-101 R2): Auto takes the pose as the run starts, unsaved.
+	# DIVERGENCE(BUG-101 R5): from a still phone, read through the cold open, not the run's
+	# first reading.
 	if settings.levels_each_run():
-		_tilt.calibrate_current_position(false)
+		_tilt.settle_level(false)
 	_run_controller.reset_run(_bounds)
 	# PORT-NOTE(M10 final review F-2): the machine's mode follows the run's
 	# captured mode (R4), so _state.restart() never passes a stale mode.
@@ -796,13 +809,17 @@ func skip_cinematic() -> void:
 ## calibrateGyro. PORT: web/src/tilt-to-live/TiltGame.ts:2331-2341
 # PORT-NOTE: the TS awaits the permission promise; request_permission_and_start()
 # is synchronous here (see _ready). updateHUD (:2339) is signal-driven here.
-func calibrate_gyro() -> bool:
+## `touched_at` (TiltInput.now_seconds) is when the finger came down on the Calibrate screen's
+## Set level; -1 for the buttons with no live reading before them (Pause, Armory).
+func calibrate_gyro(touched_at: float = -1.0) -> bool:
 	var success: bool = _tilt.request_permission_and_start()
 	if success:
-		_tilt.calibrate_current_position()
-		# BUG-101: capture the pose now. Nothing polls in the menu, so Armory's
-		# Calibrate tilt otherwise left the capture to the run's first poll.
-		_tilt.poll()
+		# DIVERGENCE(BUG-101 R5): never one reading at the tap. The Calibrate screen levels
+		# to the pose held just before the finger came down; Pause and Armory level once the
+		# phone holds still after the tap (_physics_phase reads the sensor meanwhile, in any
+		# phase, so the run's first poll never takes it: BUG-101 R1 holds).
+		if touched_at < 0.0 or not _tilt.level_to_recent(touched_at):
+			_tilt.settle_level()
 		settings.tilt_level = ControlSettings.TiltLevel.SAVED  # DIVERGENCE(BUG-101 R2)
 		settings.save_settings()
 		# Set level from Settings: the board under the Calibrate screen shows All runs on close.
@@ -878,12 +895,13 @@ func _on_how_to_play_closed() -> void:
 
 ## Set level: the TS calibrateGyro and its toast (TiltGame.ts:2331-2341).
 func calibrate_gyro_from_screen() -> void:
-	calibrate_gyro()
+	calibrate_gyro(_calibrate_screen.set_level_touched_at())  # DIVERGENCE(BUG-101 R5)
 
 
 func _on_calibrate_closed() -> void:
 	# M11a R4: reset_run owns the sensor during a run (TiltGame.ts:1553-1557).
-	if is_in_menu():
+	# DIVERGENCE(BUG-101 R5): a level still settling keeps reading it.
+	if is_in_menu() and not _tilt.is_settling():
 		_tilt.stop_listening()
 
 

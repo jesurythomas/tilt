@@ -1,8 +1,8 @@
 ## test_tilt_input_device.gd
 ## PORTS: nothing — new file, covers the M2.5 device path in
-## src/input/tilt_input.gd (apply_gravity, deferred calibration, sensitivity
-## and smoothing). test_tilt_input.gd keeps the apply_orientation() parity
-## suite.
+## src/input/tilt_input.gd (apply_gravity, deferred calibration, sensitivity,
+## smoothing, and BUG-101 R5's still-phone levels). test_tilt_input.gd keeps the
+## apply_orientation() parity suite.
 extends GutTest
 
 var _tilt: TiltInput = null
@@ -152,3 +152,94 @@ func test_keeping_a_pending_capture_saves_it_when_taken() -> void:
 	_tilt.keep_current_level()
 	_tilt.apply_gravity(Vector3(-3.0, -7.0, -6.0), 90)
 	assert_eq(TiltInput.new()._calibrated_gravity, Vector3(-3.0, -7.0, -6.0).normalized())
+
+
+## BUG-101 R5: feeds `g` from `from` for `seconds` at 50 samples a second.
+func _feed(g: Vector3, from: float, seconds: float) -> float:
+	var t: float = from
+	while t < from + seconds - 0.0001:
+		_tilt.apply_gravity(g, 90, t)
+		t += 0.02
+	return t
+
+
+## BUG-101 R5: a settling level waits for the phone to hold still, steering nothing meanwhile,
+## and leaves out the tap's push.
+func test_a_settling_level_waits_for_a_still_phone() -> void:
+	_tilt.settle_level(true, 10.0)
+	var push: Vector3 = Vector3(1.5, -6.0, -8.0)
+	var held: Vector3 = Vector3(-0.058, -7.992, -5.683)
+	var t: float = _feed(push, 10.0, 0.1)
+	assert_true(_tilt.is_settling(), "the tap's push is not a level")
+	assert_eq(_tilt.tilt_vector, Vector2.ZERO, "no steering while it settles")
+	t = _feed(held, t, TiltInput.SETTLE_WINDOW_SECONDS - 0.05)
+	assert_true(_tilt.is_settling(), "not still for long enough yet")
+	_feed(held, t, 0.1)
+	assert_false(_tilt.is_settling(), "landed")
+	assert_almost_eq(_tilt._calibrated_gravity, held.normalized(), Vector3.ONE * 0.0001)
+	_tilt.apply_gravity(held, 90, t + 0.2)
+	assert_eq(_tilt.tilt_vector, Vector2.ZERO, "the held pose reads as neutral")
+
+
+func test_a_settling_level_ignores_samples_from_before_it() -> void:
+	var before: Vector3 = Vector3(1.5, -6.0, -8.0)
+	var held: Vector3 = Vector3(-0.058, -7.992, -5.683)
+	var t: float = _feed(before, 10.0, 0.5)
+	_tilt.settle_level(true, t)
+	_feed(held, t, TiltInput.SETTLE_WINDOW_SECONDS + 0.05)
+	assert_almost_eq(_tilt._calibrated_gravity, held.normalized(), Vector3.ONE * 0.0001)
+
+
+func test_a_phone_that_never_stills_takes_the_stillest_stretch() -> void:
+	_tilt.settle_level(true, 10.0)
+	var a: Vector3 = Vector3(-0.058, -7.992, -5.683).normalized()
+	var b: Vector3 = Vector3(1.5, -6.0, -8.0).normalized()
+	var t: float = 10.0
+	var i: int = 0
+	while _tilt.is_settling() and t < 10.0 + TiltInput.SETTLE_MAX_SECONDS + 0.5:
+		_tilt.apply_gravity(a if i % 2 == 0 else b, 90, t)
+		t += 0.02
+		i += 1
+	assert_false(_tilt.is_settling(), "it gives up waiting")
+	assert_almost_eq(t - 0.02 - 10.0, TiltInput.SETTLE_MAX_SECONDS, 0.03, "at SETTLE_MAX_SECONDS")
+
+
+func test_an_unsaved_settling_level_keeps_the_saved_one() -> void:
+	_tilt.calibrate_current_position()
+	_tilt.apply_gravity(Vector3(2.0, -8.0, -5.7), 90, 1.0)
+	_tilt.settle_level(false, 10.0)
+	_feed(Vector3(-3.0, -7.0, -6.0), 10.0, 0.4)
+	assert_false(_tilt.is_settling())
+	assert_almost_eq(
+		TiltInput.new()._calibrated_gravity,
+		Vector3(2.0, -8.0, -5.7).normalized(),
+		Vector3.ONE * 0.0001,
+		"not saved"
+	)
+
+
+## BUG-101 R5: Set level averages the pose held before the finger came down.
+func test_level_to_recent_takes_the_pose_before_the_touch() -> void:
+	var held: Vector3 = Vector3(-0.058, -7.992, -5.683)
+	var t: float = _feed(held, 10.0, 0.5)
+	_feed(Vector3(1.5, -6.0, -8.0), t, 0.1)
+	assert_true(_tilt.level_to_recent(t))
+	assert_false(_tilt.is_calibration_pending())
+	assert_almost_eq(_tilt._calibrated_gravity, held.normalized(), Vector3.ONE * 0.0001)
+	assert_almost_eq(
+		TiltInput.new()._calibrated_gravity, held.normalized(), Vector3.ONE * 0.0001, "saved"
+	)
+
+
+func test_level_to_recent_needs_samples() -> void:
+	_tilt.calibrate_current_position()
+	_tilt.apply_gravity(Vector3(2.0, -8.0, -5.7), 90, 1.0)
+	assert_false(_tilt.level_to_recent(30.0), "nothing read before that touch")
+	assert_eq(_tilt._calibrated_gravity, Vector3(2.0, -8.0, -5.7).normalized(), "unchanged")
+
+
+func test_recent_samples_are_kept_for_a_while_only() -> void:
+	_feed(Vector3(0.0, -8.0, -5.7), 10.0, 3.0)
+	assert_lte(
+		_tilt._recent_t.size(), int(TiltInput.RECENT_SECONDS * 2.0 / 0.02) + 2, "a bounded buffer"
+	)

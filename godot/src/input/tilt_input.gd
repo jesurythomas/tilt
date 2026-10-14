@@ -37,6 +37,26 @@ const MIN_SENSITIVITY_DIVISOR: float = 0.0001
 # ~18° so player does not need large wrist movements to reach full deflection).
 const GRAVITY_SENSITIVITY_BOOST: float = 2.0
 
+# DIVERGENCE(BUG-101 R5, user 2026-10-14: "i usually just press play and when on the game
+# screen not expect it to move until i tilt. now, it tilts at around 10-11"): a level is taken
+# from a still phone, never from one reading. One sample read as the finger lifted off Play,
+# Resume or the calibrate button caught the phone mid-move, and the ship then drifted away
+# from that pose (up and left, as in the 2026-10-11 clip). My calls: the numbers below.
+## Seconds the phone must hold still for a settling level to land.
+const SETTLE_WINDOW_SECONDS: float = 0.25
+## Still: every sample in that window lies within this many degrees of the window's mean.
+const SETTLE_STILL_DEGREES: float = 1.0
+## A level still settling after this long takes the stillest window it saw.
+const SETTLE_MAX_SECONDS: float = 1.5
+## Set level on the Calibrate screen: the pose held over this stretch before the finger came
+## down, ending this long before it, so the tap's own push is left out.
+const PRE_TOUCH_SECONDS: float = 0.3
+const PRE_TOUCH_GAP_SECONDS: float = 0.03
+## The fewest samples a level is averaged from.
+const MIN_LEVEL_SAMPLES: int = 3
+## How long recent samples are kept (a long press on Set level still finds its pre-touch pose).
+const RECENT_SECONDS: float = 1.5
+
 ## True when the platform reports motion sensors.
 var is_supported: bool = false
 ## True while the sensor is being polled.
@@ -66,6 +86,15 @@ var _calibration_pending: bool = false
 # DIVERGENCE(BUG-101 R2): false for the Auto tilt level's capture at each run start, which
 # must not overwrite the level the player saved.
 var _persist_pending: bool = true
+
+# DIVERGENCE(BUG-101 R5): the settling level and the recent samples it reads.
+var _is_settling: bool = false
+var _settle_from: float = 0.0
+var _settle_first: Vector3 = Vector3.ZERO
+var _settle_best: Vector3 = Vector3.ZERO
+var _settle_best_still: float = -2.0
+var _recent_g: PackedVector3Array = PackedVector3Array()
+var _recent_t: PackedFloat64Array = PackedFloat64Array()
 
 var _raw_beta: float = 0.0
 var _raw_gamma: float = 0.0
@@ -141,6 +170,7 @@ func stop_listening() -> void:
 ## PORT: web/src/tilt-to-live/GyroscopeController.ts:109-123
 func calibrate_current_position(persist: bool = true) -> void:
 	_persist_pending = persist
+	_is_settling = false
 	# DIVERGENCE(M2.5 §5.3): GyroscopeController.ts:113-115 falls back to
 	# DEFAULT_CALIBRATED_BETA when no reading has arrived. On Android that
 	# branch is always taken from _ready(), because the sensor has not
@@ -161,6 +191,43 @@ func calibrate_current_position(persist: bool = true) -> void:
 	if _on_calibrated.is_valid():
 		_on_calibrated.call(calibrated_beta, calibrated_gamma)
 	tilt_vector = Vector2.ZERO
+
+
+## DIVERGENCE(BUG-101 R5): arms a level taken once the phone has held still for
+## SETTLE_WINDOW_SECONDS, from the samples read after this call (so not the tap that asked for
+## it); after SETTLE_MAX_SECONDS it takes the stillest window seen. The steering reads zero
+## while it settles. `persist` as calibrate_current_position; `now` for tests.
+func settle_level(persist: bool = true, now: float = -1.0) -> void:
+	calibrate_current_position(persist)
+	_is_settling = true
+	_settle_from = now_seconds() if now < 0.0 else now
+	_settle_first = Vector3.ZERO
+	_settle_best = Vector3.ZERO
+	_settle_best_still = -2.0
+
+
+## True while a settling level waits for the phone to hold still.
+func is_settling() -> bool:
+	return _calibration_pending and _is_settling
+
+
+## DIVERGENCE(BUG-101 R5): levels at once to the mean pose held over PRE_TOUCH_SECONDS before
+## `touched_at` (the Calibrate screen's Set level, read live while the player held the phone).
+## False, changing nothing, when fewer than MIN_LEVEL_SAMPLES were read in that stretch.
+func level_to_recent(touched_at: float, persist: bool = true) -> bool:
+	var level: Vector3 = _mean_between(
+		touched_at - PRE_TOUCH_SECONDS - PRE_TOUCH_GAP_SECONDS, touched_at - PRE_TOUCH_GAP_SECONDS
+	)
+	if level == Vector3.ZERO:
+		return false
+	calibrate_current_position(persist)
+	_take_level(level)
+	return true
+
+
+## The clock the samples are stamped with, in seconds.
+static func now_seconds() -> float:
+	return Time.get_ticks_usec() / 1000000.0
 
 
 ## DIVERGENCE(BUG-101 R4): saves the level in use, an Auto capture included, as the kept
@@ -262,20 +329,21 @@ func poll() -> void:
 # → apply_orientation() chain, which applied the screen rotation twice (once
 # in the decomposition, once inside apply_orientation) and therefore
 # cross-coupled the two output axes. This applies it exactly once, here.
-func apply_gravity(g: Vector3, screen_angle: int) -> void:
+## `now` stamps the sample (seconds, as now_seconds()); tests pass their own.
+func apply_gravity(g: Vector3, screen_angle: int, now: float = -1.0) -> void:
 	_has_received_data = true
 	var normalised: Vector3 = g.normalized()
+	_remember(normalised, now_seconds() if now < 0.0 else now)
 
 	if _calibration_pending:
-		_calibrated_gravity = normalised
-		_calibration_pending = false
-		# I4: this is the actual capture point for a pending calibration; save
-		# here instead of in calibrate_current_position(), which fires before
-		# the gravity vector it is calibrating against has arrived.
-		if _persist_pending:
-			save_calibration()
-		_persist_pending = true
-		tilt_vector = Vector2.ZERO
+		# DIVERGENCE(BUG-101 R5): a settling level waits for a still phone, steering nothing.
+		if _is_settling:
+			var level: Vector3 = _settled_level(_recent_t[_recent_t.size() - 1], normalised)
+			if level == Vector3.ZERO:
+				tilt_vector = Vector2.ZERO
+				return
+			normalised = level
+		_take_level(normalised)
 		return
 
 	if _calibrated_gravity == Vector3.ZERO:
@@ -335,6 +403,90 @@ func apply_gravity(g: Vector3, screen_angle: int) -> void:
 	var roll: float = rad_to_deg(wrapf(cur_roll_angle - cal_roll_angle, -PI, PI))
 
 	_apply_angles(roll * GRAVITY_SENSITIVITY_BOOST, pitch * GRAVITY_SENSITIVITY_BOOST)
+
+
+## Makes `level` the neutral pose; saved unless the capture was armed unsaved.
+func _take_level(level: Vector3) -> void:
+	_calibrated_gravity = level
+	_calibration_pending = false
+	_is_settling = false
+	# I4: this is the actual capture point for a pending calibration; save
+	# here instead of in calibrate_current_position(), which fires before
+	# the gravity vector it is calibrating against has arrived.
+	if _persist_pending:
+		save_calibration()
+	_persist_pending = true
+	tilt_vector = Vector2.ZERO
+
+
+## DIVERGENCE(BUG-101 R5): the settling level once the phone has held still, else
+## Vector3.ZERO. `latest` is the sample just read at `now`.
+func _settled_level(now: float, latest: Vector3) -> Vector3:
+	if _settle_first == Vector3.ZERO:
+		_settle_first = latest
+	var waited: float = now - _settle_from
+	if waited >= SETTLE_WINDOW_SECONDS:
+		var from: float = now - SETTLE_WINDOW_SECONDS
+		var mean: Vector3 = _mean_between(from, now)
+		if mean != Vector3.ZERO:
+			var still: float = _lowest_dot(mean, from, now)
+			if still >= cos(deg_to_rad(SETTLE_STILL_DEGREES)):
+				_log_settled(waited, mean)
+				return mean
+			if still > _settle_best_still:
+				_settle_best_still = still
+				_settle_best = mean
+	if waited >= SETTLE_MAX_SECONDS:
+		var level: Vector3 = _settle_best if _settle_best != Vector3.ZERO else latest
+		_log_settled(waited, level)
+		return level
+	return Vector3.ZERO
+
+
+## One line a level, for the device log: how long it took, and how far one reading at the
+## tap would have been off.
+func _log_settled(waited: float, level: Vector3) -> void:
+	var off: float = rad_to_deg(acos(clampf(_settle_first.dot(level), -1.0, 1.0)))
+	Log.info("tilt: level settled in %.2f s; the first reading was %.1f deg off it" % [waited, off])
+
+
+## Keeps the sample, and drops those older than RECENT_SECONDS once the oldest is twice that
+## old, so a run's tick copies the buffer every ~1.5 s rather than every tick.
+func _remember(g: Vector3, now: float) -> void:
+	_recent_g.append(g)
+	_recent_t.append(now)
+	if now - _recent_t[0] <= RECENT_SECONDS * 2.0:
+		return
+	var stale: int = 0
+	while stale < _recent_t.size() and now - _recent_t[stale] > RECENT_SECONDS:
+		stale += 1
+	_recent_g = _recent_g.slice(stale)
+	_recent_t = _recent_t.slice(stale)
+
+
+## The normalised mean of the samples stamped from `from` to `to`, or Vector3.ZERO when fewer
+## than MIN_LEVEL_SAMPLES were.
+func _mean_between(from: float, to: float) -> Vector3:
+	var sum: Vector3 = Vector3.ZERO
+	var count: int = 0
+	for i: int in range(_recent_t.size()):
+		var t: float = _recent_t[i]
+		if t >= from and t <= to:
+			sum += _recent_g[i]
+			count += 1
+	if count < MIN_LEVEL_SAMPLES or sum == Vector3.ZERO:
+		return Vector3.ZERO
+	return sum.normalized()
+
+
+## The lowest dot of a sample from `from` to `to` with `mean`: 1 is perfectly still.
+func _lowest_dot(mean: Vector3, from: float, to: float) -> float:
+	var lowest: float = 1.0
+	for i: int in range(_recent_t.size()):
+		var t: float = _recent_t[i]
+		if t >= from and t <= to:
+			lowest = minf(lowest, _recent_g[i].dot(mean))
+	return lowest
 
 
 # PORT-NOTE: web/src/tilt-to-live/GyroscopeController.ts:31-35 probes for

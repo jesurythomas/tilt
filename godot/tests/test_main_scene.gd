@@ -5,6 +5,8 @@ extends GutTest
 ## Verifies scenes/main.tscn exposes every node hud_controller.gd and
 ## control_picker.gd look up, per M2.5 spec §4.3, §4.4, §7.1, §7.4.
 
+## BUG-101 R5: a level is a mean of samples, equal to the held pose up to rounding.
+const V_EPS: Vector3 = Vector3(0.0001, 0.0001, 0.0001)
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
 
 
@@ -1124,13 +1126,67 @@ func test_auto_tilt_level_levels_at_each_run_start_without_saving() -> void:
 	root._tilt.start_listening()
 	root.launch_run(root.options.settings.mode)
 	assert_true(root._tilt.is_calibration_pending(), "Play arms a capture")
-	root._tilt.apply_gravity(Vector3(-3.0, -7.0, -6.0), 90)
-	assert_eq(root._tilt._calibrated_gravity, Vector3(-3.0, -7.0, -6.0).normalized(), "taken")
+	assert_true(root._tilt.is_settling(), "BUG-101 R5: from a still phone")
+	_hold_still(root._tilt, Vector3(-3.0, -7.0, -6.0))
+	assert_almost_eq(
+		root._tilt._calibrated_gravity, Vector3(-3.0, -7.0, -6.0).normalized(), V_EPS, "taken"
+	)
 	assert_eq(
 		TiltInput.new()._calibrated_gravity, Vector3(2.0, -8.0, -5.7), "the saved level is kept"
 	)
 	root.restart_run()
 	assert_true(root._tilt.is_calibration_pending(), "Retry arms a capture too")
+
+
+## BUG-101 R5: holds the phone still at `g` long enough for a settling level to land.
+func _hold_still(tilt: TiltInput, g: Vector3) -> void:
+	var t0: float = TiltInput.now_seconds()
+	for i: int in range(20):
+		tilt.apply_gravity(g, 90, t0 + i * 0.02)
+
+
+## BUG-101 R5 (user: "i usually just press play and when on the game screen not expect it to
+## move until i tilt"): the crosshair in Pause (and Armory's Calibrate tilt) levels once the
+## phone holds still after the tap, not from a reading at the tap.
+func test_calibrate_settles_after_the_tap() -> void:
+	SaveStore.save_dict(
+		TiltInput.CALIBRATION_PATH, {"beta": 0.0, "gamma": 0.0, "gravity": [2.0, -8.0, -5.7]}
+	)
+	var root: GameRoot = await _boot_into_run()
+	root._tilt.is_supported = true  # the test host has no sensor
+	root.set_control_scheme(Types.ControlScheme.GYRO)
+	root.toggle_pause()
+	assert_true(root.calibrate_gyro())
+	assert_true(root._tilt.is_settling(), "waits for a still phone")
+	assert_eq(root._tilt._calibrated_gravity, Vector3(2.0, -8.0, -5.7), "the old level until then")
+	_hold_still(root._tilt, Vector3(-3.0, -7.0, -6.0))
+	assert_false(root._tilt.is_settling())
+	assert_almost_eq(
+		TiltInput.new()._calibrated_gravity, Vector3(-3.0, -7.0, -6.0).normalized(), V_EPS, "kept"
+	)
+
+
+## BUG-101 R5: the Calibrate screen's Set level takes the pose held before the finger came
+## down, not the push of the tap.
+func test_set_level_takes_the_pose_held_before_the_touch() -> void:
+	var root: GameRoot = MAIN_SCENE.instantiate() as GameRoot
+	add_child_autofree(root)
+	await get_tree().process_frame
+	root._tilt.is_supported = true  # the test host has no sensor
+	root.open_calibrate_screen()
+	var held: Vector3 = Vector3(-3.0, -7.0, -6.0)
+	var t0: float = TiltInput.now_seconds()
+	for i: int in range(15):
+		root._tilt.apply_gravity(held, 90, t0 - 0.4 + i * 0.025)
+	var button: Button = root._calibrate_screen.find_child("SetLevelButton", true, false) as Button
+	button.button_down.emit()
+	var touched_at: float = root._calibrate_screen.set_level_touched_at()
+	for i: int in range(5):
+		root._tilt.apply_gravity(Vector3(1.0, -6.0, -8.0), 90, touched_at + 0.01 + i * 0.02)
+	button.pressed.emit()
+	assert_false(root._tilt.is_calibration_pending(), "levelled at once")
+	assert_almost_eq(root._tilt._calibrated_gravity, held.normalized(), V_EPS, "the held pose")
+	assert_eq(root.settings.tilt_level, ControlSettings.TiltLevel.SAVED)
 
 
 ## BUG-101 R2: under All runs, no run start recalibrates.
@@ -1224,8 +1280,8 @@ func test_resume_levels_again_only_under_each_start() -> void:
 	root.toggle_pause()
 	assert_false(root._tilt.is_calibration_pending(), "pausing does not level")
 	root.toggle_pause()
-	assert_true(root._tilt.is_calibration_pending(), "Resume levels under Each start")
-	root._tilt.apply_gravity(Vector3(-3.0, -7.0, -6.0), 90)
+	assert_true(root._tilt.is_settling(), "Resume levels under Each start, once still (R5)")
+	_hold_still(root._tilt, Vector3(-3.0, -7.0, -6.0))
 	root.set_tilt_level(ControlSettings.TiltLevel.SAVED)
 	root.toggle_pause()
 	root.toggle_pause()

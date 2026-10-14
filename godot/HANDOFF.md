@@ -4,7 +4,24 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**Latest (2026-10-14, afternoon): ADS R9 and R10, on `feat/dash-and-abilities`.** User: "for
+**Latest (2026-10-14, afternoon, later): BUG-101 R5, still-phone tilt levels, on
+`feat/dash-and-abilities`.** User: "theres a drift now during the tilt calibration ... i usually
+just press play and when on the game screen not expect it to move until i tilt. now, it tilts at
+around 10-11". Every level was one gravity reading taken as a thumb left a button (Play's first
+tick, Resume, the Pause crosshair, Armory, Set level), so a moving hand gave an off-level
+neutral and the ship drifted up-left; the user's Pause showed Keep tilt level on, which keeps
+that level for every run. Now `TiltInput.settle_level` takes the mean of 0.25 s of still samples
+(within 1°) after the request (stillest window after 1.5 s), steering zero meanwhile; GameRoot
+polls the sensor while a level settles in any phase (so Each start settles in the 0.6 s cold
+open); Set level uses the 0.3 s before the finger came down (`level_to_recent`). One log line a
+level ("tilt: level settled in …; the first reading was … deg off it"). Ruling and numbers in
+`docs/superpowers/plans/2026-10-12-fix-bug-101-calibration-sticks.md` (R5). Suite 1026/1026,
+75/75 scripts, nothing leaked; gdformat/gdlint clean; 0 SCRIPT ERROR headless. Cost: a tilt tick
+0.84 → 1.08 µs on desktop. Next: A55 build (code 25), the user's pass (`VERIFY-ME.md` §BUG-101
+R5 lines; their Keep tilt level is on, so its old level stays until they level again or turn
+it off), then the §ADS R9/R10 and §DASH checks, then PR `feat/dash-and-abilities` → `staging`.
+
+**Earlier (2026-10-14, afternoon): ADS R9 and R10, on `feat/dash-and-abilities`.** User: "for
 ads, if they manually select the 3x points to view ads, reset the count. also make it more
 appealing to look at". R9: `Ads.show_rewarded` resets the interstitial pacing (saved) at the
 tap, not when the ad opens, so it holds when the ad fails or never opens. R10: the Run over's
