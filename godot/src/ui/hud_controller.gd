@@ -166,6 +166,7 @@ func _ready() -> void:
 	if _run_over != null:
 		_run_over.milestones_requested.connect(_on_milestones_requested)
 		_run_over.reward_requested.connect(_on_reward_requested)  # DIVERGENCE(ADS R6)
+		_run_over.leaderboards_requested.connect(_on_leaderboards_requested)  # PGS R5
 	if _restart_button == null:
 		_restart_button = find_child("RestartButton", true, false) as Button
 
@@ -820,6 +821,13 @@ func _on_milestones_requested() -> void:
 	var root: GameRoot = get_tree().get_first_node_in_group("game_root") as GameRoot
 	if root != null:
 		root.open_all_goals_modal()
+
+
+## DIVERGENCE(PGS R5): the Run over's podium opens the run's mode board.
+func _on_leaderboards_requested() -> void:
+	var root: GameRoot = get_tree().get_first_node_in_group("game_root") as GameRoot
+	if root != null:
+		root.open_run_leaderboard()
 
 
 # PORT: web/src/tilt-to-live/TiltGame.ts:1619-1630 — the modal is populated as it opens.

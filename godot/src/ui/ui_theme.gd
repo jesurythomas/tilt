@@ -246,6 +246,12 @@ const ICON_ACHIEVEMENTS: String = (
 	+ '<path d="M8 10 V12.5 M5 14 H11" stroke="#FFB14D" stroke-width="1.6" '
 	+ 'stroke-linecap="round"/></svg>'
 )
+## DIVERGENCE(PGS R5): the leaderboard buttons' glyph — a podium, on the raised face.
+const ICON_LEADERBOARD: String = (
+	'<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 16 16" fill="none">'
+	+ '<path d="M1.75 14 V8.5 H5.5 V3.5 H10.5 V10 H14.25 V14 Z M5.5 8.5 V14 M10.5 10 V14" '
+	+ 'stroke="#E6E9F0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+)
 ## DIVERGENCE(UI R13, user 2026-09-28: "there are inconsistencies with the buttons. e.g.
 ## menu achivements has the icons, game over achivements do not have it"): the glyphs
 ## every nav button uses — home (Menu, Quit to menu) and restart (Restart run), on the

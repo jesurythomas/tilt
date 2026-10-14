@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <!-- Godot v2 plugin registration: the singleton name, then the init class. The game's
+             APP_ID comes from the export plugin (PGS R2), not from here. -->
+        <meta-data
+            android:name="org.godotengine.plugin.v2.PerilGames"
+            android:value="com.jtg.perilpoint.games.PerilGamesPlugin" />
+    </application>
+
+</manifest>

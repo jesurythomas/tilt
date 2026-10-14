@@ -95,6 +95,31 @@ func test_sheet_carries_the_board_controls() -> void:
 	)
 
 
+## PGS R5: the podium shows only in a build with Play Games, and the sheet still fits.
+func test_the_podium_shows_only_with_play_games() -> void:
+	var sheet: RunOverSheet = _sheet(Vector2(844, 390), 1.0)
+	sheet.show_result(_result())
+	var podium: Button = sheet.find_child("GameOverLeaderboardsButton", true, false) as Button
+	assert_false(podium.visible, "no Play Games in tests")
+	watch_signals(sheet)
+	podium.pressed.emit()
+	assert_signal_emitted(sheet, "leaderboards_requested")
+
+
+func test_layout_fits_the_board_frame_with_the_podium() -> void:
+	var previous: GamesBackend = PlayGames.backend
+	PlayGames.set_backend(RecordingGamesBackend.new())
+	await _assert_fits(Vector2(844, 390), 1.0, true)
+	PlayGames.set_backend(previous)
+
+
+func test_layout_fits_the_a55_with_the_podium() -> void:
+	var previous: GamesBackend = PlayGames.backend
+	PlayGames.set_backend(RecordingGamesBackend.new())
+	await _assert_fits(Vector2(2340, 1080), 1080.0 / 390.0, true)
+	PlayGames.set_backend(previous)
+
+
 func test_layout_fits_the_board_frame() -> void:
 	await _assert_fits(Vector2(844, 390), 1.0)
 
