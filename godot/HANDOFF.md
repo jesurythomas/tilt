@@ -17,7 +17,10 @@ open); Set level uses the 0.3 s before the finger came down (`level_to_recent`).
 level ("tilt: level settled in …; the first reading was … deg off it"). Ruling and numbers in
 `docs/superpowers/plans/2026-10-12-fix-bug-101-calibration-sticks.md` (R5). Suite 1026/1026,
 75/75 scripts, nothing leaked; gdformat/gdlint clean; 0 SCRIPT ERROR headless. Cost: a tilt tick
-0.84 → 1.08 µs on desktop. Next: A55 build (code 25), the user's pass (`VERIFY-ME.md` §BUG-101
+0.84 → 1.08 µs on desktop. 0.1.24 (code 25, `godot/build/peril-point-0.1.24-a55.apk`, A55 key)
+is on the A55, installed 2026-10-14 12:37 over 0.1.23 (a paused 0:02 run was the only thing
+open), data kept, launched with no SCRIPT ERROR; menu frame time mean 16.70 ms, p95 25.1 (taken
+just after launch). Next A55 build uses code 26. Next: the user's pass (`VERIFY-ME.md` §BUG-101
 R5 lines; their Keep tilt level is on, so its old level stays until they level again or turn
 it off), then the §ADS R9/R10 and §DASH checks, then PR `feat/dash-and-abilities` → `staging`.
 
