@@ -39,7 +39,8 @@ API-33 `VibrationAttributes` guard (needs a phone below Android 13).
 - [x] Suite 1032/1032, 75/75 scripts, nothing leaked; gdformat, gdlint clean; 0 SCRIPT ERROR in
       the suite and a 600-frame headless boot
 - [x] AARs rebuilt with `tools/build_ads_plugin.sh` (debug 12,051 B, release 11,453 B)
-- [ ] PR `review/copilot-pr-12-15` → `staging`; the user merges it
+- [x] PR #17 `review/copilot-pr-12-15` → `staging` opened 2026-10-14
+- [ ] The user merges PR #17
 - [ ] The next A55 build (code 26) carries R11/R14; VERIFY-ME §ADS has their rows
 
 Frame cost: none per frame. Every change runs on an ad callback, a consent change, a Retry tap

@@ -18,7 +18,7 @@ fails closed without a temp `user://`; the guide's Tilt card names Tilt level / 
 All runs / Calibrate tilt; doc fixes (the PR #12 tally, VERIFY-ME §HTP's build, the ads plan's
 pacing note). Suite 1032/1032, 75/75 scripts, nothing leaked; gdformat/gdlint clean; 0 SCRIPT
 ERROR. No per-frame cost (`bench_sim` within noise). Not on the A55 (next build code 26;
-VERIFY-ME §ADS R11/R14 rows). Next: PR `review/copilot-pr-12-15` → `staging` (the user merges),
+VERIFY-ME §ADS R11/R14 rows). Next: PR #17 (`review/copilot-pr-12-15` → `staging`, open; the user merges it),
 then the user's A55 pass (BUG-101 R5, §ADS R9-R11/R14, §DASH).
 
 **Earlier (2026-10-14, afternoon, later): BUG-101 R5, still-phone tilt levels, on
