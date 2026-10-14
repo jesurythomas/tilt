@@ -739,13 +739,11 @@ func _on_first_pickup(_type: Types.WeaponType) -> void:
 
 
 func _on_restart_pressed() -> void:
-	# DIVERGENCE(ADS R6): an ad on its way (the rewarded one, or this Retry's own) holds the
-	# sheet; hiding it now would leave a blank Run over when the break drops the tap.
+	# DIVERGENCE(ADS R6): an ad on its way (the rewarded one, or this Retry's own) drops the tap.
 	if Ads.is_break_pending():
 		return
-	_run_over_timer.stop()
-	if _game_over_panel != null:
-		_game_over_panel.visible = false
+	# DIVERGENCE(ADS R14): the sheet stays up while this Retry's own ad opens (up to
+	# Ads.OPEN_TIMEOUT_SECONDS); _on_phase_changed hides it when the run restarts.
 	var root: GameRoot = get_tree().get_first_node_in_group("game_root") as GameRoot
 	if root != null:
 		root.restart_run()

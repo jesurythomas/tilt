@@ -17,8 +17,14 @@ signal consent_changed
 ## or hides its offer.
 signal rewarded_changed
 
+## DIVERGENCE(ADS R12): which ad is out — shown, and not yet closed or failed.
+enum Showing { NONE, INTERSTITIAL, REWARDED }
+
 ## DIVERGENCE(ADS R2): seconds an ad may take to open before the break goes on without it.
 const OPEN_TIMEOUT_SECONDS: float = 4.0
+## DIVERGENCE(ADS R12): seconds after which an ad that never opened, closed or failed stops
+## holding off the next ones (a lost callback would otherwise do so for the session).
+const GIVE_UP_SECONDS: float = 30.0
 ## DIVERGENCE(ADS R5): the pacing's counts, kept across launches.
 const SAVE_PATH: String = "user://peril_point_ads.json"
 
@@ -46,6 +52,11 @@ var _pending: Callable = Callable()
 var _on_reward: Callable = Callable()
 ## True from `show` until the ad opens or the break ends; the watchdog acts only then.
 var _is_awaiting_open: bool = false
+## DIVERGENCE(ADS R12): the ad shown, kept past the watchdog until its own close or failure,
+## so a late one cannot end a newer break; no other ad shows meanwhile.
+var _showing: Showing = Showing.NONE
+## True once the ad out has opened; GIVE_UP_SECONDS waits only on one that has not.
+var _is_open: bool = false
 ## Numbers each break, so a watchdog left over from an earlier one does nothing.
 var _break_serial: int = 0
 var _is_muting: bool = false
@@ -70,26 +81,26 @@ func set_backend(next: AdsBackend) -> void:
 		backend.interstitial_loaded.disconnect(_on_interstitial_loaded)
 		backend.interstitial_failed_to_load.disconnect(_on_interstitial_failed_to_load)
 		backend.interstitial_opened.disconnect(_on_interstitial_opened)
-		backend.interstitial_closed.disconnect(_finish_break)
-		backend.interstitial_failed_to_show.disconnect(_finish_break)
+		backend.interstitial_closed.disconnect(_on_interstitial_ended)
+		backend.interstitial_failed_to_show.disconnect(_on_interstitial_ended)
 		backend.rewarded_loaded.disconnect(_on_rewarded_loaded)
 		backend.rewarded_failed_to_load.disconnect(_on_rewarded_failed_to_load)
 		backend.rewarded_opened.disconnect(_on_rewarded_opened)
 		backend.rewarded_earned.disconnect(_on_rewarded_earned)
-		backend.rewarded_closed.disconnect(_finish_break)
+		backend.rewarded_closed.disconnect(_on_rewarded_closed)
 		backend.rewarded_failed_to_show.disconnect(_on_rewarded_failed_to_show)
 	backend = next
 	backend.consent_finished.connect(_on_consent_finished)
 	backend.interstitial_loaded.connect(_on_interstitial_loaded)
 	backend.interstitial_failed_to_load.connect(_on_interstitial_failed_to_load)
 	backend.interstitial_opened.connect(_on_interstitial_opened)
-	backend.interstitial_closed.connect(_finish_break)
-	backend.interstitial_failed_to_show.connect(_finish_break)
+	backend.interstitial_closed.connect(_on_interstitial_ended)
+	backend.interstitial_failed_to_show.connect(_on_interstitial_ended)
 	backend.rewarded_loaded.connect(_on_rewarded_loaded)
 	backend.rewarded_failed_to_load.connect(_on_rewarded_failed_to_load)
 	backend.rewarded_opened.connect(_on_rewarded_opened)
 	backend.rewarded_earned.connect(_on_rewarded_earned)
-	backend.rewarded_closed.connect(_finish_break)
+	backend.rewarded_closed.connect(_on_rewarded_closed)
 	backend.rewarded_failed_to_show.connect(_on_rewarded_failed_to_show)
 
 
@@ -108,6 +119,8 @@ func reset_session() -> void:
 	_pending = Callable()
 	_on_reward = Callable()
 	_is_awaiting_open = false
+	_showing = Showing.NONE
+	_is_open = false
 	_break_serial += 1
 
 
@@ -126,9 +139,10 @@ func note_run_end(seconds: float, was_first_run: bool) -> void:
 	_request_load()
 
 
-## True when a break now would show an ad: consent, a loaded ad, and the pacing (ADS R5).
+## True when a break now would show an ad: consent, a loaded ad, no ad still out (ADS R12),
+## and the pacing (ADS R5).
 func is_break_due() -> bool:
-	if not can_request_ads or not is_ad_loaded:
+	if not can_request_ads or not is_ad_loaded or _showing != Showing.NONE:
 		return false
 	return AdsConfig.is_every_break() or pacing.is_due()
 
@@ -143,15 +157,15 @@ func ad_break(action: Callable) -> void:
 		action.call()
 		return
 	is_ad_loaded = false
-	_begin_show(action)
+	_begin_show(action, Showing.INTERSTITIAL)
 	Log.info("ads: break shows an interstitial")
 	backend.show_interstitial()
 
 
 ## DIVERGENCE(ADS R6): true when the Run over may offer a rewarded ad: consent, a loaded one,
-## and no other ad on its way.
+## and no other ad on its way or still out (ADS R12).
 func is_reward_ready() -> bool:
-	return can_request_ads and is_rewarded_loaded and not _pending.is_valid()
+	return can_request_ads and is_rewarded_loaded and _showing == Showing.NONE
 
 
 ## DIVERGENCE(ADS R6): shows the rewarded ad. `on_reward` runs once if the player earns it (even
@@ -168,8 +182,7 @@ func show_rewarded(on_reward: Callable, on_done: Callable) -> void:
 	# or not the ad then opens, so no interstitial follows it closely (ADS R6 reset it only
 	# once the ad opened).
 	_reset_pacing()
-	_begin_show(on_done)
-	rewarded_changed.emit()
+	_begin_show(on_done, Showing.REWARDED)
 	Log.info("ads: showing a rewarded ad")
 	backend.show_rewarded()
 
@@ -185,8 +198,11 @@ func show_privacy_options() -> void:
 
 
 ## Holds `action` until the ad has shown and closed; mutes the game and starts the watchdog.
-func _begin_show(action: Callable) -> void:
+## The Run over's offer hides: no other ad is ready while this one is out.
+func _begin_show(action: Callable, showing: Showing) -> void:
 	_pending = action
+	_showing = showing
+	_is_open = false
 	_mute_sound()
 	_break_serial += 1
 	_is_awaiting_open = true
@@ -194,6 +210,8 @@ func _begin_show(action: Callable) -> void:
 	get_tree().create_timer(OPEN_TIMEOUT_SECONDS).timeout.connect(
 		_on_open_timeout.bind(_break_serial)
 	)
+	get_tree().create_timer(GIVE_UP_SECONDS).timeout.connect(_on_give_up.bind(_break_serial))
+	rewarded_changed.emit()
 
 
 ## Loads whichever of the interstitial and the rewarded ad is missing.
@@ -208,9 +226,16 @@ func _request_load() -> void:
 		backend.load_rewarded(AdsConfig.rewarded_id())
 
 
+## DIVERGENCE(ADS R11): consent was gathered, or the privacy options form closed. An ad loaded
+## (or loading) under the old answer is dropped — the plugin drops its own — and ads load
+## again only if the new answer allows it.
 func _on_consent_finished(can_request: bool, is_privacy_required: bool) -> void:
 	can_request_ads = can_request
 	is_privacy_options_required = is_privacy_required
+	is_ad_loaded = false
+	is_rewarded_loaded = false
+	_is_loading = false
+	_is_loading_rewarded = false
 	consent_changed.emit()
 	rewarded_changed.emit()
 	_request_load()
@@ -228,6 +253,9 @@ func _on_interstitial_failed_to_load() -> void:
 
 ## An interstitial covers the game: the watchdog stands down and the pacing starts over.
 func _on_interstitial_opened() -> void:
+	if _showing != Showing.INTERSTITIAL:
+		return
+	_is_open = true
 	_is_awaiting_open = false
 	_reset_pacing()
 	Log.info("ads: interstitial opened")
@@ -245,9 +273,20 @@ func _on_rewarded_failed_to_load() -> void:
 	rewarded_changed.emit()
 
 
+## The interstitial closed or could not show. DIVERGENCE(ADS R12): only the one shown ends.
+func _on_interstitial_ended() -> void:
+	if _showing != Showing.INTERSTITIAL:
+		return
+	_showing = Showing.NONE
+	_finish_break()
+
+
 ## The rewarded ad covers the game: the watchdog stands down. The pacing started over at the
 ## tap (ADS R9).
 func _on_rewarded_opened() -> void:
+	if _showing != Showing.REWARDED:
+		return
+	_is_open = true
 	_is_awaiting_open = false
 	Log.info("ads: rewarded ad opened")
 
@@ -260,7 +299,18 @@ func _on_rewarded_earned() -> void:
 		reward.call()
 
 
+## The rewarded ad closed. DIVERGENCE(ADS R12): only the one shown ends.
+func _on_rewarded_closed() -> void:
+	if _showing != Showing.REWARDED:
+		return
+	_showing = Showing.NONE
+	_finish_break()
+
+
 func _on_rewarded_failed_to_show() -> void:
+	if _showing != Showing.REWARDED:
+		return
+	_showing = Showing.NONE
 	_on_reward = Callable()
 	_finish_break()
 
@@ -274,6 +324,15 @@ func _reset_pacing() -> void:
 func _on_open_timeout(serial: int) -> void:
 	if serial == _break_serial and _is_awaiting_open:
 		Log.info("ads: the ad did not open in time; the game goes on")
+		_finish_break()
+
+
+## DIVERGENCE(ADS R12): an ad still out GIVE_UP_SECONDS after `show`, never opened, is let go,
+## so the next break and offer may show ads again. An opened ad waits for its close.
+func _on_give_up(serial: int) -> void:
+	if serial == _break_serial and _showing != Showing.NONE and not _is_open:
+		Log.info("ads: the ad never opened, closed or failed; no longer waiting for it")
+		_showing = Showing.NONE
 		_finish_break()
 
 

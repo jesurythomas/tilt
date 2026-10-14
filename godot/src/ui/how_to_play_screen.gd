@@ -326,7 +326,10 @@ func _basics_page(columns: HBoxContainer) -> void:
 		_card(
 			UiTheme.ICON_TILT,
 			"Tilt",
-			"Tilt the phone. Settings → Controls sets the level: each run, or your Calibrate angle."
+			(
+				"Tilt the phone. Settings → Controls → Tilt level: Each start, "
+				+ "or All runs from Calibrate tilt."
+			)
 		)
 	)
 

@@ -1059,7 +1059,7 @@ On the A55 as 0.1.9 (code 10). Log and `dumpsys vibrator_manager` confirmed `usa
 
 ## HTP R1/R2 — the How to play guide (2026-10-13, branch `add-onboarding`)
 
-0.1.12 (code 13) from `add-onboarding` (carries PR #10-#12). Three pages since R2. Plan
+0.1.13 (code 14; the same code as 0.1.12, code 13) from `add-onboarding` (carries PR #10-#12). Three pages since R2. Plan
 `docs/superpowers/plans/2026-10-13-add-onboarding.md`.
 
 - [ ] Clear app data (or fresh install): the guide opens over the menu on first launch. Close
@@ -1115,6 +1115,15 @@ Checked on the emulator (Pixel_10, Play Store image), 2026-10-13:
 - [ ] (ADS R9, user: "if they manually select the 3x points to view ads, reset the count") Tap
       Watch ad, then play several runs: no interstitial until a fresh 5-10 games (or 5 min of
       play) after the tap, even if the rewarded ad was closed early or failed to show.
+- [ ] (ADS R14, Copilot PR #15) On a build with an ad due at every break (`peril/ads/every_break`),
+      tap Retry: the Run over stays on screen until the ad covers it, never a blank arena; after
+      ✕ the run starts. While it opens, Armory and the 3× offer stay shut. *(On the A55 as 0.1.25,
+      code 26, 2026-10-14 13:35.)*
+- [ ] (ADS R11, Copilot PR #15) On the EEA build: Settings → Data → Ad privacy · Manage, change
+      the choice, close. Logcat shows a fresh `ads: consent …` line; the next Run over offers
+      Watch ad only once a new rewarded ad has loaded (a few seconds); ads still show after.
+      R12 and R13 (a late ad after the 4 s watchdog) are test-only; they need an ad that opens
+      after 4 s.
 - [ ] (ADS R7) Armory prices are double what they were (e.g. a rank-1 upgrade 500, Solar 1,200);
       what you own stays owned. *(Screenshot 00:48: Blackhole Radius rank 3 at 1,300, Event
       Horizon at 6,000; the cost buttons fit.)* ADS R8 (user: "The upgrades still seem cheap"):

@@ -68,6 +68,8 @@ public class PerilAdsPlugin extends GodotPlugin {
 	private RewardedAd rewarded;
 	private long rewardedLoadedAt;
 	private boolean isRewardedLoading;
+	/** Counts privacy-form closes (ADS R11); a load started before the latest one is dropped. */
+	private int consentGeneration;
 	private String testDeviceHashedId = "";
 
 	public PerilAdsPlugin(Godot godot) {
@@ -132,7 +134,12 @@ public class PerilAdsPlugin extends GodotPlugin {
 		});
 	}
 
-	/** Shows UMP's privacy options form (Settings → Ad privacy), then re-reports consent. */
+	/**
+	 * Shows UMP's privacy options form (Settings → Ad privacy), then re-reports consent. Once
+	 * the form has shown and closed, ads loaded, or loading, under the old answer are dropped
+	 * (ADS R11); a form that failed to show changed nothing, so they stay. GDScript drops its
+	 * ready flags on every re-report and asks again; a load call re-reports a held ad at once.
+	 */
 	@UsedByGodot
 	public void showPrivacyOptions() {
 		final Activity activity = getActivity();
@@ -143,8 +150,12 @@ public class PerilAdsPlugin extends GodotPlugin {
 			if (consentInformation == null) {
 				return;
 			}
-			UserMessagingPlatform.showPrivacyOptionsForm(
-					activity, formError -> finishConsent(activity, describe(formError)));
+			UserMessagingPlatform.showPrivacyOptionsForm(activity, formError -> {
+				if (formError == null) {
+					dropLoadedAds();
+				}
+				finishConsent(activity, describe(formError));
+			});
 		});
 	}
 
@@ -165,10 +176,14 @@ public class PerilAdsPlugin extends GodotPlugin {
 			}
 			interstitial = null;
 			isLoading = true;
+			final int generation = consentGeneration;
 			InterstitialAd.load(activity, adUnitId, new AdRequest.Builder().build(),
 					new InterstitialAdLoadCallback() {
 						@Override
 						public void onAdLoaded(InterstitialAd ad) {
+							if (generation != consentGeneration) {
+								return;
+							}
 							isLoading = false;
 							interstitial = ad;
 							interstitialLoadedAt = SystemClock.elapsedRealtime();
@@ -177,6 +192,9 @@ public class PerilAdsPlugin extends GodotPlugin {
 
 						@Override
 						public void onAdFailedToLoad(LoadAdError error) {
+							if (generation != consentGeneration) {
+								return;
+							}
 							isLoading = false;
 							interstitial = null;
 							Log.w(TAG, "interstitial failed to load: " + error);
@@ -246,10 +264,14 @@ public class PerilAdsPlugin extends GodotPlugin {
 			}
 			rewarded = null;
 			isRewardedLoading = true;
+			final int generation = consentGeneration;
 			RewardedAd.load(activity, adUnitId, new AdRequest.Builder().build(),
 					new RewardedAdLoadCallback() {
 						@Override
 						public void onAdLoaded(RewardedAd ad) {
+							if (generation != consentGeneration) {
+								return;
+							}
 							isRewardedLoading = false;
 							rewarded = ad;
 							rewardedLoadedAt = SystemClock.elapsedRealtime();
@@ -258,6 +280,9 @@ public class PerilAdsPlugin extends GodotPlugin {
 
 						@Override
 						public void onAdFailedToLoad(LoadAdError error) {
+							if (generation != consentGeneration) {
+								return;
+							}
 							isRewardedLoading = false;
 							rewarded = null;
 							Log.w(TAG, "rewarded failed to load: " + error);
@@ -334,6 +359,15 @@ public class PerilAdsPlugin extends GodotPlugin {
 		// Google's sample initializes off the UI thread; the callback comes back on the UI thread.
 		new Thread(() -> MobileAds.initialize(activity, status -> emitSignal(
 				CONSENT_FINISHED.getName(), true, isPrivacyRequired, error))).start();
+	}
+
+	/** Forgets both held ads, and any load in flight, which were requested under old consent. */
+	private void dropLoadedAds() {
+		consentGeneration++;
+		interstitial = null;
+		isLoading = false;
+		rewarded = null;
+		isRewardedLoading = false;
 	}
 
 	private static boolean isStale(long loadedAt) {

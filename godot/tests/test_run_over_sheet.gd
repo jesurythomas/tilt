@@ -151,6 +151,23 @@ func test_the_light_sweeps_the_offer_only_while_it_can_be_tapped() -> void:
 	assert_eq(_label(sheet, "RewardLabel").text, "Opening ad…")
 	sheet.set_reward_offer(false, false)
 	assert_false(sheet.is_reward_shining())
+
+
+## Review 2026-10-14: a Retry with no ad hides the sheet with the offer still up; the light
+## must not sweep it through the next run.
+func test_the_light_rests_while_the_sheet_is_hidden() -> void:
+	var sheet: RunOverSheet = _sheet(Vector2(844, 390), 1.0)
+	sheet.show_result(_result())
+	sheet.set_reward_offer(true, false)
+	assert_true(sheet.is_reward_shining())
+	sheet.visible = false
+	assert_false(sheet.is_reward_shining(), "hidden: no tween ticking")
+	sheet.visible = true
+	assert_true(sheet.is_reward_shining(), "shown with the offer open")
+	sheet.set_reward_offer(true, true)
+	sheet.visible = false
+	sheet.visible = true
+	assert_false(sheet.is_reward_shining(), "not while its ad opens")
 	var shine: Control = sheet.find_child("RewardShine", true, false) as Control
 	assert_lt(shine.position.x + shine.size.x, 0.1, "parked off the left edge")
 

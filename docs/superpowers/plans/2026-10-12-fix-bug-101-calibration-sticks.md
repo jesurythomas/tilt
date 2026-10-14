@@ -98,6 +98,12 @@ clip. Keep tilt level then keeps that skewed level for every run. My calls:
 - Cost: TiltInput keeps 1.5-3 s of recent samples (pruned in batches); a run tick's
   `apply_gravity` 0.84 → 1.08 µs on desktop; a settling tick ≤ 3 µs; the landing call ~0.1-0.3 ms
   with its log line, once per run start.
+- **Review fix (2026-10-14, one review run over the repo):** a level still settling when the
+  sensor stopped (Quit to menu right after Resume or the Pause crosshair) stayed armed with its
+  old start time, so the next sample, maybe minutes later, was past SETTLE_MAX_SECONDS with one
+  reading in the window and became the level alone; a crosshair level was saved that way. Now
+  `TiltInput.start_listening` restarts a settling level's wait. Test
+  `test_a_settle_cut_off_by_a_stopped_sensor_waits_again`.
 
 ## Tasks
 
@@ -121,6 +127,8 @@ clip. Keep tilt level then keeps that skewed level for every run. My calls:
 - [x] R5: still-phone levels. 1026 tests green (+9: seven in `test_tilt_input_device.gd`, two
       in `test_main_scene.gd`; two Each start tests now hold the phone still), gdformat and
       gdlint clean, 0 SCRIPT ERROR headless. A55 pass: `VERIFY-ME.md` §BUG-101 R5.
+- [x] R5 review fix: a settle cut off by a stopped sensor waits again (2026-10-14, on
+      `review/copilot-pr-12-15`, PR #17). Suite 1037/1037.
 - [x] A55 pass by the user (`VERIFY-ME.md` §BUG-101) on 0.1.10: "they are working now". `calibrate_gyro`'s forced poll
       reads the real sensor and is not reachable headless.
 

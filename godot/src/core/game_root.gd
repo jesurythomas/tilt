@@ -859,12 +859,17 @@ func watch_reward_ad() -> void:
 	if not is_reward_offered():
 		return
 	_is_watching_reward = true
-	Ads.show_rewarded(_grant_ad_reward, _on_reward_ad_done)
+	# DIVERGENCE(ADS R13): bound to this run, as the ad can pay out after Retry began another.
+	var grant: Callable = _grant_ad_reward.bind(
+		_run_controller.run_number, _run_controller.points_credited_this_run
+	)
+	Ads.show_rewarded(grant, _on_reward_ad_done)
 	_refresh_reward_offer()
 
 
-func _grant_ad_reward() -> void:
-	if _run_controller.claim_reward(AD_REWARD_MULTIPLIER) > 0:
+func _grant_ad_reward(run: int, credited: int) -> void:
+	var bonus: int = _run_controller.claim_reward_for(run, credited, AD_REWARD_MULTIPLIER)
+	if bonus > 0 and run == _run_controller.run_number:
 		_hud.show_reward_bonus(_run_controller.points_credited_this_run)
 	_refresh_reward_offer()
 
@@ -960,6 +965,10 @@ func reset_progress() -> void:
 
 ## PORT: web/src/tilt-to-live/TiltGame.ts:2343-2350
 func open_armory(tab: String = "") -> void:
+	# DIVERGENCE(ADS R14): the Run over stays up while Retry's ad opens; an overlay opened then
+	# would sit over the run the ad's close starts.
+	if Ads.is_break_pending():
+		return
 	if _state.phase == Types.GamePhase.PLAYING:
 		_state.phase = Types.GamePhase.PAUSED
 		_hud.set_pause_panel_visible(false)
@@ -980,6 +989,8 @@ func is_armory_open() -> bool:
 ## Opens the full Milestones screen (the Run over rows, the M key; the menu link is M11a's).
 ## PORT: web/src/tilt-to-live/TiltGame.ts:195
 func open_all_goals_modal() -> void:
+	if Ads.is_break_pending():  # DIVERGENCE(ADS R14), as open_armory
+		return
 	_goals_hud.open_all_goals_modal()
 
 

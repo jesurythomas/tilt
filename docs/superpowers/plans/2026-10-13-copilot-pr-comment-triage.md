@@ -30,7 +30,8 @@ or are even necessary". Each comment was checked against `main` at `84ec5ac`.
 | #11 | HANDOFF missing R4 | Yes at the time | No (`84ec5ac` covers R4) | Moot |
 | #11 | VERIFY-ME missing R4 checks | Yes at the time | No (§BUG-101 R4 rows exist, passed) | Moot |
 
-Tally: 11 fixed or covered, 1 deferred, 7 moot (resolved by later commits).
+Tally: 12 fixed or covered, 1 deferred, 6 moot (resolved by later commits). (PR #12 and the
+first HANDOFF said 11 and 7; Copilot on PR #12 caught it, corrected 2026-10-14.)
 
 ## Tasks
 

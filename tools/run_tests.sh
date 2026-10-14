@@ -26,7 +26,7 @@
 # Usage:  tools/run_tests.sh
 # Env:    GODOT  — override the engine path if it moves.
 #         The suite runs with its own empty user:// (a temp APPDATA / XDG_DATA_HOME),
-#         so parallel runs do not share save files.
+#         so parallel runs do not share save files; no temp dir, no run (exit 1).
 # Exits:  0 only if every test script was collected, every test passed, AND
 #         nothing leaked at exit.
 
@@ -69,10 +69,19 @@ fi
 # once (another worktree's suite, another session) shared the save files and flaked the
 # save tests (2026-10-13, test_armory_ui and test_main_scene). macOS is not isolated.
 user_root="$(mktemp -d)"
+if [[ -z "$user_root" || ! -d "$user_root" ]]; then
+	# Fail closed: an empty APPDATA / XDG_DATA_HOME would run against the shared user://.
+	echo "FAIL: could not make a temp user:// (mktemp -d); not running on the shared saves." >&2
+	exit 1
+fi
 trap 'rm -rf "$user_root"' EXIT
 user_root_native="$user_root"
 if command -v cygpath >/dev/null 2>&1; then
 	user_root_native="$(cygpath -w "$user_root")"
+	if [[ -z "$user_root_native" ]]; then
+		echo "FAIL: cygpath could not convert $user_root for APPDATA." >&2
+		exit 1
+	fi
 fi
 
 output="$(APPDATA="$user_root_native" XDG_DATA_HOME="$user_root" \
