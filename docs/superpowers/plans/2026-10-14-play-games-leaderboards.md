@@ -1,5 +1,10 @@
 # Play Games leaderboards — Play Games Services v2, one board per mode (MVP R2)
 
+**Parked 2026-10-14.** User: "We dont need to add leaderboards for now. We can add that in at
+a later date". The code lives only on `feat/play-games` (PR #18, draft, not merged); `staging`
+carries this plan, the console notes and `release.sh`'s store package (PGS R6). To resume:
+rebase `feat/play-games` on `staging`, then VERIFY-ME §PGS on that branch.
+
 Branch `feat/play-games` (from `review/copilot-pr-12-15` at `1d62984`, which is PR #17 into
 `staging`, still open). Request (user, 2026-10-14): the Play Games Services setup guide,
 "https://developer.android.com/games/pgs/android/android-start#step_3_modify_your_code", sent
