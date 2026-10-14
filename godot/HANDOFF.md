@@ -4,7 +4,21 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**Latest (2026-10-14, later still): HUD R4.** User: "it should also be on the right when tilt
+**Latest (2026-10-14, afternoon): ADS R9 and R10, on `feat/dash-and-abilities`.** User: "for
+ads, if they manually select the 3x points to view ads, reset the count. also make it more
+appealing to look at". R9: `Ads.show_rewarded` resets the interstitial pacing (saved) at the
+tap, not when the ad opens, so it holds when the ad fails or never opens. R10: the Run over's
+`WatchAdButton` is a flare `RewardButton` (new theme variation) with a "3×" badge, "Watch ad",
+and the payoff (`earned × GameRoot.AD_REWARD_MULTIPLIER`, e.g. +3,822), under a warm glint that
+sweeps every 3 s while it can be tapped (a tween moves a once-drawn `RunOverSheet.RewardShine`,
+~1.2 µs a frame, Run over only); "Opening ad…" and 45% while its ad is on its way. Rulings in
+`docs/superpowers/plans/2026-10-13-in-game-ads.md` (tasks 15, 16). Review shot:
+`REWARD=1|wait bench/shot_run_over.gd` → `build/run_over_a55_reward*.png`. Suite 1017/1017,
+75/75 scripts, nothing leaked; gdformat/gdlint clean; 0 SCRIPT ERROR headless. Next: install
+on the A55 (next build code 24), then the user's A55 pass (VERIFY-ME §ADS R9/R10 lines, §DASH /
+ITEM / HUD / HTP R3, §ADS Part A), then PR `feat/dash-and-abilities` → `staging`.
+
+**Earlier (2026-10-14, later still): HUD R4.** User: "it should also be on the right when tilt
 is selected. on touch, when the jostick is stickied to the right show it on the left, else
 right". The ability bar is bottom left only for the Touch stick anchored Right
 (`GameRoot.is_ability_bar_left`, re-applied on a scheme change); tilt keeps it bottom right.

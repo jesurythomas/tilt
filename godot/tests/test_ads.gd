@@ -1,6 +1,6 @@
 # gdlint:disable=max-public-methods
 ## test_ads.gd
-## PORTS: nothing — new file, covers src/core/ads.gd, ad_pacing.gd, ads_config.gd (ADS R1-R5)
+## PORTS: nothing — new file, covers src/core/ads.gd, ad_pacing.gd, ads_config.gd (ADS R1-R6, R9)
 extends GutTest
 ## Proves the ad break: the pacing (ADS R5) and its save, consent before any load, the action
 ## running exactly once whether the ad closes, fails or never opens, and the sound coming back.
@@ -404,6 +404,40 @@ func test_a_rewarded_ad_counts_as_the_ad_for_the_pacing() -> void:
 	Ads.ad_break(_count_action)
 	assert_eq(_rec.count("show"), 0, "no interstitial right after it")
 	assert_eq(_actions, 2)
+
+
+## ADS R9 (user: "if they manually select the 3x points to view ads, reset the count").
+func test_choosing_the_rewarded_ad_resets_the_pacing_at_the_tap() -> void:
+	_ready_with_reward()
+	_rec.interstitial_loaded.emit()
+	_make_due()
+	Ads.note_run_end(AdPacing.PLAY_SECONDS_PER_AD, false)
+	Ads.show_rewarded(_count_other_action, _count_action)
+	assert_eq(Ads.pacing.games_since_ad, 0, "before the ad opens")
+	assert_eq(Ads.pacing.play_seconds_since_ad, 0.0)
+	assert_eq(SaveStore.read_int(SaveStore.load_dict(Ads.SAVE_PATH), "games_since_ad", -1), 0)
+	_rec.rewarded_failed_to_show.emit()
+	Ads.ad_break(_count_action)
+	assert_eq(_rec.count("show"), 0, "no interstitial, even though the ad never showed")
+	assert_eq(_actions, 2)
+
+
+func test_the_rewarded_ad_opening_does_not_restart_the_pacing_again() -> void:
+	_ready_with_reward()
+	Ads.show_rewarded(_count_other_action, _count_action)
+	var gap: int = Ads.pacing.games_per_ad
+	Ads.note_run_end(AdPacing.MIN_RUN_SECONDS, false)
+	_rec.rewarded_opened.emit()
+	assert_eq(Ads.pacing.games_since_ad, 1, "counted from the tap")
+	assert_eq(Ads.pacing.games_per_ad, gap, "one gap drawn")
+
+
+func test_a_rewarded_ad_not_ready_leaves_the_pacing_alone() -> void:
+	Ads.start()
+	_rec.consent_finished.emit(true, false)
+	_make_due()
+	Ads.show_rewarded(_count_other_action, _count_action)
+	assert_true(Ads.pacing.is_due(), "no ad was chosen")
 
 
 func test_a_late_rewarded_ad_still_rewards_after_the_watchdog() -> void:

@@ -590,6 +590,18 @@ static func _build_buttons(theme: Theme, scale: float) -> void:
 		padded(flat(tint(COLOR_ION, EQUIP_PRESSED_ALPHA), ION_TEXT, r), pad, 0.0),
 		padded(flat(none, LINE_DISABLED, r), pad, 0.0)
 	)
+	# DIVERGENCE(ADS R10, user 2026-10-14: "make it more appealing to look at"): the rewarded
+	# ad's offer in the points' flare — a flare edge on a flare wash, beside the ion Retry.
+	_button(
+		theme,
+		"RewardButton",
+		sans(Weight.SEMIBOLD),
+		label_size,
+		COLOR_TEXT,
+		padded(flat(tint(COLOR_FLARE, FILL_ALPHA), COLOR_FLARE, r), pad, 0.0),
+		padded(flat(tint(COLOR_FLARE, EQUIP_PRESSED_ALPHA), COLOR_FLARE, r), pad, 0.0),
+		padded(flat(none, LINE_DISABLED, r), pad, 0.0)
+	)
 	# DIVERGENCE(UI-SYSTEM): System.dc.html — IconButton (panel 85%, line 1px, r 6);
 	# ArmoryWeapons.dc.html Back = transparent + line; Pause.dc.html Calibrate =
 	# transparent + line_strong.

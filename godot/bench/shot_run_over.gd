@@ -1,7 +1,9 @@
 ## shot_run_over.gd — renders the Run over at the A55's size with six achievements, for
 ## review (ACH R3). Windowed; not in the suite:
 ##   "$GODOT" --path godot --render-thread safe -s addons/gut/gut_cmdln.gd -gtest=res://bench/shot_run_over.gd -gexit
-## Writes godot/build/run_over_a55.png (the list scrolled to the top, then to the end).
+## Writes godot/build/run_over_a55.png (the list scrolled to the top, then to the end);
+## REWARD=1 shows the rewarded ad's offer and writes run_over_a55_reward.png; REWARD=wait
+## shows it as its ad opens (run_over_a55_reward_wait.png) (ADS R10).
 extends GutTest
 
 const SIZE: Vector2i = Vector2i(2340, 1080)
@@ -47,6 +49,10 @@ func test_render() -> void:
 	]
 	sheet.show_result(result)
 	sheet.finish_count_up()
+	# ADS R10: REWARD=1 shows the "Watch ad · 3× points" offer, REWARD=wait as its ad opens.
+	var reward: String = OS.get_environment("REWARD")
+	var is_reward: bool = reward == "1" or reward == "wait"
+	sheet.set_reward_offer(is_reward, reward == "wait")
 	for f: int in range(4):
 		await RenderingServer.frame_post_draw
 	var top: Image = vp.get_texture().get_image()
@@ -59,5 +65,8 @@ func test_render() -> void:
 	both.blit_rect(top, Rect2i(Vector2i.ZERO, SIZE), Vector2i.ZERO)
 	both.blit_rect(bottom, Rect2i(Vector2i.ZERO, SIZE), Vector2i(0, SIZE.y))
 	both.resize(SIZE.x / 2, SIZE.y)
-	both.save_png(ProjectSettings.globalize_path("res://build/run_over_a55.png"))
+	var out: String = "res://build/run_over_a55%s.png" % ("_reward" if is_reward else "")
+	if reward == "wait":
+		out = "res://build/run_over_a55_reward_wait.png"
+	both.save_png(ProjectSettings.globalize_path(out))
 	pass_test("shot")

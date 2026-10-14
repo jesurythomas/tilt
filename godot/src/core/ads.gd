@@ -1,5 +1,6 @@
 ## ads.gd
-## PORTS: nothing — new file (rulings ADS R1-R6, docs/superpowers/plans/2026-10-13-in-game-ads.md)
+## PORTS: nothing — new file (rulings ADS R1-R6, R9,
+## docs/superpowers/plans/2026-10-13-in-game-ads.md)
 # PORT-NOTE: no `class_name`, against CONVENTIONS §2. An autoload script cannot
 # carry one (same as Telemetry, Haptics, Log and GameEvents).
 extends Node
@@ -162,6 +163,11 @@ func show_rewarded(on_reward: Callable, on_done: Callable) -> void:
 		return
 	is_rewarded_loaded = false
 	_on_reward = on_reward
+	# DIVERGENCE(ADS R9, user 2026-10-14: "if they manually select the 3x points to view ads,
+	# reset the count"): choosing the rewarded ad starts the pacing over at the tap, whether
+	# or not the ad then opens, so no interstitial follows it closely (ADS R6 reset it only
+	# once the ad opened).
+	_reset_pacing()
 	_begin_show(on_done)
 	rewarded_changed.emit()
 	Log.info("ads: showing a rewarded ad")
@@ -220,8 +226,10 @@ func _on_interstitial_failed_to_load() -> void:
 	is_ad_loaded = false
 
 
+## An interstitial covers the game: the watchdog stands down and the pacing starts over.
 func _on_interstitial_opened() -> void:
-	_note_opened()
+	_is_awaiting_open = false
+	_reset_pacing()
 	Log.info("ads: interstitial opened")
 
 
@@ -237,9 +245,10 @@ func _on_rewarded_failed_to_load() -> void:
 	rewarded_changed.emit()
 
 
-## DIVERGENCE(ADS R6): a rewarded ad counts as the ad, so no interstitial follows it closely.
+## The rewarded ad covers the game: the watchdog stands down. The pacing started over at the
+## tap (ADS R9).
 func _on_rewarded_opened() -> void:
-	_note_opened()
+	_is_awaiting_open = false
 	Log.info("ads: rewarded ad opened")
 
 
@@ -256,9 +265,8 @@ func _on_rewarded_failed_to_show() -> void:
 	_finish_break()
 
 
-## An ad covers the game: the watchdog stands down and the pacing starts over.
-func _note_opened() -> void:
-	_is_awaiting_open = false
+## An ad opened, or the player chose the rewarded one: both counts start over, saved.
+func _reset_pacing() -> void:
 	pacing.note_ad_shown()
 	_save_pacing()
 

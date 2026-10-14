@@ -1100,6 +1100,13 @@ Checked on the emulator (Pixel_10, Play Store image), 2026-10-13:
       next ad loads. Retry right after a rewarded ad shows no interstitial. *(0.1.18 on the A55,
       2026-10-14 00:48: the rewarded ad opened 70 ms after the tap, `ads: reward earned` 8 s in,
       closed 2 s later. Still to see: the figure counting up to 3× and the button going.)*
+- [ ] (ADS R10, user: "make it more appealing to look at") The offer is now an amber button: a
+      solid "3×" badge, "Watch ad", and the tripled figure on the right (+3,822 under +1,274);
+      a soft glint sweeps across it every 3 s. Tapped, it dims to "Opening ad…" until the ad
+      covers the game. Judge: does it read as a bonus, not a second Retry?
+- [ ] (ADS R9, user: "if they manually select the 3x points to view ads, reset the count") Tap
+      Watch ad, then play several runs: no interstitial until a fresh 5-10 games (or 5 min of
+      play) after the tap, even if the rewarded ad was closed early or failed to show.
 - [ ] (ADS R7) Armory prices are double what they were (e.g. a rank-1 upgrade 500, Solar 1,200);
       what you own stays owned. *(Screenshot 00:48: Blackhole Radius rank 3 at 1,300, Event
       Horizon at 6,000; the cost buttons fit.)* ADS R8 (user: "The upgrades still seem cheap"):
