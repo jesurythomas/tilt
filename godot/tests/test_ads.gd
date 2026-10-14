@@ -319,6 +319,30 @@ func test_privacy_options_go_to_the_backend() -> void:
 	assert_eq(_rec.calls, ["privacy"] as Array[String])
 
 
+## ADS R11 (Copilot, PR #15): an ad loaded under the old consent is not shown under the new.
+func test_a_consent_change_drops_the_loaded_ads_and_loads_again() -> void:
+	_ready_with_ad()
+	_rec.rewarded_loaded.emit()
+	_make_due()
+	_rec.consent_finished.emit(true, true)
+	assert_false(Ads.is_break_due(), "the old interstitial is gone")
+	assert_false(Ads.is_reward_ready(), "the old rewarded ad is gone")
+	assert_eq(_rec.count("load " + AdsConfig.interstitial_id()), 2, "a fresh one loads")
+	assert_eq(_rec.count("reward_load " + AdsConfig.rewarded_id()), 2)
+	_rec.interstitial_loaded.emit()
+	assert_true(Ads.is_break_due(), "the fresh one shows")
+
+
+func test_withdrawn_consent_drops_the_loaded_ads_and_loads_nothing() -> void:
+	_ready_with_ad()
+	_rec.rewarded_loaded.emit()
+	_rec.consent_finished.emit(false, true)
+	assert_false(Ads.is_ad_loaded)
+	assert_false(Ads.is_rewarded_loaded)
+	assert_eq(_rec.count("load"), 1, "only the load from the first consent")
+	assert_eq(_rec.count("reward_load"), 1)
+
+
 func test_config_uses_a_set_id_and_falls_back_to_googles_test_id() -> void:
 	var saved: Variant = ProjectSettings.get_setting(AdsConfig.INTERSTITIAL_ID_SETTING)
 	ProjectSettings.set_setting(AdsConfig.INTERSTITIAL_ID_SETTING, "")
@@ -468,3 +492,40 @@ func test_rewarded_changed_tells_the_run_over() -> void:
 	watch_signals(Ads)
 	_ready_with_reward()
 	assert_signal_emitted(Ads, "rewarded_changed")
+
+
+## ADS R12 (Copilot, PR #15): the watchdog lets the game go on, but the ad stays out until its
+## own close; no other ad shows meanwhile, so its late close cannot end a newer break.
+func test_a_timed_out_ad_holds_off_other_ads_until_it_ends() -> void:
+	_ready_with_ad()
+	_make_due()
+	Engine.time_scale = 20.0
+	Ads.ad_break(_count_action)
+	await get_tree().create_timer(Ads.OPEN_TIMEOUT_SECONDS + 0.5).timeout
+	Engine.time_scale = 1.0
+	assert_eq(_actions, 1, "the watchdog runs the action")
+	_rec.interstitial_loaded.emit()
+	_rec.rewarded_loaded.emit()
+	assert_false(Ads.is_break_due(), "the first ad is still out")
+	assert_false(Ads.is_reward_ready())
+	Ads.ad_break(_count_other_action)
+	assert_eq(_other_actions, 1, "the next break goes on without an ad")
+	assert_eq(_rec.count("show"), 1)
+	_rec.interstitial_opened.emit()
+	_rec.interstitial_closed.emit()
+	assert_eq(_actions, 1, "the late close runs nothing")
+	assert_eq(_other_actions, 1)
+	_make_due()  # its late opening started the pacing over
+	assert_true(Ads.is_break_due(), "ads show again once it has ended")
+
+
+func test_an_interstitial_callback_does_not_end_a_rewarded_show() -> void:
+	_ready_with_reward()
+	Ads.show_rewarded(_count_other_action, _count_action)
+	_rec.interstitial_opened.emit()
+	_rec.interstitial_closed.emit()
+	_rec.interstitial_failed_to_show.emit()
+	assert_eq(_actions, 0, "on_done waits for its own ad")
+	assert_true(Ads.is_break_pending())
+	_rec.rewarded_closed.emit()
+	assert_eq(_actions, 1)

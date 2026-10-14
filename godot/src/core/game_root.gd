@@ -859,12 +859,17 @@ func watch_reward_ad() -> void:
 	if not is_reward_offered():
 		return
 	_is_watching_reward = true
-	Ads.show_rewarded(_grant_ad_reward, _on_reward_ad_done)
+	# DIVERGENCE(ADS R13): bound to this run, as the ad can pay out after Retry began another.
+	var grant: Callable = _grant_ad_reward.bind(
+		_run_controller.run_number, _run_controller.points_credited_this_run
+	)
+	Ads.show_rewarded(grant, _on_reward_ad_done)
 	_refresh_reward_offer()
 
 
-func _grant_ad_reward() -> void:
-	if _run_controller.claim_reward(AD_REWARD_MULTIPLIER) > 0:
+func _grant_ad_reward(run: int, credited: int) -> void:
+	var bonus: int = _run_controller.claim_reward_for(run, credited, AD_REWARD_MULTIPLIER)
+	if bonus > 0 and run == _run_controller.run_number:
 		_hud.show_reward_bonus(_run_controller.points_credited_this_run)
 	_refresh_reward_offer()
 

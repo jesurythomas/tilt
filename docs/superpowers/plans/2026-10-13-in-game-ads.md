@@ -185,6 +185,39 @@ way the row dims to 45% and reads "Opening ad…". The old text stays as its too
 (touch target 48), so the sheet's layout checks are unchanged. Cost: the glint is drawn once and
 moved by a tween, ~1.2 µs a frame, and only on the Run over.
 
+## Rulings ADS R11-R14 — Copilot's PR #15 review (my calls, 2026-10-14)
+
+User: "copilot left some comments on the pervious prs. take a look at those comments and fix if
+needed". All four held on `staging` at `507e180`; triage in
+`2026-10-14-copilot-pr-comment-triage-12-15.md`. Built on `review/copilot-pr-12-15`.
+- **R11 — consent change drops loaded ads.** Closing the privacy options form re-reports consent,
+  but the interstitial and rewarded ad held from before were still shown later, though they were
+  requested under the old answer. Now the plugin's form callback drops both held ads and any
+  load in flight (`consentGeneration`: a load that lands after a newer form close is ignored),
+  and `Ads._on_consent_finished` clears the loaded and loading flags, then loads again only if the
+  new answer allows ads. A close with no change costs one reload; UMP gives no cheap "did it
+  change" check. AARs rebuilt (`tools/build_ads_plugin.sh`).
+- **R12 — an ad stays out until its own close.** The watchdog ran the action at 4 s, but a late
+  close or failure from that ad then ran `_finish_break` for whatever break came next. Now
+  `Ads._showing` (NONE / INTERSTITIAL / REWARDED) holds from `show` until that ad's own close or
+  failure, past the watchdog; no break or rewarded offer shows another ad meanwhile (the break
+  runs its action at once), and a callback of the other kind, or with nothing out, does nothing.
+  The backend has no per-show id, so one ad at a time is what keeps callbacks matched. Risk: an
+  SDK that never sends a close or failure would hold ads off for the session; Google's callback
+  contract sends one of them.
+- **R13 — a late reward pays its own run.** The rewarded `on_reward` called `claim_reward` on the
+  live `RunController`: after the watchdog let Retry start a new run, a late payout was lost (the
+  new run has nothing credited) or landed on the next run. Now `RunController.run_number` counts
+  runs, and GameRoot binds the run and its credited points at the tap; `claim_reward_for` claims
+  normally on that run, else banks `credited × (multiplier − 1)` as a bonus and leaves the new
+  run's claim alone. Once only: `Ads` clears `on_reward` after one call.
+- **R14 — Retry keeps the sheet up while its ad opens.** `_on_restart_pressed` hid the Run over
+  before `restart_run` started the break, so an interstitial slow to open (up to 4 s) left a
+  blank arena. The sheet now stays; `_on_phase_changed` hides it when the run restarts (as it
+  already did for the keyboard Retry).
+
+Cost: none per frame — all four run on ad callbacks, a consent change, or a Retry tap.
+
 ## Tasks
 
 - [x] 1. Plan (this file); branch. Commit.
@@ -251,6 +284,12 @@ moved by a tween, ~1.2 µs a frame, and only on the Run over.
       `test_run_over_sheet.gd`; `bench/shot_run_over.gd` takes `REWARD=1` / `REWARD=wait`. Suite
       1017/1017, 75/75 scripts, nothing leaked; gdformat, gdlint clean; 0 SCRIPT ERROR
       headless.)*
+- [x] 17. ADS R11-R14 from Copilot's PR #15 review. *(Done 2026-10-14 on
+      `review/copilot-pr-12-15`: six tests (`test_ads.gd` 4, `test_ad_break.gd` 2), each failing
+      with its fix removed; AARs rebuilt. Suite 1032/1032, 75/75 scripts, nothing leaked;
+      gdformat, gdlint clean; 0 SCRIPT ERROR in the suite and a 600-frame headless boot.
+      `bench_sim` unchanged within noise (swarm.update 25.5 vs 24.7 µs on `staging`). Not on the
+      A55 yet: the next build is code 26; VERIFY-ME §ADS has the R11/R14 rows.)*
 - [ ] 9. The user's A55 pass (§ADS Part A) and AdMob setup (Part B); merge. *(User: "rebuild
       it". Rebuilt as 0.1.15 (code 16, same code as 0.1.14), installed on the unlocked A55
       2026-10-13 22:10 with data kept, launched: consent in ~2 s, `can_request_ads=true
@@ -271,7 +310,8 @@ moved by a tween, ~1.2 µs a frame, and only on the Run over.
   the dex, but needs keep rules for Godot and the plugin. Not done.
 - **Next feature:** the ₱15 Remove ads purchase (Play Billing, roadmap Week 2). It should make
   `Ads.is_break_due()` false for a buyer and skip the load; consent can still run.
-- **Pacing numbers** (20 s, 3 runs, 180 s) are my calls under MVP R1; retune from AdMob's
+- **Pacing numbers** (R5: 20 s, a 5-10-game gap drawn at random, 300 s of play) are my calls
+  under MVP R1 and the user's R5; retune from AdMob's
   sessions and the closed test's retention.
 - Seen on the emulator: on the first launch, UMP's first log line came ~73 s after Godot's
   (11:22:40 → 11:23:53). Cause not looked into (the emulator runs the arm64 build by

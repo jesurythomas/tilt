@@ -248,3 +248,40 @@ func test_retry_while_the_rewarded_ad_opens_is_ignored() -> void:
 	_rec.rewarded_closed.emit()
 	_press(root, "RestartButton")
 	assert_eq(root._state.phase, Types.GamePhase.CINEMATIC, "Retry works once it is done")
+
+
+## ADS R13 (Copilot, PR #15): the watchdog gave up on the rewarded ad, the player tapped Retry,
+## then the ad opened and paid out: the bonus is the first run's, and the new run keeps its own.
+func test_a_reward_paid_after_retry_goes_to_its_own_run() -> void:
+	var root: GameRoot = await _boot_to_run_over_with_reward()
+	var run: RunController = root._run_controller
+	var earned: int = run.points_credited_this_run
+	var balance: int = run.progression.data.points
+	_press(root, "WatchAdButton")
+	# The watchdog fired, called directly: awaiting it would render the arena for frames, and a
+	# disc texture first built in a headless frame reads back null in test_circle_sprites.
+	Ads._on_open_timeout(Ads._break_serial)
+	_press(root, "RestartButton")
+	assert_eq(root._state.phase, Types.GamePhase.CINEMATIC, "the watchdog let Retry through")
+	_rec.rewarded_opened.emit()
+	_rec.rewarded_earned.emit()
+	_rec.rewarded_closed.emit()
+	assert_eq(run.progression.data.points, balance + earned * 2, "the first run's bonus")
+	assert_false(run.is_reward_claimed, "the new run can still claim its own")
+	assert_eq(run.points_credited_this_run, 0)
+
+
+## ADS R14 (Copilot, PR #15): Retry's own ad takes up to OPEN_TIMEOUT_SECONDS to open; the
+## sheet stays up until the run restarts, so the Run over is never blank.
+func test_retry_keeps_the_sheet_while_its_ad_opens() -> void:
+	var root: GameRoot = await _boot_to_run_over()
+	root._hud._on_run_over_timer_timeout()
+	var panel: Control = root.find_child("GameOverPanel", true, false) as Control
+	assert_true(panel.visible)
+	_press(root, "RestartButton")
+	assert_eq(_rec.count("show"), 1)
+	assert_true(panel.visible, "the sheet stays while the ad opens")
+	_rec.interstitial_opened.emit()
+	_rec.interstitial_closed.emit()
+	assert_eq(root._state.phase, Types.GamePhase.CINEMATIC)
+	assert_false(panel.visible, "the restart hides it")

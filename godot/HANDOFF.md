@@ -4,7 +4,24 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**Latest (2026-10-14, afternoon, later): BUG-101 R5, still-phone tilt levels, on
+**Latest (2026-10-14, evening): Copilot's PR #12-#15 comments, on `review/copilot-pr-12-15`
+(from `staging` at `507e180`, where PR #16 is merged).** User: "copilot left some comments on the
+pervious prs. take a look at those comments and fix if needed". 13 comments: 11 fixed, 2 moot
+(merge-time wording on PR #14); PR #16 got no review (Copilot's quota). Triage
+`docs/superpowers/plans/2026-10-14-copilot-pr-comment-triage-12-15.md`. Code: ADS R11 (closing
+the privacy form drops ads loaded under the old consent, in the Java plugin and `Ads`; AARs
+rebuilt), R12 (`Ads._showing` holds an ad until its own close, past the watchdog, so a late close
+cannot end a newer break), R13 (a rewarded payout after Retry pays its own run:
+`RunController.run_number`, `claim_reward_for`), R14 (Retry leaves the Run over up while its ad
+opens); rulings in `docs/superpowers/plans/2026-10-13-in-game-ads.md`. Also: `run_tests.sh`
+fails closed without a temp `user://`; the guide's Tilt card names Tilt level / Each start /
+All runs / Calibrate tilt; doc fixes (the PR #12 tally, VERIFY-ME §HTP's build, the ads plan's
+pacing note). Suite 1032/1032, 75/75 scripts, nothing leaked; gdformat/gdlint clean; 0 SCRIPT
+ERROR. No per-frame cost (`bench_sim` within noise). Not on the A55 (next build code 26;
+VERIFY-ME §ADS R11/R14 rows). Next: PR `review/copilot-pr-12-15` → `staging` (the user merges),
+then the user's A55 pass (BUG-101 R5, §ADS R9-R11/R14, §DASH).
+
+**Earlier (2026-10-14, afternoon, later): BUG-101 R5, still-phone tilt levels, on
 `feat/dash-and-abilities`.** User: "theres a drift now during the tilt calibration ... i usually
 just press play and when on the game screen not expect it to move until i tilt. now, it tilts at
 around 10-11". Every level was one gravity reading taken as a thumb left a button (Play's first
@@ -21,8 +38,8 @@ level ("tilt: level settled in …; the first reading was … deg off it"). Ruli
 is on the A55, installed 2026-10-14 12:37 over 0.1.23 (a paused 0:02 run was the only thing
 open), data kept, launched with no SCRIPT ERROR; menu frame time mean 16.70 ms, p95 25.1 (taken
 just after launch). Next A55 build uses code 26. User: "commit push merge to staging": the branch is pushed and
-PR #16 (`feat/dash-and-abilities` → `staging`) is open; merging it was refused by the session's
-permission check ("Merge Without Review"), so the user merges it. Next: the user's pass (`VERIFY-ME.md` §BUG-101
+PR #16 (`feat/dash-and-abilities` → `staging`) was opened; merging it was refused by the session's
+permission check ("Merge Without Review"), and the user merged it (`507e180`). Next: the user's pass (`VERIFY-ME.md` §BUG-101
 R5 lines; their Keep tilt level is on, so its old level stays until they level again or turn
 it off), then the §ADS R9/R10 and §DASH checks, then PR `feat/dash-and-abilities` → `staging`.
 
@@ -182,13 +199,14 @@ made. Plan `docs/superpowers/plans/2026-10-13-add-onboarding.md`. Next: the user
 `godot/bin/~libperil.windows.template_debug.x86_64.dll~RF1858cea.TMP`.
 
 **Latest (2026-10-13): Copilot PR comment triage, merged into `main` by PR #12.** User: "check all comments left by copilot on all recent PRs". 19 comments verified
-(PRs #5-#11): 11 fixed, 1 deferred (#11 API-33 guard), 7 moot. Code fixes: a Stick position
+(PRs #5-#11): 12 fixed or covered, 1 deferred (#11 API-33 guard), 6 moot. Code fixes: a Stick position
 change releases a held stick; Set level from Settings redraws the Settings board. 880 tests
 green. Plan `docs/superpowers/plans/2026-10-13-copilot-pr-comment-triage.md`. Then
 `fix/test-run-own-user-dir`: `tools/run_tests.sh` runs each suite with its own temp `user://`
 (two suites at once both 880/880; shared, they flaked save tests). Copilot threads on PRs
-#5-#11 answered and resolved. Next: nothing in flight; ask the user what to pick up. No A55 build needed for this (no new device behaviour
-beyond VERIFY-ME §Handling's corrected wording).
+#5-#11 answered and resolved. Next: nothing in flight; ask the user what to pick up. No A55 build was made for it: the two fixes
+(the stick release, the Settings redraw) change device behaviour but rest on their regression
+tests, and every later build (0.1.13 on) carries them.
 
 **Also (2026-10-13): BUG-101 R4, Pause → Keep tilt level, merged into `main` by PR #11
 (after HAPTICS R1, PR #10).** User: "merge them all -- they all pass". User: "make tilt every run on the pause menu toggle-able, toggled
