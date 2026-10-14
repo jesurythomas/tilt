@@ -4,6 +4,14 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
+**Also (2026-10-14, 13:48): a Google Cloud project for Peril Point.** User: "create a new google
+cloud project for Peril Point". `peril-point-jtg` ("Peril Point", number 734361789228; ID
+`peril-point` was taken), owned by jtgadiane@gmail.com (user: "email is jtgadiane"), no
+organization, no billing, no APIs beyond the default `cloudapis`. gcloud: a separate
+configuration `peril-point` (account + project) — run gcloud with `--configuration=peril-point`;
+the `default` configuration (jg@blackcapitaltechnology.com, `garage-hub-jtg-8b1fe`) is untouched.
+It is the project for VERIFY-ME §Part B's Firebase step 2.
+
 **Latest (2026-10-14, 13:35): Copilot's PR #12-#15 comments, on `review/copilot-pr-12-15`
 (from `staging` at `507e180`, where PR #16 is merged).** User: "copilot left some comments on the
 pervious prs. take a look at those comments and fix if needed". 13 comments: 11 fixed, 2 moot
