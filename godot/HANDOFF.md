@@ -4,15 +4,40 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
+**Latest (2026-10-14, evening): the 0.1.26 store bundle from `staging`.** User: "From staging,
+create a new app bundle". Branch `chore/bundle-0.1.26` is `staging` (`5c61e75`, PR #17 merged)
+plus three console notes (this GCP project, the Play Games OAuth client, the Play app signing
+SHA-1 `ED:48:D2:DA:C9:F8:CF:0F:AE:EB:86:5C:DA:E0:3E:17:54:76:51:AB`), `release.sh`'s store
+package (`PERIL_AAB=1` now exports `ph.newzenith.perilpoint`, the Play listing's; APKs keep
+`com.jtg.perilpoint`; ruling PGS R6) and version 0.1.26, code 27. Built in a worktree, because
+the main tree held the user's uncommitted deletion of `godot/assets/icon/icon.png`:
+`godot/build/peril-point-0.1.26.aab` (42 MB, gitignored; a copy is in the main tree's
+`godot/build/`), signed with the upload key (`CN=Peril Point upload`, SHA-1
+`32:90:37:AE:42:0E:42:95:84:D2:2B:16:C5:F6:27:28:3E:1B:CE:8D`), jar verified. Inside: arm64
+`libgodot_android` and `libperil`, the PerilAds plugin with **AdMob's test app ID** (real AdMob
+IDs are not set yet, VERIFY-ME §ADS Part B, so it serves only test ads), no Play Games. The
+first export in the fresh worktree logged one `Cannot set object script` error; a second
+export logged none and had the same file list and size. Not installed anywhere (an `.aab` goes
+through Play). **Next:** the user uploads it to a Play testing track (code 27 must be above
+every code Play has; the A55's Play copy is code 4); the user merges this branch's PR; the next
+build uses code 28.
+
+**Parked (2026-10-14): Play Games leaderboards (MVP R2).** User: "We dont need to add
+leaderboards for now. We can add that in at a later date". Built (rulings PGS R1-R7, plan
+`docs/superpowers/plans/2026-10-14-play-games-leaderboards.md`); the code lives only on
+`feat/play-games`, PR #18 as a draft. To resume: rebase it on `staging`, then its VERIFY-ME
+§PGS.
+
 **Also (2026-10-14, 13:48): a Google Cloud project for Peril Point.** User: "create a new google
 cloud project for Peril Point". `peril-point-jtg` ("Peril Point", number 734361789228; ID
 `peril-point` was taken), owned by jtgadiane@gmail.com (user: "email is jtgadiane"), no
-organization, no billing, no APIs beyond the default `cloudapis`. gcloud: a separate
+organization, no billing; Games, Games Management and Drive APIs enabled for Play Games'
+OAuth consent screen, which the user set up in the console. gcloud: a separate
 configuration `peril-point` (account + project) — run gcloud with `--configuration=peril-point`;
 the `default` configuration (jg@blackcapitaltechnology.com, `garage-hub-jtg-8b1fe`) is untouched.
 It is the project for VERIFY-ME §Part B's Firebase step 2.
 
-**Latest (2026-10-14, 13:35): Copilot's PR #12-#15 comments, on `review/copilot-pr-12-15`
+**Earlier (2026-10-14, 13:35): Copilot's PR #12-#15 comments, on `review/copilot-pr-12-15`
 (from `staging` at `507e180`, where PR #16 is merged).** User: "copilot left some comments on the
 pervious prs. take a look at those comments and fix if needed". 13 comments: 11 fixed, 2 moot
 (merge-time wording on PR #14); PR #16 got no review (Copilot's quota). Triage

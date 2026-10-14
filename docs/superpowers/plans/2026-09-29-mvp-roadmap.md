@@ -112,7 +112,11 @@ opted-in testers, before production.
 - [x] **UMP consent.** ~1 day. *(Done with the interstitial, ADS R3: form at launch when
   required, Settings → Ad privacy; the GDPR message itself is published in AdMob, §ADS Part B.)*
 - [ ] **Play Games leaderboards (MVP R2).** 3–5 days, after the app exists in Play Console
-  with its signing key registered.
+  with its signing key registered. **Deferred 2026-10-14** (user: "We dont need to add
+  leaderboards for now. We can add that in at a later date"). *(Built and parked on
+  `feat/play-games`, PR #18 as a draft: rulings PGS R1-R7 in
+  `docs/superpowers/plans/2026-10-14-play-games-leaderboards.md`; to resume, rebase it on
+  `staging`, then that branch's VERIFY-ME §PGS.)*
   *(2026-10-14: GCP project `peril-point-jtg`; Games/Drive APIs on; consent screen set up in
   the console. PGS needs one **Android** OAuth client there, package `ph.newzenith.perilpoint`,
   SHA-1 from Play Console's App signing page; no Web client, as there is no game server. The
