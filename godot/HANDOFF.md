@@ -15,8 +15,11 @@ sweeps every 3 s while it can be tapped (a tween moves a once-drawn `RunOverShee
 `docs/superpowers/plans/2026-10-13-in-game-ads.md` (tasks 15, 16). Review shot:
 `REWARD=1|wait bench/shot_run_over.gd` → `build/run_over_a55_reward*.png`. Suite 1017/1017,
 75/75 scripts, nothing leaked; gdformat/gdlint clean; 0 SCRIPT ERROR headless. 0.1.23 (code
-24, `godot/build/peril-point-0.1.23-a55.apk`, A55 key) is on the A55, installed 2026-10-14
-12:16 over 0.1.22, data kept (the phone was locked, so not launched). Next A55 build uses code
+24, `godot/build/peril-point-0.1.23-a55.apk`, A55 key) is on the A55: installed 2026-10-14
+12:16 over 0.1.22 while locked, then rebuilt from the same tree and reinstalled at 12:18 once
+the user unlocked it ("ive unlocked it rebuild"), data kept, launched: the save loaded (best
+1,459,665, 1,228 points, 42/57), consent `can_request_ads=true`, no SCRIPT ERROR; menu frame
+time mean 16.66 ms, p95 24.9 (same as 0.1.22). Next A55 build uses code
 25. Next: the user's A55 pass (VERIFY-ME §ADS R9/R10 lines, §DASH /
 ITEM / HUD / HTP R3, §ADS Part A), then PR `feat/dash-and-abilities` → `staging`.
 
