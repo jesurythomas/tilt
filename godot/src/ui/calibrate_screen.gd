@@ -91,6 +91,7 @@ var _ui_scale: float = 1.0
 var _inset: Vector2 = Vector2.ZERO
 var _is_open: bool = false
 var _disc: Control = null
+var _set_level_touched_at: float = -1.0  # DIVERGENCE(BUG-101 R5)
 
 
 func _ready() -> void:
@@ -107,6 +108,7 @@ func bind(tilt: TiltInput) -> void:
 ## Shows the board and starts polling the sensor for the live dot.
 func open() -> void:
 	_is_open = true
+	_set_level_touched_at = -1.0
 	visible = true
 	set_process(true)
 
@@ -210,6 +212,7 @@ func _left_block() -> VBoxContainer:
 	var set_level: Button = _button("SetLevelButton", "PrimaryButton", "Set level")
 	set_level.custom_minimum_size.y = _px(SET_LEVEL_HEIGHT)
 	set_level.pressed.connect(_on_set_level_pressed)
+	set_level.button_down.connect(_on_set_level_down)  # DIVERGENCE(BUG-101 R5)
 	buttons.add_child(set_level)
 	var cancel: Button = _button("CancelButton", "SecondaryButton", "Cancel")
 	cancel.custom_minimum_size.y = _px(CANCEL_HEIGHT)
@@ -305,15 +308,21 @@ func _legend_item(swatch_svg: String, label: String) -> HBoxContainer:
 	return item
 
 
+## DIVERGENCE(BUG-101 R5): when the finger came down on Set level (TiltInput.now_seconds), so
+## the level is the pose held before it, not the tap's push; -1 before any touch.
+func set_level_touched_at() -> float:
+	return _set_level_touched_at
+
+
+func _on_set_level_down() -> void:
+	_set_level_touched_at = TiltInput.now_seconds()
+
+
 func _on_set_level_pressed() -> void:
+	# PORT-NOTE (R4): GameRoot levels from the samples this screen's _process read
+	# (TiltInput.level_to_recent); with too few it settles, and GameRoot keeps reading
+	# the sensor until it lands (BUG-101 R5), so no poll is forced here any more.
 	set_level_requested.emit()
-	# PORT-NOTE (R4): calibrate_current_position() only arms a pending
-	# capture; the real neutral pose is read on the next TiltInput.poll(). This
-	# screen's own _process poll stops the instant close() disables it below,
-	# so one poll is forced here to consume the pending flag against a fresh
-	# reading before the sensor can be told to stop listening (final review I-1).
-	if _tilt != null:
-		_tilt.poll()
 	close()
 
 

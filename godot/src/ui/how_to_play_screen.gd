@@ -4,8 +4,9 @@
 ## https://perilpoint.newzenith.ph/how-to-play")
 class_name HowToPlayScreen
 extends Control
-## The How to play guide: three pages built in code from the public guide's text, each with
-## a clip — a run dodging red dots, the site's power-up clips, and an Armory tour. It opens
+## The How to play guide: four pages built in code from the public guide's text, each with
+## a clip — a run dodging red dots, the site's power-up clips, a dash and two items fired
+## (HTP R3), and an Armory tour. It opens
 ## by itself on a first launch and from the menu's How to play button; any way it closes
 ## counts as seen (GameRoot saves that).
 ##
@@ -19,12 +20,15 @@ signal closed
 
 ## DIVERGENCE(HTP R2, user 2026-10-13: "we can remove 3 - 4 - 5 ... add in another brief
 ## section for the armory"): the page titles, in order.
-const PAGES: Array[String] = ["The basics", "Power-ups", "The Armory"]
+## DIVERGENCE(HTP R3, user 2026-10-14: "Update the how to to include the new features"): Dash
+## and items, before The Armory.
+const PAGES: Array[String] = ["The basics", "Power-ups", "Dash and items", "The Armory"]
 ## DIVERGENCE(HTP R1): the clips, re-encoded to Theora (Godot plays no MP4). The power-up
 ## clips are the site's; dodge and armory are recorded from the game (tools/record_htp_clips.gd).
 const CLIP_PATH: String = "res://assets/how_to_play/%s.ogv"
 const DODGE_CLIP: String = "dodge"
 const ARMORY_CLIP: String = "armory"
+const DASH_CLIP: String = "dash"  # DIVERGENCE(HTP R3): recorded by tools/record_htp_clips.gd
 ## DIVERGENCE(HTP R1): the site's power-up order, names and lines.
 const WEAPONS: Array[Types.WeaponType] = [
 	Types.WeaponType.NUKE,
@@ -72,6 +76,8 @@ const ARMORY_LINES: Array[Array] = [
 	["Arena", "Themes for the arena and skins for the enemies."],
 	["Handling", "Top speed, tilt sensitivity and stick size, with a live preview."],
 	["Boosts", "Extra Life, a smaller hitbox, slower enemies, and score or Points multipliers."],
+	# DIVERGENCE(HTP R3): the sixth tab (ITEM R2).
+	["Abilities", "A faster, longer dash, and items: power-ups you fire once a run."],
 ]
 ## DIVERGENCE(HTP R1): a question mark in a ring, for the menu's How to play button.
 const ICON_HELP: String = (
@@ -114,6 +120,8 @@ const ORB_COLUMNS: int = 4
 const ORB_BUTTON: int = 48
 const ORB_SIZE: int = 30
 const ORB_GAP: int = 8
+## DIVERGENCE(HTP R3): the Dash and items cards' glyph size, as the basics cards' icons (16).
+const CARD_GLYPH: float = 16.0
 
 var _ui_scale: float = 1.0
 var _inset: Vector2 = Vector2.ZERO
@@ -297,6 +305,9 @@ func _body() -> MarginContainer:
 		1:
 			_powerups_page(columns)
 			clip_key = WeaponIcons.weapon_key(_weapon)
+		2:
+			_dash_page(columns)
+			clip_key = DASH_CLIP
 		_:
 			_armory_page(columns)
 			clip_key = ARMORY_CLIP
@@ -351,6 +362,39 @@ func _powerups_page(columns: HBoxContainer) -> void:
 	left.add_child(weapon_name)
 	var line: Label = _paragraph(left, WEAPON_LINES[_weapon])
 	line.name = "WeaponLine"
+
+
+## DIVERGENCE(HTP R3): the dash (DASH R1-R4) and the items (ITEM R1, R2).
+func _dash_page(columns: HBoxContainer) -> void:
+	var left: VBoxContainer = _column(columns, "Double-tap to dash")
+	left.name = "DashList"
+	_paragraph(
+		left,
+		(
+			"Double-tap anywhere to dash a quarter of the screen the way you're flying. "
+			+ "Your ship is shielded for 2 s: ram straight through dots."
+		)
+	)
+	left.add_child(
+		_card(
+			WeaponIcons.svg("dash", CARD_GLYPH),
+			"Dash",
+			(
+				"The ring at the bottom refills over 20 s once the shield ends. "
+				+ "Armory → Abilities makes it faster and the shield longer."
+			)
+		)
+	)
+	left.add_child(
+		_card(
+			WeaponIcons.svg("blackhole", CARD_GLYPH),
+			"Items",
+			(
+				"Buy power-ups as items in Armory → Abilities and equip two. Tap one's button "
+				+ "to fire it: once a run, and it's back next run."
+			)
+		)
+	)
 
 
 func _armory_page(columns: HBoxContainer) -> void:

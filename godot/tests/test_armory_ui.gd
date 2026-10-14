@@ -118,12 +118,12 @@ func test_open_without_tab_keeps_the_last_tab() -> void:
 	)
 
 
-func test_tab_row_has_five_buttons_and_switches() -> void:
+func test_tab_row_has_six_buttons_and_switches() -> void:
 	_armory.open()
 	await get_tree().process_frame
 	var tabs: HBoxContainer = _armory.find_child("Tabs", true, false) as HBoxContainer
 	assert_not_null(tabs)
-	assert_eq(tabs.get_child_count(), 5)
+	assert_eq(tabs.get_child_count(), 6, "ITEM R2: Abilities is the sixth")
 	var ships: Button = _button("Tab_ships")
 	assert_true(ships.toggle_mode, "button_pressed needs toggle_mode")
 	assert_true(_button("Tab_weapons").button_pressed)

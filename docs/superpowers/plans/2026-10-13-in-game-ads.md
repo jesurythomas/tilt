@@ -162,6 +162,29 @@ R7's 2× (the user named upgrades). With the 3× ad a mid player (≈970 points 
 the ad) buys a first rank in about one plain run and a keystone in 3-7 ad runs. Retune: one
 number.
 
+## Ruling ADS R9 — choosing the 3× ad resets the count (user, 2026-10-14)
+
+User: "for ads, if they manually select the 3x points to view ads, reset the count". ADS R6
+reset the interstitial pacing when the rewarded ad *opened*. Now `Ads.show_rewarded` resets it
+(both counts, a new 5-10 gap drawn, saved) at the tap, before the ad opens, so the reset holds
+even when the ad then fails to show or never opens; the rewarded ad's opening only stands the
+watchdog down (one gap drawn per choice). A tap while no rewarded ad is ready changes nothing
+(the button is hidden then anyway). Interstitials still reset the pacing when they open. Built
+on `feat/dash-and-abilities` (the branch in hand, which holds `feat/in-game-ads`).
+
+## Ruling ADS R10 — a better-looking 3× offer (user, 2026-10-14)
+
+User: "also make it more appealing to look at". The ion `EquipButton` strip with a dim play
+triangle read as one more plain action beside Retry. My calls: the offer takes the points'
+flare — a new `RewardButton` theme variation (flare edge on a 12% flare wash, 24% pressed) — and
+a row of a solid flare "3×" badge (void text, `GameRoot.AD_REWARD_MULTIPLIER`), "Watch ad", and
+the payoff: what "Points earned" becomes if the reward is earned (`+3,822` beside `+1,274`), in
+the PointsText flare. A warm-white glint (22%, soft-edged, leaning) sweeps across it in 0.8 s,
+then rests 2.2 s, looping; it runs only while the offer can be tapped. While its ad is on its
+way the row dims to 45% and reads "Opening ad…". The old text stays as its tooltip. Same height
+(touch target 48), so the sheet's layout checks are unchanged. Cost: the glint is drawn once and
+moved by a tween, ~1.2 µs a frame, and only on the Run over.
+
 ## Tasks
 
 - [x] 1. Plan (this file); branch. Commit.
@@ -220,6 +243,14 @@ number.
       price tests read it; 70/70 scripts, nothing leaked; gdformat, gdlint clean.)*
 - [x] 14. Push, PR into `staging`, merge (user, 2026-10-14: "commit push create pr and merge to
       staging for now"). `main` waits for task 9.
+- [x] 15. ADS R9: the tap on "Watch ad" resets the pacing (user, 2026-10-14). *(Done
+      2026-10-14 on `feat/dash-and-abilities`: three tests in `test_ads.gd` — reset at the tap
+      and saved even when the ad fails to show, one gap drawn per choice, nothing when no ad is
+      ready.)*
+- [x] 16. ADS R10: the offer's new look (user, 2026-10-14). *(Done 2026-10-14: two tests in
+      `test_run_over_sheet.gd`; `bench/shot_run_over.gd` takes `REWARD=1` / `REWARD=wait`. Suite
+      1017/1017, 75/75 scripts, nothing leaked; gdformat, gdlint clean; 0 SCRIPT ERROR
+      headless.)*
 - [ ] 9. The user's A55 pass (§ADS Part A) and AdMob setup (Part B); merge. *(User: "rebuild
       it". Rebuilt as 0.1.15 (code 16, same code as 0.1.14), installed on the unlocked A55
       2026-10-13 22:10 with data kept, launched: consent in ~2 s, `can_request_ads=true

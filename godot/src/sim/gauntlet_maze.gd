@@ -147,6 +147,21 @@ func update(
 		on_crushed.call()
 
 
+## DIVERGENCE(DASH R2): true when a circle at (x, y) of radius `r` overlaps a wall — the
+## closest-point test of update()'s step 5 (GauntletMaze.ts:254-266), so a dash stops short of a
+## wall instead of tunnelling through it.
+func blocks(x: float, y: float, r: float) -> bool:
+	for row: GauntletWallRow in rows:
+		if y + r < row.y or y - r > row.y + row.height:
+			continue
+		for seg: WallSegment in row.segments:
+			var cx: float = maxf(seg.x, minf(x, seg.x + seg.width))
+			var cy: float = maxf(row.y, minf(y, row.y + row.height))
+			if (x - cx) * (x - cx) + (y - cy) * (y - cy) < r * r:
+				return true
+	return false
+
+
 ## Appends one wall row at `y`, picking one of four obstacle archetypes.
 ## PORT: web/src/tilt-to-live/GauntletMaze.ts:61-201
 func _spawn_row(y: float, width: float) -> void:

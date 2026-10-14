@@ -108,6 +108,22 @@ const GLYPHS: Dictionary[String, String] = {
 		'<path fill="#fff" fill-rule="evenodd" d="M7.2 3.4H16.8L21.3 9.2L12 21.2L2.7'
 		+ ' 9.2ZM5.8 10L12 17.8L18.2 10Z"/>'
 	),
+	# DIVERGENCE(DASH R2, HUD R2): the dash — an arrow head with three speed lines.
+	"dash":
+	(
+		'<path fill="#fff" d="M22 12L12.6 4.6V9.2H9.4V14.8H12.6V19.4Z"/><path '
+		+ LINE
+		+ ' d="M2.6 8.6H6.4M1.6 12H6.4M2.6 15.4H6.4"/>'
+	),
+	# DIVERGENCE(DASH R4): the cooldown upgrade — a stopwatch.
+	"dashCooldown":
+	(
+		'<circle cx="12" cy="13.6" r="7.4" '
+		+ LINE
+		+ "/><path "
+		+ LINE
+		+ ' d="M12 13.6V9.6M9.4 2.6H14.6M12 2.6V6.2M18.4 6.8L19.8 5.4"/>'
+	),
 }
 
 ## The power-up each Armory weapon id stands for (the Armory calls VORTEX "blackhole").

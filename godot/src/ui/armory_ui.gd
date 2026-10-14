@@ -37,13 +37,15 @@ signal closed
 ## Handling's "Calibrate tilt" (interface spec §5): GameRoot calls calibrate_gyro().
 signal calibrate_requested
 
-## The five live tabs. PORT: web/src/tilt-to-live/ArmoryUI.ts:80
-enum Tab { WEAPONS, SHIPS, ARENA, HANDLING, BOOSTS }
+## The live tabs. PORT: web/src/tilt-to-live/ArmoryUI.ts:80
+## DIVERGENCE(ITEM R2, user 2026-10-14: "modify the armory to include a section where you can
+## select your usable items"): a sixth, Abilities (the dash's upgrades and the items).
+enum Tab { WEAPONS, SHIPS, ARENA, HANDLING, BOOSTS, ABILITIES }
 
 ## Tab labels in row order. PORT: web/src/tilt-to-live/ArmoryUI.ts:353-357
-const TAB_LABELS: Array[String] = ["Weapons", "Ships", "Arena", "Handling", "Boosts"]
+const TAB_LABELS: Array[String] = ["Weapons", "Ships", "Arena", "Handling", "Boosts", "Abilities"]
 ## Canonical tab names, indexed by Tab. PORT: web/src/tilt-to-live/ArmoryUI.ts:10-15
-const TAB_NAMES: Array[String] = ["weapons", "ships", "arena", "handling", "boosts"]
+const TAB_NAMES: Array[String] = ["weapons", "ships", "arena", "handling", "boosts", "abilities"]
 ## The ten ArmoryTab names, legacy aliases included. PORT: web/src/tilt-to-live/ArmoryUI.ts:296-307
 const TAB_ALIASES: Dictionary[String, int] = {
 	"weapons": Tab.WEAPONS,
@@ -56,6 +58,9 @@ const TAB_ALIASES: Dictionary[String, int] = {
 	"handling": Tab.HANDLING,
 	"tuning": Tab.HANDLING,
 	"boosts": Tab.BOOSTS,
+	"abilities": Tab.ABILITIES,  # DIVERGENCE(ITEM R2)
+	"items": Tab.ABILITIES,
+	"dash": Tab.ABILITIES,
 }
 ## Raster density for the TS's SVG strings, on top of ui_scale.
 # PORT-NOTE: a raster-density choice with no TS counterpart (the browser
@@ -188,6 +193,14 @@ const BOOST_NOUNS: Dictionary[String, String] = {
 	"scoreMultiplier": "score",
 	"pointsMultiplier": "points",
 }
+## DIVERGENCE(DASH R4, ITEM R2): the Abilities tab — the gap between its sections, its dash
+## rows ([id, name, icon]) and its slot names.
+const ABILITIES_SECTION_GAP: int = 6
+const DASH_ROWS: Array[Array] = [
+	["dashCooldown", "Dash cooldown", "dashCooldown"],
+	["dashShield", "Dash shield", "shield"],
+]
+const SLOT_NAMES: Array[String] = ["Slot 1", "Slot 2"]
 ## Handling layout. DIVERGENCE(UI-SYSTEM): ArmoryHandling.dc.html — body padding
 ## BODY_PAD_* (Task 6), columns gap 28; left stack gap 10, field gap 2, slider 40 tall,
 ## value Mono 14 ion; bottom row gap 8; preview stack gap 8, box r 8; legend at
@@ -447,6 +460,8 @@ func _render_tab_content() -> Control:
 			return _render_handling_tab()
 		Tab.BOOSTS:
 			return _render_boosts_tab()
+		Tab.ABILITIES:
+			return _render_abilities_tab()  # DIVERGENCE(ITEM R2)
 		_:
 			return _render_weapons_tab()
 
@@ -1478,6 +1493,152 @@ static func boost_value(id: String, rank: int) -> String:
 	return ""
 
 
+## DIVERGENCE(DASH R4, ITEM R2): the Abilities tab — the dash's two upgrade rows (the shared
+## upgrade row), then the items: the two slots and one card per item, in the weapons' order.
+func _render_abilities_tab() -> Control:
+	var points: int = progression.data.points
+	var column: VBoxContainer = VBoxContainer.new()
+	column.name = "AbilitiesTab"
+	column.add_theme_constant_override("separation", _px(BOOSTS_GAP))
+	column.add_child(
+		_caption_row("DashPill", "Dash", "Double-tap in a run to dash and shield. Permanent.")
+	)
+	var dash_list: VBoxContainer = VBoxContainer.new()
+	dash_list.name = "DashList"
+	dash_list.add_theme_constant_override("separation", _px(TRACKS_GAP))
+	for entry: Array in DASH_ROWS:
+		var row: UpgradeRow = _dash_row(str(entry[0]), str(entry[1]), str(entry[2]))
+		dash_list.add_child(_upgrade_card(row, points))
+	column.add_child(dash_list)
+	var spacer: Control = Control.new()
+	spacer.custom_minimum_size.y = _px(ABILITIES_SECTION_GAP)
+	column.add_child(spacer)
+	column.add_child(
+		_caption_row("ItemsPill", "Items", "Fire one on demand, once a run. Equip two.")
+	)
+	column.add_child(_slots_line())
+	var item_list: VBoxContainer = VBoxContainer.new()
+	item_list.name = "ItemList"
+	item_list.add_theme_constant_override("separation", _px(TRACKS_GAP))
+	for w: WeaponConfig in weapons_catalog:
+		if ProgressionManager.ITEM_COSTS.has(w.id):
+			item_list.add_child(_item_card(w, points))
+	column.add_child(item_list)
+
+	var margin: MarginContainer = _pad(BODY_PAD_TOP, BODY_PAD_RIGHT, BODY_PAD_BOTTOM, BODY_PAD_LEFT)
+	margin.add_child(column)
+	return _scroll_body(margin)
+
+
+## DIVERGENCE(DASH R4): a dash upgrade as the shared upgrade row: seconds now → next.
+func _dash_row(id: String, row_name: String, icon_key: String) -> UpgradeRow:
+	var is_cooldown: bool = id == "dashCooldown"
+	var row: UpgradeRow = UpgradeRow.new()
+	row.prefix = "Dash"
+	row.id = id
+	row.icon_key = icon_key
+	row.accent = AbilityBar.COLOR_READY
+	row.name = row_name
+	if is_cooldown:
+		row.rank = progression.data.dash.cooldown
+		row.max_rank = ProgressionManager.DASH_COOLDOWN_RANKS
+		row.cost = progression.get_dash_cooldown_cost()
+		row.now_text = "%ds" % roundi(ProgressionManager.dash_cooldown_at(row.rank))
+		if row.cost != Types.ABSENT:
+			row.next_text = "%ds" % roundi(ProgressionManager.dash_cooldown_at(row.rank + 1))
+	else:
+		row.rank = progression.data.dash.shield
+		row.max_rank = ProgressionManager.DASH_SHIELD_RANKS
+		row.cost = progression.get_dash_shield_cost()
+		row.now_text = "%.1fs" % ProgressionManager.dash_shield_at(row.rank)
+		if row.cost != Types.ABSENT:
+			row.next_text = "%.1fs" % ProgressionManager.dash_shield_at(row.rank + 1)
+	row.on_buy = _on_dash_pressed.bind(id)
+	return row
+
+
+## DIVERGENCE(ITEM R2): "Slot 1 · Blackhole   Slot 2 · Empty", and how to swap when full.
+func _slots_line() -> HBoxContainer:
+	var line: HBoxContainer = HBoxContainer.new()
+	line.name = "ItemSlots"
+	line.add_theme_constant_override("separation", _px(SHIPS_GAP))
+	var equipped: Array[String] = progression.data.equipped_items
+	for slot: int in range(ProgressionManager.ITEM_SLOTS):
+		var id: String = equipped[slot] if slot < equipped.size() else ""
+		var shown: String = _item_name(id) if id != "" else "Empty"
+		var label: Label = UiTheme.text("%s · %s" % [SLOT_NAMES[slot], shown], "LabelText")
+		label.name = "ItemSlot_%d" % slot
+		var tint: Color = UiTheme.TEXT_FAINT
+		if id != "":
+			tint = WeaponIcons.ui_color_of(WeaponIcons.weapon_type(id) as Types.WeaponType)
+		label.add_theme_color_override("font_color", tint)
+		line.add_child(label)
+	if equipped.size() >= ProgressionManager.ITEM_SLOTS:
+		var hint: Label = _one_line("Unequip one to swap.", "HintText")
+		hint.name = "ItemSlotsFull"
+		hint.add_theme_color_override("font_color", UiTheme.TEXT_FAINT)
+		hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		line.add_child(hint)
+	return line
+
+
+## DIVERGENCE(ITEM R2): an item's card — its icon, name and line, and one action: its price,
+## Equip (disabled while both slots are full) or Unequip.
+func _item_card(w: WeaponConfig, points: int) -> PanelContainer:
+	var is_unlocked: bool = progression.is_item_unlocked(w.id)
+	var is_equipped: bool = progression.is_item_equipped(w.id)
+	var card: PanelContainer = PanelContainer.new()
+	card.name = "ItemCard_" + w.id
+	card.theme_type_variation = "Card"
+	card.custom_minimum_size.y = _px(TRACK_ROW_HEIGHT)
+	var inner: MarginContainer = _pad(0, TRACK_PAD_RIGHT, 0, TRACK_PAD_LEFT)
+	var line: HBoxContainer = HBoxContainer.new()
+	line.add_theme_constant_override("separation", _px(TRACK_GAP))
+	line.add_child(_weapon_icon(w, ROW_ICON))
+	var info: VBoxContainer = VBoxContainer.new()
+	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info.alignment = BoxContainer.ALIGNMENT_CENTER
+	info.add_theme_constant_override("separation", _px(TRACK_INFO_GAP))
+	info.add_child(_one_line(w.name, "StrongText"))
+	var desc: Label = _one_line(w.description, "HintText")
+	desc.add_theme_color_override("font_color", UiTheme.TEXT_FAINT)
+	info.add_child(desc)
+	line.add_child(info)
+	var action: Button = Button.new()
+	action.name = "Item_" + w.id
+	action.custom_minimum_size = Vector2(_px(ACTION_WIDTH), _px(UiTheme.TOUCH_TARGET))
+	action.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	if is_equipped:
+		action.theme_type_variation = "SecondaryButton"
+		action.text = "Unequip"
+		action.pressed.connect(_on_unequip_item_pressed.bind(w.id))
+	elif is_unlocked:
+		action.theme_type_variation = "EquipButton"
+		action.text = "Equip"
+		action.disabled = progression.data.equipped_items.size() >= ProgressionManager.ITEM_SLOTS
+		action.pressed.connect(_on_equip_item_pressed.bind(w.id))
+	else:
+		var cost: int = progression.get_item_cost(w.id)
+		action.theme_type_variation = "CostButton"
+		action.text = UiTheme.group_digits(cost)  # Ruling K
+		action.disabled = points < cost
+		_lock_if_unaffordable(action)
+		action.pressed.connect(_on_buy_item_pressed.bind(w.id))
+	line.add_child(action)
+	inner.add_child(line)
+	card.add_child(inner)
+	return card
+
+
+## DIVERGENCE(ITEM R2): an item's display name (its weapon's), or "" for an unknown id.
+func _item_name(id: String) -> String:
+	for w: WeaponConfig in weapons_catalog:
+		if w.id == id:
+			return w.name
+	return ""
+
+
 ## PORT: web/src/tilt-to-live/ArmoryUI.ts:943-1106 — the body is HandlingPreview.start().
 func _init_handling_preview() -> void:
 	if _preview != null and is_instance_valid(_preview):
@@ -1549,6 +1710,47 @@ func _on_boost_pressed(boost_id: String) -> void:
 				render()
 				_flash_balance()
 			return
+
+
+## DIVERGENCE(DASH R4): buys the next rank of a dash upgrade ("dashCooldown", "dashShield").
+func _on_dash_pressed(id: String) -> void:
+	var before: int = progression.data.points
+	var is_cooldown: bool = id == "dashCooldown"
+	var bought: bool = (
+		progression.buy_dash_cooldown() if is_cooldown else progression.buy_dash_shield()
+	)
+	if not bought:
+		return
+	var rank: int = progression.data.dash.cooldown if is_cooldown else progression.data.dash.shield
+	_log_buy("dash", id, rank, before)
+	state_changed.emit()
+	_pop_pips = "DashPips_" + id
+	render()
+	_flash_balance()
+
+
+## DIVERGENCE(ITEM R2): buys an item (it goes into a free slot).
+func _on_buy_item_pressed(id: String) -> void:
+	var before: int = progression.data.points
+	if progression.buy_item(id):
+		_log_buy("item", id, 1, before)
+		state_changed.emit()
+		render()
+		_flash_balance()
+
+
+## DIVERGENCE(ITEM R2): puts a bought item in the free slot.
+func _on_equip_item_pressed(id: String) -> void:
+	if progression.equip_item(id):
+		state_changed.emit()
+		render()
+
+
+## DIVERGENCE(ITEM R2): empties an item's slot.
+func _on_unequip_item_pressed(id: String) -> void:
+	if progression.unequip_item(id):
+		state_changed.emit()
+		render()
 
 
 ## PORT: web/src/tilt-to-live/ArmoryUI.ts:1199-1207

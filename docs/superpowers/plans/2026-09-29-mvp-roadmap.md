@@ -34,7 +34,9 @@ on Google Play still needs, and the rulings the user has made so far.
 - **MVP R2 — Leaderboards.** Recommended: Google Play Games Services, one board per mode,
   submitted at death, with a button on the menu and the Run over. A custom backend is
   the later option (1.5–2 weeks).
-- **MVP R3 — Clickable power-ups (proposed, not yet approved).**
+- **MVP R3 — Clickable power-ups (proposed, not yet approved).** *Superseded 2026-10-14 by the
+  user's own design, ITEM R1/R2 (plan `2026-10-14-dash-and-abilities.md`): every power-up is an
+  item bought once in the Armory, two slots, each fired once a run; no charges, no ad.*
   - One HUD slot, stocked with Nuke, Shield or Freeze.
   - About 300–500 points per charge; 1 use per run; chosen before the run.
   - "Watch an ad for a free charge", at most 1–2 per day.
@@ -111,8 +113,8 @@ opted-in testers, before production.
   required, Settings → Ad privacy; the GDPR message itself is published in AdMob, §ADS Part B.)*
 - [ ] **Play Games leaderboards (MVP R2).** 3–5 days, after the app exists in Play Console
   with its signing key registered.
-- [ ] *(if approved)* **Clickable power-ups (MVP R3).** 3–5 days; +0.5–1 day for the
-  rewarded ad.
+- [x] *(if approved)* **Clickable power-ups (MVP R3).** 3–5 days; +0.5–1 day for the
+  rewarded ad. *(Done as ITEM R1/R2 with the dash, 2026-10-14, branch `feat/dash-and-abilities`.)*
 
 ### Week 3 — store and the closed test
 - [ ] Privacy policy URL, Data safety form, ads declaration, content rating, target

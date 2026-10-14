@@ -48,8 +48,24 @@ const ROW_POINTS_SIZE: int = 12
 ## DIVERGENCE(RUNOVER R1): the earned figure is the hero (score size, flare) and counts
 ## up from 0 over this long; a tap on the sheet skips to the total.
 const COUNT_UP_SECONDS: float = 0.6
-## DIVERGENCE(ADS R6): the rewarded ad's offer, under the figure it multiplies.
+## DIVERGENCE(ADS R6): the rewarded ad's offer, under the figure it multiplies (its tooltip).
 const REWARD_TEXT: String = "Watch ad · 3× points"
+## DIVERGENCE(ADS R10, user 2026-10-14: "make it more appealing to look at"): the offer is a
+## flare button — the points' colour — with a "3×" badge, "Watch ad", and the figure the run's
+## points would become; a light sweeps across it every few seconds. Badge pad 6/1, row gap
+## 10, sweep 0.8 s then 2.2 s still, the band 0.9 of the height wide, warm white at 22%; while its
+## ad is on its way the row dims to 45% and reads "Opening ad…".
+const REWARD_LABEL: String = "Watch ad"
+const REWARD_WAITING_LABEL: String = "Opening ad…"
+const REWARD_GAP: int = 10
+const BADGE_PAD_X: int = 6
+const BADGE_PAD_Y: int = 1
+const SHINE_SECONDS: float = 0.8
+const SHINE_REST_SECONDS: float = 2.2
+const SHINE_WIDTH: float = 0.9
+const SHINE_ALPHA: float = 0.22
+const SHINE_COLOR: Color = Color("#FFE7C2")
+const REWARD_WAITING_ALPHA: float = 0.45
 
 var _ui_scale: float = 1.0
 var _points_row: HBoxContainer = null
@@ -80,6 +96,12 @@ var _chain: Label = null
 var _time: Label = null
 var _earned: Label = null
 var _reward: Button = null
+var _reward_row: HBoxContainer = null
+var _reward_badge: Label = null
+var _reward_label: Label = null
+var _reward_payoff: Label = null
+var _reward_shine: RewardShine = null
+var _shine_tween: Tween = null
 var _steer_row: HBoxContainer = null
 var _steer_caption: Label = null
 var _picker: ControlPicker = null
@@ -134,7 +156,7 @@ func set_ui_scale(scale: float) -> void:
 	_steer_caption.custom_minimum_size.x = STEER_LABEL_WIDTH * scale
 	_retry.custom_minimum_size.y = UiTheme.HERO_TARGET * scale
 	_reward.custom_minimum_size.y = UiTheme.TOUCH_TARGET * scale
-	_reward.icon = UiTheme.svg_texture(UiTheme.ICON_PLAY, scale)
+	_scale_reward(scale)
 	_bottom.add_theme_constant_override("separation", UiTheme.px(BOTTOM_GAP, scale))
 	for button: Button in [_menu, _spend]:
 		UiTheme.scale_nav_button(button, scale)
@@ -184,10 +206,23 @@ func _fit_score() -> void:
 
 
 ## DIVERGENCE(ADS R6): shows the "Watch ad · 3× points" offer when `is_offered`; `is_waiting`
-## greys it out while its ad is on its way.
+## greys it out while its ad is on its way. ADS R10: the light sweeps it only while it can be
+## tapped.
 func set_reward_offer(is_offered: bool, is_waiting: bool) -> void:
 	_reward.visible = is_offered
 	_reward.disabled = is_waiting
+	_reward_label.text = REWARD_WAITING_LABEL if is_waiting else REWARD_LABEL
+	_reward_row.modulate.a = REWARD_WAITING_ALPHA if is_waiting else 1.0
+	_refresh_reward_payoff()
+	if is_offered and not is_waiting:
+		_start_shine()
+	else:
+		_stop_shine()
+
+
+## True while the light sweeps the offer (ADS R10).
+func is_reward_shining() -> bool:
+	return _shine_tween != null
 
 
 ## DIVERGENCE(ADS R6): the earned figure counts up from where it stands to `earned`.
@@ -210,6 +245,7 @@ func finish_count_up() -> void:
 
 func _start_count_up(target: int, from: int = 0) -> void:
 	_earned_target = target
+	_refresh_reward_payoff()
 	if _count_tween != null:
 		_count_tween.kill()
 	_earned.text = earned_text(from)
@@ -346,15 +382,7 @@ func _build_right() -> VBoxContainer:
 	_points_row.mouse_filter = Control.MOUSE_FILTER_STOP
 	_points_row.gui_input.connect(_on_rows_gui_input)
 	_right.add_child(_points_row)
-	# DIVERGENCE(ADS R6, user 2026-10-14: "during game over screen, have a watch ads button for
-	# 3x the coins"): under the figure it triples, hidden until GameRoot offers a rewarded ad.
-	_reward = Button.new()
-	_reward.name = "WatchAdButton"
-	_reward.theme_type_variation = "EquipButton"
-	_reward.text = REWARD_TEXT
-	_reward.visible = false
-	_reward.pressed.connect(reward_requested.emit)
-	_right.add_child(_reward)
+	_right.add_child(_build_reward())
 	# DIVERGENCE(RUNOVER R1): the TS coins row (TiltGame.ts:1217-1220) and the "+0" hint
 	# went (user: "no need to know how many coins").
 
@@ -391,6 +419,107 @@ func _build_right() -> VBoxContainer:
 	_bottom.add_child(_spend)
 	_right.add_child(_bottom)
 	return _right
+
+
+## DIVERGENCE(ADS R6, user 2026-10-14: "during game over screen, have a watch ads button for
+## 3x the coins"): under the figure it triples, hidden until GameRoot offers a rewarded ad.
+## ADS R10: badge, label and payoff in a row over a sweeping light; the row ignores the
+## mouse, so the button takes the tap (as UiTheme.nav_button).
+func _build_reward() -> Button:
+	_reward = Button.new()
+	_reward.name = "WatchAdButton"
+	_reward.theme_type_variation = "RewardButton"
+	_reward.tooltip_text = REWARD_TEXT
+	_reward.clip_contents = true  # the sweep stays inside the button
+	_reward.visible = false
+	_reward.pressed.connect(reward_requested.emit)
+	_reward_shine = RewardShine.new()
+	_reward_shine.name = "RewardShine"
+	_reward_shine.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_reward.add_child(_reward_shine)
+	_reward.resized.connect(_size_shine)
+	_reward_row = HBoxContainer.new()
+	_reward_row.name = "RewardContent"
+	_reward_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_reward_row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_reward_badge = UiTheme.text("%d×" % GameRoot.AD_REWARD_MULTIPLIER, "ChipText")
+	_reward_badge.name = "RewardBadge"
+	_reward_badge.add_theme_color_override("font_color", UiTheme.COLOR_VOID)
+	_reward_badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_reward_badge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_reward_row.add_child(_reward_badge)
+	_reward_label = UiTheme.text(REWARD_LABEL, "")
+	_reward_label.name = "RewardLabel"
+	_reward_label.add_theme_font_override("font", UiTheme.sans(UiTheme.Weight.SEMIBOLD))
+	_reward_label.add_theme_color_override("font_color", UiTheme.COLOR_TEXT)
+	_reward_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_reward_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_reward_row.add_child(_reward_label)
+	_reward_payoff = UiTheme.text("", "PointsText")
+	_reward_payoff.name = "RewardPayoff"
+	_reward_payoff.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_reward_row.add_child(_reward_payoff)
+	for node: Control in [_reward_badge, _reward_label, _reward_payoff]:
+		node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_reward.add_child(_reward_row)
+	return _reward
+
+
+func _scale_reward(scale: float) -> void:
+	var pad: int = UiTheme.px(UiTheme.BUTTON_PAD_X, scale)
+	_reward_row.offset_left = pad
+	_reward_row.offset_right = -pad
+	_reward_row.add_theme_constant_override("separation", UiTheme.px(REWARD_GAP, scale))
+	_reward_badge.add_theme_stylebox_override(
+		"normal",
+		UiTheme.padded(
+			UiTheme.flat(
+				UiTheme.COLOR_FLARE, UiTheme.COLOR_FLARE, UiTheme.px(UiTheme.COST_RADIUS, scale)
+			),
+			UiTheme.px(BADGE_PAD_X, scale),
+			UiTheme.px(BADGE_PAD_Y, scale)
+		)
+	)
+	_reward_label.add_theme_font_size_override("font_size", UiTheme.px(UiTheme.LABEL_SIZE, scale))
+	_size_shine()
+
+
+## "+3,822": what the run's points become if the player earns the reward.
+func _refresh_reward_payoff() -> void:
+	_reward_payoff.text = earned_text(_earned_target * GameRoot.AD_REWARD_MULTIPLIER)
+	_reward_payoff.visible = _earned_target > 0
+
+
+func _size_shine() -> void:
+	var height: float = _reward.size.y
+	_reward_shine.size = Vector2(height * (SHINE_WIDTH + RewardShine.LEAN), height)
+	if _shine_tween == null:
+		_place_shine(0.0)
+
+
+func _start_shine() -> void:
+	if _shine_tween != null:
+		return
+	_shine_tween = create_tween().set_loops()
+	(
+		_shine_tween
+		. tween_method(_place_shine, 0.0, 1.0, SHINE_SECONDS)
+		. set_trans(Tween.TRANS_SINE)
+		. set_ease(Tween.EASE_IN_OUT)
+	)
+	_shine_tween.tween_interval(SHINE_REST_SECONDS)
+
+
+func _stop_shine() -> void:
+	if _shine_tween != null:
+		_shine_tween.kill()
+		_shine_tween = null
+	_place_shine(0.0)
+
+
+## Puts the band `t` of the way across: 0 just off the left edge, 1 just off the right.
+func _place_shine(t: float) -> void:
+	_reward_shine.position = Vector2(lerpf(-_reward_shine.size.x, _reward.size.x, t), 0.0)
 
 
 func _centered(label_name: String, variation: String) -> Label:
@@ -489,6 +618,39 @@ func _on_rows_gui_input(event: InputEvent) -> void:
 	var click: InputEventMouseButton = event
 	if click.pressed and click.button_index == MOUSE_BUTTON_LEFT:
 		milestones_requested.emit()
+
+
+## DIVERGENCE(ADS R10): the light band that sweeps the offer: drawn once, moved by a tween.
+## Two leaning quads, clear → lit → clear, so its edges are soft.
+class RewardShine:
+	extends Control
+
+	## How far the band leans over its height, as a share of that height.
+	const LEAN: float = 0.5
+
+	func _draw() -> void:
+		var h: float = size.y
+		var lean: float = h * LEAN
+		var mid: float = (size.x - lean) * 0.5
+		var lit: Color = UiTheme.tint(RunOverSheet.SHINE_COLOR, RunOverSheet.SHINE_ALPHA)
+		var clear: Color = UiTheme.tint(RunOverSheet.SHINE_COLOR, 0.0)
+		draw_polygon(
+			PackedVector2Array(
+				[Vector2(lean, 0.0), Vector2(lean + mid, 0.0), Vector2(mid, h), Vector2(0.0, h)]
+			),
+			PackedColorArray([clear, lit, lit, clear])
+		)
+		draw_polygon(
+			PackedVector2Array(
+				[
+					Vector2(lean + mid, 0.0),
+					Vector2(size.x, 0.0),
+					Vector2(size.x - lean, h),
+					Vector2(mid, h)
+				]
+			),
+			PackedColorArray([lit, clear, clear, lit])
+		)
 
 
 ## What the sheet shows, gathered by HudController.run_result_for().

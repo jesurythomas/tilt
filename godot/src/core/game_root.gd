@@ -85,6 +85,8 @@ var _router: InputRouter = null
 var _touch: TouchInput = null
 var _tilt: TiltInput = null
 var _joystick: FloatingJoystick = null
+## DIVERGENCE(DASH R1): the dash gesture.
+var _double_tap: DoubleTap = DoubleTap.new()
 ## The HUD's ui_scale, kept for re-sizing the stick when Stick size changes (TOUCH R1).
 var _ui_scale: float = 1.0
 var _state: GameStateMachine = null
@@ -261,6 +263,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	# M11a final review: the menu backdrop is autopiloted and takes no player
 	# input (TiltGame.ts:1650-1830); skip the joystick so a backdrop tap does
 	# not draw it over the menu.
+	# DIVERGENCE(DASH R1): every touch also feeds the double tap, before the stick takes it.
+	if _state.phase == Types.GamePhase.PLAYING:
+		_feed_dash_gesture(event)
 	if _is_touch_stick_live():
 		if event is InputEventScreenTouch:
 			var touch: InputEventScreenTouch = event
@@ -316,6 +321,13 @@ func _unhandled_input(event: InputEvent) -> void:
 				elif _state.phase == Types.GamePhase.PLAYING or is_paused():
 					_toggle_pause_with_sheet()
 				return
+			# DIVERGENCE(DASH R1, ITEM R1): desktop — Shift dashes, 1 and 2 fire the items.
+			if armory_key.keycode == KEY_SHIFT:
+				request_dash()
+				return
+			if armory_key.keycode == KEY_1 or armory_key.keycode == KEY_2:
+				use_item(0 if armory_key.keycode == KEY_1 else 1)
+				return
 
 	if event is InputEventKey:
 		var key_event: InputEventKey = event
@@ -347,6 +359,16 @@ func _physics_process(delta: float) -> void:
 
 ## The phase dispatch of _physics_process, split out so the probe can time it whole.
 func _physics_phase(delta: float) -> void:
+	# DIVERGENCE(BUG-101 R5): a settling level reads the sensor in every phase (the cold open,
+	# Pause, the menu); a run's tick under tilt reads it already.
+	if (
+		_tilt.is_settling()
+		and not (
+			_state.phase == Types.GamePhase.PLAYING
+			and _router.control_scheme == Types.ControlScheme.GYRO
+		)
+	):
+		_tilt.poll()
 	match _state.phase:
 		Types.GamePhase.PLAYING:
 			_update(delta * Tuning.GAME_SPEED)
@@ -501,6 +523,7 @@ func set_control_scheme(scheme: Types.ControlScheme) -> void:
 	# A half-held input from the previous scheme must not leak into the new one.
 	_router.clear_movement_keys()
 	_joystick.reset()
+	_place_ability_bar()  # DIVERGENCE(HUD R4): the bar's side follows the scheme too
 
 
 ## Pause's Settings opens the menu's options modal over the paused run.
@@ -584,6 +607,66 @@ func _is_touch_stick_live() -> bool:
 ## set_size, since the corner centre depends on the radius.
 func _apply_stick_anchor() -> void:
 	_joystick.apply_anchor(settings.stick_anchor, _bounds)
+	_place_ability_bar()
+
+
+## DIVERGENCE(HUD R4, user 2026-10-14: "it should also be on the right when tilt is selected. on
+## touch, when the joystick is stickied to the right show it on the left, else right"): true
+## only for the Touch stick (the TOUCH scheme on a phone) anchored bottom right.
+static func is_ability_bar_left(
+	scheme: Types.ControlScheme, anchor: ControlSettings.StickAnchor, is_mobile: bool
+) -> bool:
+	return (
+		is_mobile
+		and scheme == Types.ControlScheme.MOUSE
+		and anchor == ControlSettings.StickAnchor.RIGHT
+	)
+
+
+# DIVERGENCE(HUD R2, R4): the ability bar keeps clear of a stick anchored bottom right.
+func _place_ability_bar() -> void:
+	_hud.set_ability_side(
+		is_ability_bar_left(_router.control_scheme, settings.stick_anchor, OS.has_feature("mobile"))
+	)
+
+
+## DIVERGENCE(DASH R1): asks the run for a dash (a double tap, Shift, a double-click). Only a
+## live run takes it.
+func request_dash() -> void:
+	if _state.phase == Types.GamePhase.PLAYING:
+		_run_controller.abilities.request_dash()
+
+
+## DIVERGENCE(ITEM R1): asks the run to fire item `slot` (its HUD button, or 1 and 2).
+func use_item(slot: int) -> void:
+	if _state.phase == Types.GamePhase.PLAYING:
+		_run_controller.abilities.request_item(slot)
+
+
+# DIVERGENCE(DASH R1): touches go to the double tap (clock in seconds); a real mouse's
+# double-click dashes too. Mouse events emulated from touches (device −1) are skipped, so a
+# phone's double tap is counted once.
+func _feed_dash_gesture(event: InputEvent) -> void:
+	var now: float = Time.get_ticks_msec() / 1000.0
+	if event is InputEventScreenTouch:
+		var touch: InputEventScreenTouch = event
+		if touch.pressed:
+			if _double_tap.press(touch.index, touch.position, now):
+				request_dash()
+		else:
+			_double_tap.release(touch.index, touch.position, now)
+	elif event is InputEventScreenDrag:
+		var drag: InputEventScreenDrag = event
+		_double_tap.drag(drag.index, drag.position)
+	elif event is InputEventMouseButton:
+		var click: InputEventMouseButton = event
+		if (
+			click.double_click
+			and click.pressed
+			and click.button_index == MOUSE_BUTTON_LEFT
+			and click.device != InputEvent.DEVICE_ID_EMULATION
+		):
+			request_dash()
 
 
 ## Settings' Stick position, mid-run from Pause: a finger that held the old stick must not
@@ -603,8 +686,9 @@ func toggle_pause() -> void:
 	_state.toggle_pause()
 	# DIVERGENCE(BUG-101 R4, user: "toggle off -> recalibrates when play /resume is pressed"):
 	# under Each start, Resume levels to the pose held, unsaved, as Play does.
+	# DIVERGENCE(BUG-101 R5): once the phone holds still after the tap on Resume.
 	if _state.phase == Types.GamePhase.PLAYING and settings.levels_each_run():
-		_tilt.calibrate_current_position(false)
+		_tilt.settle_level(false)
 
 
 ## DIVERGENCE(BUG-101 R2, R4): Settings' Tilt level and Pause's Keep tilt level. All runs
@@ -681,9 +765,12 @@ func _restart_run_now() -> void:
 ## PORT: web/src/tilt-to-live/TiltGame.ts:1525-1529
 func _begin_cinematic() -> void:
 	_joystick.reset()
-	# DIVERGENCE(BUG-101 R2): Auto takes the pose at the run's first poll, unsaved.
+	_double_tap.reset()  # DIVERGENCE(DASH R1)
+	# DIVERGENCE(BUG-101 R2): Auto takes the pose as the run starts, unsaved.
+	# DIVERGENCE(BUG-101 R5): from a still phone, read through the cold open, not the run's
+	# first reading.
 	if settings.levels_each_run():
-		_tilt.calibrate_current_position(false)
+		_tilt.settle_level(false)
 	_run_controller.reset_run(_bounds)
 	# PORT-NOTE(M10 final review F-2): the machine's mode follows the run's
 	# captured mode (R4), so _state.restart() never passes a stale mode.
@@ -722,13 +809,17 @@ func skip_cinematic() -> void:
 ## calibrateGyro. PORT: web/src/tilt-to-live/TiltGame.ts:2331-2341
 # PORT-NOTE: the TS awaits the permission promise; request_permission_and_start()
 # is synchronous here (see _ready). updateHUD (:2339) is signal-driven here.
-func calibrate_gyro() -> bool:
+## `touched_at` (TiltInput.now_seconds) is when the finger came down on the Calibrate screen's
+## Set level; -1 for the buttons with no live reading before them (Pause, Armory).
+func calibrate_gyro(touched_at: float = -1.0) -> bool:
 	var success: bool = _tilt.request_permission_and_start()
 	if success:
-		_tilt.calibrate_current_position()
-		# BUG-101: capture the pose now. Nothing polls in the menu, so Armory's
-		# Calibrate tilt otherwise left the capture to the run's first poll.
-		_tilt.poll()
+		# DIVERGENCE(BUG-101 R5): never one reading at the tap. The Calibrate screen levels
+		# to the pose held just before the finger came down; Pause and Armory level once the
+		# phone holds still after the tap (_physics_phase reads the sensor meanwhile, in any
+		# phase, so the run's first poll never takes it: BUG-101 R1 holds).
+		if touched_at < 0.0 or not _tilt.level_to_recent(touched_at):
+			_tilt.settle_level()
 		settings.tilt_level = ControlSettings.TiltLevel.SAVED  # DIVERGENCE(BUG-101 R2)
 		settings.save_settings()
 		# Set level from Settings: the board under the Calibrate screen shows All runs on close.
@@ -804,12 +895,13 @@ func _on_how_to_play_closed() -> void:
 
 ## Set level: the TS calibrateGyro and its toast (TiltGame.ts:2331-2341).
 func calibrate_gyro_from_screen() -> void:
-	calibrate_gyro()
+	calibrate_gyro(_calibrate_screen.set_level_touched_at())  # DIVERGENCE(BUG-101 R5)
 
 
 func _on_calibrate_closed() -> void:
 	# M11a R4: reset_run owns the sensor during a run (TiltGame.ts:1553-1557).
-	if is_in_menu():
+	# DIVERGENCE(BUG-101 R5): a level still settling keeps reading it.
+	if is_in_menu() and not _tilt.is_settling():
 		_tilt.stop_listening()
 
 
@@ -994,6 +1086,7 @@ func resize_canvas() -> void:
 	# inset by arena_origin so it stays inside the safe area (spec §8 M8).
 	var ui_scale: float = HudController.ui_scale_for(viewport)
 	_ui_scale = ui_scale
+	_double_tap.scale = ui_scale  # DIVERGENCE(DASH R1)
 	_joystick.set_size(ui_scale, settings.stick_size)  # DIVERGENCE(TOUCH R1)
 	_apply_stick_anchor()
 	_armory.set_ui_scale(ui_scale, arena_origin)

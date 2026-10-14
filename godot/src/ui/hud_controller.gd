@@ -23,7 +23,6 @@ const MAX_UI_SCALE: float = 3.0
 ## at left 20, top 12). DIVERGENCE(UI-SYSTEM): Hud.dc.html
 const FRAME_ALPHA: float = 0.28  # outline rgba(91,140,255,0.28)
 const FRAME_RADIUS: int = 2
-const SCORE_TOP: int = 10  # score block top 22 − 12
 const SCORE_GAP: int = 4
 const LEFT_COLUMN_X: int = 16  # lives column left 36 − 20
 const LEFT_COLUMN_Y: int = 14  # top 26 − 12
@@ -38,6 +37,16 @@ const TIMER_METER_WIDTH: int = 160
 ## DIVERGENCE(ICONS R3): the weapon icon left of the timer label, and its gap (px at 1x).
 const TIMER_ICON: int = 16
 const TIMER_ICON_GAP: int = 6
+## DIVERGENCE(HUD R1, user 2026-10-14: "it is hard to see the middle upper center due to the
+## score and multiplier"): the score block leaves the top centre for the top of the left column
+## (Hud.dc.html centred it, 22 from the top); the score is this size there, with the
+## multiplier chip this far to its right.
+const SCORE_SIZE: int = 22
+const SCORE_CHIP_GAP: int = 8
+## DIVERGENCE(HUD R2): the ability bar's inset from the frame's bottom corner (the pause
+## button's side inset; the weapon timer's bottom inset).
+const ABILITY_INSET_X: int = 14
+const ABILITY_INSET_Y: int = 14
 
 ## The shield's fixed total for the indicator's fraction.
 ## PORT: web/src/tilt-to-live/TiltGame.ts:2190
@@ -85,6 +94,9 @@ var _first_run_hint_used: bool = false
 var _ui_scale: float = 1.0
 var _frame: Panel = null
 var _score_block: VBoxContainer = null
+var _score_row: HBoxContainer = null
+## DIVERGENCE(HUD R2): the dash gauge and the item buttons.
+var _ability_bar: AbilityBar = null
 var _left_column: VBoxContainer = null
 var _lives_row: HBoxContainer = null
 ## The process frame and tier of the last score pulse (one pulse per frame).
@@ -165,6 +177,10 @@ func _ready() -> void:
 
 	_frame = find_child("Frame", true, false) as Panel
 	_score_block = find_child("ScoreBlock", true, false) as VBoxContainer
+	_score_row = find_child("ScoreRow", true, false) as HBoxContainer
+	_ability_bar = find_child("AbilityBar", true, false) as AbilityBar
+	if _ability_bar != null:
+		_ability_bar.item_pressed.connect(_on_item_pressed)  # DIVERGENCE(ITEM R1)
 	_left_column = find_child("LeftColumn", true, false) as VBoxContainer
 	_lives_row = find_child("LivesRow", true, false) as HBoxContainer
 	_weapon_timer = find_child("WeaponTimer", true, false) as VBoxContainer
@@ -256,6 +272,8 @@ func _process(_delta: float) -> void:
 		return
 	_show_lives(lives_pips(_run.lives, _run.max_lives))
 	_show_weapon_timer(weapon_timer_for(_run.player, _run.weapons.active_weapons))
+	if _ability_bar != null:
+		_ability_bar.show_abilities(_run.abilities)  # DIVERGENCE(HUD R2)
 
 
 ## Binds the live run the HUD reads each frame. PORT: web/src/tilt-to-live/TiltGame.ts:2173-2214
@@ -282,9 +300,14 @@ func set_ui_scale(scale: float) -> void:
 			)
 		)
 	if _score_block != null:
-		_score_block.offset_top = SCORE_TOP * scale
-		_score_block.offset_bottom = _score_block.offset_top
 		_score_block.add_theme_constant_override("separation", UiTheme.px(SCORE_GAP, scale))
+	if _score_row != null:
+		_score_row.add_theme_constant_override("separation", UiTheme.px(SCORE_CHIP_GAP, scale))
+	if _score_label != null:
+		_score_label.add_theme_font_size_override("font_size", UiTheme.px(SCORE_SIZE, scale))
+	if _ability_bar != null:
+		_ability_bar.set_ui_scale(scale)
+		_place_ability_bar()
 	if _left_column != null:
 		_left_column.offset_left = LEFT_COLUMN_X * scale
 		_left_column.offset_top = LEFT_COLUMN_Y * scale
@@ -331,6 +354,20 @@ func set_ui_scale(scale: float) -> void:
 	for button: Button in [_pause_armory_button, _game_over_armory_button]:
 		if button != null:
 			button.custom_minimum_size.y = UiTheme.TOUCH_TARGET * scale
+
+
+## DIVERGENCE(HUD R2): the ability bar goes to the bottom-left corner when `is_left` (Stick
+## position Right anchors the stick bottom right), else bottom right.
+func set_ability_side(is_left: bool) -> void:
+	if _ability_bar == null:
+		return
+	_ability_bar.set_left(is_left)
+	_place_ability_bar()
+
+
+## The ability bar, or null (tests).
+func ability_bar() -> AbilityBar:
+	return _ability_bar
 
 
 ## Shows or hides the pause overlay without changing the phase.
@@ -590,7 +627,7 @@ func _on_phase_changed(phase: Types.GamePhase) -> void:
 	_update_first_run_hint(phase)
 	# M11a R12: the in-run HUD shows only outside the menu.
 	var in_menu: bool = phase == Types.GamePhase.MENU
-	for node: Control in [_score_block, _pause_button]:
+	for node: Control in [_score_block, _pause_button, _ability_bar]:
 		if node != null:
 			node.visible = not in_menu
 	# DIVERGENCE(M11c review): the menu's right column covers half the arena, so the
@@ -613,6 +650,32 @@ func _on_phase_changed(phase: Types.GamePhase) -> void:
 		_game_over_panel.visible = false
 	if _pause_panel != null:
 		_pause_panel.visible = false
+
+
+# DIVERGENCE(HUD R2): anchors the bar to its bottom corner of the frame, growing inward.
+func _place_ability_bar() -> void:
+	var is_left: bool = _ability_bar.is_on_left()
+	var side: float = 0.0 if is_left else 1.0
+	_ability_bar.anchor_left = side
+	_ability_bar.anchor_right = side
+	_ability_bar.anchor_top = 1.0
+	_ability_bar.anchor_bottom = 1.0
+	_ability_bar.grow_horizontal = (
+		Control.GROW_DIRECTION_END if is_left else Control.GROW_DIRECTION_BEGIN
+	)
+	_ability_bar.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	var inset_x: float = ABILITY_INSET_X * _ui_scale
+	_ability_bar.offset_left = inset_x if is_left else -inset_x
+	_ability_bar.offset_right = _ability_bar.offset_left
+	_ability_bar.offset_bottom = -ABILITY_INSET_Y * _ui_scale
+	_ability_bar.offset_top = _ability_bar.offset_bottom
+
+
+# DIVERGENCE(ITEM R1): an item button asks GameRoot to fire its slot.
+func _on_item_pressed(slot: int) -> void:
+	var root: GameRoot = get_tree().get_first_node_in_group("game_root") as GameRoot
+	if root != null:
+		root.use_item(slot)
 
 
 ## DIVERGENCE(MVP R5): a centred line below the score that says what orbs do.

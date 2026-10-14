@@ -4,7 +4,98 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**Latest (2026-10-14): ads round 2 — pacing by games, a 3× rewarded ad, dearer Armory (ADS
+**Latest (2026-10-14, afternoon, later): BUG-101 R5, still-phone tilt levels, on
+`feat/dash-and-abilities`.** User: "theres a drift now during the tilt calibration ... i usually
+just press play and when on the game screen not expect it to move until i tilt. now, it tilts at
+around 10-11". Every level was one gravity reading taken as a thumb left a button (Play's first
+tick, Resume, the Pause crosshair, Armory, Set level), so a moving hand gave an off-level
+neutral and the ship drifted up-left; the user's Pause showed Keep tilt level on, which keeps
+that level for every run. Now `TiltInput.settle_level` takes the mean of 0.25 s of still samples
+(within 1°) after the request (stillest window after 1.5 s), steering zero meanwhile; GameRoot
+polls the sensor while a level settles in any phase (so Each start settles in the 0.6 s cold
+open); Set level uses the 0.3 s before the finger came down (`level_to_recent`). One log line a
+level ("tilt: level settled in …; the first reading was … deg off it"). Ruling and numbers in
+`docs/superpowers/plans/2026-10-12-fix-bug-101-calibration-sticks.md` (R5). Suite 1026/1026,
+75/75 scripts, nothing leaked; gdformat/gdlint clean; 0 SCRIPT ERROR headless. Cost: a tilt tick
+0.84 → 1.08 µs on desktop. 0.1.24 (code 25, `godot/build/peril-point-0.1.24-a55.apk`, A55 key)
+is on the A55, installed 2026-10-14 12:37 over 0.1.23 (a paused 0:02 run was the only thing
+open), data kept, launched with no SCRIPT ERROR; menu frame time mean 16.70 ms, p95 25.1 (taken
+just after launch). Next A55 build uses code 26. User: "commit push merge to staging": the branch is pushed and
+PR #16 (`feat/dash-and-abilities` → `staging`) is open; merging it was refused by the session's
+permission check ("Merge Without Review"), so the user merges it. Next: the user's pass (`VERIFY-ME.md` §BUG-101
+R5 lines; their Keep tilt level is on, so its old level stays until they level again or turn
+it off), then the §ADS R9/R10 and §DASH checks, then PR `feat/dash-and-abilities` → `staging`.
+
+**Earlier (2026-10-14, afternoon): ADS R9 and R10, on `feat/dash-and-abilities`.** User: "for
+ads, if they manually select the 3x points to view ads, reset the count. also make it more
+appealing to look at". R9: `Ads.show_rewarded` resets the interstitial pacing (saved) at the
+tap, not when the ad opens, so it holds when the ad fails or never opens. R10: the Run over's
+`WatchAdButton` is a flare `RewardButton` (new theme variation) with a "3×" badge, "Watch ad",
+and the payoff (`earned × GameRoot.AD_REWARD_MULTIPLIER`, e.g. +3,822), under a warm glint that
+sweeps every 3 s while it can be tapped (a tween moves a once-drawn `RunOverSheet.RewardShine`,
+~1.2 µs a frame, Run over only); "Opening ad…" and 45% while its ad is on its way. Rulings in
+`docs/superpowers/plans/2026-10-13-in-game-ads.md` (tasks 15, 16). Review shot:
+`REWARD=1|wait bench/shot_run_over.gd` → `build/run_over_a55_reward*.png`. Suite 1017/1017,
+75/75 scripts, nothing leaked; gdformat/gdlint clean; 0 SCRIPT ERROR headless. 0.1.23 (code
+24, `godot/build/peril-point-0.1.23-a55.apk`, A55 key) is on the A55: installed 2026-10-14
+12:16 over 0.1.22 while locked, then rebuilt from the same tree and reinstalled at 12:18 once
+the user unlocked it ("ive unlocked it rebuild"), data kept, launched: the save loaded (best
+1,459,665, 1,228 points, 42/57), consent `can_request_ads=true`, no SCRIPT ERROR; menu frame
+time mean 16.66 ms, p95 24.9 (same as 0.1.22). Next A55 build uses code
+25. Next: the user's A55 pass (VERIFY-ME §ADS R9/R10 lines, §DASH /
+ITEM / HUD / HTP R3, §ADS Part A), then PR `feat/dash-and-abilities` → `staging`.
+
+**Earlier (2026-10-14, later still): HUD R4.** User: "it should also be on the right when tilt
+is selected. on touch, when the jostick is stickied to the right show it on the left, else
+right". The ability bar is bottom left only for the Touch stick anchored Right
+(`GameRoot.is_ability_bar_left`, re-applied on a scheme change); tilt keeps it bottom right.
+0.1.22 (code 23, `godot/build/peril-point-0.1.22-a55.apk`, A55 key) is on the A55, installed 2026-10-14 02:00 over 0.1.21, data kept (the phone was locked, so not launched). Suite 1012/1012 green. Next A55 build uses code 24.
+
+**Earlier (2026-10-14): HUD R3.** User: "having the background on abilities/items seem
+bad". The item buttons have no panel (empty styleboxes; the orb is 42 of the 48-unit target) and
+the dash gauge has no disc (track ring + fill on the playfield; the seconds carry the HUD's void
+outline). `dash.ogv` re-recorded. 0.1.21 (code 22, `godot/build/peril-point-0.1.21-a55.apk`, A55
+key) is on the A55 (user: "build it"; installed 2026-10-14 01:50 over 0.1.20, data kept, launched, booted with no SCRIPT ERROR). Everything below still holds.
+
+**Earlier (2026-10-14): dash, items (active abilities), and the play-screen rework, on branch
+`feat/dash-and-abilities` (from `feat/in-game-ads` at `31040da`, which holds `staging`), not
+merged.** User: "1. Dash ... 2. Active abilities ... 3. ... hard to see the middle upper center
+due to the score and multiplier. 4. ... show the Dash cooldown and clickable items. 5. Update the
+how to ... Create a new branch for this". Plan `docs/superpowers/plans/2026-10-14-dash-and-abilities.md`
+(rulings DASH R1-R5, ITEM R1-R2, HUD R1-R2, HTP R3; all 7 tasks ticked). **Dash:** a double tap
+anywhere in a live run (`src/input/double_tap.gd`, Android's rule: a quick still tap, then a
+second press within 0.3 s and 100 units; any finger; GameRoot feeds it before the stick), or
+Shift / a real mouse double-click on desktop, asks `RunController.abilities`
+(`src/sim/ability_system.gd`) for a dash at the next tick: a 0.12 s burst a quarter of the arena
+along the ship's velocity (facing when still), stopped by the arena edge and Corridor walls
+(`GauntletMaze.blocks`), raising the shield to 2 s; the 20 s cooldown starts when the dash's own
+shield window ends; ready at every run start; a request while not ready is dropped. Upgrades in
+the save (`dash: {cooldown, shield}`): cooldown 20 → 15 s in 5 ranks, shield 2.0 → 5.0 s in 6,
+priced as weapon ranks. DASH R5: these are game seconds (the sim runs at `Tuning.GAME_SPEED`
+0.75, like every timer), ~27 s on a stopwatch — flip in `AbilitySystem.reset` if the user wants
+wall-clock. **Items:** each of the seven power-ups can be bought once (`ITEM_COSTS` × 2,
+2,400-4,000) and equipped in one of 2 slots (`unlockedItems`, `equippedItems`); in a run each
+equipped item fires once via its HUD button (or 1 / 2), as an orb pickup would (perks,
+milestones, the timer), and is back next run. **Armory:** a sixth tab, Abilities (dash rows +
+slots + item cards with buy / Equip / Unequip); the tab buttons pad 8 a side (was 12) so six
+tabs and a 7-digit balance fit the 844-px header. **HUD:** the score block moved into the left
+column (score 22 px with the chip beside it, BEST under it, then lives and toasts); a bottom-corner
+`AbilityBar` (`src/ui/ability_bar.gd`): the dash gauge (display only) and the item buttons,
+bottom left when Stick position is Right. **How to play:** page 3 "Dash and items" with a recorded
+clip (`assets/how_to_play/dash.ogv`), the Abilities line, and a re-recorded `armory.ogv`
+(`tools/record_htp_clips.gd`, `HTP_CLIP=dash`). `GameEvents.dash_activated` (Haptics: 25 ms).
+MVP R3 (clickable power-ups) is marked superseded in the roadmap. Review shots:
+`bench/shot_hud.gd`, `bench/shot_armory.gd`, `bench/shot_how_to_play.gd` (all windowed,
+`build/shots/`). Tests: 1010/1010, 75/75 scripts, nothing leaked; gdformat/gdlint clean;
+0 SCRIPT ERROR headless. Perf: desktop full run tick 68-69 µs vs 70-73 before; the bar's
+per-frame update 1.3 µs. **0.1.20 (code 21, `godot/build/peril-point-0.1.20-a55.apk`, A55 key)
+is on the A55** (installed 01:42, data kept); someone was playing it at once and dashed twice;
+frame time mean 16.66 ms, p95 25.0 (same as 0.1.18). Seen, not
+fixed: the Armory weapon list clips "Blackhole" beside a two-digit rank ("9/15"). Next: the
+user's A55 pass (`VERIFY-ME.md` §DASH / ITEM / HUD / HTP R3, and §ADS still open), then PR
+`feat/dash-and-abilities` → `staging`.
+
+**Earlier (2026-10-14): ads round 2 — pacing by games, a 3× rewarded ad, dearer Armory (ADS
 R5-R8), and a Gauntlet stripe fix; merged into `staging` from `feat/in-game-ads` (user:
 "commit push create pr and merge to staging for now"), not yet in `main`.** Plan
 `docs/superpowers/plans/2026-10-13-in-game-ads.md` (rulings and tasks 10-12). R5 (user: "after

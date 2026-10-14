@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3]
+[gd_scene load_steps=16 format=3]
 
 [ext_resource type="Script" path="res://src/core/game_root.gd" id="1"]
 [ext_resource type="Script" path="res://src/render/grid_layer.gd" id="2"]
@@ -14,6 +14,7 @@
 [ext_resource type="Script" path="res://src/ui/calibrate_screen.gd" id="13"]
 [ext_resource type="Script" path="res://src/ui/entrance_cinematic.gd" id="14"]
 [ext_resource type="Script" path="res://src/ui/how_to_play_screen.gd" id="15"]
+[ext_resource type="Script" path="res://src/ui/ability_bar.gd" id="16"]
 
 [node name="GameRoot" type="Node2D"]
 script = ExtResource("1")
@@ -57,40 +58,39 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="ScoreBlock" type="VBoxContainer" parent="CanvasLayer/Hud/Frame"]
+[node name="LeftColumn" type="VBoxContainer" parent="CanvasLayer/Hud/Frame"]
 layout_mode = 1
-anchors_preset = 5
-anchor_left = 0.5
-anchor_right = 0.5
-grow_horizontal = 2
 mouse_filter = 2
 
-[node name="ScoreLabel" type="Label" parent="CanvasLayer/Hud/Frame/ScoreBlock"]
+[node name="ScoreBlock" type="VBoxContainer" parent="CanvasLayer/Hud/Frame/LeftColumn"]
+layout_mode = 2
+size_flags_horizontal = 0
+mouse_filter = 2
+
+[node name="ScoreRow" type="HBoxContainer" parent="CanvasLayer/Hud/Frame/LeftColumn/ScoreBlock"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="ScoreLabel" type="Label" parent="CanvasLayer/Hud/Frame/LeftColumn/ScoreBlock/ScoreRow"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"ScoreText"
 text = "0"
-horizontal_alignment = 1
 
-[node name="BestLabel" type="Label" parent="CanvasLayer/Hud/Frame/ScoreBlock"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_type_variation = &"MonoFaintText"
-text = "BEST 0"
-horizontal_alignment = 1
-
-[node name="MultiplierLabel" type="Label" parent="CanvasLayer/Hud/Frame/ScoreBlock"]
+[node name="MultiplierLabel" type="Label" parent="CanvasLayer/Hud/Frame/LeftColumn/ScoreBlock/ScoreRow"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
-size_flags_horizontal = 4
+size_flags_vertical = 4
 theme_type_variation = &"ChipText"
 text = "1×"
 horizontal_alignment = 1
 
-[node name="LeftColumn" type="VBoxContainer" parent="CanvasLayer/Hud/Frame"]
-layout_mode = 1
-mouse_filter = 2
+[node name="BestLabel" type="Label" parent="CanvasLayer/Hud/Frame/LeftColumn/ScoreBlock"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"MonoFaintText"
+text = "BEST 0"
 
 [node name="LivesRow" type="HBoxContainer" parent="CanvasLayer/Hud/Frame/LeftColumn"]
 visible = false
@@ -149,6 +149,19 @@ theme_type_variation = &"Meter"
 max_value = 1.0
 step = 0.0
 show_percentage = false
+
+[node name="AbilityBar" type="HBoxContainer" parent="CanvasLayer/Hud/Frame"]
+visible = false
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+script = ExtResource("16")
 
 [node name="PausePanel" type="Control" parent="CanvasLayer/Hud"]
 visible = false

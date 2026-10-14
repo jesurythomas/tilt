@@ -1039,6 +1039,14 @@ Passed on the A55, 0.1.10 (user 2026-10-13: "tick phone checks. they are working
 - [x] R4 (0.1.10): Pause shows Keep tilt level under Tilt only, and the sheet still fits.
 - [x] R4: Keep tilt level off → Resume levels to how you hold the phone; on → Resume and the
       next runs keep the level you were playing with.
+- [ ] R5 (user: "now, it tilts at around 10-11"): with Keep tilt level **off**, press Play and
+      hold the phone as you play: the ship stays put until you tilt, run after run. Logcat
+      shows `tilt: level settled in … s; the first reading was … deg off it` once per start.
+- [ ] R5: Resume with Keep tilt level off: the ship holds still a moment, then steers level.
+- [ ] R5: the crosshair in Pause, then hold the phone as you play: Resume and later runs are
+      level (it turns Keep tilt level on, as before).
+- [ ] R5: Settings → Calibrate tilt → hold an angle → Set level: the next run is level at that
+      angle, even with a firm tap on Set level.
 
 ## HAPTICS R1 — vibration as media (2026-10-13)
 
@@ -1100,6 +1108,13 @@ Checked on the emulator (Pixel_10, Play Store image), 2026-10-13:
       next ad loads. Retry right after a rewarded ad shows no interstitial. *(0.1.18 on the A55,
       2026-10-14 00:48: the rewarded ad opened 70 ms after the tap, `ads: reward earned` 8 s in,
       closed 2 s later. Still to see: the figure counting up to 3× and the button going.)*
+- [ ] (ADS R10, user: "make it more appealing to look at") The offer is now an amber button: a
+      solid "3×" badge, "Watch ad", and the tripled figure on the right (+3,822 under +1,274);
+      a soft glint sweeps across it every 3 s. Tapped, it dims to "Opening ad…" until the ad
+      covers the game. Judge: does it read as a bonus, not a second Retry?
+- [ ] (ADS R9, user: "if they manually select the 3x points to view ads, reset the count") Tap
+      Watch ad, then play several runs: no interstitial until a fresh 5-10 games (or 5 min of
+      play) after the tap, even if the rewarded ad was closed early or failed to show.
 - [ ] (ADS R7) Armory prices are double what they were (e.g. a rank-1 upgrade 500, Solar 1,200);
       what you own stays owned. *(Screenshot 00:48: Blackhole Radius rank 3 at 1,300, Event
       Horizon at 6,000; the cost buttons fit.)* ADS R8 (user: "The upgrades still seem cheap"):
@@ -1152,3 +1167,46 @@ Checked on the emulator (Pixel_10, Play Store image), 2026-10-13:
    "AdMob data disclosure" page). **Advertising ID**: yes, used for advertising (the SDK adds
    `com.google.android.gms.permission.AD_ID`). **Target audience**: 13+, so no Families rules.
 7. Never commit `ads/every_break=true`.
+
+## DASH / ITEM / HUD / HTP R3 — dash, items, the play screen (2026-10-14, branch `feat/dash-and-abilities`)
+
+Plan `docs/superpowers/plans/2026-10-14-dash-and-abilities.md`. 0.1.20 (code 21,
+`godot/build/peril-point-0.1.20-a55.apk`, A55 key) was installed on the A55 2026-10-14 01:42
+over 0.1.19, data kept. It also carries everything in §ADS (it branches from the ads work).
+
+Seen on the A55 right after the install, 2026-10-14 01:42-01:44 (someone was playing; no input
+was injected): a live run with the score top left (1,335 then 11,580 with the 9× chip), lives
+under BEST, the top centre clear, and the dash gauge bottom left cooling at 18 and later 19 (so
+dashes fired). Frame time in that run: mean 16.66 ms, p95 25.00, p99 25.23, 7.7 % over 20 ms
+(0.1.18: 16.67 / 25.0).
+
+- [ ] (DASH R1) In a run, double-tap anywhere: the ship dashes. Try both thumbs; with the Touch
+      stick, double-tap with the other thumb while steering. A steering drag never dashes.
+      A double tap on Pause or an item button does not dash.
+- [ ] (DASH R2) The dash covers about a quarter of the screen the way the ship is flying (or
+      facing, when still), sideways and up/down; it stops at the arena edge and, in Corridor,
+      at a wall (never inside one). The warp whoosh and a short buzz play.
+- [ ] (DASH R3) The ship is shielded for 2 s (green ring on the gauge, SHIELD on the timer) and
+      rams dots. Only then does the gauge count down from 20; it lights cyan when ready. It is
+      ready at the start of every run. Note the clock: the game runs at 0.75 speed (every
+      timer does), so "20" takes about 27 s on a stopwatch — say if you want wall-clock.
+- [ ] (DASH R4) Armory → Abilities: Dash cooldown 20s → 19s … 15s (Max), Dash shield 2.0s →
+      2.5s … 5.0s (Max); prices 1,000 / 1,600 / 2,600 / 4,000 / 6,400. A bought rank shows in
+      the next run.
+- [ ] (ITEM R1/R2) Armory → Abilities → Items: buy one (it fills a free slot), a second, a
+      third (it stays unequipped; Equip is greyed, "Unequip one to swap"). Unequip and Equip
+      swap them. The slot line names both.
+- [ ] (ITEM R1) In a run, the equipped items show as orb buttons next to the gauge. Tap one: its
+      power-up fires at the ship (the timer shows it) and the button dims; it does not fire
+      again that run. Retry: both are back.
+- [ ] (HUD R1) The score, its multiplier chip and BEST sit top left; nothing sits over the top
+      centre (the mode card at the start still fades by ~3 s, as before).
+- [ ] (HUD R3, 0.1.21, on the A55 since 01:50) No panel behind the item orbs or the gauge: the orbs and the ring sit on
+      the playfield; the cooldown seconds stay readable over dots.
+- [ ] (HUD R2, R4 in 0.1.22) The gauge and item buttons sit bottom right; only with Touch and
+      Settings → Stick position Right do they move bottom left. Under Tilt they stay bottom
+      right whatever Stick position says; switching the scheme from Pause moves them at once. With the Touch stick, a thumb that lands on an item button
+      fires the item instead of steering — say if that gets in the way.
+- [ ] (HTP R3) How to play: page 3 "Dash and items" plays a clip of a dash and both items
+      firing; The Armory's list has Abilities and its clip ends on the Abilities tab.
+- [ ] Frame time with a dash and an item firing: `tools/frametime.sh 20 dash`.

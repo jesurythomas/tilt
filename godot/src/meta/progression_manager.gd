@@ -81,6 +81,29 @@ const UPGRADE_PRICE_SCALE: int = 4
 
 ## DIVERGENCE(ECON R2): perk rank prices, ×1.6 a rank (TS 300/600/1100/1800/2800, :558).
 const PERK_COSTS: Array[int] = [250, 400, 650, 1000, 1600]
+## DIVERGENCE(DASH R3, R4, user 2026-10-14: "Cooldown every 20 seconds ... shielded for 2
+## seconds ... Cooldown reduction -> 15 minimum CD. Upgrade shield by .5 per upgrade to a max
+## of 5 seconds"): the dash's base times, the change per upgrade rank, and the rank counts
+## (20 → 15 s in 5 ranks, 2.0 → 5.0 s in 6). Ranks are priced as weapon ranks (get_perk_cost).
+const DASH_BASE_COOLDOWN: float = 20.0
+const DASH_COOLDOWN_STEP: float = 1.0
+const DASH_COOLDOWN_RANKS: int = 5
+const DASH_BASE_SHIELD: float = 2.0
+const DASH_SHIELD_STEP: float = 0.5
+const DASH_SHIELD_RANKS: int = 6
+## DIVERGENCE(ITEM R1, user 2026-10-14: "Users can purchase an active ability that they can use
+## in the run from the armory ... 2 max"): each item's price by Armory weapon id, in the Armory's
+## weapon order, before PRICE_SCALE; and how many a run carries.
+const ITEM_COSTS: Dictionary[String, int] = {
+	"blackhole": 2000,
+	"missiles": 1500,
+	"laser": 1800,
+	"nuke": 2000,
+	"freeze": 1500,
+	"shield": 1200,
+	"lightning": 1500,
+}
+const ITEM_SLOTS: int = 2
 ## DIVERGENCE(ECON R1): the run payout banked at death (no TS counterpart; the TS paid
 ## only coins and milestones): round((BASE + PER_SECOND·t + KILL_SCALE·kills^KILL_EXPONENT)
 ## × mode), t = seconds alive. Tuned in the plan's model (novice ~250, mid ~970 a run).
@@ -217,7 +240,25 @@ func load_data() -> ProgressionData:
 	def.unlocked_arena_themes = _unique_union(
 		["void"], SaveStore.read_string_array(raw, "unlockedArenaThemes")
 	)
+	_sanitize_abilities(def)
 	return def
+
+
+## DIVERGENCE(DASH R4, ITEM R1): keeps a hand-edited or older save inside the rules: dash ranks
+## in range, only known items, and at most ITEM_SLOTS bought items equipped, each once.
+func _sanitize_abilities(d: ProgressionData) -> void:
+	d.dash.cooldown = clampi(d.dash.cooldown, 0, DASH_COOLDOWN_RANKS)
+	d.dash.shield = clampi(d.dash.shield, 0, DASH_SHIELD_RANKS)
+	var unlocked: Array[String] = []
+	for id: String in d.unlocked_items:
+		if ITEM_COSTS.has(id) and not unlocked.has(id):
+			unlocked.append(id)
+	d.unlocked_items = unlocked
+	var equipped: Array[String] = []
+	for id: String in d.equipped_items:
+		if unlocked.has(id) and not equipped.has(id) and equipped.size() < ITEM_SLOTS:
+			equipped.append(id)
+	d.equipped_items = equipped
 
 
 ## DIVERGENCE(ECON R4): refunds each owned keystone that left the Armory and clears it.
@@ -489,6 +530,112 @@ func get_score_multiplier() -> float:
 ## PORT: web/src/tilt-to-live/ProgressionManager.ts:707-709
 func get_points_multiplier() -> float:
 	return 1.0 + 0.10 * float(data.points_multiplier)  # PORT: :708
+
+
+## DIVERGENCE(DASH R4): the dash cooldown, in seconds, at cooldown rank `rank`.
+static func dash_cooldown_at(rank: int) -> float:
+	return DASH_BASE_COOLDOWN - DASH_COOLDOWN_STEP * float(clampi(rank, 0, DASH_COOLDOWN_RANKS))
+
+
+## DIVERGENCE(DASH R4): the dash shield, in seconds, at shield rank `rank`.
+static func dash_shield_at(rank: int) -> float:
+	return DASH_BASE_SHIELD + DASH_SHIELD_STEP * float(clampi(rank, 0, DASH_SHIELD_RANKS))
+
+
+## DIVERGENCE(DASH R4): this save's dash cooldown, in seconds.
+func get_dash_cooldown() -> float:
+	return dash_cooldown_at(data.dash.cooldown)
+
+
+## DIVERGENCE(DASH R4): this save's dash shield, in seconds.
+func get_dash_shield() -> float:
+	return dash_shield_at(data.dash.shield)
+
+
+## DIVERGENCE(DASH R4): the next cooldown rank's price, or Types.ABSENT at the floor.
+func get_dash_cooldown_cost() -> int:
+	if data.dash.cooldown >= DASH_COOLDOWN_RANKS:
+		return Types.ABSENT
+	return get_perk_cost(data.dash.cooldown)
+
+
+## DIVERGENCE(DASH R4): buys a cooldown rank.
+func buy_dash_cooldown() -> bool:
+	var cost: int = get_dash_cooldown_cost()
+	if cost == Types.ABSENT or data.points < cost:
+		return false
+	data.points -= cost
+	data.dash.cooldown += 1
+	save()
+	return true
+
+
+## DIVERGENCE(DASH R4): the next shield rank's price, or Types.ABSENT at the cap.
+func get_dash_shield_cost() -> int:
+	if data.dash.shield >= DASH_SHIELD_RANKS:
+		return Types.ABSENT
+	return get_perk_cost(data.dash.shield)
+
+
+## DIVERGENCE(DASH R4): buys a shield rank.
+func buy_dash_shield() -> bool:
+	var cost: int = get_dash_shield_cost()
+	if cost == Types.ABSENT or data.points < cost:
+		return false
+	data.points -= cost
+	data.dash.shield += 1
+	save()
+	return true
+
+
+## DIVERGENCE(ITEM R1): an item's price, or Types.ABSENT for an unknown id.
+func get_item_cost(id: String) -> int:
+	if not ITEM_COSTS.has(id):
+		return Types.ABSENT
+	return ITEM_COSTS[id] * PRICE_SCALE
+
+
+## DIVERGENCE(ITEM R1): true once `id` is bought.
+func is_item_unlocked(id: String) -> bool:
+	return data.unlocked_items.has(id)
+
+
+## DIVERGENCE(ITEM R1): true while `id` is in a slot.
+func is_item_equipped(id: String) -> bool:
+	return data.equipped_items.has(id)
+
+
+## DIVERGENCE(ITEM R1): buys `id` and, when a slot is free, equips it.
+func buy_item(id: String) -> bool:
+	var cost: int = get_item_cost(id)
+	if cost == Types.ABSENT or is_item_unlocked(id) or data.points < cost:
+		return false
+	data.points -= cost
+	data.unlocked_items.append(id)
+	if data.equipped_items.size() < ITEM_SLOTS:
+		data.equipped_items.append(id)
+	save()
+	return true
+
+
+## DIVERGENCE(ITEM R2): puts a bought item in the first free slot.
+func equip_item(id: String) -> bool:
+	if not is_item_unlocked(id) or is_item_equipped(id):
+		return false
+	if data.equipped_items.size() >= ITEM_SLOTS:
+		return false
+	data.equipped_items.append(id)
+	save()
+	return true
+
+
+## DIVERGENCE(ITEM R2): empties `id`'s slot; a later slot moves up.
+func unequip_item(id: String) -> bool:
+	if not is_item_equipped(id):
+		return false
+	data.equipped_items.erase(id)
+	save()
+	return true
 
 
 ## PORT: web/src/tilt-to-live/ProgressionManager.ts:713-723
@@ -1828,6 +1975,22 @@ class SteeringTuning:
 		deadzone = SaveStore.read_float(d, "deadzone", deadzone)
 
 
+## DIVERGENCE(DASH R4): the dash upgrade ranks.
+class DashRanks:
+	extends RefCounted
+	## 0..DASH_COOLDOWN_RANKS, −1 s of cooldown per rank.
+	var cooldown: int = 0
+	## 0..DASH_SHIELD_RANKS, +0.5 s of shield per rank.
+	var shield: int = 0
+
+	func to_dict() -> Dictionary:
+		return {"cooldown": cooldown, "shield": shield}
+
+	func from_dict(d: Dictionary) -> void:
+		cooldown = SaveStore.read_int(d, "cooldown", cooldown)
+		shield = SaveStore.read_int(d, "shield", shield)
+
+
 ## PORT: web/src/tilt-to-live/ProgressionManager.ts:100-117
 class ProgressionData:
 	extends RefCounted
@@ -1851,6 +2014,12 @@ class ProgressionData:
 	var score_multiplier: int = 0
 	## 0..4, +10% earned points per rank. PORT: :116
 	var points_multiplier: int = 0
+	## DIVERGENCE(DASH R4): the dash's upgrade ranks.
+	var dash: DashRanks = DashRanks.new()
+	## DIVERGENCE(ITEM R1): bought items (Armory weapon ids), in buying order.
+	var unlocked_items: Array[String] = []
+	## DIVERGENCE(ITEM R1): the loadout, slot order, at most ITEM_SLOTS bought items.
+	var equipped_items: Array[String] = []
 
 	## JSON.stringify(this.data) (ProgressionManager.ts:519), TS key spellings.
 	func to_dict() -> Dictionary:
@@ -1870,6 +2039,9 @@ class ProgressionData:
 			"enemySlow": enemy_slow,
 			"scoreMultiplier": score_multiplier,
 			"pointsMultiplier": points_multiplier,
+			"dash": dash.to_dict(),
+			"unlockedItems": unlocked_items.duplicate(),
+			"equippedItems": equipped_items.duplicate(),
 		}
 
 	## The `{...def, ...parsed}` shallow merge of ProgressionManager.ts:488-490
@@ -1899,3 +2071,8 @@ class ProgressionData:
 		enemy_slow = SaveStore.read_int(d, "enemySlow", enemy_slow)
 		score_multiplier = SaveStore.read_int(d, "scoreMultiplier", score_multiplier)
 		points_multiplier = SaveStore.read_int(d, "pointsMultiplier", points_multiplier)
+		dash.from_dict(SaveStore.read_dict(d, "dash"))  # DIVERGENCE(DASH R4)
+		if d.has("unlockedItems"):  # DIVERGENCE(ITEM R1)
+			unlocked_items = SaveStore.read_string_array(d, "unlockedItems")
+		if d.has("equippedItems"):
+			equipped_items = SaveStore.read_string_array(d, "equippedItems")

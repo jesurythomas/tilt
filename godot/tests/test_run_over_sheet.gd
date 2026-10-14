@@ -117,12 +117,42 @@ func test_the_ad_offer_is_hidden_until_offered_and_asks_for_the_ad() -> void:
 	assert_false(offer.visible, "hidden until GameRoot offers it")
 	sheet.set_reward_offer(true, false)
 	assert_true(offer.visible)
-	assert_eq(offer.text, "Watch ad · 3× points")
+	assert_eq(offer.tooltip_text, "Watch ad · 3× points")
 	watch_signals(sheet)
 	offer.pressed.emit()
 	assert_signal_emitted(sheet, "reward_requested")
 	sheet.set_reward_offer(true, true)
 	assert_true(offer.disabled, "greyed while its ad is on its way")
+
+
+## ADS R10 (user: "make it more appealing to look at").
+func test_the_ad_offer_shows_the_badge_and_what_the_points_would_become() -> void:
+	var sheet: RunOverSheet = _sheet(Vector2(844, 390), 1.0)
+	sheet.show_result(_result())
+	sheet.set_reward_offer(true, false)
+	assert_eq(_label(sheet, "RewardBadge").text, "%d×" % GameRoot.AD_REWARD_MULTIPLIER)
+	assert_eq(_label(sheet, "RewardLabel").text, "Watch ad")
+	assert_eq(_label(sheet, "RewardPayoff").text, "+9,993", "3,331 three times over")
+	var offer: Button = sheet.find_child("WatchAdButton", true, false) as Button
+	assert_eq(offer.theme_type_variation, "RewardButton")
+	for node_name: String in ["RewardContent", "RewardBadge", "RewardLabel", "RewardPayoff"]:
+		var node: Control = sheet.find_child(node_name, true, false) as Control
+		assert_eq(node.mouse_filter, Control.MOUSE_FILTER_IGNORE, "%s leaves the tap" % node_name)
+
+
+func test_the_light_sweeps_the_offer_only_while_it_can_be_tapped() -> void:
+	var sheet: RunOverSheet = _sheet(Vector2(844, 390), 1.0)
+	sheet.show_result(_result())
+	assert_false(sheet.is_reward_shining(), "not while hidden")
+	sheet.set_reward_offer(true, false)
+	assert_true(sheet.is_reward_shining())
+	sheet.set_reward_offer(true, true)
+	assert_false(sheet.is_reward_shining(), "still while its ad opens")
+	assert_eq(_label(sheet, "RewardLabel").text, "Opening ad…")
+	sheet.set_reward_offer(false, false)
+	assert_false(sheet.is_reward_shining())
+	var shine: Control = sheet.find_child("RewardShine", true, false) as Control
+	assert_lt(shine.position.x + shine.size.x, 0.1, "parked off the left edge")
 
 
 func test_a_bonus_counts_up_from_the_shown_figure() -> void:
