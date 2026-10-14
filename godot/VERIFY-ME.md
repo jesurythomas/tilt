@@ -902,7 +902,9 @@ test crash). Spec: `docs/superpowers/specs/2026-09-29-analytics-crashes-design.m
 Nothing in the game changes until this is done. Do it in a browser, no code.
 
 - [ ] 2. Create a Firebase project at console.firebase.google.com (any name, e.g. "Peril
-      Point"). Leave Google Analytics **on** when it asks; pick or create an Analytics
+      Point"). *(The Google Cloud project exists since 2026-10-14: `peril-point-jtg`, "Peril
+      Point", owned by jtgadiane@gmail.com. In Firebase, signed in as that account, choose
+      **Add Firebase to a Google Cloud project** and pick it.)* Leave Google Analytics **on** when it asks; pick or create an Analytics
       account. Default data-sharing settings are fine.
 - [ ] 3. In the project, **Add app → Android**. Package name must be exactly
       `com.jtg.perilpoint`. Nickname optional. Skip the "SHA-1" box for now; add them in 4.
