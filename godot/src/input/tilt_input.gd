@@ -154,6 +154,11 @@ func start_listening() -> void:
 	if is_listening:
 		return
 	is_listening = true
+	# DIVERGENCE(BUG-101 R5): a level still settling when the sensor stopped (Quit to menu
+	# right after Resume or the crosshair) waits again from here, so the first reading after
+	# the gap is never taken alone.
+	if _is_settling:
+		_restart_settle(now_seconds())
 
 
 ## Stops listening and zeroes the steering output.
@@ -200,7 +205,12 @@ func calibrate_current_position(persist: bool = true) -> void:
 func settle_level(persist: bool = true, now: float = -1.0) -> void:
 	calibrate_current_position(persist)
 	_is_settling = true
-	_settle_from = now_seconds() if now < 0.0 else now
+	_restart_settle(now_seconds() if now < 0.0 else now)
+
+
+## Starts a settling level's wait at `now`, forgetting what it has seen.
+func _restart_settle(now: float) -> void:
+	_settle_from = now
 	_settle_first = Vector3.ZERO
 	_settle_best = Vector3.ZERO
 	_settle_best_still = -2.0

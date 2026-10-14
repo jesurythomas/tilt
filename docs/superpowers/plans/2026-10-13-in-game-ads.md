@@ -218,6 +218,28 @@ needed". All four held on `staging` at `507e180`; triage in
 
 Cost: none per frame — all four run on ad callbacks, a consent change, or a Retry tap.
 
+**Follow-up from one review run over the repo (user: "do 1 run for an overall review of the
+repo and include it in the fix if needed", 2026-10-14):**
+- R11: a privacy form that failed to show (offline, a form error) changed nothing, so the plugin
+  keeps its ads then; only a form that showed and closed drops them. `Ads` still clears its
+  flags on every report and asks again; a load call re-reports a held ad at once.
+- R12: an ad still out `GIVE_UP_SECONDS` = 30 s after `show` that never opened is let go (a lost
+  callback no longer holds off ads for the session); an opened ad still waits for its close.
+  Every show (the break's too, not only the rewarded one) emits `rewarded_changed`, so the Run
+  over's offer hides while Retry's ad opens instead of standing lit and dead. A late ad opening
+  over a restarted run was already covered: it takes focus, and `pause_on_focus_loss` pauses a
+  run in play.
+- R14: with the sheet up while Retry's ad opens, Spend, the Milestones rows and B/U could open
+  an overlay over the run the ad's close then starts. `GameRoot.open_armory` and
+  `open_all_goals_modal` now do nothing while an ad break is pending.
+- R10: the offer's glint looped on the hidden sheet through the next run when Retry ran with no
+  ad (nothing refreshed the offer). `RunOverSheet` stops it when hidden and restarts it when
+  shown with the offer open; saves ~1.2 µs a frame in those runs.
+- Not changed: a dash toward an adjacent Gauntlet wall moves nothing but still shields and
+  starts the cooldown (DASH R2: the burst stops at walls and the arena edge; the shield is the
+  dash's other half). Seven commits in history exceed CONVENTIONS §8's 72 characters; pushed
+  history is not rewritten.
+
 ## Tasks
 
 - [x] 1. Plan (this file); branch. Commit.
@@ -290,6 +312,9 @@ Cost: none per frame — all four run on ad callbacks, a consent change, or a Re
       gdformat, gdlint clean; 0 SCRIPT ERROR in the suite and a 600-frame headless boot.
       `bench_sim` unchanged within noise (swarm.update 25.5 vs 24.7 µs on `staging`). Not on the
       A55 yet: the next build is code 26; VERIFY-ME §ADS has the R11/R14 rows.)*
+- [x] 18. The review run's follow-ups to R10-R12, R14 (above). *(Done 2026-10-14: five tests,
+      each failing with its fix removed; AARs rebuilt. Suite 1037/1037, 75/75 scripts, nothing
+      leaked; gdformat, gdlint clean over `src` and `tests`; 0 SCRIPT ERROR.)*
 - [ ] 9. The user's A55 pass (§ADS Part A) and AdMob setup (Part B); merge. *(User: "rebuild
       it". Rebuilt as 0.1.15 (code 16, same code as 0.1.14), installed on the unlocked A55
       2026-10-13 22:10 with data kept, launched: consent in ~2 s, `can_request_ads=true

@@ -1,3 +1,4 @@
+# gdlint:disable=max-public-methods
 ## test_tilt_input_device.gd
 ## PORTS: nothing — new file, covers the M2.5 device path in
 ## src/input/tilt_input.gd (apply_gravity, deferred calibration, sensitivity,
@@ -202,6 +203,24 @@ func test_a_phone_that_never_stills_takes_the_stillest_stretch() -> void:
 		i += 1
 	assert_false(_tilt.is_settling(), "it gives up waiting")
 	assert_almost_eq(t - 0.02 - 10.0, TiltInput.SETTLE_MAX_SECONDS, 0.03, "at SETTLE_MAX_SECONDS")
+
+
+## Review 2026-10-14: Quit to menu right after Resume stops the sensor mid-settle. When it
+## starts again, the level waits for a still phone again; the first reading is not taken alone.
+func test_a_settle_cut_off_by_a_stopped_sensor_waits_again() -> void:
+	_tilt.start_listening()
+	_tilt.settle_level(true)
+	_tilt.apply_gravity(Vector3(1.5, -6.0, -8.0), 90, TiltInput.now_seconds())
+	_tilt.stop_listening()
+	_tilt._settle_from -= 10.0  # ten seconds in the menu with the sensor off
+	_tilt.start_listening()
+	var held: Vector3 = Vector3(-0.058, -7.992, -5.683)
+	var t: float = TiltInput.now_seconds()
+	_tilt.apply_gravity(held, 90, t)
+	assert_true(_tilt.is_settling(), "one reading after the gap is not a level")
+	_feed(held, t + 0.02, TiltInput.SETTLE_WINDOW_SECONDS + 0.1)
+	assert_false(_tilt.is_settling())
+	assert_almost_eq(_tilt._calibrated_gravity, held.normalized(), Vector3.ONE * 0.0001)
 
 
 func test_an_unsaved_settling_level_keeps_the_saved_one() -> void:

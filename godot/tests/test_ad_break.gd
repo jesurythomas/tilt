@@ -285,3 +285,18 @@ func test_retry_keeps_the_sheet_while_its_ad_opens() -> void:
 	_rec.interstitial_closed.emit()
 	assert_eq(root._state.phase, Types.GamePhase.CINEMATIC)
 	assert_false(panel.visible, "the restart hides it")
+
+
+## Review 2026-10-14: Retry's ad hides the 3× offer (no other ad is ready while it opens) and
+## keeps the Armory from opening over the run its close starts (ADS R14).
+func test_retrys_ad_hides_the_offer_and_holds_the_armory() -> void:
+	var root: GameRoot = await _boot_to_run_over()
+	_rec.rewarded_loaded.emit()
+	root._hud._on_run_over_timer_timeout()
+	assert_true(_offer(root).visible)
+	_press(root, "RestartButton")
+	assert_false(_offer(root).visible, "no offer while Retry's ad opens")
+	root.open_armory()
+	assert_false(root.is_armory_open(), "no Armory over the run about to start")
+	_rec.interstitial_closed.emit()
+	assert_eq(root._state.phase, Types.GamePhase.CINEMATIC)

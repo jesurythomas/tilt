@@ -118,6 +118,17 @@ func _ready() -> void:
 	set_ui_scale(1.0)
 
 
+# DIVERGENCE(ADS R10): the light rests while the sheet is hidden (a Retry with no ad leaves the
+# offer standing into the next run), and sweeps again when it shows with the offer open.
+func _notification(what: int) -> void:
+	if what != NOTIFICATION_VISIBILITY_CHANGED or _reward_shine == null:
+		return
+	if not is_visible_in_tree():
+		_stop_shine()
+	elif _reward.visible and not _reward.disabled:
+		_start_shine()
+
+
 ## Scales the sheet and every board size in it.
 func set_ui_scale(scale: float) -> void:
 	_ui_scale = scale

@@ -52,3 +52,27 @@ arena for several headless frames, and `test_circle_sprites` (which runs later) 
 `CircleSprites.disc()` back as a null image. The test now calls the watchdog directly. The
 circle-sprite test still depends on no earlier test drawing the arena: an order dependence,
 not a game bug.
+
+## One review run over the repo (2026-10-14)
+
+User, before merging PR #17: "do 1 run for an overall review of the repo and include it in the
+fix if needed". One `/code-review high` run over `godot/src`, `android/peril-ads/src`, `tools`
+and `godot/addons/peril_ads`; it read the `main...HEAD` change set (42 files, ~3,000 lines:
+ads, dash and items, the HUD, tilt R5, this branch), not every file in the repo. Eight
+findings, each checked against the code here:
+
+| # | Finding | Verdict | Ruling |
+|---|---|---|---|
+| 1 | R14 leaves the sheet live while Retry's ad opens; Spend, Milestones or B/U open an overlay over the run the ad then starts | Real (introduced by R14) | **Fixed**: `open_armory`, `open_all_goals_modal` do nothing while a break is pending |
+| 2 | The watchdog leaves `_showing` set: a late ad opens over the new run; a lost callback blocks ads all session | First half covered (focus loss pauses a run in play); second half real | **Fixed**: `GIVE_UP_SECONDS` = 30 lets go of an ad that never opened |
+| 3 | `ad_break` does not emit `rewarded_changed`, so the 3× offer stays lit and dead while Retry's ad opens | Real (visible since R14) | **Fixed**: every show emits it |
+| 4 | The 3× glint tween loops on the hidden sheet through the next run | Real (~1.2 µs a frame) | **Fixed**: the sheet stops it when hidden |
+| 5 | The plugin drops ads even when the privacy form failed to show | Real | **Fixed**: only a form that showed and closed drops them; AARs rebuilt |
+| 6 | A settle cut off by a stopped sensor takes the next lone reading as the level | Real (BUG-101 R5 class; a crosshair level is saved so) | **Fixed**: `start_listening` restarts the wait |
+| 7 | A dash toward an adjacent wall moves nothing but costs the cooldown | As designed (DASH R2; the shield still applies) | Not changed |
+| 8 | Seven commits exceed CONVENTIONS §8's 72 characters | True of history | Not changed (pushed history is not rewritten); this branch's commits fit |
+
+Tests: one per fix, each failing with its fix removed (the tilt test first passed with its fix
+removed: its `now - 10.0` went negative early in a short run, and `settle_level` reads any
+negative time as "now"; it now moves `_settle_from` back instead). Suite 1037/1037. Rulings:
+ads plan (R10-R12, R14 follow-up) and BUG-101 plan (R5 review fix).

@@ -965,6 +965,10 @@ func reset_progress() -> void:
 
 ## PORT: web/src/tilt-to-live/TiltGame.ts:2343-2350
 func open_armory(tab: String = "") -> void:
+	# DIVERGENCE(ADS R14): the Run over stays up while Retry's ad opens; an overlay opened then
+	# would sit over the run the ad's close starts.
+	if Ads.is_break_pending():
+		return
 	if _state.phase == Types.GamePhase.PLAYING:
 		_state.phase = Types.GamePhase.PAUSED
 		_hud.set_pause_panel_visible(false)
@@ -985,6 +989,8 @@ func is_armory_open() -> bool:
 ## Opens the full Milestones screen (the Run over rows, the M key; the menu link is M11a's).
 ## PORT: web/src/tilt-to-live/TiltGame.ts:195
 func open_all_goals_modal() -> void:
+	if Ads.is_break_pending():  # DIVERGENCE(ADS R14), as open_armory
+		return
 	_goals_hud.open_all_goals_modal()
 
 

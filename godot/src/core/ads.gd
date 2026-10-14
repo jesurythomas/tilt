@@ -22,6 +22,9 @@ enum Showing { NONE, INTERSTITIAL, REWARDED }
 
 ## DIVERGENCE(ADS R2): seconds an ad may take to open before the break goes on without it.
 const OPEN_TIMEOUT_SECONDS: float = 4.0
+## DIVERGENCE(ADS R12): seconds after which an ad that never opened, closed or failed stops
+## holding off the next ones (a lost callback would otherwise do so for the session).
+const GIVE_UP_SECONDS: float = 30.0
 ## DIVERGENCE(ADS R5): the pacing's counts, kept across launches.
 const SAVE_PATH: String = "user://peril_point_ads.json"
 
@@ -52,6 +55,8 @@ var _is_awaiting_open: bool = false
 ## DIVERGENCE(ADS R12): the ad shown, kept past the watchdog until its own close or failure,
 ## so a late one cannot end a newer break; no other ad shows meanwhile.
 var _showing: Showing = Showing.NONE
+## True once the ad out has opened; GIVE_UP_SECONDS waits only on one that has not.
+var _is_open: bool = false
 ## Numbers each break, so a watchdog left over from an earlier one does nothing.
 var _break_serial: int = 0
 var _is_muting: bool = false
@@ -115,6 +120,7 @@ func reset_session() -> void:
 	_on_reward = Callable()
 	_is_awaiting_open = false
 	_showing = Showing.NONE
+	_is_open = false
 	_break_serial += 1
 
 
@@ -177,7 +183,6 @@ func show_rewarded(on_reward: Callable, on_done: Callable) -> void:
 	# once the ad opened).
 	_reset_pacing()
 	_begin_show(on_done, Showing.REWARDED)
-	rewarded_changed.emit()
 	Log.info("ads: showing a rewarded ad")
 	backend.show_rewarded()
 
@@ -193,9 +198,11 @@ func show_privacy_options() -> void:
 
 
 ## Holds `action` until the ad has shown and closed; mutes the game and starts the watchdog.
+## The Run over's offer hides: no other ad is ready while this one is out.
 func _begin_show(action: Callable, showing: Showing) -> void:
 	_pending = action
 	_showing = showing
+	_is_open = false
 	_mute_sound()
 	_break_serial += 1
 	_is_awaiting_open = true
@@ -203,6 +210,8 @@ func _begin_show(action: Callable, showing: Showing) -> void:
 	get_tree().create_timer(OPEN_TIMEOUT_SECONDS).timeout.connect(
 		_on_open_timeout.bind(_break_serial)
 	)
+	get_tree().create_timer(GIVE_UP_SECONDS).timeout.connect(_on_give_up.bind(_break_serial))
+	rewarded_changed.emit()
 
 
 ## Loads whichever of the interstitial and the rewarded ad is missing.
@@ -246,6 +255,7 @@ func _on_interstitial_failed_to_load() -> void:
 func _on_interstitial_opened() -> void:
 	if _showing != Showing.INTERSTITIAL:
 		return
+	_is_open = true
 	_is_awaiting_open = false
 	_reset_pacing()
 	Log.info("ads: interstitial opened")
@@ -276,6 +286,7 @@ func _on_interstitial_ended() -> void:
 func _on_rewarded_opened() -> void:
 	if _showing != Showing.REWARDED:
 		return
+	_is_open = true
 	_is_awaiting_open = false
 	Log.info("ads: rewarded ad opened")
 
@@ -313,6 +324,15 @@ func _reset_pacing() -> void:
 func _on_open_timeout(serial: int) -> void:
 	if serial == _break_serial and _is_awaiting_open:
 		Log.info("ads: the ad did not open in time; the game goes on")
+		_finish_break()
+
+
+## DIVERGENCE(ADS R12): an ad still out GIVE_UP_SECONDS after `show`, never opened, is let go,
+## so the next break and offer may show ads again. An opened ad waits for its close.
+func _on_give_up(serial: int) -> void:
+	if serial == _break_serial and _showing != Showing.NONE and not _is_open:
+		Log.info("ads: the ad never opened, closed or failed; no longer waiting for it")
+		_showing = Showing.NONE
 		_finish_break()
 
 

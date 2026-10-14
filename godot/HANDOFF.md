@@ -18,7 +18,7 @@ fails closed without a temp `user://`; the guide's Tilt card names Tilt level / 
 All runs / Calibrate tilt; doc fixes (the PR #12 tally, VERIFY-ME §HTP's build, the ads plan's
 pacing note). Suite 1032/1032, 75/75 scripts, nothing leaked; gdformat/gdlint clean; 0 SCRIPT
 ERROR. No per-frame cost (`bench_sim` within noise). Not on the A55 (next build code 26;
-VERIFY-ME §ADS R11/R14 rows). Next: PR #17 (`review/copilot-pr-12-15` → `staging`, open; the user merges it),
+VERIFY-ME §ADS R11/R14 rows). Then one review run over the repo (user: "do 1 run for an overall review of the repo"): 6 of 8 findings fixed on the same branch — Armory/Milestones held while Retry's ad opens, a 30 s give-up for an ad that never opened, the 3× offer hides at every show, its glint stops on the hidden sheet, the plugin keeps its ads when the privacy form fails, and a tilt level cut off by a stopped sensor waits again (BUG-101 R5); the dash-into-wall finding is DASH R2 by design, long old commit messages stay. Triage doc's last section. Suite 1037/1037. Next: PR #17 (`review/copilot-pr-12-15` → `staging`, open; the user merges it),
 then the user's A55 pass (BUG-101 R5, §ADS R9-R11/R14, §DASH).
 
 **Earlier (2026-10-14, afternoon, later): BUG-101 R5, still-phone tilt levels, on

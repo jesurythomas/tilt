@@ -135,9 +135,10 @@ public class PerilAdsPlugin extends GodotPlugin {
 	}
 
 	/**
-	 * Shows UMP's privacy options form (Settings → Ad privacy), then re-reports consent. Ads
-	 * loaded, or loading, under the old answer are dropped first (ADS R11); GDScript drops its
-	 * ready flags on the re-report and loads again only if the new answer allows it.
+	 * Shows UMP's privacy options form (Settings → Ad privacy), then re-reports consent. Once
+	 * the form has shown and closed, ads loaded, or loading, under the old answer are dropped
+	 * (ADS R11); a form that failed to show changed nothing, so they stay. GDScript drops its
+	 * ready flags on every re-report and asks again; a load call re-reports a held ad at once.
 	 */
 	@UsedByGodot
 	public void showPrivacyOptions() {
@@ -150,7 +151,9 @@ public class PerilAdsPlugin extends GodotPlugin {
 				return;
 			}
 			UserMessagingPlatform.showPrivacyOptionsForm(activity, formError -> {
-				dropLoadedAds();
+				if (formError == null) {
+					dropLoadedAds();
+				}
 				finishConsent(activity, describe(formError));
 			});
 		});

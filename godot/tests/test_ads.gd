@@ -529,3 +529,29 @@ func test_an_interstitial_callback_does_not_end_a_rewarded_show() -> void:
 	assert_true(Ads.is_break_pending())
 	_rec.rewarded_closed.emit()
 	assert_eq(_actions, 1)
+
+
+## ADS R12 (review 2026-10-14): an ad that never opens, closes or fails is let go after
+## GIVE_UP_SECONDS, so a lost callback cannot hold off ads for the session.
+func test_an_ad_lost_without_a_callback_is_let_go() -> void:
+	_ready_with_ad()
+	_make_due()
+	Ads.ad_break(_count_action)
+	Ads._on_open_timeout(Ads._break_serial)
+	assert_eq(_actions, 1, "the watchdog runs the action")
+	_rec.interstitial_loaded.emit()
+	assert_false(Ads.is_break_due(), "still out")
+	Ads._on_give_up(Ads._break_serial)
+	assert_true(Ads.is_break_due(), "let go")
+	assert_eq(_actions, 1, "the action ran once")
+
+
+func test_an_opened_ad_is_never_given_up() -> void:
+	_ready_with_ad()
+	_make_due()
+	Ads.ad_break(_count_action)
+	_rec.interstitial_opened.emit()
+	Ads._on_give_up(Ads._break_serial)
+	assert_true(Ads.is_break_pending(), "the player is still watching")
+	_rec.interstitial_closed.emit()
+	assert_eq(_actions, 1)
