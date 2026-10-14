@@ -12,26 +12,23 @@ package (`PERIL_AAB=1` now exports `ph.newzenith.perilpoint`, the Play listing's
 `com.jtg.perilpoint`; ruling PGS R6) and version 0.1.26, code 27. Built in a worktree, because
 the main tree held the user's uncommitted deletion of `godot/assets/icon/icon.png`:
 `godot/build/peril-point-0.1.26.aab` (42 MB, gitignored; a copy is in the main tree's
-`godot/build/`), signed with the upload key (`CN=Peril Point upload`, SHA-1
-`32:90:37:AE:42:0E:42:95:84:D2:2B:16:C5:F6:27:28:3E:1B:CE:8D`), jar verified. Inside: arm64
-`libgodot_android` and `libperil`, the PerilAds plugin with **AdMob's test app ID** (real AdMob
-IDs are not set yet, VERIFY-ME §ADS Part B, so it serves only test ads), no Play Games. The
-first export in the fresh worktree logged one `Cannot set object script` error; a second
-export logged none and had the same file list and size. Not installed anywhere (an `.aab` goes
-through Play). **Play rejected the upload** ("signed with the wrong key"): the app's registered
-upload key has SHA-1 `25:14:17:AE:C1:C8:F9:81:26:98:E9:1E:66:75:5C:6F:F7:6D:39:9A`, which is none
-of this machine's keys (upload `32:90:37:AE…`, dev `67:3D:0C:8F…`, Godot debug `32:B2:72:54…`,
-Android debug `DC:F7:79:9A…`; a search of C: and the Debian WSL found no other keystore). So
-the user's first Play upload (0.1.3, code 4) was signed somewhere else. The local 0.1.3 builds
-are no help: `peril-point-0.1.3.apk` is the dev key, `-a55.apk` Godot's debug key, and both are
-`com.jtg.perilpoint`, while Play's 0.1.3 is `ph.newzenith.perilpoint`, a package no build here
-had before 0.1.26 (git, Godot's `export_credentials.cfg` and step-quest's keys checked too).
-**Next:** the user
-signs with that key if they still have it (an env file for `PERIL_KEYS`, then rebuild), or asks
-Play for an upload key reset (Protected with Play → Play Store protection → Manage Play app
-signing → Request upload key reset) with `godot/build/upload_certificate.pem` (main tree,
-gitignored; the upload key's certificate, SHA-1 `32:90:37:AE…`). After the reset the 0.1.26
-bundle uploads as it is. Then the user merges this branch's PR; the next build uses code 28.
+`godot/build/`), jar verified. Inside: arm64 `libgodot_android` and `libperil`, the PerilAds
+plugin with **AdMob's test app ID** (real AdMob IDs are not set yet, VERIFY-ME §ADS Part B, so
+it serves only test ads), no Play Games. A fresh worktree's first export logs one `Cannot set
+object script` error; the second logs none, so export twice there. Not installed anywhere (an
+`.aab` goes through Play).
+
+**The Play upload key (2026-10-14).** Play rejected the first 0.1.26, signed with our interim
+`CN=Peril Point upload` key (`32:90:37:AE…`): the app's upload key is SHA-1
+`25:14:17:AE:C1:C8:F9:81:26:98:E9:1E:66:75:5C:6F:F7:6D:39:9A`. The user had it on Google Drive:
+`perilpoint-upload.jks` (PKCS12, alias `perilpoint-upload`, `CN=Peril Point, O=New Zenith, C=PH`,
+made 2026-10-11), now at `~/.android/perilpoint-upload.jks` with `~/.android/perilpoint-upload.env`
+(I never printed the password). `PERIL_AAB=1 tools/release.sh` now signs with it by default;
+APKs keep the dev key. The `peril-upload` key from `make-upload-key.sh` is not Play's and signs
+nothing that goes to Play. 0.1.26 was rebuilt with the Play key; against the rejected bundle
+only the per-export random `node_ids` in 20 scenes (and the pack's index of them) differ.
+**Next:** the user uploads `peril-point-0.1.26.aab` to a Play testing track (code 27 must be above
+every code Play has); the user merges this branch's PR; the next build uses code 28.
 
 **Parked (2026-10-14): Play Games leaderboards (MVP R2).** User: "We dont need to add
 leaderboards for now. We can add that in at a later date". Built (rulings PGS R1-R7, plan

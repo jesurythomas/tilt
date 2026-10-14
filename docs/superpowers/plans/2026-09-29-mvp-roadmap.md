@@ -88,16 +88,18 @@ opted-in testers, before production.
 - [x] **Haptics** on a nuke, a death and a close call; add a Settings toggle. ~0.5 day.
   Done: `src/core/haptics.gd` autoload, `GameEvents.close_call`, "Vibration" switch,
   `permissions/vibrate=true`; pulse lengths still to tune on the A55 (VERIFY-ME §haptics).
-- [ ] **AAB export + Play App Signing.** Use a real upload key (not the dev key). The
+- [x] **AAB export + Play App Signing.** Use a real upload key (not the dev key). The
   preset's `gradle_build/export_format` must become AAB. ~0.5 day.
   Code done: `PERIL_AAB=1 tools/release.sh` flips the preset to AAB for one run and
   restores it (checked: a dev-key AAB exported, `jar verified`, arm64 libs and
   `libperil` inside). `tools/make-upload-key.sh` makes the real upload key. Interim upload key made
   2026-09-29 and checked with a signed AAB; **at deployment:** replace the key, back it up
   off-machine, enrol the app in Play App Signing when the first AAB goes up.
-  *2026-10-14: Play rejected 0.1.26 (code 27): the app's upload key is SHA-1
-  `25:14:17:AE:C1:C8:F9:81:26:98:E9:1E:66:75:5C:6F:F7:6D:39:9A`, not on this machine. The user
-  signs with it, or resets the upload key to ours (VERIFY-ME §MVP Week 1 item 4).*
+  *Done 2026-10-14: the app is in Play App Signing (Google-generated key) and its upload key is
+  the user's `perilpoint-upload.jks` (New Zenith, SHA-1
+  `25:14:17:AE:C1:C8:F9:81:26:98:E9:1E:66:75:5C:6F:F7:6D:39:9A`, backed up on their Drive), now
+  `~/.android/perilpoint-upload.env`, the default for `PERIL_AAB=1`. The interim key is unused
+  for Play; Play rejected a 0.1.26 signed with it.*
 - [x] **Mode renames (MVP R4)**, done 2026-09-29: Standard → Survival, Gauntlet → Corridor,
   Code Red → Overdrive (the names the roadmap suggested; the user said "yes"). Strings only:
   the `GameMode` ids, goal ids, metrics and save keys are unchanged. A55 check pending.

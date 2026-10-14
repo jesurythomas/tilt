@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Builds a signed release APK of Peril Point: godot/build/peril-point-<version>.apk.
-# PERIL_AAB=1 builds the Play Store bundle (.aab) instead; sign it with the upload key
-# (PERIL_KEYS=~/.android/peril-upload.env, made by tools/make-upload-key.sh). A bundle carries
+# PERIL_AAB=1 builds the Play Store bundle (.aab) instead, signed by default with the app's Play
+# upload key (~/.android/perilpoint-upload.env: perilpoint-upload.jks, New Zenith's key from the
+# user's Drive, SHA-1 25:14:17:AE...; Play rejects any other). A bundle carries
 # the Play listing's package, ph.newzenith.perilpoint (ruling PGS R6); an APK keeps the
 # preset's com.jtg.perilpoint, so sideloads install over the A55's build and keep its save.
 # PERIL_PACKAGE=<id> sets the package for either.
@@ -12,9 +13,9 @@
 #           GODOT_ANDROID_KEYSTORE_RELEASE_PATH=...
 #           GODOT_ANDROID_KEYSTORE_RELEASE_USER=...      (the key alias)
 #           GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD=...
-#         read from $PERIL_KEYS (default ~/.android/peril-dev-release.env). The default
-#         is a throwaway dev key for sharing test builds — swap it for the real one
-#         before a store release, and keep both out of git.
+#         read from $PERIL_KEYS (default for an APK ~/.android/peril-dev-release.env, a
+#         throwaway dev key for sharing test builds; for a bundle the Play upload key above).
+#         Keep every key out of git.
 # Before each build you hand out, raise version/code in godot/export_presets.cfg.
 # PERIL_OUT=<name>.apk writes godot/build/<name>.apk instead (e.g. a build signed with
 # another key, so it does not overwrite the shared APK).
@@ -24,6 +25,9 @@ set -euo pipefail
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GODOT="${GODOT:-/c/Users/Jesury/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe}"
 KEYS="${PERIL_KEYS:-$HOME/.android/peril-dev-release.env}"
+if [[ "${PERIL_AAB:-}" == 1 ]]; then
+	KEYS="${PERIL_KEYS:-$HOME/.android/perilpoint-upload.env}"
+fi
 SDK="${ANDROID_HOME:-C:/Users/Jesury/AppData/Local/Android/Sdk}"
 LIB="$REPO/godot/bin/libperil.android.template_release.arm64.so"
 
