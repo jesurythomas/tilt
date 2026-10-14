@@ -883,6 +883,13 @@ upload key exists now (interim, see item 1).
 - [ ] 4. When the Play Console app exists, upload
       `PERIL_AAB=1 PERIL_KEYS=~/.android/peril-upload.env tools/release.sh` output and
       accept Play App Signing when it asks.
+      *2026-10-14: the app already existed with a different upload key. Play rejected 0.1.26:
+      it expects SHA-1 `25:14:17:AE:C1:C8:F9:81:26:98:E9:1E:66:75:5C:6F:F7:6D:39:9A`, a key that
+      signed your first upload (0.1.3, code 4) and is not on this machine. Either sign with that
+      key (write an env file like `peril-upload.env` for it and pass it as `PERIL_KEYS`), or
+      reset: Protected with Play → Play Store protection → Manage Play app signing → Upload key
+      certificate → Request upload key reset, attaching `godot/build/upload_certificate.pem`
+      (this key's certificate). Once Play accepts it, upload `peril-point-0.1.26.aab` again.*
 
 ## MVP R6 — analytics and crashes (2026-09-29)
 

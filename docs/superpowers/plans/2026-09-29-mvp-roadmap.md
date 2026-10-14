@@ -95,6 +95,9 @@ opted-in testers, before production.
   `libperil` inside). `tools/make-upload-key.sh` makes the real upload key. Interim upload key made
   2026-09-29 and checked with a signed AAB; **at deployment:** replace the key, back it up
   off-machine, enrol the app in Play App Signing when the first AAB goes up.
+  *2026-10-14: Play rejected 0.1.26 (code 27): the app's upload key is SHA-1
+  `25:14:17:AE:C1:C8:F9:81:26:98:E9:1E:66:75:5C:6F:F7:6D:39:9A`, not on this machine. The user
+  signs with it, or resets the upload key to ours (VERIFY-ME §MVP Week 1 item 4).*
 - [x] **Mode renames (MVP R4)**, done 2026-09-29: Standard → Survival, Gauntlet → Corridor,
   Code Red → Overdrive (the names the roadmap suggested; the user said "yes"). Strings only:
   the `GameMode` ids, goal ids, metrics and save keys are unchanged. A55 check pending.

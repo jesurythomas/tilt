@@ -18,9 +18,16 @@ the main tree held the user's uncommitted deletion of `godot/assets/icon/icon.pn
 IDs are not set yet, VERIFY-ME §ADS Part B, so it serves only test ads), no Play Games. The
 first export in the fresh worktree logged one `Cannot set object script` error; a second
 export logged none and had the same file list and size. Not installed anywhere (an `.aab` goes
-through Play). **Next:** the user uploads it to a Play testing track (code 27 must be above
-every code Play has; the A55's Play copy is code 4); the user merges this branch's PR; the next
-build uses code 28.
+through Play). **Play rejected the upload** ("signed with the wrong key"): the app's registered
+upload key has SHA-1 `25:14:17:AE:C1:C8:F9:81:26:98:E9:1E:66:75:5C:6F:F7:6D:39:9A`, which is none
+of this machine's keys (upload `32:90:37:AE…`, dev `67:3D:0C:8F…`, Godot debug `32:B2:72:54…`,
+Android debug `DC:F7:79:9A…`; a search of C: and the Debian WSL found no other keystore). So
+the user's first Play upload (0.1.3, code 4) was signed somewhere else. **Next:** the user
+signs with that key if they still have it (an env file for `PERIL_KEYS`, then rebuild), or asks
+Play for an upload key reset (Protected with Play → Play Store protection → Manage Play app
+signing → Request upload key reset) with `godot/build/upload_certificate.pem` (main tree,
+gitignored; the upload key's certificate, SHA-1 `32:90:37:AE…`). After the reset the 0.1.26
+bundle uploads as it is. Then the user merges this branch's PR; the next build uses code 28.
 
 **Parked (2026-10-14): Play Games leaderboards (MVP R2).** User: "We dont need to add
 leaderboards for now. We can add that in at a later date". Built (rulings PGS R1-R7, plan
