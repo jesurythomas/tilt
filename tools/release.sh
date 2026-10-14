@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # Builds a signed release APK of Peril Point: godot/build/peril-point-<version>.apk.
 # PERIL_AAB=1 builds the Play Store bundle (.aab) instead; sign it with the upload key
-# (PERIL_KEYS=~/.android/peril-upload.env, made by tools/make-upload-key.sh).
+# (PERIL_KEYS=~/.android/peril-upload.env, made by tools/make-upload-key.sh). A bundle carries
+# the Play listing's package, ph.newzenith.perilpoint (ruling PGS R6); an APK keeps the
+# preset's com.jtg.perilpoint, so sideloads install over the A55's build and keep its save.
+# PERIL_PACKAGE=<id> sets the package for either.
 #
 # Usage:  tools/release.sh
 # Needs:  the release native library (godot/bin/libperil.android.template_release.arm64.so;
@@ -43,12 +46,24 @@ VERSION="$(sed -n 's/^version\/name="\(.*\)"$/\1/p' "$REPO/godot/export_presets.
 CODE="$(sed -n 's/^version\/code=\(.*\)$/\1/p' "$REPO/godot/export_presets.cfg")"
 EXT=apk
 PRESETS="$REPO/godot/export_presets.cfg"
+PACKAGE="${PERIL_PACKAGE:-}"
 if [[ "${PERIL_AAB:-}" == 1 ]]; then
 	EXT=aab
-	# The preset stays on APK; flip its export format for this run only.
-	trap 'sed -i "s/^gradle_build\/export_format=1$/gradle_build\/export_format=0/" "$PRESETS"' EXIT
+	PACKAGE="${PACKAGE:-ph.newzenith.perilpoint}"
+fi
+if [[ "$EXT" == aab || -n "$PACKAGE" ]]; then
+	# The preset stays on APK and its own package; this run's edits are undone on exit.
+	cp "$PRESETS" "$PRESETS.release-bak"
+	trap 'mv -f "$PRESETS.release-bak" "$PRESETS"' EXIT
+fi
+if [[ "$EXT" == aab ]]; then
 	sed -i 's/^gradle_build\/export_format=0/gradle_build\/export_format=1/' "$PRESETS"
 fi
+if [[ -n "$PACKAGE" ]]; then
+	sed -i "s/^package\/unique_name=\".*\"$/package\/unique_name=\"$PACKAGE\"/" "$PRESETS"
+	grep -q "^package/unique_name=\"$PACKAGE\"$" "$PRESETS"
+fi
+PACKAGE="$(sed -n 's/^package\/unique_name="\(.*\)"$/\1/p' "$PRESETS")"
 OUT="build/${PERIL_OUT:-peril-point-${VERSION:-release}.$EXT}"
 
 "$GODOT" --headless --path "$REPO/godot" --export-release "Android" "$OUT"
@@ -62,4 +77,4 @@ else
 	BT="$(ls -d "$SDK"/build-tools/* | tail -1)"
 	"$BT/apksigner.bat" verify "$APK"
 fi
-echo "OK: $APK (version $VERSION, code $CODE, $(du -h "$APK" | cut -f1))"
+echo "OK: $APK (version $VERSION, code $CODE, $PACKAGE, $(du -h "$APK" | cut -f1))"

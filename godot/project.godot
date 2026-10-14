@@ -27,6 +27,7 @@ GameEvents="*res://src/core/game_events.gd"
 Telemetry="*res://src/core/telemetry.gd"
 Haptics="*res://src/core/haptics.gd"
 Ads="*res://src/core/ads.gd"
+PlayGames="*res://src/core/play_games.gd"
 
 [debug]
 
@@ -47,7 +48,7 @@ window/size/viewport_height=720
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/peril_ads/plugin.cfg")
+enabled=PackedStringArray("res://addons/peril_ads/plugin.cfg", "res://addons/peril_games/plugin.cfg")
 
 [input_devices]
 
