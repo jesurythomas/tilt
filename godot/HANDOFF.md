@@ -20,7 +20,9 @@ level ("tilt: level settled in …; the first reading was … deg off it"). Ruli
 0.84 → 1.08 µs on desktop. 0.1.24 (code 25, `godot/build/peril-point-0.1.24-a55.apk`, A55 key)
 is on the A55, installed 2026-10-14 12:37 over 0.1.23 (a paused 0:02 run was the only thing
 open), data kept, launched with no SCRIPT ERROR; menu frame time mean 16.70 ms, p95 25.1 (taken
-just after launch). Next A55 build uses code 26. Next: the user's pass (`VERIFY-ME.md` §BUG-101
+just after launch). Next A55 build uses code 26. User: "commit push merge to staging": the branch is pushed and
+PR #16 (`feat/dash-and-abilities` → `staging`) is open; merging it was refused by the session's
+permission check ("Merge Without Review"), so the user merges it. Next: the user's pass (`VERIFY-ME.md` §BUG-101
 R5 lines; their Keep tilt level is on, so its old level stays until they level again or turn
 it off), then the §ADS R9/R10 and §DASH checks, then PR `feat/dash-and-abilities` → `staging`.
 
