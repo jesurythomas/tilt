@@ -113,6 +113,11 @@ opted-in testers, before production.
   required, Settings → Ad privacy; the GDPR message itself is published in AdMob, §ADS Part B.)*
 - [ ] **Play Games leaderboards (MVP R2).** 3–5 days, after the app exists in Play Console
   with its signing key registered.
+  *(2026-10-14: GCP project `peril-point-jtg`; Games/Drive APIs on; consent screen set up in
+  the console. PGS needs one **Android** OAuth client there, package `ph.newzenith.perilpoint`,
+  SHA-1 from Play Console's App signing page; no Web client, as there is no game server. The
+  preset still builds `com.jtg.perilpoint`, so sideloaded builds can't sign in until the preset
+  package matches and a second client carries the local key's SHA-1.)*
 - [x] *(if approved)* **Clickable power-ups (MVP R3).** 3–5 days; +0.5–1 day for the
   rewarded ad. *(Done as ITEM R1/R2 with the dash, 2026-10-14, branch `feat/dash-and-abilities`.)*
 
