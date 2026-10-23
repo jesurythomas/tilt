@@ -134,3 +134,36 @@ func test_switching_to_tilt_puts_the_bar_back_on_the_right() -> void:
 	root._hud.set_ability_side(true)
 	root.set_control_scheme(Types.ControlScheme.GYRO)
 	assert_false(bar.is_on_left(), "tilt: right")
+
+
+func test_pad_badges_hidden_until_the_controller_is_used() -> void:
+	_bar.show_abilities(_abilities)
+	var dash_badge: AbilityBar.PadBadge = AbilityBar.badge_of(_bar.gauge())
+	assert_not_null(dash_badge, "the gauge carries a badge")
+	assert_eq(dash_badge.text, "A")
+	assert_false(dash_badge.visible, "hidden for touch players")
+	assert_eq(AbilityBar.badge_of(_bar.item_button(0)).text, "LB")
+	assert_eq(AbilityBar.badge_of(_bar.item_button(1)).text, "RB")
+
+
+func test_pad_badges_show_and_hide_together() -> void:
+	_bar.show_abilities(_abilities)
+	_bar.set_pad_hints(true)
+	assert_true(AbilityBar.badge_of(_bar.gauge()).visible)
+	assert_true(AbilityBar.badge_of(_bar.item_button(1)).visible)
+	_bar.set_pad_hints(false)
+	assert_false(AbilityBar.badge_of(_bar.gauge()).visible)
+	assert_false(AbilityBar.badge_of(_bar.item_button(0)).visible)
+
+
+func test_a_rebuilt_loadout_keeps_the_badges_shown() -> void:
+	_bar.set_pad_hints(true)
+	_bar.show_abilities(_abilities)
+	assert_true(AbilityBar.badge_of(_bar.item_button(0)).visible, "new buttons follow the mode")
+
+
+func test_badges_relabel_for_a_playstation_pad() -> void:
+	_bar.show_abilities(_abilities)
+	_bar.set_pad_hints(true, GamepadInput.Family.PLAYSTATION)
+	assert_eq(AbilityBar.badge_of(_bar.gauge()).text, "×")
+	assert_eq(AbilityBar.badge_of(_bar.item_button(1)).text, "R1")

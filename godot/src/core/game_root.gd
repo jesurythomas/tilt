@@ -85,6 +85,13 @@ var _router: InputRouter = null
 var _touch: TouchInput = null
 var _tilt: TiltInput = null
 var _joystick: FloatingJoystick = null
+## DIVERGENCE(PAD R1): a controller's left stick, for handhelds with built-in sticks.
+var _gamepad: GamepadInput = null
+## DIVERGENCE(PAD R2): the controller was used last (not the screen); the HUD shows its badges.
+var _is_pad_active: bool = false
+var _pad_family: GamepadInput.Family = GamepadInput.Family.XBOX
+## DIVERGENCE(PAD R3): drives the menus' focus from the controller.
+var _pad_focus: PadFocus = null
 ## DIVERGENCE(DASH R1): the dash gesture.
 var _double_tap: DoubleTap = DoubleTap.new()
 ## The HUD's ui_scale, kept for re-sizing the stick when Stick size changes (TOUCH R1).
@@ -161,6 +168,11 @@ func _ready() -> void:
 	_touch = TouchInput.new()
 	_tilt = TiltInput.new()
 	_joystick = FloatingJoystick.new()
+	_gamepad = GamepadInput.new()
+	GamepadInput.map_accept()  # DIVERGENCE(PAD R3): A presses the focused menu button
+	_pad_focus = PadFocus.new()
+	_pad_focus.root_provider = pad_focus_root
+	_hud.get_parent().add_child(_pad_focus)  # last on the CanvasLayer: over every screen
 	# DIVERGENCE(M2.5 §4.2): the scheme comes from persisted settings rather
 	# than the hardcoded HYBRID at input_router.gd:14.
 	settings = ControlSettings.new()
@@ -266,6 +278,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	# DIVERGENCE(DASH R1): every touch also feeds the double tap, before the stick takes it.
 	if _state.phase == Types.GamePhase.PLAYING:
 		_feed_dash_gesture(event)
+	_note_pad_use(event)
 	if _is_touch_stick_live():
 		if event is InputEventScreenTouch:
 			var touch: InputEventScreenTouch = event
@@ -280,6 +293,11 @@ func _unhandled_input(event: InputEvent) -> void:
 			return
 	else:
 		_touch.handle_event(event, _router, arena_origin)
+
+	if event is InputEventJoypadButton:
+		var pad_button: InputEventJoypadButton = event
+		_handle_pad_button(pad_button)
+		return
 
 	# PORT: web/src/tilt-to-live/TiltGame.ts:1311-1331 — the key map, in its order.
 	if event is InputEventKey:
@@ -348,6 +366,78 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 # gdlint:enable=max-returns
+
+
+## DIVERGENCE(PAD R2): shows the HUD's button badges while the controller is the input in use.
+## PAD R4: the badges take the labels of the pad that was used last.
+func _note_pad_use(event: InputEvent) -> void:
+	var is_active: bool = GamepadInput.is_active_after(event, _is_pad_active)
+	var family: GamepadInput.Family = _pad_family
+	if is_active and (event is InputEventJoypadButton or event is InputEventJoypadMotion):
+		family = GamepadInput.family_for(Input.get_joy_name(event.device))
+	if is_active == _is_pad_active and family == _pad_family:
+		return
+	_is_pad_active = is_active
+	_pad_family = family
+	if _pad_focus != null:
+		_pad_focus.is_active = is_active
+	var bar: AbilityBar = _hud.ability_bar()
+	if bar != null:
+		bar.set_pad_hints(is_active, family)
+
+
+## DIVERGENCE(PAD R3): the screen whose controls the controller may focus now, in go_back's
+## order (the topmost sheet first); null in play and the cold open, where A dashes or skips.
+func pad_focus_root() -> Control:
+	var root: Node = null
+	if _how_to_play.is_open():
+		root = _how_to_play
+	elif _menu.is_options_open():
+		root = _menu.find_child("ResetConfirm", true, false)
+		if root == null or not (root as Control).visible:
+			root = _menu.find_child("OptionsModal", true, false)
+	elif _calibrate_screen.is_open():
+		root = _calibrate_screen
+	elif _armory.is_open():
+		root = _armory
+	elif _goals_hud.is_modal_open():
+		root = _goals_hud.find_child("MilestonesModal", true, false)
+	elif _state.phase == Types.GamePhase.PAUSED:
+		root = _hud.find_child("PausePanel", true, false)
+	elif _state.phase == Types.GamePhase.GAME_OVER:
+		root = _hud.find_child("GameOverPanel", true, false)
+	elif _state.phase == Types.GamePhase.MENU:
+		root = _menu.find_child("MenuContainer", true, false)
+	return root as Control
+
+
+## DIVERGENCE(PAD R1): controller buttons. A skips the cinematic, retries from the Run over and
+## dashes in play; LB and RB fire the items; Start pauses, resumes, or closes the Armory — the
+## same rules as Space/Enter, Shift, 1/2 and Escape above.
+func _handle_pad_button(event: InputEventJoypadButton) -> void:
+	if not event.pressed:
+		return
+	var action: GamepadInput.PadAction = GamepadInput.action_for(event.button_index)
+	match action:
+		GamepadInput.PadAction.DASH:
+			if _state.phase == Types.GamePhase.CINEMATIC:
+				skip_cinematic()
+			elif _state.phase == Types.GamePhase.GAME_OVER:
+				restart_run()
+			else:
+				request_dash()
+		GamepadInput.PadAction.ITEM_1:
+			use_item(0)
+		GamepadInput.PadAction.ITEM_2:
+			use_item(1)
+		GamepadInput.PadAction.PAUSE:
+			if _armory.is_open():
+				close_armory()
+			elif _state.phase == Types.GamePhase.PLAYING or is_paused():
+				_toggle_pause_with_sheet()
+		GamepadInput.PadAction.BACK:
+			# DIVERGENCE(PAD R3): B is the back button, but never leaves the app.
+			go_back()
 
 
 func _physics_process(delta: float) -> void:
@@ -472,7 +562,11 @@ func _update(dt: float) -> void:
 		# the ship to rest instead. See M2.5 spec §8.3 for why this trade was
 		# taken.
 		effective_mode = Types.ControlMode.GYRO
-		directional = _joystick.vector * TOUCH_JOYSTICK_SPEED_SCALE
+		# DIVERGENCE(PAD R1): a pushed controller stick steers in place of the touch stick;
+		# same shape (direction with magnitude, zero at rest), so the same scale applies.
+		var pad: Vector2 = _gamepad.poll()
+		var stick: Vector2 = pad if pad != Vector2.ZERO else _joystick.vector
+		directional = stick * TOUCH_JOYSTICK_SPEED_SCALE
 
 	_run_controller.update(
 		dt, effective_mode, _router.mouse_pos, _router.get_movement_vector(), directional
@@ -1102,6 +1196,8 @@ func resize_canvas() -> void:
 	_apply_stick_anchor()
 	_armory.set_ui_scale(ui_scale, arena_origin)
 	_goals_hud.set_ui_scale(ui_scale, arena_origin)
+	if _pad_focus != null:
+		_pad_focus.set_ui_scale(ui_scale)  # DIVERGENCE(PAD R3)
 	_menu.set_ui_scale(ui_scale, arena_origin)
 	_calibrate_screen.set_ui_scale(ui_scale, arena_origin)
 	_how_to_play.set_ui_scale(ui_scale, arena_origin)  # DIVERGENCE(HTP R1)
