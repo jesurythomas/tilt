@@ -1138,3 +1138,13 @@ func test_arena_preview_carries_the_theme_pattern() -> void:
 	assert_eq(arctic.id, "arctic")
 	var pattern: int = preview.background_material().get_shader_parameter("pattern")
 	assert_eq(pattern, int(arctic.pattern))
+
+
+func test_a_controller_walks_the_header_back_tabs_play() -> void:
+	var back: Button = _armory.find_child("BackButton", true, false)
+	var first_tab: Button = _armory.find_child("Tab_" + ArmoryUI.TAB_NAMES[0], true, false)
+	var last_tab: Button = _armory.find_child("Tab_" + ArmoryUI.TAB_NAMES[-1], true, false)
+	var play: Button = _armory.find_child("PlayButton", true, false)
+	assert_eq(back.get_node(back.focus_neighbor_right), first_tab, "Back → first tab")
+	assert_eq(first_tab.get_node(first_tab.focus_neighbor_left), back, "and back")
+	assert_eq(last_tab.get_node(last_tab.focus_neighbor_right), play, "last tab → Play")
