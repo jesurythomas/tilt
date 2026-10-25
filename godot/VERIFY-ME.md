@@ -871,18 +871,24 @@ constants. The export preset now has `permissions/vibrate=true`; this needs a fr
 `tools/release.sh` builds a Play bundle with `PERIL_AAB=1` (it flips the preset's
 `export_format` to AAB for that run only). A dev-key AAB was exported and checked
 (`jar verified`; the cert-chain warning is expected for a self-signed key). The real
-upload key exists now (interim, see item 1).
+upload key exists now (interim, see item 1). *2026-10-14: superseded. The app's Play upload key
+is your own `perilpoint-upload.jks` (New Zenith, SHA-1
+`25:14:17:AE:C1:C8:F9:81:26:98:E9:1E:66:75:5C:6F:F7:6D:39:9A`), kept on your Google Drive and
+now in `~/.android` with `perilpoint-upload.env`; `PERIL_AAB=1 tools/release.sh` signs with it by
+default. Items 1-2 are about the interim key, which Play does not accept.*
 
 - [x] 1. Done 2026-09-29: `tools/make-upload-key.sh` wrote `~/.android/peril-upload.keystore`
       and `peril-upload.env` (a throwaway-password interim key; replace at deployment).
       Upload-key SHA-1: `32:90:37:AE:42:0E:42:95:84:D2:2B:16:C5:F6:27:28:3E:1B:CE:8D`.
       An AAB signed with it exported and `keytool -printcert -jarfile` shows that SHA-1.
-- [ ] 2. Copy both files somewhere off this machine (a password manager or a drive).
-      Losing the key means a reset request to Google.
-- [ ] 3. Add the printed upload-key SHA-1 to the Firebase app (R6 part B) when you do that.
-- [ ] 4. When the Play Console app exists, upload
-      `PERIL_AAB=1 PERIL_KEYS=~/.android/peril-upload.env tools/release.sh` output and
-      accept Play App Signing when it asks.
+- [x] 2. *Moot for Play:* the key Play uses is backed up on your Google Drive. Delete the
+      unzipped copy in `Downloads\drive-download-20261014T101514Z-1-001` (it holds the
+      password in plain text).
+- [ ] 3. Add the upload-key SHA-1 to the Firebase app (R6 part B) when you do that: Play's
+      upload key `25:14:17:AE…`, not the interim one.
+- [x] 4. The Play Console app existed already (0.1.3, code 4, signed with `perilpoint-upload`).
+      2026-10-14: 0.1.26 signed with the interim key was rejected ("signed with the wrong
+      key"); rebuilt with `perilpoint-upload`. Upload `godot/build/peril-point-0.1.26.aab`.
 
 ## MVP R6 — analytics and crashes (2026-09-29)
 
@@ -902,7 +908,9 @@ test crash). Spec: `docs/superpowers/specs/2026-09-29-analytics-crashes-design.m
 Nothing in the game changes until this is done. Do it in a browser, no code.
 
 - [ ] 2. Create a Firebase project at console.firebase.google.com (any name, e.g. "Peril
-      Point"). Leave Google Analytics **on** when it asks; pick or create an Analytics
+      Point"). *(The Google Cloud project exists since 2026-10-14: `peril-point-jtg`, "Peril
+      Point", owned by jtgadiane@gmail.com. In Firebase, signed in as that account, choose
+      **Add Firebase to a Google Cloud project** and pick it.)* Leave Google Analytics **on** when it asks; pick or create an Analytics
       account. Default data-sharing settings are fine.
 - [ ] 3. In the project, **Add app → Android**. Package name must be exactly
       `com.jtg.perilpoint`. Nickname optional. Skip the "SHA-1" box for now; add them in 4.
