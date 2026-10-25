@@ -309,10 +309,23 @@ func _ready() -> void:
 		button.pressed.connect(_on_tab_pressed.bind(i as Tab))
 		_tabs.add_child(button)
 		_tab_buttons.append(button)
+	_link_header_focus()
 
 	weapons_catalog = _build_weapons_catalog()
 	boosts_catalog = _build_boosts_catalog()
 	set_ui_scale(1.0)
+
+
+## DIVERGENCE(PAD R6): a controller walks the header left to right, Back → tabs → Play. Godot's
+## own "nearest to the right" from Back picked the weapon list's first row (it overlaps that
+## side and is closer than the Weapons tab), so the tabs could not be reached.
+func _link_header_focus() -> void:
+	var row: Array[Control] = [_back_button]
+	row.append_array(_tab_buttons)
+	row.append(_play_button)
+	for i: int in range(row.size() - 1):
+		row[i].focus_neighbor_right = row[i].get_path_to(row[i + 1])
+		row[i + 1].focus_neighbor_left = row[i + 1].get_path_to(row[i])
 
 
 ## Constructor half. PORT: web/src/tilt-to-live/ArmoryUI.ts:270-280

@@ -38,6 +38,26 @@ configuration `peril-point` (account + project) — run gcloud with `--configura
 the `default` configuration (jg@blackcapitaltechnology.com, `garage-hub-jtg-8b1fe`) is untouched.
 It is the project for VERIFY-ME §Part B's Firebase step 2.
 
+**Also (2026-10-23, from `staging`): PAD R1, a controller's left stick steers under Touch, on
+`feat/gamepad-stick` (from `staging` at `5c61e75`).** User: "what would be needed to get my odin
+controls working on stick mode" (AYN Odin 2, built-in controller). New `GamepadInput`
+(`src/input/gamepad_input.gd`): a 0.2 radial dead zone, rescaled and capped at 1, the same shape
+as `FloatingJoystick.vector`; `GameRoot._update` uses it in place of the touch stick while it is
+pushed. Buttons via `GameRoot._handle_pad_button`: A skips / retries / dashes, LB and RB fire the
+items, Start pauses or closes the Armory. Menus stay touch-only (not in R1). Ruling and tasks in
+`docs/superpowers/plans/2026-10-23-gamepad-stick.md`. Suite 1043/1043, 76/76 scripts, nothing
+leaked (run on macOS with Godot 4.7.2: `GODOT=/Applications/Godot.app/Contents/MacOS/Godot bash
+tools/run_tests.sh`); gdformat/gdlint clean. A debug APK (`com.jtg.perilpoint`, 0.1.25 code 26,
+Godot's debug key) is on the Odin 2 next to its Play build. PR #20 (`feat/gamepad-stick` →
+`staging`). Then, same day: R2 button badges on the HUD, R3 menus with a controller
+(`PadFocus` + `GameRoot.pad_focus_root`, B = go_back), R4 badge labels per pad family (Xbox /
+PlayStation / Nintendo); then fixes from the user's first Odin pass (A presses the focused menu
+button, the ring survives a menu re-render, screens open on their primary button) and R5 (L3
+dashes, for one hand). Rulings in the plan. Suite 1062/1062, 77/77 scripts, nothing leaked.
+To drive the Odin's controller from adb, write to `/dev/input/event8` with `sendevent` (BTN_SOUTH
+304, Start 315, L3 317, D-pad 544-547); `adb shell input gamepad` does not reach Godot as a
+joypad. Next: the user's Odin 2 pass per VERIFY-ME §PAD (R1-R5).
+
 **Earlier (2026-10-14, 13:35): Copilot's PR #12-#15 comments, on `review/copilot-pr-12-15`
 (from `staging` at `507e180`, where PR #16 is merged).** User: "copilot left some comments on the
 pervious prs. take a look at those comments and fix if needed". 13 comments: 11 fixed, 2 moot
