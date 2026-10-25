@@ -13,6 +13,8 @@ extends Control
 signal milestones_requested
 ## DIVERGENCE(ADS R6): "Watch ad · 3× points" was tapped.
 signal reward_requested
+## DIVERGENCE(PGS R5): the podium button; GameRoot opens the run's mode board.
+signal leaderboards_requested
 
 const CONTROL_PICKER: PackedScene = preload("res://scenes/control_picker.tscn")
 
@@ -109,6 +111,7 @@ var _retry: Button = null
 var _bottom: HBoxContainer = null
 var _menu: Button = null
 var _spend: Button = null
+var _boards: Button = null
 
 
 func _ready() -> void:
@@ -169,8 +172,9 @@ func set_ui_scale(scale: float) -> void:
 	_reward.custom_minimum_size.y = UiTheme.TOUCH_TARGET * scale
 	_scale_reward(scale)
 	_bottom.add_theme_constant_override("separation", UiTheme.px(BOTTOM_GAP, scale))
-	for button: Button in [_menu, _spend]:
+	for button: Button in [_menu, _spend, _boards]:
 		UiTheme.scale_nav_button(button, scale)
+	_boards.custom_minimum_size.x = UiTheme.px(UiTheme.TOUCH_TARGET, scale)
 	# DIVERGENCE(UI R13): Retry carries the restart glyph, as Play carries its triangle.
 	_retry.icon = UiTheme.svg_texture(UiTheme.ICON_RETRY, scale)
 	_trophy.texture = UiTheme.svg_texture(UiTheme.ICON_ACHIEVEMENTS, scale)
@@ -197,6 +201,7 @@ func show_result(result: RunResult) -> void:
 	# ok"), counting up; the TS showed "+earned → balance" (:2121).
 	_start_count_up(result.earned)
 	_fill_milestones(result.milestones)  # PORT: :2132-2144
+	_boards.visible = PlayGames.is_available()  # DIVERGENCE(PGS R5)
 
 
 ## DIVERGENCE(RUNOVER R2, found 2026-10-12): a score too long for its column (11+ digits)
@@ -428,6 +433,13 @@ func _build_right() -> VBoxContainer:
 	_spend = UiTheme.nav_button("GameOverArmoryButton", "Armory", UiTheme.ICON_ARMORY)
 	_spend.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_bottom.add_child(_spend)
+	# DIVERGENCE(PGS R5): the run's mode board, only in a build that has Play Games.
+	_boards = UiTheme.nav_button(
+		"GameOverLeaderboardsButton", "", UiTheme.ICON_LEADERBOARD, "Leaderboards"
+	)
+	_boards.visible = false
+	_boards.pressed.connect(leaderboards_requested.emit)
+	_bottom.add_child(_boards)
 	_right.add_child(_bottom)
 	return _right
 

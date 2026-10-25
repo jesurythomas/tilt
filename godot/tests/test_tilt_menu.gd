@@ -107,6 +107,39 @@ func test_nav_buttons_emit_their_requests() -> void:
 	assert_signal_emitted(menu, "all_goals_requested", "TiltMenu.ts:248-250")
 
 
+func test_the_podium_shows_only_with_play_games() -> void:
+	var menu: TiltMenu = _menu()
+	assert_null(menu.find_child("MenuLeaderboardsButton", true, false), "PGS R5: no Play Games")
+	var previous: GamesBackend = PlayGames.backend
+	PlayGames.set_backend(RecordingGamesBackend.new())
+	menu.render()
+	var podium: Button = menu.find_child("MenuLeaderboardsButton", true, false) as Button
+	PlayGames.set_backend(previous)
+	assert_not_null(podium)
+	watch_signals(menu)
+	podium.pressed.emit()
+	assert_signal_emitted(menu, "leaderboards_requested")
+
+
+## PGS R5: the podium overhangs its slot, so the left column keeps its size and UI R7's fit.
+func test_the_podium_leaves_the_left_column_as_it_was() -> void:
+	var menu: TiltMenu = _menu()
+	await wait_physics_frames(2)
+	var before: Rect2 = (menu.find_child("LeftBlock", true, false) as Control).get_global_rect()
+	var previous: GamesBackend = PlayGames.backend
+	PlayGames.set_backend(RecordingGamesBackend.new())
+	menu.render()
+	PlayGames.set_backend(previous)
+	await wait_physics_frames(2)
+	var after: Rect2 = (menu.find_child("LeftBlock", true, false) as Control).get_global_rect()
+	assert_eq(after, before)
+	var podium: Control = menu.find_child("MenuLeaderboardsButton", true, false) as Control
+	assert_eq(podium.size, Vector2(UiTheme.TOUCH_TARGET, UiTheme.TOUCH_TARGET), "rule 05")
+	assert_true(menu.get_global_rect().encloses(podium.get_global_rect()), "on screen")
+	var milestones: Control = menu.find_child("StatMilestones", true, false) as Control
+	assert_gt(podium.get_global_rect().position.x, milestones.get_global_rect().end.x)
+
+
 func test_stats_row_shows_the_balance_from_the_first_launch() -> void:
 	var menu: TiltMenu = _menu()
 	var row: Control = menu.find_child("StatsRow", true, false) as Control

@@ -112,7 +112,19 @@ opted-in testers, before production.
 - [x] **UMP consent.** ~1 day. *(Done with the interstitial, ADS R3: form at launch when
   required, Settings → Ad privacy; the GDPR message itself is published in AdMob, §ADS Part B.)*
 - [ ] **Play Games leaderboards (MVP R2).** 3–5 days, after the app exists in Play Console
-  with its signing key registered.
+  with its signing key registered. **Deferred 2026-10-14** (user: "We dont need to add
+  leaderboards for now. We can add that in at a later date"). *(Built and parked on
+  `feat/play-games`, PR #18 as a draft: rulings PGS R1-R7 in
+  `docs/superpowers/plans/2026-10-14-play-games-leaderboards.md`; to resume, rebase it on
+  `staging`, then that branch's VERIFY-ME §PGS.)*
+  *(2026-10-14: GCP project `peril-point-jtg`; Games/Drive APIs on; consent screen set up in
+  the console. PGS needs one **Android** OAuth client there, package `ph.newzenith.perilpoint`,
+  SHA-1 from Play Console's App signing page; no Web client, as there is no game server. The
+  App signing key (Google-generated) has SHA-1 `ED:48:D2:DA:C9:F8:CF:0F:AE:EB:86:5C:DA:E0:3E:17:54:76:51:AB`,
+  read 2026-10-14 off the A55's Play install of 0.1.3 (code 4, stamp
+  `STAMP_TYPE_DISTRIBUTION_APK`). The preset still builds `com.jtg.perilpoint`, so sideloaded
+  builds can't sign in until the preset package matches and a second client carries the local
+  key's SHA-1 (`32:B2:72:54:90:D5:C6:17:4E:4E:D5:65:B1:2E:C9:BC:19:C2:65:AD` on 0.1.25).)*
 - [x] *(if approved)* **Clickable power-ups (MVP R3).** 3–5 days; +0.5–1 day for the
   rewarded ad. *(Done as ITEM R1/R2 with the dash, 2026-10-14, branch `feat/dash-and-abilities`.)*
 

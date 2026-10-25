@@ -203,6 +203,7 @@ func _ready() -> void:
 	_menu.launch_requested.connect(launch_run)
 	# open_armory's default tab is not applied through Callable.bind, so bind it (:194).
 	_menu.armory_requested.connect(open_armory.bind(""))
+	_menu.leaderboards_requested.connect(open_all_leaderboards)  # DIVERGENCE(PGS R5)
 	_menu.all_goals_requested.connect(open_all_goals_modal)  # PORT: :195
 	_menu.scheme_chosen.connect(_on_menu_scheme_chosen)
 	_menu.stick_anchor_changed.connect(_on_stick_anchor_changed)  # DIVERGENCE(ENH-302 R3)
@@ -234,6 +235,7 @@ func _ready() -> void:
 	# DIVERGENCE(ADS R6): the Run over offers a rewarded ad while one is ready.
 	Ads.rewarded_changed.connect(_refresh_reward_offer)
 	Ads.start.call_deferred()
+	PlayGames.start.call_deferred()  # DIVERGENCE(PGS R3): the launch's automatic sign-in
 
 	resize_canvas()
 	get_viewport().size_changed.connect(resize_canvas)
@@ -1088,6 +1090,20 @@ func open_all_goals_modal() -> void:
 	_goals_hud.open_all_goals_modal()
 
 
+## DIVERGENCE(PGS R5): the menu's podium opens every Play Games board.
+func open_all_leaderboards() -> void:
+	if Ads.is_break_pending():  # DIVERGENCE(ADS R14), as open_armory
+		return
+	PlayGames.show_all_leaderboards()
+
+
+## DIVERGENCE(PGS R5): the Run over's podium opens the run's mode board.
+func open_run_leaderboard() -> void:
+	if Ads.is_break_pending():  # DIVERGENCE(ADS R14), as open_armory
+		return
+	PlayGames.show_leaderboard(_run_controller.mode)
+
+
 ## Calculates the arena scale factor for a viewport dimension.
 ## PORT: web/src/tilt-to-live/TiltGame.ts:2422-2431
 static func arena_scale(width: float, height: float) -> float:
@@ -1221,6 +1237,7 @@ func _on_run_ended(_final_score: int, stats: Types.GameStats) -> void:
 		_scores.is_new_best
 	)
 	Ads.note_run_end(stats.survival_time, _run_controller.is_first_run)  # DIVERGENCE(ADS R2)
+	PlayGames.submit_run(_run_controller.mode, stats.score)  # DIVERGENCE(PGS R4)
 	_state.phase = Types.GamePhase.GAME_OVER
 	_refresh_reward_offer()  # DIVERGENCE(ADS R6)
 	_effect_layer.set_banner_shown(false)

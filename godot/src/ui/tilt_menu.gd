@@ -25,6 +25,8 @@ signal launch_requested(mode: Types.GameMode)
 signal armory_requested
 ## PORT: web/src/tilt-to-live/TiltMenu.ts:17 (onOpenAllGoals)
 signal all_goals_requested
+## DIVERGENCE(PGS R5): the podium button; GameRoot opens every Play Games board.
+signal leaderboards_requested
 ## The Steer row's calibrate icon opens the Calibrate screen (ruling R5).
 signal calibrate_screen_requested
 ## The Steer row's picker or a Settings scheme card chose a scheme (ruling R7).
@@ -408,6 +410,9 @@ func _bind_events() -> void:
 	# PORT: web/src/tilt-to-live/TiltMenu.ts:244-250
 	_find_button("MenuArmoryButton").pressed.connect(armory_requested.emit)
 	_find_button("MenuMilestonesButton").pressed.connect(all_goals_requested.emit)
+	var boards: Button = _find_button("MenuLeaderboardsButton")
+	if boards != null:
+		boards.pressed.connect(leaderboards_requested.emit)  # DIVERGENCE(PGS R5)
 	_find_button("MenuSettingsButton").pressed.connect(open_options_modal)  # PORT: :252-254
 	_find_button("MenuHowToPlayButton").pressed.connect(how_to_play_requested.emit)
 
@@ -585,9 +590,35 @@ func _stats_row(best_score: int, points: int, completed: int, total: int) -> VBo
 	# DIVERGENCE(ACH R1): "Achievements" — user 2026-09-28: "rename milestones to
 	# achievements"
 	columns.add_child(_stat_column("Achievements", milestones))
+	if PlayGames.is_available():
+		columns.add_child(_leaderboards_slot())
 	pad.add_child(columns)
 	row.add_child(pad)
 	return row
+
+
+## DIVERGENCE(PGS R5): every Play Games board, beside the Best it ranks, only in a build that
+## has Play Games (the nav row has no room for a fourth button at the A55's 844 px). The
+## button keeps its full touch target and overhangs a slot as tall as the stats, so the row
+## does not grow and UI R7's fit is unchanged.
+func _leaderboards_slot() -> Control:
+	var slot: Control = Control.new()
+	slot.name = "LeaderboardsSlot"
+	slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var boards: Button = UiTheme.nav_button(
+		"MenuLeaderboardsButton", "", UiTheme.ICON_LEADERBOARD, "Leaderboards"
+	)
+	UiTheme.scale_nav_button(boards, _ui_scale)
+	var half: float = _px(UiTheme.TOUCH_TARGET) / 2.0
+	boards.custom_minimum_size = Vector2(half * 2.0, half * 2.0)
+	slot.custom_minimum_size.x = half * 2.0
+	boards.set_anchors_preset(Control.PRESET_CENTER)
+	boards.offset_left = -half
+	boards.offset_right = half
+	boards.offset_top = -half
+	boards.offset_bottom = half
+	slot.add_child(boards)
+	return slot
 
 
 func _stat_column(caption: String, value: Control) -> VBoxContainer:

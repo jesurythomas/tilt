@@ -4,7 +4,41 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**Latest (2026-10-23): PAD R1, a controller's left stick steers under Touch, on
+**Parked (2026-10-14, evening; user: "We dont need to add leaderboards for now. We can add that
+in at a later date"): Play Games leaderboards (MVP R2), on `feat/play-games`, PR #18 as a draft,
+not merged.** What it holds, as built (from
+`review/copilot-pr-12-15` at `1d62984`; PR #17 is merged into `staging` at `5c61e75`, and the
+three note commits after it ride on this branch). User sent the PGS guide's "Step
+3: Modify your code" after the console setup. Plan
+`docs/superpowers/plans/2026-10-14-play-games-leaderboards.md`, rulings PGS R1-R7: our own
+`PerilGames` plugin (`android/peril-games`, `tools/build_games_plugin.sh`, AARs in
+`godot/addons/peril_games/bin/`, SDK `play-services-games-v2:22.1.0`); the `PlayGames` autoload
+(`src/core/play_games.gd`; `GamesConfig`, `GamesBackend`, `AndroidGamesBackend`); one board per
+mode, a death's score posted when signed in; a podium button in the menu's stats row (all
+boards) and the Run over's bottom row (the run's board), held during Retry's ad; sign-in is
+Play Games' automatic one, a signed-out tap asks. **Compiled out until
+`peril/games/project_id` is set** (the export plugin then adds the AAR, the SDK and
+`APP_ID`, its first digit escaped so aapt keeps it a string). `PERIL_AAB=1 tools/release.sh`
+now exports package `ph.newzenith.perilpoint` (the Play listing's); APKs keep
+`com.jtg.perilpoint`, which cannot sign in to Play Games. Suite 1065/1065, 77/77; checked on the
+A55 with a stand-in ID (plugin up, `signed_in=false`, no crash, frame time unchanged), then
+0.1.25 put back. The Play app signing SHA-1 is
+`ED:48:D2:DA:C9:F8:CF:0F:AE:EB:86:5C:DA:E0:3E:17:54:76:51:AB` (read off the A55's Play install).
+**Next:** the user's Play Console steps (VERIFY-ME §PGS Part A: project ID, three boards,
+testers), then set the IDs, build an `.aab` for internal testing (code 27+), and the device pass
+(Part B) — all on hold until the user picks leaderboards up again.
+
+**Also (2026-10-14, 13:48): a Google Cloud project for Peril Point.** User: "create a new google
+cloud project for Peril Point". `peril-point-jtg` ("Peril Point", number 734361789228; ID
+`peril-point` was taken), owned by jtgadiane@gmail.com (user: "email is jtgadiane"), no
+organization, no billing; Games, Games Management and Drive APIs enabled for Play Games'
+OAuth consent screen, which the user set up in the console; the Android OAuth client is
+VERIFY-ME §PGS Part A step 1. gcloud: a separate
+configuration `peril-point` (account + project) — run gcloud with `--configuration=peril-point`;
+the `default` configuration (jg@blackcapitaltechnology.com, `garage-hub-jtg-8b1fe`) is untouched.
+It is the project for VERIFY-ME §Part B's Firebase step 2.
+
+**Also (2026-10-23, from `staging`): PAD R1, a controller's left stick steers under Touch, on
 `feat/gamepad-stick` (from `staging` at `5c61e75`).** User: "what would be needed to get my odin
 controls working on stick mode" (AYN Odin 2, built-in controller). New `GamepadInput`
 (`src/input/gamepad_input.gd`): a 0.2 radial dead zone, rescaled and capped at 1, the same shape
