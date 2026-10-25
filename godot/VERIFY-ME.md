@@ -1227,3 +1227,32 @@ dashes fired). Frame time in that run: mean 16.66 ms, p95 25.00, p99 25.23, 7.7 
 - [ ] (HTP R3) How to play: page 3 "Dash and items" plays a clip of a dash and both items
       firing; The Armory's list has Abilities and its clip ends on the Abilities tab.
 - [ ] Frame time with a dash and an item firing: `tools/frametime.sh 20 dash`.
+
+## PAD R1 — controller stick under Touch (2026-10-23, branch `feat/gamepad-stick`)
+
+Plan `docs/superpowers/plans/2026-10-23-gamepad-stick.md`. A debug build (0.1.25, code 26,
+`com.jtg.perilpoint`, Godot's debug key) was installed on the AYN Odin 2 2026-10-23 next to its
+Play build (`ph.newzenith.perilpoint`); both show as Peril Point. Launch the test one with
+`adb shell monkey -p com.jtg.perilpoint -c android.intent.category.LAUNCHER 1`.
+
+- [ ] Settings → Controls → Touch. In a run, the left stick steers: a small push is slow, a full
+      push is the touch stick's top speed; let go and the ship coasts to rest, no drift.
+- [ ] The touch stick still works when the controller stick is at rest.
+- [ ] A dashes; LB and RB fire item 1 and 2; Start pauses and resumes; Start closes the Armory.
+- [ ] A skips the entrance cinematic and, on the Run over, starts the next run.
+- [ ] (PAD R2) Push the stick or press a button: small A / LB / RB badges appear on the dash
+      gauge and item orbs; touch the screen and they go.
+- [ ] (PAD R3) With the controller, in the menu: a cyan ring sits on a button; the D-pad (and
+      stick) moves it, A presses. Try Settings (sliders take left/right, the list scrolls to
+      the ring), Armory, How to play, Milestones, Pause and the Run over. B goes back (never
+      leaves the app). In a run there is no ring and A dashes. Note any screen where the ring
+      lands somewhere odd or a control cannot be reached.
+- [ ] (PAD R5) One-handed: click the left stick in a run and the ship dashes.
+- [ ] Each screen opens with the ring on its main button (Play, Resume, Retry, Next); after
+      picking a mode the ring stays on that row.
+- [ ] (PAD R6) Achievements and How to play: D-pad down scrolls when there is no button below;
+      the right stick scrolls any list. Closing a screen puts the ring back on its button.
+      Armory: the tabs are reachable (left from Play, right from Back).
+- [ ] (PAD R4) If you have a PlayStation or Switch pad, pair it: the badges read × / L1 / R1 or
+      A / L / R. On a Switch pad the button printed A dashes and accepts, and B goes back.
+- [ ] (PAD R4) Odin Settings → controller → Xbox mode: the badges still read A / LB / RB.
