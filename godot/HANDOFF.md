@@ -4,7 +4,36 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**Latest (2026-10-23): PAD R1, a controller's left stick steers under Touch, on
+**Latest (2026-10-25): Remove ads, the Run over's Support the dev banner (IAP R1-R5), on
+`feat/remove-ads`.** User: "Does the current game already have support the dev banner? We should
+add it in the game over screen. This should allow players to purchase something that removes ads
+for the users. Let's have it at 25php." It did not (the roadmap's ₱15 Play Billing item was never
+built). Plan `docs/superpowers/plans/2026-10-25-remove-ads-purchase.md`. Our own `PerilBilling`
+plugin (`android/peril-billing`, `tools/build_billing_plugin.sh`, AARs in
+`godot/addons/peril_billing/bin/`, Play Billing Library 9.1.0); the `Billing` autoload
+(`src/core/billing.gd`; `BillingBackend`, `AndroidBillingBackend`); one one-time product
+`remove_ads`, ₱25 set in Play Console, its price shown as Play formats it. The banner sits at the
+foot of the Run over's left column inside the achievements' scroll (it never grows the sheet),
+plasma, hidden until Play prices the product; states offered / opening / payment pending /
+thank you. Owning it stops every interstitial (and its load); the 3× rewarded ad stays (R2).
+Ownership is Play's, asked at launch and every resume, saved for offline launches; a refund gives
+the ads back (R3). No Restore row (R5). Suite 1092/1092, 79/79 scripts, nothing leaked
+(`test_billing.gd`, `test_support_banner.gd`, mutation-checked); gdformat/gdlint clean. A debug
+export carries `com.android.vending.BILLING` and the plugin (target SDK 36); on the Pixel_10
+emulator the plugin initialized and Play answered `connected=false (3 Billing service unavailable
+on device.)` (its Play Store is not signed in): no banner, no crash, 0 SCRIPT ERROR. No per-frame
+cost (no `_process`/`_draw`; repaints on store events); no device was attached for A55 frame time.
+The branch is `chore/bundle-0.1.26` (PR #19) plus this, so PR #19 merges first.
+**Next:** the user's Play Console steps (VERIFY-ME §IAP Part A: the next `.aab` at code 28 to
+internal testing — Play opens one-time products only after a bundle with BILLING — then product
+`remove_ads` at ₱25, license testers), then the device pass (Part B).
+
+**Merge fixes (2026-10-25).** User: "also fix the merge conflicts". PR #20 (gamepad) had just
+merged into `staging`, leaving PR #19 and #18 conflicting (HANDOFF/VERIFY-ME only). `staging`
+merged into `chore/bundle-0.1.26` (`a7db0d9`) and into `feat/play-games` (`c8f1a35`, suite
+1097/1097 there); both pushed.
+
+**Earlier (2026-10-23): PAD R1, a controller's left stick steers under Touch, on
 `feat/gamepad-stick` (from `staging` at `5c61e75`).** User: "what would be needed to get my odin
 controls working on stick mode" (AYN Odin 2, built-in controller). New `GamepadInput`
 (`src/input/gamepad_input.gd`): a 0.2 radial dead zone, rescaled and capped at 1, the same shape

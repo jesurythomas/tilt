@@ -113,7 +113,11 @@ opted-in testers, before production.
   *(Code-complete 2026-10-13 on `feat/in-game-ads`, rulings ADS R1-R4 in
   `docs/superpowers/plans/2026-10-13-in-game-ads.md`: our own `PerilAds` plugin, test IDs until
   the AdMob app exists; A55 pass and AdMob setup pending, `VERIFY-ME.md` §ADS.)*
-- [ ] **Play Billing** "Remove ads · ₱15" plus "Restore purchase" in Settings. 2–3 days.
+- [x] **Play Billing** "Remove ads · ₱15" plus "Restore purchase" in Settings. 2–3 days.
+  *(Code-complete 2026-10-25 on `feat/remove-ads` as the Run over's Support the dev banner at
+  **₱25** (user), rulings IAP R1-R5 in `docs/superpowers/plans/2026-10-25-remove-ads-purchase.md`;
+  no Restore row (R5: Play's query at every launch restores it). Play Console product and device
+  pass pending, `VERIFY-ME.md` §IAP.)*
 - [x] **UMP consent.** ~1 day. *(Done with the interstitial, ADS R3: form at launch when
   required, Settings → Ad privacy; the GDPR message itself is published in AdMob, §ADS Part B.)*
 - [ ] **Play Games leaderboards (MVP R2).** 3–5 days, after the app exists in Play Console

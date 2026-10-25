@@ -13,6 +13,13 @@ extends Control
 signal milestones_requested
 ## DIVERGENCE(ADS R6): "Watch ad · 3× points" was tapped.
 signal reward_requested
+## DIVERGENCE(IAP R1): the Support the dev banner was tapped while it offers Remove ads.
+signal support_requested
+
+## DIVERGENCE(IAP R1): what the Support the dev banner shows. HIDDEN: no offer (owned before
+## this sheet, or Play has not priced it). WAITING: Play's sheet is opening. PENDING: Play holds
+## an unpaid purchase. THANKS: bought from this sheet.
+enum SupportState { HIDDEN, OFFERED, WAITING, PENDING, THANKS }
 
 const CONTROL_PICKER: PackedScene = preload("res://scenes/control_picker.tscn")
 
@@ -66,6 +73,18 @@ const SHINE_WIDTH: float = 0.9
 const SHINE_ALPHA: float = 0.22
 const SHINE_COLOR: Color = Color("#FFE7C2")
 const REWARD_WAITING_ALPHA: float = 0.45
+## DIVERGENCE(IAP R1, user 2026-10-25: "We should add it in the game over screen ... removes
+## ads ... at 25php"): the banner's words, a heart, and Play's price in a plasma chip; under the
+## achievements, in their scroll, so it never grows the sheet. Content gap 10, text gap 1; while
+## Play's sheet opens or a payment is pending the row dims as the 3× offer does.
+const SUPPORT_TITLE: String = "Support the dev"
+const SUPPORT_SUB: String = "Remove ads for good"
+const SUPPORT_WAITING_SUB: String = "Opening Google Play…"
+const SUPPORT_PENDING_SUB: String = "Payment pending"
+const SUPPORT_THANKS_TITLE: String = "Thank you!"
+const SUPPORT_THANKS_SUB: String = "Ads removed"
+const SUPPORT_GAP: int = 10
+const SUPPORT_TEXT_GAP: int = 1
 
 var _ui_scale: float = 1.0
 var _points_row: HBoxContainer = null
@@ -109,6 +128,15 @@ var _retry: Button = null
 var _bottom: HBoxContainer = null
 var _menu: Button = null
 var _spend: Button = null
+var _support: Button = null
+var _support_state: SupportState = SupportState.HIDDEN
+var _support_row: HBoxContainer = null
+var _support_text: VBoxContainer = null
+var _support_heart: TextureRect = null
+var _support_title: Label = null
+var _support_sub: Label = null
+var _support_price: Label = null
+var _left_foot: VBoxContainer = null
 
 
 func _ready() -> void:
@@ -168,6 +196,7 @@ func set_ui_scale(scale: float) -> void:
 	_retry.custom_minimum_size.y = UiTheme.HERO_TARGET * scale
 	_reward.custom_minimum_size.y = UiTheme.TOUCH_TARGET * scale
 	_scale_reward(scale)
+	_scale_support(scale)
 	_bottom.add_theme_constant_override("separation", UiTheme.px(BOTTOM_GAP, scale))
 	for button: Button in [_menu, _spend]:
 		UiTheme.scale_nav_button(button, scale)
@@ -373,7 +402,14 @@ func _build_left() -> VBoxContainer:
 	# tap's release, so a drag scrolls instead (ACH R3).
 	_milestones.mouse_filter = Control.MOUSE_FILTER_PASS
 	_milestones.gui_input.connect(_on_list_gui_input)
-	clip.add_child(_milestones)
+	# DIVERGENCE(IAP R1): the list, then the Support the dev banner, scroll together.
+	_left_foot = VBoxContainer.new()
+	_left_foot.name = "LeftFoot"
+	_left_foot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_left_foot.mouse_filter = Control.MOUSE_FILTER_PASS
+	_left_foot.add_child(_milestones)
+	_left_foot.add_child(_build_support())
+	clip.add_child(_left_foot)
 	_left.add_child(clip)
 	return _left
 
@@ -474,6 +510,113 @@ func _build_reward() -> Button:
 		node.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_reward.add_child(_reward_row)
 	return _reward
+
+
+## DIVERGENCE(IAP R1): the Support the dev banner: heart, two lines, Play's price. The row
+## ignores the mouse, so the button takes the tap (as the 3× offer).
+func _build_support() -> Button:
+	_support = Button.new()
+	_support.name = "SupportBanner"
+	_support.theme_type_variation = "SupportButton"
+	_support.tooltip_text = "%s · %s" % [SUPPORT_TITLE, SUPPORT_SUB]
+	_support.visible = false
+	_support.pressed.connect(_on_support_pressed)
+	_support_row = HBoxContainer.new()
+	_support_row.name = "SupportContent"
+	_support_row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_support_heart = TextureRect.new()
+	_support_heart.name = "SupportHeart"
+	_support_heart.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+	_support_row.add_child(_support_heart)
+	_support_text = VBoxContainer.new()
+	_support_text.alignment = BoxContainer.ALIGNMENT_CENTER
+	_support_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_support_title = UiTheme.text(SUPPORT_TITLE, "")
+	_support_title.name = "SupportTitle"
+	_support_title.add_theme_font_override("font", UiTheme.sans(UiTheme.Weight.SEMIBOLD))
+	_support_title.add_theme_color_override("font_color", UiTheme.COLOR_TEXT)
+	_support_text.add_child(_support_title)
+	_support_sub = UiTheme.caps(SUPPORT_SUB)
+	_support_sub.name = "SupportSub"
+	_support_text.add_child(_support_sub)
+	_support_row.add_child(_support_text)
+	_support_price = UiTheme.text("", "ChipText")
+	_support_price.name = "SupportPrice"
+	_support_price.add_theme_color_override("font_color", UiTheme.COLOR_VOID)
+	_support_price.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_support_price.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_support_row.add_child(_support_price)
+	for node: Control in [
+		_support_row, _support_heart, _support_text, _support_title, _support_sub, _support_price
+	]:
+		node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_support.add_child(_support_row)
+	return _support
+
+
+func _scale_support(scale: float) -> void:
+	_left_foot.add_theme_constant_override("separation", UiTheme.px(LEFT_GAP, scale))
+	_support.custom_minimum_size.y = UiTheme.TOUCH_TARGET * scale
+	var pad: int = UiTheme.px(UiTheme.BUTTON_PAD_X, scale)
+	_support_row.offset_left = pad
+	_support_row.offset_right = -pad
+	_support_row.add_theme_constant_override("separation", UiTheme.px(SUPPORT_GAP, scale))
+	_support_text.add_theme_constant_override("separation", UiTheme.px(SUPPORT_TEXT_GAP, scale))
+	_support_title.add_theme_font_size_override("font_size", UiTheme.px(UiTheme.LABEL_SIZE, scale))
+	_support_price.add_theme_stylebox_override(
+		"normal",
+		UiTheme.padded(
+			UiTheme.flat(
+				UiTheme.COLOR_PLASMA, UiTheme.COLOR_PLASMA, UiTheme.px(UiTheme.COST_RADIUS, scale)
+			),
+			UiTheme.px(BADGE_PAD_X, scale),
+			UiTheme.px(BADGE_PAD_Y, scale)
+		)
+	)
+	_paint_support(scale)
+
+
+## DIVERGENCE(IAP R1): GameRoot's word on the banner; `price` is Play's ("₱25.00").
+func set_support_offer(state: SupportState, price: String) -> void:
+	_support_state = state
+	_support_price.text = price
+	_paint_support(_ui_scale)
+
+
+## What the banner shows now (tests).
+func support_state() -> SupportState:
+	return _support_state
+
+
+func _paint_support(scale: float) -> void:
+	var is_thanks: bool = _support_state == SupportState.THANKS
+	_support.visible = _support_state != SupportState.HIDDEN
+	_support_title.text = SUPPORT_THANKS_TITLE if is_thanks else SUPPORT_TITLE
+	match _support_state:
+		SupportState.WAITING:
+			_support_sub.text = SUPPORT_WAITING_SUB
+		SupportState.PENDING:
+			_support_sub.text = SUPPORT_PENDING_SUB
+		SupportState.THANKS:
+			_support_sub.text = SUPPORT_THANKS_SUB
+		_:
+			_support_sub.text = SUPPORT_SUB
+	_support_price.visible = (
+		_support_state == SupportState.OFFERED or _support_state == SupportState.WAITING
+	)
+	_support_heart.texture = UiTheme.svg_texture(
+		UiTheme.ICON_CHECK if is_thanks else UiTheme.ICON_HEART, scale
+	)
+	var is_dim: bool = (
+		_support_state == SupportState.WAITING or _support_state == SupportState.PENDING
+	)
+	_support_row.modulate.a = REWARD_WAITING_ALPHA if is_dim else 1.0
+
+
+## Only an open offer buys; the other states ignore the tap.
+func _on_support_pressed() -> void:
+	if _support_state == SupportState.OFFERED:
+		support_requested.emit()
 
 
 func _scale_reward(scale: float) -> void:

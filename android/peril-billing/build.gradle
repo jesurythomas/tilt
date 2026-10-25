@@ -1,0 +1,27 @@
+// The PerilBilling Godot Android plugin (ruling IAP R1). Build with tools/build_billing_plugin.sh,
+// which copies the two AARs into godot/addons/peril_billing/bin/. The Billing Library is
+// compileOnly: an AAR file carries no dependencies, so
+// godot/addons/peril_billing/peril_billing_plugin.gd hands the same coordinate to the game's
+// gradle build. Keep the version in step with that file.
+plugins {
+    id 'com.android.library' version '8.6.1'
+}
+
+android {
+    namespace 'com.jtg.perilpoint.billing'
+    compileSdk 36
+
+    defaultConfig {
+        minSdk 24
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    compileOnly 'org.godotengine:godot:4.7.2.stable'
+    compileOnly 'com.android.billingclient:billing:9.1.0'
+}

@@ -1256,3 +1256,38 @@ Play build (`ph.newzenith.perilpoint`); both show as Peril Point. Launch the tes
 - [ ] (PAD R4) If you have a PlayStation or Switch pad, pair it: the badges read × / L1 / R1 or
       A / L / R. On a Switch pad the button printed A dashes and accepts, and B goes back.
 - [ ] (PAD R4) Odin Settings → controller → Xbox mode: the badges still read A / LB / RB.
+
+## IAP R1-R5 — Remove ads, the Support the dev banner (2026-10-25, branch `feat/remove-ads`)
+
+Plan `docs/superpowers/plans/2026-10-25-remove-ads-purchase.md`. The banner shows only in a build
+Play knows (`ph.newzenith.perilpoint`, installed from a Play testing track) once the product
+exists; a sideloaded `com.jtg.perilpoint` APK never shows it.
+
+### Part A — Play Console (you do this once)
+
+1. Build and upload the next bundle (code 28) to **Internal testing**: I run
+   `PERIL_AAB=1 tools/release.sh`. It carries the `BILLING` permission; Play opens the
+   one-time products page only after such a bundle is uploaded.
+2. Monetize with Play → Products → **One-time products** → Create: Product ID **`remove_ads`**
+   (exactly; it cannot be changed later), name "Remove ads", description "Removes the ads between
+   runs. Thank you for supporting the game!", price **₱25.00** (PHP; let Play convert the other
+   countries). Save, then **Activate**. If Play refuses ₱25 as below its minimum, tell me.
+3. Settings → **License testing** → add the Google account on the A55 (purchases by license
+   testers use test cards and are never charged). Add the same account as an internal tester.
+4. Payments profile: a merchant account must be set up for paid products (Play Console → Setup
+   → Payments profile), if not done yet.
+
+### Part B — on the A55, from the internal-testing install
+
+- [ ] (IAP R1) Die in a run: the left column shows the plasma **Support the dev** banner with
+      "₱25.00" under the stats (under the achievements when the run earned some; scroll to it).
+- [ ] Tap it: "OPENING GOOGLE PLAY…", then Play's sheet. Back out: the banner offers again.
+- [ ] Buy with the test card "Test card, always approves": the banner reads **Thank you!** /
+      ADS REMOVED. Retry: no interstitial from now on, the 3× offer still shows (IAP R2), and the
+      next Run over has no banner.
+- [ ] (IAP R4) Buy with "Test card, approves after a delay" (on a second test account, or after
+      a refund): the banner reads PAYMENT PENDING; ads continue until it approves, then stop.
+- [ ] (IAP R3) Uninstall, reinstall from Play, launch online: still ad-free, no banner.
+- [ ] (IAP R3) Refund the test order in Play Console (Order management → Refund, revoke): after
+      the next launch the ads and the banner come back.
+- [ ] Frame time on the Run over with the banner: `tools/frametime.sh` as usual.
