@@ -88,13 +88,18 @@ opted-in testers, before production.
 - [x] **Haptics** on a nuke, a death and a close call; add a Settings toggle. ~0.5 day.
   Done: `src/core/haptics.gd` autoload, `GameEvents.close_call`, "Vibration" switch,
   `permissions/vibrate=true`; pulse lengths still to tune on the A55 (VERIFY-ME §haptics).
-- [ ] **AAB export + Play App Signing.** Use a real upload key (not the dev key). The
+- [x] **AAB export + Play App Signing.** Use a real upload key (not the dev key). The
   preset's `gradle_build/export_format` must become AAB. ~0.5 day.
   Code done: `PERIL_AAB=1 tools/release.sh` flips the preset to AAB for one run and
   restores it (checked: a dev-key AAB exported, `jar verified`, arm64 libs and
   `libperil` inside). `tools/make-upload-key.sh` makes the real upload key. Interim upload key made
   2026-09-29 and checked with a signed AAB; **at deployment:** replace the key, back it up
   off-machine, enrol the app in Play App Signing when the first AAB goes up.
+  *Done 2026-10-14: the app is in Play App Signing (Google-generated key) and its upload key is
+  the user's `perilpoint-upload.jks` (New Zenith, SHA-1
+  `25:14:17:AE:C1:C8:F9:81:26:98:E9:1E:66:75:5C:6F:F7:6D:39:9A`, backed up on their Drive), now
+  `~/.android/perilpoint-upload.env`, the default for `PERIL_AAB=1`. The interim key is unused
+  for Play; Play rejected a 0.1.26 signed with it.*
 - [x] **Mode renames (MVP R4)**, done 2026-09-29: Standard → Survival, Gauntlet → Corridor,
   Code Red → Overdrive (the names the roadmap suggested; the user said "yes"). Strings only:
   the `GameMode` ids, goal ids, metrics and save keys are unchanged. A55 check pending.
@@ -108,11 +113,27 @@ opted-in testers, before production.
   *(Code-complete 2026-10-13 on `feat/in-game-ads`, rulings ADS R1-R4 in
   `docs/superpowers/plans/2026-10-13-in-game-ads.md`: our own `PerilAds` plugin, test IDs until
   the AdMob app exists; A55 pass and AdMob setup pending, `VERIFY-ME.md` §ADS.)*
-- [ ] **Play Billing** "Remove ads · ₱15" plus "Restore purchase" in Settings. 2–3 days.
+- [x] **Play Billing** "Remove ads · ₱15" plus "Restore purchase" in Settings. 2–3 days.
+  *(Code-complete 2026-10-25 on `feat/remove-ads` as the Run over's Support the dev banner at
+  **₱25** (user), rulings IAP R1-R5 in `docs/superpowers/plans/2026-10-25-remove-ads-purchase.md`;
+  no Restore row (R5: Play's query at every launch restores it). Play Console product and device
+  pass pending, `VERIFY-ME.md` §IAP.)*
 - [x] **UMP consent.** ~1 day. *(Done with the interstitial, ADS R3: form at launch when
   required, Settings → Ad privacy; the GDPR message itself is published in AdMob, §ADS Part B.)*
 - [ ] **Play Games leaderboards (MVP R2).** 3–5 days, after the app exists in Play Console
-  with its signing key registered.
+  with its signing key registered. **Deferred 2026-10-14** (user: "We dont need to add
+  leaderboards for now. We can add that in at a later date"). *(Built and parked on
+  `feat/play-games`, PR #18 as a draft: rulings PGS R1-R7 in
+  `docs/superpowers/plans/2026-10-14-play-games-leaderboards.md`; to resume, rebase it on
+  `staging`, then that branch's VERIFY-ME §PGS.)*
+  *(2026-10-14: GCP project `peril-point-jtg`; Games/Drive APIs on; consent screen set up in
+  the console. PGS needs one **Android** OAuth client there, package `ph.newzenith.perilpoint`,
+  SHA-1 from Play Console's App signing page; no Web client, as there is no game server. The
+  App signing key (Google-generated) has SHA-1 `ED:48:D2:DA:C9:F8:CF:0F:AE:EB:86:5C:DA:E0:3E:17:54:76:51:AB`,
+  read 2026-10-14 off the A55's Play install of 0.1.3 (code 4, stamp
+  `STAMP_TYPE_DISTRIBUTION_APK`). The preset still builds `com.jtg.perilpoint`, so sideloaded
+  builds can't sign in until the preset package matches and a second client carries the local
+  key's SHA-1 (`32:B2:72:54:90:D5:C6:17:4E:4E:D5:65:B1:2E:C9:BC:19:C2:65:AD` on 0.1.25).)*
 - [x] *(if approved)* **Clickable power-ups (MVP R3).** 3–5 days; +0.5–1 day for the
   rewarded ad. *(Done as ITEM R1/R2 with the dash, 2026-10-14, branch `feat/dash-and-abilities`.)*
 

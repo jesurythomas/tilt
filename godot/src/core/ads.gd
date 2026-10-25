@@ -140,8 +140,10 @@ func note_run_end(seconds: float, was_first_run: bool) -> void:
 
 
 ## True when a break now would show an ad: consent, a loaded ad, no ad still out (ADS R12),
-## and the pacing (ADS R5).
+## the pacing (ADS R5), and no Remove ads purchase (IAP R2).
 func is_break_due() -> bool:
+	if Billing.is_ads_removed:
+		return false
 	if not can_request_ads or not is_ad_loaded or _showing != Showing.NONE:
 		return false
 	return AdsConfig.is_every_break() or pacing.is_due()
@@ -214,11 +216,12 @@ func _begin_show(action: Callable, showing: Showing) -> void:
 	rewarded_changed.emit()
 
 
-## Loads whichever of the interstitial and the rewarded ad is missing.
+## Loads whichever of the interstitial and the rewarded ad is missing. DIVERGENCE(IAP R2): a
+## player who bought Remove ads gets no interstitial loaded; the rewarded ad still loads.
 func _request_load() -> void:
 	if not can_request_ads or _pending.is_valid():
 		return
-	if not is_ad_loaded and not _is_loading:
+	if not is_ad_loaded and not _is_loading and not Billing.is_ads_removed:
 		_is_loading = true
 		backend.load_interstitial(AdsConfig.interstitial_id())
 	if not is_rewarded_loaded and not _is_loading_rewarded:

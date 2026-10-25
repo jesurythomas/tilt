@@ -104,6 +104,8 @@ var _bounds: Vector2 = Vector2.ZERO
 var _perf_measuring: bool = false
 ## DIVERGENCE(ADS R6): true from "Watch ad · 3× points" until its ad is done.
 var _is_watching_reward: bool = false
+## DIVERGENCE(IAP R1): the run whose Run over sold Remove ads; its banner says thank you.
+var _thanked_run: int = -1
 
 @onready var _grid_layer: GridLayer = %GridLayer
 @onready var _entity_layer: EntityLayer = %EntityLayer
@@ -234,6 +236,10 @@ func _ready() -> void:
 	# DIVERGENCE(ADS R6): the Run over offers a rewarded ad while one is ready.
 	Ads.rewarded_changed.connect(_refresh_reward_offer)
 	Ads.start.call_deferred()
+	# DIVERGENCE(IAP R1): the Run over's Support the dev banner sells Remove ads.
+	Billing.changed.connect(_refresh_support_offer)
+	Billing.purchased.connect(_on_remove_ads_purchased)
+	Billing.start.call_deferred()
 
 	resize_canvas()
 	get_viewport().size_changed.connect(resize_canvas)
@@ -979,6 +985,42 @@ func _refresh_reward_offer() -> void:
 	_hud.set_reward_offer(is_reward_offered() or is_waiting, is_waiting)
 
 
+## DIVERGENCE(IAP R1): what the Run over's Support the dev banner shows now.
+func support_state() -> RunOverSheet.SupportState:
+	var state: RunOverSheet.SupportState = RunOverSheet.SupportState.HIDDEN
+	if _state.phase != Types.GamePhase.GAME_OVER:
+		pass
+	elif Billing.is_ads_removed:
+		if _thanked_run == _run_controller.run_number:
+			state = RunOverSheet.SupportState.THANKS
+	elif Billing.is_pending:
+		state = RunOverSheet.SupportState.PENDING
+	elif Billing.is_offered():
+		state = (
+			RunOverSheet.SupportState.WAITING
+			if Billing.is_buying
+			else RunOverSheet.SupportState.OFFERED
+		)
+	return state
+
+
+## DIVERGENCE(IAP R1): the banner's tap: Play's purchase sheet for Remove ads. Held while an
+## ad is on its way, as the Armory is (ADS R14).
+func buy_remove_ads() -> void:
+	if Ads.is_break_pending() or support_state() != RunOverSheet.SupportState.OFFERED:
+		return
+	Billing.buy_remove_ads()
+
+
+func _on_remove_ads_purchased() -> void:
+	_thanked_run = _run_controller.run_number
+	_refresh_support_offer()
+
+
+func _refresh_support_offer() -> void:
+	_hud.set_support_offer(support_state(), Billing.price_text)
+
+
 ## DIVERGENCE(HTP R1): opens the How to play guide at its first page.
 func open_how_to_play() -> void:
 	_how_to_play.open()
@@ -1223,6 +1265,7 @@ func _on_run_ended(_final_score: int, stats: Types.GameStats) -> void:
 	Ads.note_run_end(stats.survival_time, _run_controller.is_first_run)  # DIVERGENCE(ADS R2)
 	_state.phase = Types.GamePhase.GAME_OVER
 	_refresh_reward_offer()  # DIVERGENCE(ADS R6)
+	_refresh_support_offer()  # DIVERGENCE(IAP R1)
 	_effect_layer.set_banner_shown(false)
 	_goals_hud.render()  # PORT: web/src/tilt-to-live/TiltGame.ts:2146
 	_menu.render()  # PORT: web/src/tilt-to-live/TiltGame.ts:2147

@@ -4,7 +4,36 @@ Rewritten at every module stop. Written for a session with zero context.
 
 ## State
 
-**Latest (2026-10-23): PAD R1, a controller's left stick steers under Touch, on
+**Latest (2026-10-25): Remove ads, the Run over's Support the dev banner (IAP R1-R5), on
+`feat/remove-ads`.** User: "Does the current game already have support the dev banner? We should
+add it in the game over screen. This should allow players to purchase something that removes ads
+for the users. Let's have it at 25php." It did not (the roadmap's ₱15 Play Billing item was never
+built). Plan `docs/superpowers/plans/2026-10-25-remove-ads-purchase.md`. Our own `PerilBilling`
+plugin (`android/peril-billing`, `tools/build_billing_plugin.sh`, AARs in
+`godot/addons/peril_billing/bin/`, Play Billing Library 9.1.0); the `Billing` autoload
+(`src/core/billing.gd`; `BillingBackend`, `AndroidBillingBackend`); one one-time product
+`remove_ads`, ₱25 set in Play Console, its price shown as Play formats it. The banner sits at the
+foot of the Run over's left column inside the achievements' scroll (it never grows the sheet),
+plasma, hidden until Play prices the product; states offered / opening / payment pending /
+thank you. Owning it stops every interstitial (and its load); the 3× rewarded ad stays (R2).
+Ownership is Play's, asked at launch and every resume, saved for offline launches; a refund gives
+the ads back (R3). No Restore row (R5). Suite 1092/1092, 79/79 scripts, nothing leaked
+(`test_billing.gd`, `test_support_banner.gd`, mutation-checked); gdformat/gdlint clean. A debug
+export carries `com.android.vending.BILLING` and the plugin (target SDK 36); on the Pixel_10
+emulator the plugin initialized and Play answered `connected=false (3 Billing service unavailable
+on device.)` (its Play Store is not signed in): no banner, no crash, 0 SCRIPT ERROR. No per-frame
+cost (no `_process`/`_draw`; repaints on store events); no device was attached for A55 frame time.
+The branch is `chore/bundle-0.1.26` (PR #19) plus this, so PR #19 merges first.
+**Next:** the user's Play Console steps (VERIFY-ME §IAP Part A: the next `.aab` at code 28 to
+internal testing — Play opens one-time products only after a bundle with BILLING — then product
+`remove_ads` at ₱25, license testers), then the device pass (Part B).
+
+**Merge fixes (2026-10-25).** User: "also fix the merge conflicts". PR #20 (gamepad) had just
+merged into `staging`, leaving PR #19 and #18 conflicting (HANDOFF/VERIFY-ME only). `staging`
+merged into `chore/bundle-0.1.26` (`a7db0d9`) and into `feat/play-games` (`c8f1a35`, suite
+1097/1097 there); both pushed.
+
+**Earlier (2026-10-23): PAD R1, a controller's left stick steers under Touch, on
 `feat/gamepad-stick` (from `staging` at `5c61e75`).** User: "what would be needed to get my odin
 controls working on stick mode" (AYN Odin 2, built-in controller). New `GamepadInput`
 (`src/input/gamepad_input.gd`): a 0.2 radial dead zone, rescaled and capped at 1, the same shape
@@ -23,6 +52,47 @@ dashes, for one hand). Rulings in the plan. Suite 1062/1062, 77/77 scripts, noth
 To drive the Odin's controller from adb, write to `/dev/input/event8` with `sendevent` (BTN_SOUTH
 304, Start 315, L3 317, D-pad 544-547); `adb shell input gamepad` does not reach Godot as a
 joypad. Next: the user's Odin 2 pass per VERIFY-ME §PAD (R1-R5).
+
+**Earlier (2026-10-14, evening): the 0.1.26 store bundle (built before PR #20, so no gamepad) from `staging`.** User: "From staging,
+create a new app bundle". Branch `chore/bundle-0.1.26` is `staging` (`5c61e75`, PR #17 merged)
+plus three console notes (this GCP project, the Play Games OAuth client, the Play app signing
+SHA-1 `ED:48:D2:DA:C9:F8:CF:0F:AE:EB:86:5C:DA:E0:3E:17:54:76:51:AB`), `release.sh`'s store
+package (`PERIL_AAB=1` now exports `ph.newzenith.perilpoint`, the Play listing's; APKs keep
+`com.jtg.perilpoint`; ruling PGS R6) and version 0.1.26, code 27. Built in a worktree, because
+the main tree held the user's uncommitted deletion of `godot/assets/icon/icon.png`:
+`godot/build/peril-point-0.1.26.aab` (42 MB, gitignored; a copy is in the main tree's
+`godot/build/`), jar verified. Inside: arm64 `libgodot_android` and `libperil`, the PerilAds
+plugin with **AdMob's test app ID** (real AdMob IDs are not set yet, VERIFY-ME §ADS Part B, so
+it serves only test ads), no Play Games. A fresh worktree's first export logs one `Cannot set
+object script` error; the second logs none, so export twice there. Not installed anywhere (an
+`.aab` goes through Play).
+
+**The Play upload key (2026-10-14).** Play rejected the first 0.1.26, signed with our interim
+`CN=Peril Point upload` key (`32:90:37:AE…`): the app's upload key is SHA-1
+`25:14:17:AE:C1:C8:F9:81:26:98:E9:1E:66:75:5C:6F:F7:6D:39:9A`. The user had it on Google Drive:
+`perilpoint-upload.jks` (PKCS12, alias `perilpoint-upload`, `CN=Peril Point, O=New Zenith, C=PH`,
+made 2026-10-11), now at `~/.android/perilpoint-upload.jks` with `~/.android/perilpoint-upload.env`
+(I never printed the password). `PERIL_AAB=1 tools/release.sh` now signs with it by default;
+APKs keep the dev key. The `peril-upload` key from `make-upload-key.sh` is not Play's and signs
+nothing that goes to Play. 0.1.26 was rebuilt with the Play key; against the rejected bundle
+only the per-export random `node_ids` in 20 scenes (and the pack's index of them) differ.
+**Next:** the user uploads `peril-point-0.1.26.aab` to a Play testing track (code 27 must be above
+every code Play has); the user merges this branch's PR; the next build uses code 28.
+
+**Parked (2026-10-14): Play Games leaderboards (MVP R2).** User: "We dont need to add
+leaderboards for now. We can add that in at a later date". Built (rulings PGS R1-R7, plan
+`docs/superpowers/plans/2026-10-14-play-games-leaderboards.md`); the code lives only on
+`feat/play-games`, PR #18 as a draft. To resume: rebase it on `staging`, then its VERIFY-ME
+§PGS.
+
+**Also (2026-10-14, 13:48): a Google Cloud project for Peril Point.** User: "create a new google
+cloud project for Peril Point". `peril-point-jtg` ("Peril Point", number 734361789228; ID
+`peril-point` was taken), owned by jtgadiane@gmail.com (user: "email is jtgadiane"), no
+organization, no billing; Games, Games Management and Drive APIs enabled for Play Games'
+OAuth consent screen, which the user set up in the console. gcloud: a separate
+configuration `peril-point` (account + project) — run gcloud with `--configuration=peril-point`;
+the `default` configuration (jg@blackcapitaltechnology.com, `garage-hub-jtg-8b1fe`) is untouched.
+It is the project for VERIFY-ME §Part B's Firebase step 2.
 
 **Earlier (2026-10-14, 13:35): Copilot's PR #12-#15 comments, on `review/copilot-pr-12-15`
 (from `staging` at `507e180`, where PR #16 is merged).** User: "copilot left some comments on the

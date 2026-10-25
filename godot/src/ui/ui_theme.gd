@@ -55,6 +55,8 @@ const OVER_PLAY_OUTLINE: int = 6
 const FILL_ALPHA: float = 0.12
 ## DIVERGENCE(ARMORY R6): EquipButton's pressed wash.
 const EQUIP_PRESSED_ALPHA: float = 0.24
+## DIVERGENCE(IAP R1): the Support the dev banner's plasma edge, softer than a full line.
+const SUPPORT_EDGE_ALPHA: float = 0.6
 const CHIP_BORDER_ALPHA: float = 0.45
 const ICON_BUTTON_ALPHA: float = 0.85
 const EQUIPPED_FILL_ALPHA: float = 0.10
@@ -266,6 +268,14 @@ const ICON_RETRY: String = (
 	+ '<path d="M12.6 9.2 A4.8 4.8 0 1 1 11.2 4.4" stroke="#08090E" stroke-width="1.8" '
 	+ 'stroke-linecap="round"/><path d="M11.8 1.8 L11.6 4.9 L8.5 4.7" stroke="#08090E" '
 	+ 'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+)
+## DIVERGENCE(IAP R1): the Run over's Support the dev banner — a plasma heart.
+const ICON_HEART: String = (
+	'<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 16 16" fill="none">'
+	+ '<path d="M8 13.5 C4.5 11 2 8.8 2 6.2 A3 3 0 0 1 8 4.6 A3 3 0 0 1 14 6.2 '
+	+ 'C14 8.8 11.5 11 8 13.5 Z" '
+	+ 'fill="#A78BFA" fill-opacity="0.25" stroke="#A78BFA" stroke-width="1.4" '
+	+ 'stroke-linejoin="round"/></svg>'
 )
 ## Switch track + knob, 48×28. DIVERGENCE(UI-SYSTEM): Pause.dc.html — p-sfx (on), p-mus (off)
 const SWITCH_ON: String = (
@@ -601,6 +611,26 @@ static func _build_buttons(theme: Theme, scale: float) -> void:
 		padded(flat(tint(COLOR_FLARE, FILL_ALPHA), COLOR_FLARE, r), pad, 0.0),
 		padded(flat(tint(COLOR_FLARE, EQUIP_PRESSED_ALPHA), COLOR_FLARE, r), pad, 0.0),
 		padded(flat(none, LINE_DISABLED, r), pad, 0.0)
+	)
+	# DIVERGENCE(IAP R1): the Run over's Support the dev banner, in plasma (the Armory's
+	# upgrade colour) so it reads apart from the flare 3× offer and the ion Retry.
+	_button(
+		theme,
+		"SupportButton",
+		sans(Weight.SEMIBOLD),
+		label_size,
+		COLOR_TEXT,
+		padded(
+			flat(tint(COLOR_PLASMA, FILL_ALPHA), tint(COLOR_PLASMA, SUPPORT_EDGE_ALPHA), r),
+			pad,
+			0.0
+		),
+		padded(flat(tint(COLOR_PLASMA, EQUIP_PRESSED_ALPHA), COLOR_PLASMA, r), pad, 0.0),
+		padded(
+			flat(tint(COLOR_PLASMA, FILL_ALPHA), tint(COLOR_PLASMA, SUPPORT_EDGE_ALPHA), r),
+			pad,
+			0.0
+		)
 	)
 	# DIVERGENCE(UI-SYSTEM): System.dc.html — IconButton (panel 85%, line 1px, r 6);
 	# ArmoryWeapons.dc.html Back = transparent + line; Pause.dc.html Calibrate =

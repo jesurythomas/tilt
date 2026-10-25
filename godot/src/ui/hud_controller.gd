@@ -166,6 +166,7 @@ func _ready() -> void:
 	if _run_over != null:
 		_run_over.milestones_requested.connect(_on_milestones_requested)
 		_run_over.reward_requested.connect(_on_reward_requested)  # DIVERGENCE(ADS R6)
+		_run_over.support_requested.connect(_on_support_requested)  # DIVERGENCE(IAP R1)
 	if _restart_button == null:
 		_restart_button = find_child("RestartButton", true, false) as Button
 
@@ -806,6 +807,18 @@ func _on_reward_requested() -> void:
 	var root: GameRoot = get_tree().get_first_node_in_group("game_root") as GameRoot
 	if root != null:
 		root.watch_reward_ad()
+
+
+## DIVERGENCE(IAP R1): GameRoot's word on the Run over's Support the dev banner.
+func set_support_offer(state: RunOverSheet.SupportState, price: String) -> void:
+	if _run_over != null:
+		_run_over.set_support_offer(state, price)
+
+
+func _on_support_requested() -> void:
+	var root: GameRoot = get_tree().get_first_node_in_group("game_root") as GameRoot
+	if root != null:
+		root.buy_remove_ads()
 
 
 func _on_armory_pressed() -> void:
